@@ -384,6 +384,20 @@
   border: 0;
 }
 
+.backtest-pay-status {
+  margin: 10px 2px 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.backtest-pay-status.is-error {
+  color: #ff6b8a;
+}
+
+.backtest-pay-status.is-success {
+  color: #78e7ae;
+}
+
 .backtest-promo-anchor {
   position: relative;
   display: flex;
@@ -533,7 +547,7 @@
   font-size: 0.96rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
   text-align: left;
 }
@@ -620,12 +634,15 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  width: fit-content;
+  margin: 0 auto;
 }
 
 .backtest-queue-grid-row {
   position: relative;
   display: flex;
   align-items: stretch;
+  justify-content: flex-start;
   gap: 0.6rem;
 }
 
@@ -640,8 +657,8 @@
 }
 
 .backtest-queue-grid-row .backtest-queue-item {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 12rem;
+  width: 12rem;
   scroll-snap-align: none;
 }
 
@@ -754,8 +771,9 @@
 }
 
 .backtest-queue-grid-row .backtest-queue-card {
+  width: 100%;
   min-width: 0;
-  max-width: none;
+  max-width: 12rem;
 }
 
 .backtest-queue-pair {
@@ -861,7 +879,6 @@
 .backtest-queue-priority-value {
   font-size: 0.62rem;
   font-weight: 700;
-  text-transform: lowercase;
   color: var(--text-primary);
   white-space: nowrap;
 }
@@ -873,10 +890,16 @@
   gap: 0.35rem;
 }
 
-.backtest-queue-bid-input {
+.backtest-queue-bid-input-wrap {
+  position: relative;
   flex: 1;
   min-width: 0;
-  padding: 0.28rem 0.45rem;
+}
+
+.backtest-queue-bid-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.28rem 2.3rem 0.28rem 0.45rem;
   border: 1px solid var(--border-color);
   border-radius: 7px;
   background: var(--bg-tertiary);
@@ -890,6 +913,19 @@
 .backtest-queue-bid-input:focus {
   outline: none;
   border-color: #ff69b4;
+}
+
+.backtest-queue-bid-suffix {
+  position: absolute;
+  right: 0.42rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  pointer-events: none;
+  user-select: none;
 }
 
 .backtest-queue-bid-btn {

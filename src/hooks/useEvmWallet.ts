@@ -1,19 +1,21 @@
 import { useAccount, useDisconnect, useChainId, useSwitchChain, useConnect } from 'wagmi'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
-import { mainnet, arbitrum, sepolia } from 'wagmi/chains'
+import { mainnet, base, arbitrum, sepolia, baseSepolia } from 'wagmi/chains'
 import { useMemo, useCallback, useState, useEffect } from 'react'
 
 const chainNames: Record<number, string> = {
   [mainnet.id]: 'Ethereum',
+  [base.id]: 'Base',
   [arbitrum.id]: 'Arbitrum',
   [sepolia.id]: 'Sepolia',
+  [baseSepolia.id]: 'Base Sepolia',
 }
 
 export function useEvmWallet() {
   const { address, isConnected, isConnecting, connector } = useAccount()
   const { disconnect } = useDisconnect()
   const chainId = useChainId()
-  const { switchChain } = useSwitchChain()
+  const { switchChain, switchChainAsync } = useSwitchChain()
   const { openConnectModal } = useConnectModal()
   const { connectors, connect: wagmiConnect } = useConnect()
   const [installedConnectors, setInstalledConnectors] = useState<string[]>([])
@@ -48,8 +50,10 @@ export function useEvmWallet() {
   const supportedChains = useMemo(
     () => [
       { id: mainnet.id, name: 'Ethereum', icon: '⟠' },
+      { id: base.id, name: 'Base', icon: '🔵' },
       { id: arbitrum.id, name: 'Arbitrum', icon: '🔷' },
       { id: sepolia.id, name: 'Sepolia', icon: '🧪' },
+      { id: baseSepolia.id, name: 'Base Sepolia', icon: '🔷' },
     ],
     []
   )
@@ -74,6 +78,16 @@ export function useEvmWallet() {
       }
     },
     [switchChain]
+  )
+
+  const switchToChainAsync = useCallback(
+    async (targetChainId: number) => {
+      if (!switchChainAsync) {
+        throw new Error('This wallet does not support switching networks from the app.')
+      }
+      await switchChainAsync({ chainId: targetChainId })
+    },
+    [switchChainAsync]
   )
 
   const connect = useCallback(() => {
@@ -106,5 +120,6 @@ export function useEvmWallet() {
     connectWithConnector,
     disconnect,
     switchToChain,
+    switchToChainAsync,
   }
 }

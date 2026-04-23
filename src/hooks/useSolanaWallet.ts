@@ -3,6 +3,15 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { useMemo, useCallback } from 'react'
 import { useWalletContext } from '../providers/AppWalletProvider'
 
+function detectClusterFromRpcEndpoint(endpoint?: string): 'mainnet-beta' | 'testnet' | 'devnet' | null {
+  if (!endpoint) return null
+  const e = endpoint.toLowerCase()
+  if (e.includes('devnet')) return 'devnet'
+  if (e.includes('testnet')) return 'testnet'
+  if (e.includes('mainnet')) return 'mainnet-beta'
+  return null
+}
+
 export function useSolanaWallet() {
   const {
     publicKey,
@@ -27,11 +36,32 @@ export function useSolanaWallet() {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }, [address])
 
-  const clusterName = useMemo(() => {
-    if (solanaCluster === 'mainnet-beta') return 'Mainnet'
-    if (solanaCluster === 'testnet') return 'Testnet'
+  const walletDetectedCluster = useMemo(() => {
+    if (!wallet) return null
+
+    // Prefer wallet-selected RPC endpoint when wallet exposes it (Phantom/Solflare and similar).
+    const globalAny = window as unknown as {
+      phantom?: { solana?: { connection?: { rpcEndpoint?: string } } }
+      solflare?: { connection?: { rpcEndpoint?: string } }
+    }
+
+    const walletName = wallet.adapter.name.toLowerCase()
+    if (walletName.includes('phantom')) {
+      return detectClusterFromRpcEndpoint(globalAny.phantom?.solana?.connection?.rpcEndpoint)
+    }
+    if (walletName.includes('solflare')) {
+      return detectClusterFromRpcEndpoint(globalAny.solflare?.connection?.rpcEndpoint)
+    }
+
+    return null
+  }, [wallet])
+
+  const effectiveCluster = walletDetectedCluster ?? solanaCluster
+  const effectiveClusterName = useMemo(() => {
+    if (effectiveCluster === 'mainnet-beta') return 'Mainnet'
+    if (effectiveCluster === 'testnet') return 'Testnet'
     return 'Devnet'
-  }, [solanaCluster])
+  }, [effectiveCluster])
 
   const supportedClusters = useMemo(
     () => [
@@ -84,8 +114,8 @@ export function useSolanaWallet() {
     publicKey,
     isConnected: connected,
     isConnecting: connecting,
-    cluster: solanaCluster,
-    clusterName,
+    cluster: effectiveCluster,
+    clusterName: effectiveClusterName,
     wallet,
     wallets: allWallets,
     detectedWallets,

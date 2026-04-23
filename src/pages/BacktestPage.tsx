@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './BacktestPage.css'
 
 const BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
 const QUOTE_ASSETS = ['USDC', 'USDT', 'USD', 'SOL'] as const
 
-const PAY_METHODS = ['x402', 'kirapay', 'direct_transfer'] as const
+const PAY_METHODS = ['x402', 'kirapay'] as const
 type PayMethod = (typeof PAY_METHODS)[number]
 const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   x402: 'x402',
   kirapay: 'kirapay',
-  direct_transfer: 'solana tx',
 }
 
 type BacktestQueueItem = {
@@ -25,14 +24,43 @@ type BacktestQueueItem = {
   usdcPaid: string
 }
 
+type ApiQueueItem = {
+  id: string
+  base_asset: string
+  quote_asset: string
+  period_start: string
+  period_end: string
+  base_balance_start: string | number
+  quote_balance_start: string | number
+  priority_usdc: string | number
+  creator_address: string
+}
+
 function shortenCreatorAddress(addr: string, head = 6, tail = 4) {
   const t = addr.trim()
   if (t.length <= head + tail + 1) return t
   return `${t.slice(0, head)}…${t.slice(-tail)}`
 }
 
-/** Demo queue; replace with API data when available */
-const BACKTEST_QUEUE: BacktestQueueItem[] = [
+function toDateOnly(value: string) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10)
+  return value.slice(0, 10)
+}
+
+function toAmountString(value: string | number, fractionDigits = 8) {
+  const n = Number(value)
+  if (Number.isFinite(n)) {
+    return n.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: fractionDigits,
+    })
+  }
+  return String(value)
+}
+
+const DEMO_BACKTEST_QUEUE: BacktestQueueItem[] = [
   {
     id: 'q1',
     base: 'ETH',
@@ -193,6 +221,32 @@ function chunkArray<T>(arr: T[], size: number) {
   return out
 }
 
+function formatBacktestApiError(data: unknown, status: number): string {
+  if (typeof data === 'string' && data.trim()) return data.trim()
+  if (data && typeof data === 'object') {
+    const o = data as Record<string, unknown>
+    const detail = o.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) => {
+          if (typeof item === 'string') return item
+          if (item && typeof item === 'object' && 'msg' in item && typeof (item as { msg: unknown }).msg === 'string') {
+            return (item as { msg: string }).msg
+          }
+          try {
+            return JSON.stringify(item)
+          } catch {
+            return String(item)
+          }
+        })
+        .join('; ')
+    }
+    if (typeof o.message === 'string') return o.message
+  }
+  return `Request failed (${status})`
+}
+
 function BacktestPage() {
   const end = new Date()
   const start = new Date()
@@ -205,16 +259,18 @@ function BacktestPage() {
   const [baseAmount, setBaseAmount] = useState('')
   const [quoteAmount, setQuoteAmount] = useState('')
   const [payBusy, setPayBusy] = useState(false)
+  const [payError, setPayError] = useState('')
+  const [paySuccess, setPaySuccess] = useState('')
   const [payMethod, setPayMethod] = useState<PayMethod>('x402')
   const [payMenuOpen, setPayMenuOpen] = useState(false)
   const [promoExpanded, setPromoExpanded] = useState(false)
   const [promocode, setPromocode] = useState('')
   const [promoApplied, setPromoApplied] = useState(false)
-  const [queueExtended, setQueueExtended] = useState(false)
-  const [queueAtEnd, setQueueAtEnd] = useState(false)
-  const [queueHasOverflow, setQueueHasOverflow] = useState(false)
   const [queueColumns, setQueueColumns] = useState(4)
   const [queueBidValues, setQueueBidValues] = useState<Record<string, string>>({})
+  const [queueItems, setQueueItems] = useState<BacktestQueueItem[]>([])
+  const [queueLoading, setQueueLoading] = useState(false)
+  const [queueError, setQueueError] = useState('')
   const payMethodWrapRef = useRef<HTMLDivElement>(null)
   const queueScrollerRef = useRef<HTMLDivElement>(null)
 
@@ -222,8 +278,6 @@ function BacktestPage() {
     () => QUOTE_ASSETS.filter((q) => !(baseAsset === 'SOL' && q === 'SOL')),
     [baseAsset]
   )
-
-  const rangeDays = useMemo(() => daysInclusive(dateFrom, dateTo), [dateFrom, dateTo])
 
   const onFromChange = (v: string) => {
     setDateFrom(v)
@@ -241,10 +295,59 @@ function BacktestPage() {
     return dec !== undefined ? `${int}.${dec.slice(0, 12)}` : int
   }
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setPayMenuOpen(false)
+    setPayError('')
+    setPaySuccess('')
     setPayBusy(true)
-    window.setTimeout(() => setPayBusy(false), 1200)
+    try {
+      const endpoint = `${backtestApiOrigin}/backtest`
+      const body = JSON.stringify({
+        owner_address: '0x0000000000000000000000000000000000000001',
+        params: {
+          payment_method: payMethod,
+          base_asset: baseAsset,
+          quote_asset: quoteValue,
+          base_amount: baseAmount.trim() || '0',
+          quote_amount: quoteAmount.trim() || '0',
+          date_from: `${dateFrom}T00:00:00`,
+          date_to: `${dateTo}T23:59:59.999`,
+          priority_usdc: '1',
+        },
+      })
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Payment-Method': payMethod,
+        },
+        body,
+      })
+      const rawText = await response.text()
+      let data: unknown = null
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText) as unknown
+        } catch {
+          data = rawText
+        }
+      }
+      if (!response.ok) {
+        throw new Error(formatBacktestApiError(data, response.status))
+      }
+      const created = data && typeof data === 'object' ? (data as { id?: string }) : null
+      const id = created?.id
+      setPaySuccess(
+        id
+          ? `Backtest queued (${PAY_METHOD_LABEL[payMethod]}). Id: ${id}`
+          : `Backtest queued (${PAY_METHOD_LABEL[payMethod]}).`
+      )
+      await loadQueue()
+    } catch (err) {
+      setPayError(err instanceof Error ? err.message : 'Failed to enqueue backtest')
+    } finally {
+      setPayBusy(false)
+    }
   }
 
   const handlePromoToggle = (checked: boolean) => {
@@ -273,6 +376,60 @@ function BacktestPage() {
 
   const quoteValue = quoteOptions.includes(quoteAsset) ? quoteAsset : quoteOptions[0]
 
+  const backtestApiOrigin = useMemo(
+    () => (import.meta.env.VITE_BACKTEST_API_URL ?? 'http://localhost:8001').replace(/\/$/, ''),
+    []
+  )
+
+  const loadQueue = useCallback(
+    async (signal?: AbortSignal) => {
+      setQueueLoading(true)
+      setQueueError('')
+      try {
+        const response = await fetch(`${backtestApiOrigin}/queue?limit=1000`, { signal })
+        const raw = await response.text()
+        const payload = raw ? (JSON.parse(raw) as unknown) : []
+        if (!response.ok) {
+          throw new Error(`Queue request failed with status ${response.status}`)
+        }
+        if (!Array.isArray(payload)) {
+          throw new Error('Queue response is not an array')
+        }
+        const mapped = payload.map((item) => {
+          const q = item as ApiQueueItem
+          return {
+            id: q.id,
+            base: q.base_asset,
+            quote: q.quote_asset,
+            dateFrom: toDateOnly(q.period_start),
+            dateTo: toDateOnly(q.period_end),
+            baseAmount: toAmountString(q.base_balance_start),
+            quoteAmount: toAmountString(q.quote_balance_start),
+            creatorAddress: q.creator_address,
+            usdcPaid: toAmountString(q.priority_usdc, 2),
+          } satisfies BacktestQueueItem
+        })
+        if (signal?.aborted) return
+        setQueueItems(mapped)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        if (signal?.aborted) return
+        const message = err instanceof Error ? err.message : 'Failed to load queue'
+        setQueueError(message)
+        setQueueItems([])
+      } finally {
+        setQueueLoading(false)
+      }
+    },
+    [backtestApiOrigin]
+  )
+
+  useEffect(() => {
+    const ac = new AbortController()
+    void loadQueue(ac.signal)
+    return () => ac.abort()
+  }, [loadQueue])
+
   useEffect(() => {
     if (!quoteOptions.includes(quoteAsset)) {
       setQuoteAsset(quoteOptions[0])
@@ -300,31 +457,6 @@ function BacktestPage() {
 
   useEffect(() => {
     const el = queueScrollerRef.current
-    if (!el || queueExtended) {
-      setQueueAtEnd(false)
-      setQueueHasOverflow(false)
-      return
-    }
-
-    const updateQueueScrollState = () => {
-      const hasOverflow = el.scrollWidth - el.clientWidth > 2
-      const atEnd = hasOverflow && el.scrollLeft + el.clientWidth >= el.scrollWidth - 2
-      setQueueHasOverflow(hasOverflow)
-      setQueueAtEnd(atEnd)
-    }
-
-    updateQueueScrollState()
-    el.addEventListener('scroll', updateQueueScrollState, { passive: true })
-    window.addEventListener('resize', updateQueueScrollState)
-    return () => {
-      el.removeEventListener('scroll', updateQueueScrollState)
-      window.removeEventListener('resize', updateQueueScrollState)
-    }
-  }, [queueExtended])
-
-  useEffect(() => {
-    if (!queueExtended) return
-    const el = queueScrollerRef.current
     if (!el) return
 
     const updateColumns = () => {
@@ -337,10 +469,15 @@ function BacktestPage() {
     updateColumns()
     window.addEventListener('resize', updateColumns)
     return () => window.removeEventListener('resize', updateColumns)
-  }, [queueExtended])
+  }, [])
 
-  const queueRows = useMemo(() => chunkArray(BACKTEST_QUEUE, queueColumns), [queueColumns])
-  const featuredBacktest = BACKTEST_QUEUE[0]
+  const visibleQueue = queueItems
+  const queueRows = useMemo(() => chunkArray(visibleQueue, queueColumns), [visibleQueue, queueColumns])
+  const queueRowWidthRem = useMemo(
+    () => queueColumns * 12 + Math.max(0, queueColumns - 1) * 0.6,
+    [queueColumns]
+  )
+  const featuredBacktest = visibleQueue[0] ?? DEMO_BACKTEST_QUEUE[0]
   const featuredRangeDays = useMemo(
     () => daysInclusive(featuredBacktest.dateFrom, featuredBacktest.dateTo),
     [featuredBacktest.dateFrom, featuredBacktest.dateTo]
@@ -525,6 +662,11 @@ function BacktestPage() {
                 )}
               </div>
             </div>
+            {(payError || paySuccess) && (
+              <p className={`backtest-pay-status ${payError ? 'is-error' : 'is-success'}`} aria-live="polite">
+                {payError || paySuccess}
+              </p>
+            )}
             <div className="backtest-promo-anchor">
               <label className="backtest-promo-check">
                 <input
@@ -600,79 +742,71 @@ function BacktestPage() {
               <p id="backtest-queue-label" className="backtest-queue-label">
                 Backtest queue
               </p>
-              <button
-                type="button"
-                className="backtest-queue-extend-btn"
-                aria-expanded={queueExtended}
-                aria-controls="backtest-queue-scroller"
-                onClick={() => setQueueExtended((v) => !v)}
-              >
-                {queueExtended ? 'Compact' : 'Extend'}
-              </button>
             </div>
             <div
               id="backtest-queue-scroller"
-              className={`backtest-queue-scroller ${queueExtended ? 'is-extended' : ''}`}
+              className="backtest-queue-scroller is-extended"
               ref={queueScrollerRef}
               tabIndex={0}
               aria-label="Scroll horizontally to browse the backtest queue"
             >
-              {queueExtended ? (
-                <div className="backtest-queue-grid-rows" role="list">
-                  {queueRows.map((row, rowIdx) => {
-                    const isReverse = rowIdx % 2 === 1
-                    const visualRow = row
-                    return (
-                      <div
-                        key={`queue-row-${rowIdx}`}
-                        className={`backtest-queue-grid-row ${isReverse ? 'is-reverse' : ''} ${
-                          rowIdx < queueRows.length - 1 ? 'has-next' : ''
-                        }`}
-                        role="listitem"
-                      >
-                        {visualRow.map((item, visualIdx) => {
-                          const originalIdx = BACKTEST_QUEUE.findIndex((q) => q.id === item.id)
-                          return (
+              <div className="backtest-queue-grid-rows" role="list">
+                {queueRows.map((row, rowIdx) => {
+                  const isReverse = rowIdx % 2 === 1
+                  const visualRow = row
+                  return (
+                    <div
+                      key={`queue-row-${rowIdx}`}
+                      className={`backtest-queue-grid-row ${isReverse ? 'is-reverse' : ''} ${
+                        rowIdx < queueRows.length - 1 ? 'has-next' : ''
+                      }`}
+                      style={{ width: `${queueRowWidthRem}rem` }}
+                      role="listitem"
+                    >
+                      {visualRow.map((item, visualIdx) => {
+                        const originalIdx = visibleQueue.findIndex((q) => q.id === item.id)
+                        return (
+                          <div
+                            key={item.id}
+                            className={`backtest-queue-item ${visualIdx < visualRow.length - 1 ? 'has-connector' : ''}`}
+                          >
                             <div
-                              key={item.id}
-                              className={`backtest-queue-item ${visualIdx < visualRow.length - 1 ? 'has-connector' : ''}`}
+                              className="backtest-queue-card"
+                              title={`${item.base} / ${item.quote}, ${item.dateFrom} – ${item.dateTo}, ${item.baseAmount} ${item.base}, ${item.quoteAmount} ${item.quote}, ${item.creatorAddress}`}
                             >
-                              <div
-                                className="backtest-queue-card"
-                                title={`${item.base} / ${item.quote}, ${item.dateFrom} – ${item.dateTo}, ${item.baseAmount} ${item.base}, ${item.quoteAmount} ${item.quote}, ${item.creatorAddress}`}
-                              >
-                                <span className="backtest-queue-index">#{originalIdx + 1}</span>
-                                <span className="backtest-queue-pair">
-                                  {item.base} / {item.quote}
+                              <span className="backtest-queue-index">#{originalIdx + 1}</span>
+                              <span className="backtest-queue-pair">
+                                {item.base} / {item.quote}
+                              </span>
+                              <div className="backtest-queue-grid">
+                                <span className="backtest-queue-date-start">{item.dateFrom}</span>
+                                <span className="backtest-queue-amt-base">
+                                  {item.baseAmount} {item.base}
                                 </span>
-                                <div className="backtest-queue-grid">
-                                  <span className="backtest-queue-date-start">{item.dateFrom}</span>
-                                  <span className="backtest-queue-amt-base">
-                                    {item.baseAmount} {item.base}
+                                <span className="backtest-queue-date-end">{item.dateTo}</span>
+                                <span className="backtest-queue-amt-quote">
+                                  {item.quoteAmount} {item.quote}
+                                </span>
+                              </div>
+                              <div className="backtest-queue-creator">
+                                <div className="backtest-queue-creator-top">
+                                  <span className="backtest-queue-creator-label">Creator</span>
+                                  <span className="backtest-queue-priority-label">Priority</span>
+                                </div>
+                                <div className="backtest-queue-creator-bottom">
+                                  <span
+                                    className="backtest-queue-creator-addr"
+                                    title={item.creatorAddress}
+                                  >
+                                    {shortenCreatorAddress(item.creatorAddress)}
                                   </span>
-                                  <span className="backtest-queue-date-end">{item.dateTo}</span>
-                                  <span className="backtest-queue-amt-quote">
-                                    {item.quoteAmount} {item.quote}
+                                  <span className="backtest-queue-priority-value">
+                                    {item.usdcPaid} USDC
                                   </span>
                                 </div>
-                                <div className="backtest-queue-creator">
-                                  <div className="backtest-queue-creator-top">
-                                    <span className="backtest-queue-creator-label">Creator</span>
-                                    <span className="backtest-queue-priority-label">Priority</span>
-                                  </div>
-                                  <div className="backtest-queue-creator-bottom">
-                                    <span
-                                      className="backtest-queue-creator-addr"
-                                      title={item.creatorAddress}
-                                    >
-                                      {shortenCreatorAddress(item.creatorAddress)}
-                                    </span>
-                                    <span className="backtest-queue-priority-value">
-                                      {item.usdcPaid} USDC
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="backtest-queue-bid-row">
+                              </div>
+                              <div className="backtest-queue-bid-row">
+                                <div className="backtest-queue-bid-input-wrap">
                                   <input
                                     type="text"
                                     inputMode="decimal"
@@ -688,99 +822,30 @@ function BacktestPage() {
                                     }}
                                     aria-label={`Bid amount for queue item #${originalIdx + 1}`}
                                   />
-                                  <button
-                                    type="button"
-                                    className="backtest-queue-bid-btn"
-                                    onClick={() => handleQueueBidSubmit(item.id)}
-                                    disabled={!(queueBidValues[item.id] ?? '').trim()}
-                                  >
-                                    BID
-                                  </button>
+                                  <span className="backtest-queue-bid-suffix">USDC</span>
                                 </div>
+                                <button
+                                  type="button"
+                                  className="backtest-queue-bid-btn"
+                                  onClick={() => handleQueueBidSubmit(item.id)}
+                                  disabled={!(queueBidValues[item.id] ?? '').trim()}
+                                >
+                                  BID
+                                </button>
                               </div>
                             </div>
-                          )
-                        })}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <ul className="backtest-queue-track" role="list">
-                  {BACKTEST_QUEUE.map((item, idx) => (
-                    <li key={item.id} className="backtest-queue-item">
-                      <div
-                        className="backtest-queue-card"
-                        title={`${item.base} / ${item.quote}, ${item.dateFrom} – ${item.dateTo}, ${item.baseAmount} ${item.base}, ${item.quoteAmount} ${item.quote}, ${item.creatorAddress}`}
-                      >
-                        <span className="backtest-queue-index">#{idx + 1}</span>
-                        <span className="backtest-queue-pair">
-                          {item.base} / {item.quote}
-                        </span>
-                        <div className="backtest-queue-grid">
-                          <span className="backtest-queue-date-start">{item.dateFrom}</span>
-                          <span className="backtest-queue-amt-base">
-                            {item.baseAmount} {item.base}
-                          </span>
-                          <span className="backtest-queue-date-end">{item.dateTo}</span>
-                          <span className="backtest-queue-amt-quote">
-                            {item.quoteAmount} {item.quote}
-                          </span>
-                        </div>
-                        <div className="backtest-queue-creator">
-                          <div className="backtest-queue-creator-top">
-                            <span className="backtest-queue-creator-label">Creator</span>
-                            <span className="backtest-queue-priority-label">Priority</span>
                           </div>
-                          <div className="backtest-queue-creator-bottom">
-                            <span className="backtest-queue-creator-addr" title={item.creatorAddress}>
-                              {shortenCreatorAddress(item.creatorAddress)}
-                            </span>
-                            <span className="backtest-queue-priority-value">{item.usdcPaid} USDC</span>
-                          </div>
-                        </div>
-                        <div className="backtest-queue-bid-row">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            className="backtest-queue-bid-input"
-                            placeholder={`#${idx + 1} bid`}
-                            value={queueBidValues[item.id] ?? ''}
-                            onChange={(e) => handleQueueBidChange(item.id, e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                handleQueueBidSubmit(item.id)
-                              }
-                            }}
-                            aria-label={`Bid amount for queue item #${idx + 1}`}
-                          />
-                          <button
-                            type="button"
-                            className="backtest-queue-bid-btn"
-                            onClick={() => handleQueueBidSubmit(item.id)}
-                            disabled={!(queueBidValues[item.id] ?? '').trim()}
-                          >
-                            BID
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            {!queueExtended && queueHasOverflow && queueAtEnd && (
-              <div className="backtest-queue-end-hint">
-                <span>You reached the end.</span>
-                <button
-                  type="button"
-                  className="backtest-queue-end-hint-btn"
-                  onClick={() => setQueueExtended(true)}
-                >
-                  Switch to Extend
-                </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
               </div>
+            </div>
+            {queueLoading && <div className="backtest-queue-end-hint">Loading queue…</div>}
+            {!queueLoading && queueError && <div className="backtest-queue-end-hint">{queueError}</div>}
+            {!queueLoading && !queueError && visibleQueue.length === 0 && (
+              <div className="backtest-queue-end-hint">Queue is empty.</div>
             )}
           </div>
           <section className="backtest-results-card" aria-label="Backtest output">

@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { WagmiProvider, createConfig, http } from 'wagmi'
-import { mainnet, arbitrum, sepolia } from 'wagmi/chains'
+import { mainnet, base, arbitrum, sepolia, baseSepolia } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit'
 import { connectorsForWallets } from '@rainbow-me/rainbowkit'
@@ -28,11 +28,13 @@ const connectors = connectorsForWallets(
 
 const config = createConfig({
   connectors,
-  chains: [mainnet, arbitrum, sepolia],
+  chains: [mainnet, base, arbitrum, sepolia, baseSepolia],
   transports: {
     [mainnet.id]: http(),
+    [base.id]: http(),
     [arbitrum.id]: http(),
     [sepolia.id]: http(),
+    [baseSepolia.id]: http(),
   },
 })
 
