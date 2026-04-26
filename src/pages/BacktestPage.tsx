@@ -971,7 +971,29 @@ function BacktestPage() {
                     disabled={payBusy}
                     aria-label={payButtonAriaLabel}
                   >
-                    {payBusy ? 'Processing…' : payButtonLabel}
+                    {payBusy ? (
+                      'Processing…'
+                    ) : x402NeedsWalletConnection ? (
+                      <>
+                        <svg
+                          className="backtest-pay-btn-icon"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v7A2.5 2.5 0 0 1 18.5 18h-13A2.5 2.5 0 0 1 3 15.5v-7Z" />
+                          <path d="M15 12h6" />
+                          <circle cx="15.5" cy="12" r="1" fill="currentColor" stroke="none" />
+                        </svg>
+                        Connect wallet
+                      </>
+                    ) : (
+                      payButtonLabel
+                    )}
                   </button>
                   <div className="backtest-pay-method-wrap">
                     <span className="backtest-pay-method-caption">Payment method</span>
@@ -1131,7 +1153,7 @@ function BacktestPage() {
                 type="button"
                 role="tab"
                 aria-selected={queueView === 'queue'}
-                className={`backtest-queue-view-btn ${queueView === 'queue' ? 'is-active' : ''}`}
+                className={`backtest-queue-view-btn is-queue ${queueView === 'queue' ? 'is-active' : ''}`}
                 onClick={() => setQueueView('queue')}
               >
                 queue
@@ -1140,14 +1162,17 @@ function BacktestPage() {
                 type="button"
                 role="tab"
                 aria-selected={queueView === 'history'}
-                className={`backtest-queue-view-btn ${queueView === 'history' ? 'is-active' : ''}`}
+                className={`backtest-queue-view-btn is-stack ${queueView === 'history' ? 'is-active' : ''}`}
                 onClick={() => setQueueView('history')}
               >
                 stack
               </button>
             </div>
             <div className="backtest-queue-head">
-              <p id="backtest-queue-label" className="backtest-queue-label">
+              <p
+                id="backtest-queue-label"
+                className={`backtest-queue-label ${queueView === 'queue' ? '' : 'is-stack'}`.trim()}
+              >
                 {queueView === 'queue' ? 'Backtests Queue' : 'Backtests Stack'}
               </p>
               <div

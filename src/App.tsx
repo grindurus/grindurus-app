@@ -13,6 +13,10 @@ function pathFromView(view: HeaderMainView): string {
   return view === 'backtest' ? '/backtest' : '/grai'
 }
 
+function titleFromView(view: HeaderMainView): string {
+  return view === 'backtest' ? 'GrindURUS backtest simulator' : 'GRAI crowdfund tool'
+}
+
 function App() {
   const [mainView, setMainView] = useState<HeaderMainView>(() =>
     viewFromPath(window.location.pathname)
@@ -36,6 +40,10 @@ function App() {
     }
     setMainView(view)
   }, [])
+
+  useEffect(() => {
+    document.title = titleFromView(mainView)
+  }, [mainView])
 
   return (
     <div className="App">

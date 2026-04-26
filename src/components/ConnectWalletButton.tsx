@@ -39,8 +39,9 @@ export function ConnectWalletButton() {
         ) : (
           <>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="3" width="20" height="18" rx="2" />
-              <path d="M16 8v8M8 8v8" />
+              <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v7A2.5 2.5 0 0 1 18.5 18h-13A2.5 2.5 0 0 1 3 15.5v-7Z" />
+              <path d="M15 12h6" />
+              <circle cx="15.5" cy="12" r="1" fill="currentColor" stroke="none" />
             </svg>
             Connect Wallet
           </>
