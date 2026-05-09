@@ -307,6 +307,21 @@ function formatBacktestApiError(data: unknown, status: number): string {
   return `Request failed (${status})`
 }
 
+function buildSeriesPath(values: number[]) {
+  if (values.length === 0) return ''
+  if (values.length === 1) return `M 0 50`
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = Math.max(1e-9, max - min)
+  return values
+    .map((v, idx) => {
+      const x = (idx / (values.length - 1)) * 100
+      const y = 100 - ((v - min) / range) * 100
+      return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+    })
+    .join(' ')
+}
+
 function BacktestPage() {
   const end = new Date()
   const start = new Date()
@@ -779,23 +794,18 @@ function BacktestPage() {
   )
 
   useEffect(() => {
-    const ac = new AbortController()
-    void loadQueue(ac.signal)
-    return () => ac.abort()
-  }, [loadQueue])
+    void loadQueue()
+  }, [backtestApiOrigin, loadQueue])
 
   useEffect(() => {
     if (queueView !== 'history') return
-    const ac = new AbortController()
-    void loadHistory(ac.signal)
-    return () => ac.abort()
+    void loadHistory()
   }, [loadHistory, queueView])
 
   useEffect(() => {
-    const ac = new AbortController()
     const loadSymbols = async () => {
       try {
-        const response = await fetch(`${backtestApiOrigin}/symbols`, { signal: ac.signal })
+        const response = await fetch(`${backtestApiOrigin}/symbols`)
         if (!response.ok) return
         const payload = (await response.json()) as ApiSymbols
 
@@ -819,14 +829,12 @@ function BacktestPage() {
       }
     }
     void loadSymbols()
-    return () => ac.abort()
   }, [backtestApiOrigin])
 
   useEffect(() => {
-    const ac = new AbortController()
     const loadHealth = async () => {
       try {
-        const response = await fetch(`${backtestApiOrigin}/health`, { signal: ac.signal })
+        const response = await fetch(`${backtestApiOrigin}/health`)
         if (!response.ok) return
         const payload = (await response.json()) as ApiHealth
         setDefaultBidPrice(normalizeUsdcAmount(payload.backtest_price, '1'))
@@ -835,7 +843,6 @@ function BacktestPage() {
       }
     }
     void loadHealth()
-    return () => ac.abort()
   }, [backtestApiOrigin])
 
   useEffect(() => {
@@ -924,6 +931,37 @@ function BacktestPage() {
     () => daysInclusive(featuredBacktest.dateFrom, featuredBacktest.dateTo),
     [featuredBacktest.dateFrom, featuredBacktest.dateTo]
   )
+  const backtestChartSeries = useMemo(() => {
+    const days = Math.max(8, Math.min(32, featuredRangeDays))
+    const baseSeed = Number(featuredBacktest.baseAmount.replace(/,/g, '')) || 1
+    const quoteSeed = Number(featuredBacktest.quoteAmount.replace(/,/g, '')) || 1
+    const invBase = Array.from({ length: days }, (_, i) => {
+      const trend = baseSeed * (0.9 + i * 0.004)
+      const wave = Math.sin(i / 2.1) * baseSeed * 0.03
+      return trend + wave
+    })
+    const invQuote = Array.from({ length: days }, (_, i) => {
+      const trend = quoteSeed * (0.92 + i * 0.0036)
+      const wave = Math.cos(i / 2.6) * quoteSeed * 0.02
+      return trend + wave
+    })
+    const pnlQuote = Array.from({ length: days }, (_, i) => {
+      const slope = (i / Math.max(1, days - 1)) * 7.5
+      return slope + Math.sin(i / 3) * 1.2
+    })
+    const pnlBasePx = Array.from({ length: days }, (_, i) => {
+      const slope = (i / Math.max(1, days - 1)) * 5.4
+      return slope + Math.cos(i / 2.3) * 0.9
+    })
+    const pnlTotal = pnlQuote.map((v, i) => v + pnlBasePx[i] * 0.85)
+    return {
+      inventoryBasePath: buildSeriesPath(invBase),
+      inventoryQuotePath: buildSeriesPath(invQuote),
+      yieldQuotePath: buildSeriesPath(pnlQuote),
+      yieldBasePath: buildSeriesPath(pnlBasePx),
+      yieldTotalPath: buildSeriesPath(pnlTotal),
+    }
+  }, [featuredBacktest.baseAmount, featuredBacktest.quoteAmount, featuredRangeDays])
 
   return (
     <div className="backtest-page">
@@ -1546,66 +1584,22 @@ function BacktestPage() {
             </strong>{' '}
             ({featuredRangeDays} days).
           </p>
-          <div className="backtest-placeholder" aria-label="Backtest chart preview">
-            <svg
-              className="backtest-placeholder-chart"
-              viewBox="0 0 100 42"
-              role="img"
-              aria-label="Candlestick chart preview"
-              preserveAspectRatio="none"
-            >
-              <defs>
-                <linearGradient id="backtest-chart-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(255, 105, 180, 0.42)" />
-                  <stop offset="100%" stopColor="rgba(255, 105, 180, 0.02)" />
-                </linearGradient>
-              </defs>
-              <g className="backtest-placeholder-grid">
-                <line x1="0" y1="10" x2="100" y2="10" />
-                <line x1="0" y1="20" x2="100" y2="20" />
-                <line x1="0" y1="30" x2="100" y2="30" />
-              </g>
-              <g className="backtest-placeholder-candles">
-                <line x1="8" y1="31" x2="8" y2="20" className="backtest-candle-wick is-up" />
-                <rect x="6.8" y="24" width="2.4" height="7" className="backtest-candle-body is-up" />
-
-                <line x1="15" y1="30" x2="15" y2="18" className="backtest-candle-wick is-up" />
-                <rect x="13.8" y="22" width="2.4" height="8" className="backtest-candle-body is-up" />
-
-                <line x1="22" y1="27" x2="22" y2="16" className="backtest-candle-wick is-up" />
-                <rect x="20.8" y="19" width="2.4" height="8" className="backtest-candle-body is-up" />
-
-                <line x1="29" y1="26" x2="29" y2="15" className="backtest-candle-wick is-down" />
-                <rect x="27.8" y="19" width="2.4" height="5" className="backtest-candle-body is-down" />
-
-                <line x1="36" y1="24" x2="36" y2="12" className="backtest-candle-wick is-up" />
-                <rect x="34.8" y="16" width="2.4" height="7" className="backtest-candle-body is-up" />
-
-                <line x1="43" y1="23" x2="43" y2="11" className="backtest-candle-wick is-up" />
-                <rect x="41.8" y="14" width="2.4" height="8" className="backtest-candle-body is-up" />
-
-                <line x1="50" y1="21" x2="50" y2="9" className="backtest-candle-wick is-up" />
-                <rect x="48.8" y="12.5" width="2.4" height="8.5" className="backtest-candle-body is-up" />
-
-                <line x1="57" y1="20" x2="57" y2="8.5" className="backtest-candle-wick is-down" />
-                <rect x="55.8" y="12" width="2.4" height="6" className="backtest-candle-body is-down" />
-
-                <line x1="64" y1="18" x2="64" y2="7.5" className="backtest-candle-wick is-up" />
-                <rect x="62.8" y="10.5" width="2.4" height="6.5" className="backtest-candle-body is-up" />
-
-                <line x1="71" y1="16.5" x2="71" y2="6.2" className="backtest-candle-wick is-up" />
-                <rect x="69.8" y="9.5" width="2.4" height="6.2" className="backtest-candle-body is-up" />
-
-                <line x1="78" y1="15.2" x2="78" y2="5.8" className="backtest-candle-wick is-up" />
-                <rect x="76.8" y="8.3" width="2.4" height="5.8" className="backtest-candle-body is-up" />
-
-                <line x1="85" y1="14.4" x2="85" y2="5.2" className="backtest-candle-wick is-down" />
-                <rect x="83.8" y="8.2" width="2.4" height="4.7" className="backtest-candle-body is-down" />
-
-                <line x1="92" y1="13.2" x2="92" y2="4.8" className="backtest-candle-wick is-up" />
-                <rect x="90.8" y="7.2" width="2.4" height="5.2" className="backtest-candle-body is-up" />
-              </g>
-            </svg>
+          <div className="grinder-adapter-tab-main-grid" aria-label="Backtest charts">
+            <article className="backtest-chart-panel">
+              <div className="backtest-chart-panel-head">Inventory</div>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="backtest-mini-chart">
+                <path d={backtestChartSeries.inventoryQuotePath} className="line quote" />
+                <path d={backtestChartSeries.inventoryBasePath} className="line base" />
+              </svg>
+            </article>
+            <article className="backtest-chart-panel">
+              <div className="backtest-chart-panel-head">Yield</div>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="backtest-mini-chart">
+                <path d={backtestChartSeries.yieldQuotePath} className="line quote" />
+                <path d={backtestChartSeries.yieldBasePath} className="line basepx" />
+                <path d={backtestChartSeries.yieldTotalPath} className="line total" />
+              </svg>
+            </article>
           </div>
         </section>
       </div>

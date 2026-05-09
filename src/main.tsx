@@ -5,9 +5,7 @@ import { AppWalletProvider } from './providers/AppWalletProvider'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <AppWalletProvider>
-      <App />
-    </AppWalletProvider>
-  </React.StrictMode>,
+  <AppWalletProvider>
+    <App />
+  </AppWalletProvider>,
 )
