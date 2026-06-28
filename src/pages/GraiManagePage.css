@@ -330,7 +330,63 @@
   gap: 0.15rem;
 }
 
-.grai-manage-card .grai-mint-asset-value--combined {
+.grai-manage-card .grai-mint-asset-field + .grai-mint-amount-field {
+  margin-top: calc(-1rem + 0.15rem);
+}
+
+.grai-manage-card .grai-mint-amount-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-input-with-suffix {
+  flex: 1;
+  min-width: 0;
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-input-with-suffix.has-max {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom: 1px dashed rgba(255, 105, 180, 0.35);
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-input-with-suffix.has-max .grai-input {
+  border-bottom: none;
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-input-with-suffix.has-max:focus-within {
+  border-bottom-color: #ff69b4;
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-mint-asset-dropdown {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-mint-asset-value {
+  width: auto;
+  min-width: 5.5rem;
+  max-width: 7.5rem;
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-mint-asset-symbol {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-manage-card .grai-mint-amount-row .grai-mint-asset-list {
+  left: auto;
+  right: 0;
+  min-width: 10rem;
+}
+
+.grai-manage-card .grai-mint-asset-label-row {
+  margin-bottom: 0;
+}
+
+.grai-manage-custody-field .grai-mint-asset-value.grai-mint-asset-value--combined {
   flex-direction: column;
   align-items: stretch;
   gap: 0.2rem;
@@ -338,27 +394,23 @@
   padding: 0;
   border: none;
   background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+  color: inherit;
 }
 
-.grai-manage-card .grai-mint-asset-trigger.is-open .grai-mint-asset-value--combined {
+.grai-manage-custody-field .grai-mint-asset-trigger.is-open .grai-mint-asset-value--combined {
   border-color: transparent;
 }
 
-.grai-manage-card .grai-mint-asset-value-main {
+.grai-manage-custody-field .grai-mint-asset-value-main {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   width: 100%;
   min-height: 26px;
   border-bottom: 1px dashed rgba(255, 105, 180, 0.35);
-}
-
-.grai-manage-card .grai-mint-asset-label-row {
-  margin-bottom: 0;
-}
-
-.grai-manage-card .grai-mint-amount-header.is-above {
-  margin-bottom: 0;
 }
 
 .grai-manage-hint {

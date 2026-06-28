@@ -483,46 +483,68 @@ function GraiPage() {
                 {actionView === 'mint' ? (
                   <>
                     <div className="grai-mint-asset-field">
-                      <div className="grai-mint-asset-dropdown" ref={mintAssetMenuRef}>
-                        <div
-                          className={`grai-mint-asset-trigger ${mintAssetMenuOpen ? 'is-open' : ''}`}
-                        >
-                          <div
-                            className={`grai-mint-asset-label-row ${selectedAsset?.mint ? 'has-mint-address' : ''}`}
-                          >
-                            <span className="grai-mint-asset-label-text">
-                              <span className="grai-field-label grai-field-label--with-icon">
-                                <span className="grai-field-label-icon">{BALANCE_COLUMN_ICONS.assets}</span>
-                                Asset
+                      <div
+                        className={`grai-mint-asset-label-row ${selectedAsset?.mint ? 'has-mint-address' : ''}`}
+                      >
+                        <span className="grai-mint-asset-label-text">
+                          <span className="grai-field-label grai-field-label--with-icon">
+                            <span className="grai-field-label-icon">{BALANCE_COLUMN_ICONS.assets}</span>
+                            Asset
+                          </span>
+                          {selectedAsset?.mint && (
+                            <span className="grai-mint-asset-address-actions">
+                              <span className="grai-mint-asset-short-address-wrap">
+                                <span className="grai-mint-asset-full-address">{selectedAsset.mint}</span>
+                                <button
+                                  type="button"
+                                  className={`grai-mint-asset-short-address ${mintAddressCopied ? 'is-copied' : ''}`}
+                                  onClick={copySelectedMintAddress}
+                                  title={mintAddressCopied ? 'Copied to clipboard' : 'Copy mint address'}
+                                  aria-label={`Copy ${selectedAsset.symbol} mint address`}
+                                >
+                                  {mintAddressCopied ? 'Copied!' : shortenMintAddress(selectedAsset.mint)}
+                                </button>
                               </span>
-                              {selectedAsset?.mint && (
-                                <span className="grai-mint-asset-address-actions">
-                                  <span className="grai-mint-asset-short-address-wrap">
-                                    <span className="grai-mint-asset-full-address">{selectedAsset.mint}</span>
-                                    <button
-                                      type="button"
-                                      className={`grai-mint-asset-short-address ${mintAddressCopied ? 'is-copied' : ''}`}
-                                      onClick={copySelectedMintAddress}
-                                      title={mintAddressCopied ? 'Copied to clipboard' : 'Copy mint address'}
-                                      aria-label={`Copy ${selectedAsset.symbol} mint address`}
-                                    >
-                                      {mintAddressCopied ? 'Copied!' : shortenMintAddress(selectedAsset.mint)}
-                                    </button>
-                                  </span>
-                                  <a
-                                    href={solscanTokenUrl(selectedAsset.mint)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="grai-mint-asset-trigger-solscan"
-                                    aria-label={`View ${selectedAsset.symbol} on Solscan`}
-                                    title={`View ${selectedAsset.symbol} on Solscan`}
-                                  >
-                                    {MINT_ASSET_SOLSCAN_ICON}
-                                  </a>
-                                </span>
-                              )}
+                              <a
+                                href={solscanTokenUrl(selectedAsset.mint)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="grai-mint-asset-trigger-solscan"
+                                aria-label={`View ${selectedAsset.symbol} on Solscan`}
+                                title={`View ${selectedAsset.symbol} on Solscan`}
+                              >
+                                {MINT_ASSET_SOLSCAN_ICON}
+                              </a>
                             </span>
-                          </div>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grai-mint-amount-field">
+                      <div className="grai-mint-amount-row">
+                        <div className="grai-input-with-suffix has-max">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="grai-input"
+                            placeholder="0"
+                            value={mintAmount}
+                            onChange={(e) => {
+                              setMintAmount(normalizeDecimalInput(e.target.value, assetDecimals ?? 9))
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="grai-input-max-btn"
+                            onClick={() => {
+                              if (maxAmount) setMintAmount(maxAmount)
+                            }}
+                            disabled={!maxAmount}
+                          >
+                            MAX
+                          </button>
+                        </div>
+                        <div className="grai-mint-asset-dropdown" ref={mintAssetMenuRef}>
                           <div className="grai-mint-asset-value">
                             <button
                               type="button"
@@ -559,80 +581,55 @@ function GraiPage() {
                               </span>
                             </button>
                           </div>
-                        </div>
-                        {mintAssetMenuOpen && mintAssets.length > 0 && (
-                          <div className="grai-mint-asset-list" role="listbox" aria-label="Mint asset list">
-                            {mintAssets.map((asset) => (
-                              <div
-                                key={asset.mint}
-                                role="option"
-                                aria-selected={selectedMint === asset.mint}
-                                className={`grai-mint-asset-item ${selectedMint === asset.mint ? 'active' : ''}`}
-                                onClick={() => {
-                                  setSelectedMint(asset.mint)
-                                  setMintAssetMenuOpen(false)
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === 'Enter' || event.key === ' ') {
-                                    event.preventDefault()
+                          {mintAssetMenuOpen && mintAssets.length > 0 && (
+                            <div className="grai-mint-asset-list" role="listbox" aria-label="Mint asset list">
+                              {mintAssets.map((asset) => (
+                                <div
+                                  key={asset.mint}
+                                  role="option"
+                                  aria-selected={selectedMint === asset.mint}
+                                  className={`grai-mint-asset-item ${selectedMint === asset.mint ? 'active' : ''}`}
+                                  onClick={() => {
                                     setSelectedMint(asset.mint)
                                     setMintAssetMenuOpen(false)
-                                  }
-                                }}
-                                tabIndex={0}
-                              >
-                                <span className="grai-mint-asset-item-icon" aria-hidden="true">
-                                  <img
-                                    src={asset.icon.src}
-                                    alt={asset.icon.alt}
-                                    width={16}
-                                    height={16}
-                                    loading="lazy"
-                                    decoding="async"
-                                  />
-                                </span>
-                                <span className="grai-mint-asset-item-symbol">{asset.symbol}</span>
-                                <a
-                                  href={solscanTokenUrl(asset.mint)}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="grai-mint-asset-item-solscan"
-                                  aria-label={`View ${asset.symbol} on Solscan`}
-                                  title={`View ${asset.symbol} on Solscan`}
-                                  onClick={(event) => event.stopPropagation()}
-                                  onMouseDown={(event) => event.stopPropagation()}
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                      event.preventDefault()
+                                      setSelectedMint(asset.mint)
+                                      setMintAssetMenuOpen(false)
+                                    }
+                                  }}
+                                  tabIndex={0}
                                 >
-                                  {MINT_ASSET_SOLSCAN_ICON}
-                                </a>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grai-mint-amount-field">
-                      <div className="grai-input-with-suffix has-max">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          className="grai-input"
-                          placeholder="0"
-                          value={mintAmount}
-                          onChange={(e) => {
-                            setMintAmount(normalizeDecimalInput(e.target.value, assetDecimals ?? 9))
-                          }}
-                        />
-                        <span className="grai-input-suffix">{selectedAsset?.symbol ?? '—'}</span>
-                        <button
-                          type="button"
-                          className="grai-input-max-btn"
-                          onClick={() => {
-                            if (maxAmount) setMintAmount(maxAmount)
-                          }}
-                          disabled={!maxAmount}
-                        >
-                          MAX
-                        </button>
+                                  <span className="grai-mint-asset-item-icon" aria-hidden="true">
+                                    <img
+                                      src={asset.icon.src}
+                                      alt={asset.icon.alt}
+                                      width={16}
+                                      height={16}
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                  </span>
+                                  <span className="grai-mint-asset-item-symbol">{asset.symbol}</span>
+                                  <a
+                                    href={solscanTokenUrl(asset.mint)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="grai-mint-asset-item-solscan"
+                                    aria-label={`View ${asset.symbol} on Solscan`}
+                                    title={`View ${asset.symbol} on Solscan`}
+                                    onClick={(event) => event.stopPropagation()}
+                                    onMouseDown={(event) => event.stopPropagation()}
+                                  >
+                                    {MINT_ASSET_SOLSCAN_ICON}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="grai-mint-amount-header">
                         <GraiBalanceFieldLabel />

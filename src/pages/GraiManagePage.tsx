@@ -36,14 +36,6 @@ const MINT_ASSET_SOLSCAN_ICON = (
   </svg>
 )
 
-const AMOUNT_FIELD_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="8" />
-    <path d="M12 8v8" />
-    <path d="M9.5 10.5h3a2 2 0 1 1 0 4h-3" />
-  </svg>
-)
-
 const CUSTODY_FIELD_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
@@ -202,35 +194,32 @@ function GraiManageCardTitle({
   )
 }
 
-type GraiManageAssetFieldProps = {
+type GraiManageAssetSelectorProps = {
   assets: GraiAsset[]
   selectedAsset: GraiAsset | undefined
   isLoading: boolean
-  error: string | null
   menuOpen: boolean
   onMenuOpenChange: (open: boolean) => void
   onSelect: (mint: string) => void
   solscanTokenUrl: (mint: string) => string
   listId: string
   listEmptyMessage?: string
-  label?: string
+  emptyTriggerLabel?: string
 }
 
-function GraiManageAssetField({
+function GraiManageAssetSelector({
   assets,
   selectedAsset,
   isLoading,
-  error,
   menuOpen,
   onMenuOpenChange,
   onSelect,
   solscanTokenUrl,
   listId,
   listEmptyMessage,
-  label = 'Asset',
-}: GraiManageAssetFieldProps) {
+  emptyTriggerLabel,
+}: GraiManageAssetSelectorProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const [addressCopied, setAddressCopied] = useState(false)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -243,109 +232,58 @@ function GraiManageAssetField({
     return () => document.removeEventListener('mousedown', handlePointerDown)
   }, [menuOpen, onMenuOpenChange])
 
-  const copyMintAddress = async () => {
-    if (!selectedAsset?.mint) return
-    try {
-      await navigator.clipboard.writeText(selectedAsset.mint)
-      setAddressCopied(true)
-      window.setTimeout(() => setAddressCopied(false), 1500)
-    } catch {
-      // ignore clipboard errors
-    }
-  }
-
   return (
-    <div className="grai-mint-asset-field">
-      <div className="grai-mint-asset-dropdown" ref={dropdownRef}>
-        <div className={`grai-mint-asset-trigger ${menuOpen ? 'is-open' : ''}`}>
-          <div className="grai-mint-asset-value grai-mint-asset-value--combined">
-            <div className={`grai-mint-asset-label-row ${selectedAsset?.mint ? 'has-mint-address' : ''}`}>
-              <span className="grai-mint-asset-label-text">
-                <span className="grai-field-label grai-field-label--with-icon">
-                  <span className="grai-field-label-icon">{ASSET_FIELD_ICON}</span>
-                  {label}
-                </span>
-                {selectedAsset?.mint && (
-                  <span className="grai-mint-asset-address-actions">
-                    <span className="grai-mint-asset-short-address-wrap">
-                      <span className="grai-mint-asset-full-address">{selectedAsset.mint}</span>
-                      <button
-                        type="button"
-                        className={`grai-mint-asset-short-address ${addressCopied ? 'is-copied' : ''}`}
-                        onClick={() => {
-                          void copyMintAddress()
-                        }}
-                        title={addressCopied ? 'Copied to clipboard' : 'Copy mint address'}
-                        aria-label={`Copy ${selectedAsset.symbol} mint address`}
-                      >
-                        {addressCopied ? 'Copied!' : shortenAddress(selectedAsset.mint)}
-                      </button>
-                    </span>
-                    <a
-                      href={solscanTokenUrl(selectedAsset.mint)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="grai-mint-asset-trigger-solscan"
-                      aria-label={`View ${selectedAsset.symbol} on Solscan`}
-                      title={`View ${selectedAsset.symbol} on Solscan`}
-                    >
-                      {MINT_ASSET_SOLSCAN_ICON}
-                    </a>
-                  </span>
-                )}
-              </span>
+    <div className="grai-mint-asset-dropdown" ref={dropdownRef}>
+      <div className="grai-mint-asset-value">
+        <button
+          type="button"
+          className="grai-mint-asset-value-select"
+          onClick={() => onMenuOpenChange(!menuOpen)}
+          aria-haspopup="listbox"
+          aria-expanded={menuOpen}
+          aria-controls={listId}
+          aria-label="Select asset"
+          disabled={isLoading || assets.length === 0}
+        >
+          {selectedAsset && (
+            <span className="grai-mint-asset-item-icon" aria-hidden="true">
+              <img
+                src={selectedAsset.icon.src}
+                alt={selectedAsset.icon.alt}
+                width={16}
+                height={16}
+                loading="lazy"
+                decoding="async"
+              />
+            </span>
+          )}
+          <span className="grai-mint-asset-symbol">
+            {isLoading
+              ? 'Loading…'
+              : selectedAsset?.symbol ??
+                (assets.length === 0 ? (emptyTriggerLabel ?? listEmptyMessage ?? '—') : '—')}
+          </span>
+        </button>
+        <button
+          type="button"
+          className="grai-mint-asset-caret-btn"
+          onClick={() => onMenuOpenChange(!menuOpen)}
+          aria-label="Open asset list"
+          disabled={isLoading || assets.length === 0}
+        >
+          <span className="grai-mint-asset-caret" aria-hidden="true">
+            ▾
+          </span>
+        </button>
+      </div>
+      {menuOpen && (
+        <div className="grai-mint-asset-list" id={listId} role="listbox" aria-label="Asset list">
+          {assets.length === 0 ? (
+            <div className="grai-manage-custody-empty" role="presentation">
+              {listEmptyMessage ?? 'No assets available'}
             </div>
-            <div className="grai-mint-asset-value-main">
-              <button
-                type="button"
-                className="grai-mint-asset-value-select"
-                onClick={() => onMenuOpenChange(!menuOpen)}
-                aria-haspopup="listbox"
-                aria-expanded={menuOpen}
-                aria-controls={listId}
-                aria-label="Select asset"
-                disabled={isLoading || assets.length === 0}
-              >
-                {selectedAsset && (
-                  <span className="grai-mint-asset-item-icon" aria-hidden="true">
-                    <img
-                      src={selectedAsset.icon.src}
-                      alt={selectedAsset.icon.alt}
-                      width={16}
-                      height={16}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </span>
-                )}
-                <span className="grai-mint-asset-symbol">
-                  {isLoading
-                    ? 'Loading…'
-                    : selectedAsset?.symbol ?? (assets.length === 0 ? (listEmptyMessage ?? '—') : error ? 'Unavailable' : '—')}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="grai-mint-asset-caret-btn"
-                onClick={() => onMenuOpenChange(!menuOpen)}
-                aria-label="Open asset list"
-                disabled={isLoading || assets.length === 0}
-              >
-                <span className="grai-mint-asset-caret" aria-hidden="true">
-                  ▾
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-        {menuOpen && (
-          <div className="grai-mint-asset-list" id={listId} role="listbox" aria-label="Asset list">
-            {assets.length === 0 ? (
-              <div className="grai-manage-custody-empty" role="presentation">
-                {listEmptyMessage ?? 'No assets available'}
-              </div>
-            ) : (
-              assets.map((asset) => (
+          ) : (
+            assets.map((asset) => (
               <div
                 key={asset.mint}
                 role="option"
@@ -389,9 +327,76 @@ function GraiManageAssetField({
                 </a>
               </div>
             ))
-            )}
-          </div>
-        )}
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+type GraiManageAssetFieldProps = {
+  selectedAsset: GraiAsset | undefined
+  solscanTokenUrl: (mint: string) => string
+  label?: string
+  error?: string | null
+}
+
+function GraiManageAssetField({
+  selectedAsset,
+  solscanTokenUrl,
+  label = 'Asset',
+  error,
+}: GraiManageAssetFieldProps) {
+  const [addressCopied, setAddressCopied] = useState(false)
+
+  const copyMintAddress = async () => {
+    if (!selectedAsset?.mint) return
+    try {
+      await navigator.clipboard.writeText(selectedAsset.mint)
+      setAddressCopied(true)
+      window.setTimeout(() => setAddressCopied(false), 1500)
+    } catch {
+      // ignore clipboard errors
+    }
+  }
+
+  return (
+    <div className="grai-mint-asset-field">
+      <div className={`grai-mint-asset-label-row ${selectedAsset?.mint ? 'has-mint-address' : ''}`}>
+        <span className="grai-mint-asset-label-text">
+          <span className="grai-field-label grai-field-label--with-icon">
+            <span className="grai-field-label-icon">{ASSET_FIELD_ICON}</span>
+            {label}
+          </span>
+          {selectedAsset?.mint && (
+            <span className="grai-mint-asset-address-actions">
+              <span className="grai-mint-asset-short-address-wrap">
+                <span className="grai-mint-asset-full-address">{selectedAsset.mint}</span>
+                <button
+                  type="button"
+                  className={`grai-mint-asset-short-address ${addressCopied ? 'is-copied' : ''}`}
+                  onClick={() => {
+                    void copyMintAddress()
+                  }}
+                  title={addressCopied ? 'Copied to clipboard' : 'Copy mint address'}
+                  aria-label={`Copy ${selectedAsset.symbol} mint address`}
+                >
+                  {addressCopied ? 'Copied!' : shortenAddress(selectedAsset.mint)}
+                </button>
+              </span>
+              <a
+                href={solscanTokenUrl(selectedAsset.mint)}
+                target="_blank"
+                rel="noreferrer"
+                className="grai-mint-asset-trigger-solscan"
+                aria-label={`View ${selectedAsset.symbol} on Solscan`}
+                title={`View ${selectedAsset.symbol} on Solscan`}
+              >
+                {MINT_ASSET_SOLSCAN_ICON}
+              </a>
+            </span>
+          )}
+        </span>
       </div>
       {error && <p className="grai-registry-hint is-error">{error}</p>}
     </div>
@@ -594,6 +599,7 @@ type GraiManageInputFieldProps = {
   suffix?: string
   allAmount?: string
   labelPosition?: 'above' | 'below'
+  trailing?: ReactNode
 }
 
 function GraiManageInputField({
@@ -607,6 +613,7 @@ function GraiManageInputField({
   suffix,
   allAmount,
   labelPosition = 'below',
+  trailing,
 }: GraiManageInputFieldProps) {
   const hasSuffix = Boolean(suffix)
   const hasAll = allAmount !== undefined
@@ -616,35 +623,46 @@ function GraiManageInputField({
     </div>
   ) : null
 
+  const inputBlock = (
+    <div className={`grai-input-with-suffix${hasSuffix || hasAll ? ' has-max' : ''}`}>
+      <input
+        id={id}
+        type="text"
+        inputMode={inputMode}
+        className="grai-input"
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        spellCheck={false}
+        autoComplete="off"
+      />
+      {suffix && <span className="grai-input-suffix">{suffix}</span>}
+      {hasAll && (
+        <button
+          type="button"
+          className="grai-input-max-btn"
+          onClick={() => {
+            if (allAmount) onChange(allAmount)
+          }}
+          disabled={!allAmount}
+        >
+          ALL
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <div className="grai-mint-amount-field">
       {labelPosition === 'above' && labelNode}
-      <div className={`grai-input-with-suffix${hasSuffix || hasAll ? ' has-max' : ''}`}>
-        <input
-          id={id}
-          type="text"
-          inputMode={inputMode}
-          className="grai-input"
-          placeholder={placeholder}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          spellCheck={false}
-          autoComplete="off"
-        />
-        {suffix && <span className="grai-input-suffix">{suffix}</span>}
-        {hasAll && (
-          <button
-            type="button"
-            className="grai-input-max-btn"
-            onClick={() => {
-              if (allAmount) onChange(allAmount)
-            }}
-            disabled={!allAmount}
-          >
-            ALL
-          </button>
-        )}
-      </div>
+      {trailing ? (
+        <div className="grai-mint-amount-row">
+          {inputBlock}
+          {trailing}
+        </div>
+      ) : (
+        inputBlock
+      )}
       {labelPosition === 'below' && labelNode}
     </div>
   )
@@ -1128,31 +1146,33 @@ function GraiManagePage() {
           </p>
 
           <GraiManageAssetField
-            assets={assets}
             selectedAsset={allocateAsset}
-            isLoading={assetsLoading}
             error={assetsError}
-            menuOpen={allocateAssetMenuOpen}
-            onMenuOpenChange={setAllocateAssetMenuOpen}
-            onSelect={handleAllocateAssetSelect}
             solscanTokenUrl={solscanTokenUrl}
-            listId="grai-allocate-asset-list"
             label="Junior vault asset"
           />
 
           <GraiManageInputField
             id="grai-allocate-amount"
-            label="Amount"
-            labelIcon={AMOUNT_FIELD_ICON}
-            labelPosition="above"
             value={allocateAmount}
             inputMode="decimal"
-            suffix={allocateAsset?.symbol ?? '—'}
             allAmount={allocateMaxAmount}
             onChange={(value) => {
               setAllocateAmount(normalizeDecimalInput(value, allocateAssetDecimals))
               resetAllocate()
             }}
+            trailing={
+              <GraiManageAssetSelector
+                assets={assets}
+                selectedAsset={allocateAsset}
+                isLoading={assetsLoading}
+                menuOpen={allocateAssetMenuOpen}
+                onMenuOpenChange={setAllocateAssetMenuOpen}
+                onSelect={handleAllocateAssetSelect}
+                solscanTokenUrl={solscanTokenUrl}
+                listId="grai-allocate-asset-list"
+              />
+            }
           />
 
           <GraiManageCustodyField
@@ -1252,34 +1272,40 @@ function GraiManagePage() {
           />
 
           <GraiManageAssetField
-            assets={distributeGrinderAssets}
             selectedAsset={distributeAsset}
-            isLoading={assetsLoading || grinderCustodyLoading}
-            error={null}
-            menuOpen={distributeAssetMenuOpen}
-            onMenuOpenChange={setDistributeAssetMenuOpen}
-            onSelect={handleDistributeAssetSelect}
             solscanTokenUrl={solscanTokenUrl}
-            listId="grai-distribute-asset-list"
             label="Custody asset"
-            listEmptyMessage={
-              selectedDistributeGrinder ? 'No assets for this grinder' : 'Select custody first'
-            }
           />
 
           <GraiManageInputField
             id="grai-distribute-amount"
-            label="Yield amount"
-            labelIcon={YIELD_AMOUNT_FIELD_ICON}
-            labelPosition="above"
             value={distributeAmount}
             inputMode="decimal"
-            suffix={distributeAsset?.symbol ?? '—'}
             allAmount={distributeAllAmount}
             onChange={(value) => {
               setDistributeAmount(normalizeDecimalInput(value, distributeAssetDecimals))
               resetDistribute()
             }}
+            trailing={
+              <GraiManageAssetSelector
+                assets={distributeGrinderAssets}
+                selectedAsset={distributeAsset}
+                isLoading={assetsLoading || grinderCustodyLoading}
+                menuOpen={distributeAssetMenuOpen}
+                onMenuOpenChange={setDistributeAssetMenuOpen}
+                onSelect={handleDistributeAssetSelect}
+                solscanTokenUrl={solscanTokenUrl}
+                listId="grai-distribute-asset-list"
+                emptyTriggerLabel={
+                  selectedDistributeGrinder ? 'No assets' : 'Select custody'
+                }
+                listEmptyMessage={
+                  selectedDistributeGrinder
+                    ? `No assets on ${selectedDistributeGrinder.name}`
+                    : 'Select custody first'
+                }
+              />
+            }
           />
 
           {isDistributing ? (

@@ -1216,6 +1216,10 @@
   width: 100%;
 }
 
+.grai-mint-asset-field + .grai-mint-amount-field {
+  margin-top: calc(-0.75rem + 0.15rem);
+}
+
 .grai-field-label {
   display: block;
   font-size: 0.75rem;
@@ -1627,6 +1631,47 @@
   gap: 0.75rem;
 }
 
+.grai-mint-amount-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.grai-mint-amount-row .grai-input-with-suffix {
+  flex: 1;
+  min-width: 0;
+}
+
+.grai-mint-amount-row .grai-input-with-suffix.has-max {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom: 1px dashed rgba(255, 105, 180, 0.35);
+}
+
+.grai-mint-amount-row .grai-input-with-suffix.has-max .grai-input {
+  border-bottom: none;
+}
+
+.grai-mint-amount-row .grai-input-with-suffix.has-max:focus-within {
+  border-bottom-color: #ff69b4;
+}
+
+.grai-mint-amount-row .grai-mint-asset-dropdown {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.grai-mint-amount-row .grai-mint-asset-value {
+  width: auto;
+  min-width: 5.5rem;
+}
+
+.grai-mint-amount-row .grai-mint-asset-list {
+  left: auto;
+  right: 0;
+  min-width: 10rem;
+}
+
 .grai-mint-amount-header {
   display: flex;
   align-items: center;
@@ -1734,6 +1779,14 @@
 
 [data-theme="light"] .grai-input-with-suffix .grai-input::placeholder {
   color: rgba(233, 30, 140, 0.45);
+}
+
+[data-theme="light"] .grai-mint-amount-row .grai-input-with-suffix.has-max {
+  border-bottom-color: rgba(233, 30, 140, 0.35);
+}
+
+[data-theme="light"] .grai-mint-amount-row .grai-input-with-suffix.has-max:focus-within {
+  border-bottom-color: #e91e8c;
 }
 
 [data-theme="light"] .grai-input-suffix {
