@@ -35,12 +35,12 @@ export function ConnectWalletButton() {
         {showConnecting ? (
           <>
             <span className="wallet-spinner" />
-            Connecting...
+            <span className="connect-wallet-btn-label">Connecting...</span>
           </>
         ) : (
           <>
             <WalletIcon />
-            Connect Wallet
+            <span className="connect-wallet-btn-label">Connect Wallet</span>
           </>
         )}
       </button>

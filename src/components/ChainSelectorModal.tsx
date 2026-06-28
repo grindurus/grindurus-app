@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { WalletIcon } from './WalletIcon'
 import './WalletStyles.css'
 
 type TabType = 'evm' | 'solana' | 'movevm'
@@ -20,15 +21,14 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   const solanaWallet = useSolanaWallet()
 
   useEffect(() => {
+    const html = document.documentElement
     if (isOpen) {
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-      document.body.style.overflow = 'hidden'
-      document.body.style.paddingRight = scrollbarWidth > 0 ? `${scrollbarWidth}px` : ''
+      html.style.overflow = 'hidden'
     } else {
-      document.body.style.overflow = ''
-      document.body.style.paddingRight = ''
+      html.style.overflow = ''
     }
     return () => {
+      html.style.overflow = ''
       document.body.style.overflow = ''
       document.body.style.paddingRight = ''
     }
@@ -93,7 +93,10 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
     <div className="wallet-modal-backdrop" onClick={handleBackdropClick}>
       <div className="wallet-modal">
         <div className="wallet-modal-header">
-          <h2>Connect Wallet</h2>
+          <h2>
+            <WalletIcon size={20} />
+            Connect Wallet
+          </h2>
           <button className="wallet-modal-close" onClick={onClose}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />

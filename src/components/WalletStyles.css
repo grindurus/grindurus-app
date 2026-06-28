@@ -1,8 +1,10 @@
 /* Connect Wallet Button */
 .connect-wallet-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  min-width: 11.5rem;
   padding: 0.65rem 1.25rem;
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
   border: none;
@@ -10,9 +12,16 @@
   color: white;
   font-size: 0.9rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease, opacity 0.3s ease;
   box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+}
+
+.connect-wallet-btn-label {
+  display: inline-block;
+  min-width: 6.75rem;
+  text-align: center;
 }
 
 .connect-wallet-btn:hover:not(:disabled) {
@@ -88,6 +97,9 @@
 }
 
 .wallet-modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.1rem;
   font-weight: 600;
   color: white;

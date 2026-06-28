@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { fetchAccountsByKey, getAccountData } from './accountBatch'
 import { createGraiRegistryConnection, GRAI_MINT, GRAI_PROGRAM_ID, graiStatePda } from './constants'
-import { decodeSeniorVaultPriceFeed, parseTokenAmount } from './onchain'
+import { decodeMintSupply, decodeSeniorVaultPriceFeed, parseTokenAmount } from './onchain'
 import { parseOraclePriceFeed } from './oraclePrice'
 import { seniorVaultPda } from './pdas'
 import { depositValue, graiMintAmount } from './tokenomics'
@@ -16,10 +16,6 @@ function readU128LE(buf: Buffer, offset: number): bigint {
 
 function decodeGraiStateTotalValue(data: Buffer): bigint {
   return readU128LE(data, 40)
-}
-
-function decodeMintSupply(data: Buffer): bigint {
-  return data.readBigUInt64LE(36)
 }
 
 function tryParseDepositAmount(amountInput: string, assetDecimals: number): bigint | null {

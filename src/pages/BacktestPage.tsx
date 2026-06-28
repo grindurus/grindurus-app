@@ -1546,7 +1546,7 @@ function BacktestPage() {
                 <span className="backtest-payments-priority-line">
                   <span className="backtest-payments-priority-label">
                     <span className="backtest-payments-dot is-queue" aria-hidden="true" />
-                    queue priority
+                    QUEUE
                   </span>
                   <span className="backtest-payments-priority-amount">
                     {queuePriorityUsdc} USDC ({queuePriorityPct.toFixed(1)}%)
@@ -1555,7 +1555,7 @@ function BacktestPage() {
                 <span className="backtest-payments-priority-line">
                   <span className="backtest-payments-priority-label">
                     <span className="backtest-payments-dot is-stack" aria-hidden="true" />
-                    stack priority
+                    STACK
                   </span>
                   <span className="backtest-payments-priority-amount">
                     {stackPriorityUsdc} USDC ({stackPriorityPct.toFixed(1)}%)

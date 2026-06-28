@@ -45,6 +45,7 @@
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .backtest-panel-heading::before {

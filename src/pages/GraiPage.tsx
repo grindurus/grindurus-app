@@ -10,10 +10,12 @@ import { useGraiBurn } from '../hooks/useGraiBurn'
 import { useGraiBurnEstimate } from '../hooks/useGraiBurnEstimate'
 import { useGraiMintEstimate } from '../hooks/useGraiMintEstimate'
 import { useGraiMint } from '../hooks/useGraiMint'
+import { useGraiTotalSupply } from '../hooks/useGraiTotalSupply'
 import { useGraiVaultBalances } from '../hooks/useGraiVaultBalances'
 import { useWalletAssetBalance } from '../hooks/useWalletAssetBalance'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { GraiNavDonut } from '../components/GraiNavDonut'
+import { ChainSelectorModal } from '../components/ChainSelectorModal'
 import { WalletIcon } from '../components/WalletIcon'
 import { playBullSound, primeBullSound } from '../utils/playBullSound'
 import './GraiPage.css'
@@ -219,11 +221,12 @@ function GraiPage() {
     isRegistryLoaded,
   } = useGraiAssets()
   const { vaultBalances, isLoading: vaultBalancesLoading, refresh: refreshVaultBalances } = useGraiVaultBalances()
+  const { totalSupplyLabel, isLoading: totalSupplyLoading, refresh: refreshTotalSupply } = useGraiTotalSupply()
   const { mint: mintGrai, status: mintStatus, error: mintError, lastSignature: mintSignature, isMinting, reset: resetMint } =
     useGraiMint()
   const { burn: burnGrai, status: burnStatus, error: burnError, lastSignature: burnSignature, isBurning, reset: resetBurn } =
     useGraiBurn()
-  const { connect: connectSolanaWallet, isConnected: isSolanaConnected } = useSolanaWallet()
+  const { isConnected: isSolanaConnected } = useSolanaWallet()
   const [actionView, setActionView] = useState<'mint' | 'burn'>('mint')
   const [mintAmount, setMintAmount] = useState('')
   const [selectedMint, setSelectedMint] = useState('')
@@ -232,6 +235,7 @@ function GraiPage() {
   const [burnAmount, setBurnAmount] = useState('')
   const [isLegendTableHidden, setIsLegendTableHidden] = useState(false)
   const [isGrindersTableHidden, setIsGrindersTableHidden] = useState(false)
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const mintAssetMenuRef = useRef<HTMLDivElement>(null)
   const bullSoundPlayedForRef = useRef<string | null>(null)
   const selectedAsset = useMemo(
@@ -327,21 +331,23 @@ function GraiPage() {
     if (mintStatus !== 'success' || !mintSignature) return
     void refreshWalletBalance()
     void refreshVaultBalances()
+    void refreshTotalSupply()
     if (bullSoundPlayedForRef.current !== mintSignature) {
       bullSoundPlayedForRef.current = mintSignature
       void playBullSound()
     }
-  }, [mintStatus, mintSignature, refreshWalletBalance, refreshVaultBalances])
+  }, [mintStatus, mintSignature, refreshWalletBalance, refreshVaultBalances, refreshTotalSupply])
 
   useEffect(() => {
     if (burnStatus !== 'success' || !burnSignature) return
     void refreshGraiBalance()
     void refreshVaultBalances()
+    void refreshTotalSupply()
     if (bullSoundPlayedForRef.current !== burnSignature) {
       bullSoundPlayedForRef.current = burnSignature
       void playBullSound()
     }
-  }, [burnStatus, burnSignature, refreshGraiBalance, refreshVaultBalances])
+  }, [burnStatus, burnSignature, refreshGraiBalance, refreshVaultBalances, refreshTotalSupply])
 
   const handleMint = useCallback(async () => {
     if (!selectedAsset?.mint) return
@@ -583,7 +589,7 @@ function GraiPage() {
                           label={balanceLabel}
                           symbol={selectedAsset?.symbol}
                           isConnected={isSolanaConnected}
-                          onConnect={connectSolanaWallet}
+                          onConnect={() => setIsWalletModalOpen(true)}
                         />
                       </div>
                     </div>
@@ -669,7 +675,7 @@ function GraiPage() {
                           label={graiBalanceLabel}
                           symbol="GRAI"
                           isConnected={isSolanaConnected}
-                          onConnect={connectSolanaWallet}
+                          onConnect={() => setIsWalletModalOpen(true)}
                         />
                       </div>
                     </div>
@@ -679,7 +685,7 @@ function GraiPage() {
                           <span className="grai-burn-estimate-label-icon" aria-hidden="true">
                             {BURN_TOTAL_SIGMA_ICON}
                           </span>
-                          Total:{' '}
+                          TOTAL:{' '}
                           {!burnAmount.trim() || burnTotalUsdLabel === '—'
                             ? burnTotalUsdLabel
                             : `~${burnTotalUsdLabel}`}
@@ -764,19 +770,29 @@ function GraiPage() {
         </div>
         <aside className="grai-assets-chart-card" aria-label="GRAI assets composition">
           <div className="grai-assets-split">
-            <div className="grai-donuts-group">
-              <GraiNavDonut
-                slices={compositionRows}
-                totalNavLabel={totalNavLabel}
-                centerLabel="Senior Vault NAV"
-                isLoading={vaultBalancesLoading || mintAssetsLoading}
-              />
-              <GraiNavDonut
-                slices={juniorCompositionRows}
-                totalNavLabel={totalJuniorNavLabel}
-                centerLabel="Junior Vault NAV"
-                isLoading={vaultBalancesLoading || mintAssetsLoading}
-              />
+            <div className="grai-assets-overview">
+              <div className="grai-donut-slot grai-donut-slot--supply" aria-label="GRAI total supply">
+                <span className="grai-assets-supply-label">Total Supply</span>
+                <span className="grai-assets-supply-value">
+                  {totalSupplyLoading ? '…' : `${totalSupplyLabel} GRAI`}
+                </span>
+              </div>
+              <div className="grai-donut-slot grai-donut-slot--senior">
+                <GraiNavDonut
+                  slices={compositionRows}
+                  totalNavLabel={totalNavLabel}
+                  centerLabel="Senior Vault NAV"
+                  isLoading={vaultBalancesLoading || mintAssetsLoading}
+                />
+              </div>
+              <div className="grai-donut-slot grai-donut-slot--junior">
+                <GraiNavDonut
+                  slices={juniorCompositionRows}
+                  totalNavLabel={totalJuniorNavLabel}
+                  centerLabel="Junior Vault NAV"
+                  isLoading={vaultBalancesLoading || mintAssetsLoading}
+                />
+              </div>
             </div>
             <div className="grai-donut-legend">
               <div
@@ -810,8 +826,6 @@ function GraiPage() {
                     <span className="grai-balance-table-col-icon">{BALANCE_COLUMN_ICONS.assets}</span>
                     Assets
                   </div>
-                  {!isLegendTableHidden && (
-                    <>
                   <div className="grai-balance-table-cell grai-balance-table-cell--head is-senior">
                     <span className="grai-balance-table-col-icon">{BALANCE_COLUMN_ICONS.seniorVault}</span>
                     Senior Vault
@@ -824,8 +838,6 @@ function GraiPage() {
                     <span className="grai-balance-table-col-icon">{BALANCE_COLUMN_ICONS.allocated}</span>
                     Allocated
                   </div>
-                    </>
-                  )}
                 </div>
                 {!isLegendTableHidden && (
                 <>
@@ -856,9 +868,6 @@ function GraiPage() {
                             <img src={row.asset.icon.src} alt={row.asset.icon.alt} />
                           </span>
                           {row.asset.symbol}
-                        </span>
-                        <span className="grai-asset-cell-pct">
-                          ({vaultBalancesLoading ? '…' : `${row.pct.toFixed(1)}%`})
                         </span>
                       </div>
                       <div className="grai-balance-table-cell grai-balance-table-value">
@@ -1020,6 +1029,10 @@ function GraiPage() {
           </div>
         </section>
       </div>
+      <ChainSelectorModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+      />
     </div>
   )
 }

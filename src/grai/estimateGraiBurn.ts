@@ -4,7 +4,13 @@ import { createGraiRegistryConnection, GRAI_MINT, GRAI_PROGRAM_ID, graiStatePda 
 import { fetchGraiStateAssetMints } from './graiStateCache'
 import { resolveGraiAsset, type GraiAsset } from './knownMints'
 import { NATIVE_MINT } from './knownMints'
-import { decodeMintDecimals, decodeSeniorVaultPriceFeed, formatTokenBalance, parseTokenAmount } from './onchain'
+import {
+  decodeMintDecimals,
+  decodeMintSupply,
+  decodeSeniorVaultPriceFeed,
+  formatTokenBalance,
+  parseTokenAmount,
+} from './onchain'
 import { parseOraclePriceFeed } from './oraclePrice'
 import { seniorVaultAtaPda, seniorVaultPda } from './pdas'
 import { depositValue, redeemAssetAmount, USD_SCALE } from './tokenomics'
@@ -14,10 +20,6 @@ export type GraiBurnOutputEstimate = {
   amountLabel: string
   usdLabel: string | null
   usdRaw: bigint
-}
-
-function decodeMintSupply(data: Buffer): bigint {
-  return data.readBigUInt64LE(36)
 }
 
 function tryParseGraiAmount(amountInput: string, graiDecimals: number): bigint | null {

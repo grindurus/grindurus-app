@@ -26,6 +26,11 @@ export async function fetchSeniorVaultPriceFeed(
   return decodeSeniorVaultPriceFeed(Buffer.from(account.data))
 }
 
+/** SPL mint account: supply at offset 36 (u64 LE). */
+export function decodeMintSupply(data: Buffer): bigint {
+  return data.readBigUInt64LE(36)
+}
+
 /** SPL mint account: decimals at offset 44. */
 export function decodeMintDecimals(data: Buffer): number {
   return data.readUInt8(44)
