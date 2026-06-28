@@ -1,26 +1,26 @@
 import { useCallback, useState } from 'react'
-import { Transaction } from '@solana/web3.js'
-import { executeBurn } from '../grai/buildBurnTransaction'
+import { PublicKey, Transaction } from '@solana/web3.js'
+import { executeAllocate } from '../grai/buildAllocateTransaction'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { useSolanaWallet } from './useSolanaWallet'
 
-export type GraiBurnStatus = 'idle' | 'building' | 'signing' | 'confirming' | 'success' | 'error'
+export type GraiAllocateStatus = 'idle' | 'building' | 'signing' | 'confirming' | 'success' | 'error'
 
-export function useGraiBurn() {
+export function useGraiAllocate() {
   const solanaWallet = useSolanaWallet()
   const { connection, solana, clusterMismatch } = useGraiDeployment()
-  const [status, setStatus] = useState<GraiBurnStatus>('idle')
+  const [status, setStatus] = useState<GraiAllocateStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [lastSignature, setLastSignature] = useState<string | null>(null)
 
-  const burn = useCallback(
-    async (params: { amountInput: string }) => {
+  const allocate = useCallback(
+    async (params: { assetMint: string; custodyWallet: string; amountInput: string }) => {
       setError(null)
       setLastSignature(null)
 
       if (!solanaWallet.publicKey) {
         solanaWallet.connect()
-        throw new Error('Connect a Solana wallet to burn GRAI')
+        throw new Error('Connect a Solana wallet to allocate capital')
       }
 
       if (!solanaWallet.signTransaction) {
@@ -32,15 +32,23 @@ export function useGraiBurn() {
       }
 
       if (clusterMismatch) {
-        throw new Error(`Switch your Solana wallet to ${solana.cluster} to burn GRAI`)
+        throw new Error(`Switch your Solana wallet to ${solana.cluster} to allocate capital`)
       }
 
       const amountInput = params.amountInput.trim()
       if (!amountInput || amountInput === '0' || amountInput === '0.') {
-        throw new Error('Enter an amount to burn')
+        throw new Error('Enter an amount to allocate')
       }
 
-      const burner = solanaWallet.publicKey
+      let custodyWallet: PublicKey
+      try {
+        custodyWallet = new PublicKey(params.custodyWallet.trim())
+      } catch {
+        throw new Error('Enter a valid custody wallet address')
+      }
+
+      const authority = solanaWallet.publicKey
+      const assetMint = new PublicKey(params.assetMint)
 
       try {
         setStatus('building')
@@ -50,10 +58,12 @@ export function useGraiBurn() {
         }
 
         setStatus('confirming')
-        const { signature } = await executeBurn({
+        const { signature } = await executeAllocate({
           connection,
           config: solana,
-          burner,
+          authority,
+          assetMint,
+          custodyWallet,
           amountInput,
           signTransaction,
         })
@@ -61,12 +71,12 @@ export function useGraiBurn() {
         setLastSignature(signature)
         setStatus('success')
         return signature
-      } catch (burnError) {
+      } catch (allocateError) {
         const message =
-          burnError instanceof Error ? burnError.message : 'Burn transaction failed'
+          allocateError instanceof Error ? allocateError.message : 'Allocate transaction failed'
         setError(message)
         setStatus('error')
-        throw burnError
+        throw allocateError
       }
     },
     [clusterMismatch, connection, solana, solanaWallet],
@@ -79,11 +89,11 @@ export function useGraiBurn() {
   }, [])
 
   return {
-    burn,
+    allocate,
     reset,
     status,
     error,
     lastSignature,
-    isBurning: status === 'building' || status === 'signing' || status === 'confirming',
+    isAllocating: status === 'building' || status === 'signing' || status === 'confirming',
   }
 }

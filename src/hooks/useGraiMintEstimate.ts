@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PublicKey } from '@solana/web3.js'
 import { estimateGraiMintOutput } from '../grai/estimateGraiMint'
+import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance } from '../grai/onchain'
 import { GRAI_DECIMALS } from '../grai/tokenomics'
 
@@ -9,11 +10,12 @@ export function useGraiMintEstimate(
   amountInput: string,
   assetDecimals: number | null,
 ) {
+  const { connection, solana, isConfigured } = useGraiDeployment()
   const [estimatedGrai, setEstimatedGrai] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (!assetMint || assetDecimals === null || !amountInput.trim()) {
+    if (!assetMint || assetDecimals === null || !amountInput.trim() || !connection || !solana || !isConfigured) {
       setEstimatedGrai(null)
       setIsLoading(false)
       return
@@ -22,7 +24,7 @@ export function useGraiMintEstimate(
     let cancelled = false
     const timer = window.setTimeout(() => {
       setIsLoading(true)
-      void estimateGraiMintOutput(new PublicKey(assetMint), amountInput, assetDecimals)
+      void estimateGraiMintOutput(new PublicKey(assetMint), amountInput, assetDecimals, connection, solana)
         .then((raw) => {
           if (cancelled) return
           setEstimatedGrai(raw === null ? null : formatTokenBalance(raw, GRAI_DECIMALS))
@@ -39,7 +41,7 @@ export function useGraiMintEstimate(
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [amountInput, assetDecimals, assetMint])
+  }, [amountInput, assetDecimals, assetMint, connection, isConfigured, solana])
 
   return { estimatedGrai, isLoading }
 }

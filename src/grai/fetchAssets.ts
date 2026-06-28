@@ -1,15 +1,18 @@
-import { createGraiRegistryConnection } from './constants'
+import type { GraiSolanaConfig } from './deployments'
 import { fetchGraiStateAssetMints } from './graiStateCache'
 import { resolveGraiAsset, type GraiAsset } from './knownMints'
 
 export async function fetchGraiRegistryAssetMints(
-  connection = createGraiRegistryConnection(),
+  connection: Parameters<typeof fetchGraiStateAssetMints>[0],
+  config: GraiSolanaConfig,
 ) {
-  return fetchGraiStateAssetMints(connection)
+  return fetchGraiStateAssetMints(connection, config)
 }
 
-export async function fetchGraiRegistryAssets(): Promise<GraiAsset[]> {
-  const connection = createGraiRegistryConnection()
-  const assetMints = await fetchGraiRegistryAssetMints(connection)
+export async function fetchGraiRegistryAssets(
+  connection: Parameters<typeof fetchGraiStateAssetMints>[0],
+  config: GraiSolanaConfig,
+): Promise<GraiAsset[]> {
+  const assetMints = await fetchGraiRegistryAssetMints(connection, config)
   return assetMints.map((mint) => resolveGraiAsset(mint.toBase58()))
 }

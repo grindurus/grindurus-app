@@ -1,4 +1,5 @@
-import { createGraiRegistryConnection, GRAI_MINT } from './constants'
+import type { Connection } from '@solana/web3.js'
+import type { GraiSolanaConfig } from './deployments'
 import { decodeMintDecimals, decodeMintSupply, formatTokenBalance } from './onchain'
 
 export type GraiMintSupply = {
@@ -7,9 +8,11 @@ export type GraiMintSupply = {
   label: string
 }
 
-export async function fetchGraiMintSupply(): Promise<GraiMintSupply> {
-  const connection = createGraiRegistryConnection()
-  const account = await connection.getAccountInfo(GRAI_MINT)
+export async function fetchGraiMintSupply(
+  connection: Connection,
+  config: GraiSolanaConfig,
+): Promise<GraiMintSupply> {
+  const account = await connection.getAccountInfo(config.graiMint)
   if (!account?.data) {
     throw new Error('GRAI mint account not found')
   }

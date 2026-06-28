@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { decodeTokenAccountAmount, fetchAccountsByKey, getAccountData } from './accountBatch'
-import { createGraiRegistryConnection } from './constants'
+import type { GraiSolanaConfig } from './deployments'
 import { fetchGraiStateAssetMints } from './graiStateCache'
 import { decodeSeniorVaultPriceFeed, decodeSeniorVaultTotalValue, decodeMintDecimals } from './onchain'
 import { parseOraclePriceFeed } from './oraclePrice'
@@ -28,11 +28,12 @@ function decodeJuniorVaultActiveAmount(data: Buffer): bigint {
 function parseAssetVaultBalances(
   assetMint: PublicKey,
   accounts: Awaited<ReturnType<typeof fetchAccountsByKey>>,
+  programId: PublicKey,
 ): GraiAssetVaultBalances {
-  const seniorAta = seniorVaultAtaPda(assetMint)
-  const juniorAta = juniorVaultAtaPda(assetMint)
-  const seniorVault = seniorVaultPda(assetMint)
-  const juniorVault = juniorVaultPda(assetMint)
+  const seniorAta = seniorVaultAtaPda(assetMint, programId)
+  const juniorAta = juniorVaultAtaPda(assetMint, programId)
+  const seniorVault = seniorVaultPda(assetMint, programId)
+  const juniorVault = juniorVaultPda(assetMint, programId)
   const isNativeSol = assetMint.toBase58() === NATIVE_MINT
 
   const seniorAtaData = getAccountData(accounts, seniorAta)
@@ -87,17 +88,19 @@ function priceVaultBalanceUsd(
 }
 
 export async function fetchGraiVaultBalances(
-  connection: Connection = createGraiRegistryConnection(),
+  connection: Connection,
+  config: GraiSolanaConfig,
 ): Promise<Record<string, GraiAssetVaultBalances>> {
-  const assetMints = await fetchGraiStateAssetMints(connection)
+  const assetMints = await fetchGraiStateAssetMints(connection, config)
+  const programId = config.programId
 
   const accountKeys: PublicKey[] = []
   for (const mint of assetMints) {
     accountKeys.push(
-      seniorVaultAtaPda(mint),
-      juniorVaultAtaPda(mint),
-      seniorVaultPda(mint),
-      juniorVaultPda(mint),
+      seniorVaultAtaPda(mint, programId),
+      juniorVaultAtaPda(mint, programId),
+      seniorVaultPda(mint, programId),
+      juniorVaultPda(mint, programId),
     )
     if (mint.toBase58() !== NATIVE_MINT) {
       accountKeys.push(mint)
@@ -107,7 +110,7 @@ export async function fetchGraiVaultBalances(
   const accounts = await fetchAccountsByKey(connection, accountKeys)
 
   const priceFeedKeys = assetMints.map((mint) => {
-    const seniorVaultData = getAccountData(accounts, seniorVaultPda(mint))
+    const seniorVaultData = getAccountData(accounts, seniorVaultPda(mint, programId))
     return seniorVaultData ? decodeSeniorVaultPriceFeed(seniorVaultData) : null
   })
 
@@ -120,7 +123,7 @@ export async function fetchGraiVaultBalances(
     uniquePriceFeedKeys.length > 0 ? await fetchAccountsByKey(connection, uniquePriceFeedKeys) : new Map()
 
   const entries = assetMints.map((mint, index) => {
-    const balances = parseAssetVaultBalances(mint, accounts)
+    const balances = parseAssetVaultBalances(mint, accounts, programId)
     const priceFeedKey = priceFeedKeys[index] ?? null
     const seniorUsdRaw = priceVaultBalanceUsd(
       balances.seniorRaw,

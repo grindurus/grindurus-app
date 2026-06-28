@@ -1,4 +1,5 @@
 import { ReactNode, createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { getDefaultGraiSolanaCluster } from '../grai/deployments'
 import { EvmProvider } from './EvmProvider'
 import { SolanaProvider, SolanaNetwork } from './SolanaProvider'
 
@@ -46,7 +47,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
 
   const [solanaCluster, setSolanaCluster] = useState<SolanaCluster>(() => {
     const saved = localStorage.getItem('solanaCluster')
-    return (saved as SolanaCluster) || 'mainnet-beta'
+    return (saved as SolanaCluster) || getDefaultGraiSolanaCluster()
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)

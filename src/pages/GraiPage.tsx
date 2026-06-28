@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeDecimalInput } from '../grai/onchain'
 import { formatVaultBalanceDisplay } from '../grai/formatVaultBalance'
-import { GRAI_MINT } from '../grai/constants'
+import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import type { GraiAsset } from '../grai/knownMints'
 import type { GraiAssetVaultBalances } from '../grai/fetchVaultBalances'
 import { USD_SCALE } from '../grai/tokenomics'
@@ -15,9 +15,12 @@ import { useGraiVaultBalances } from '../hooks/useGraiVaultBalances'
 import { useWalletAssetBalance } from '../hooks/useWalletAssetBalance'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { GraiNavDonut } from '../components/GraiNavDonut'
+import { GraiTokenFlowDiagram } from '../components/GraiTokenFlowDiagram'
 import { ChainSelectorModal } from '../components/ChainSelectorModal'
 import { WalletIcon } from '../components/WalletIcon'
 import { playBullSound, primeBullSound } from '../utils/playBullSound'
+import { navigateTo } from '../utils/navigate'
+import { KNOWN_GRINDERS } from '../grai/grinders'
 import './GraiPage.css'
 
 const BALANCE_COLUMN_ICONS = {
@@ -146,10 +149,6 @@ function shortenMintAddress(mint: string, head = 6, tail = 6) {
   return `${mint.slice(0, head)}...${mint.slice(-tail)}`
 }
 
-function solscanTokenUrl(mint: string) {
-  return `https://solscan.io/token/${mint}?cluster=devnet`
-}
-
 const MINT_ASSET_SOLSCAN_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M15 3h6v6" />
@@ -214,6 +213,7 @@ function GraiWalletBalanceSlot({
 }
 
 function GraiPage() {
+  const { solana, solscanTokenUrl, solscanTxUrl, clusterMismatch, solanaCluster, isConfigured } = useGraiDeployment()
   const {
     assets: mintAssets,
     isLoading: mintAssetsLoading,
@@ -236,7 +236,11 @@ function GraiPage() {
   const [isLegendTableHidden, setIsLegendTableHidden] = useState(false)
   const [isGrindersTableHidden, setIsGrindersTableHidden] = useState(false)
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
+  const [isTokenFlowOpen, setIsTokenFlowOpen] = useState(false)
   const mintAssetMenuRef = useRef<HTMLDivElement>(null)
+  const toggleTokenFlow = useCallback(() => {
+    setIsTokenFlowOpen((open) => !open)
+  }, [])
   const bullSoundPlayedForRef = useRef<string | null>(null)
   const selectedAsset = useMemo(
     () => mintAssets.find((asset) => asset.mint === selectedMint) ?? mintAssets[0],
@@ -266,7 +270,7 @@ function GraiPage() {
     if (totalUsd <= 0n) return '$0'
     return `$${formatVaultBalanceDisplay(totalUsd, USD_SCALE)}`
   }, [burnAmount, burnOutputs, isBurnEstimateLoading])
-  const graiMintAddress = GRAI_MINT.toBase58()
+  const graiMintAddress = solana?.graiMint.toBase58() ?? '—'
   const {
     balanceLabel: graiBalanceLabel,
     maxAmount: maxBurnAmount,
@@ -384,12 +388,59 @@ function GraiPage() {
 
   return (
     <div className="grai-page">
-      <h1>Grinders Artificial Index</h1>
+      <div className="grai-page-header">
+        <h1>Grinders Artificial Index</h1>
+        <button
+          type="button"
+          className={`grai-page-info-btn${isTokenFlowOpen ? ' is-active' : ' is-collapsed'}`}
+          onClick={(event) => {
+            event.stopPropagation()
+            toggleTokenFlow()
+          }}
+          aria-expanded={isTokenFlowOpen}
+          aria-controls="grai-token-flow-panel"
+          aria-label="Token flow"
+        >
+          <svg
+            className="grai-page-info-btn-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+          token flow
+        </button>
+      </div>
+
+      <div
+        id="grai-token-flow-panel"
+        className="grai-token-flow-panel"
+        hidden={!isTokenFlowOpen}
+        aria-hidden={!isTokenFlowOpen}
+      >
+        {isTokenFlowOpen ? <GraiTokenFlowDiagram /> : null}
+      </div>
+
       <div className="grai-page-meta">
+        {clusterMismatch && (
+          <p className="grai-page-network-warning" role="status">
+            Switch your Solana wallet to {solanaCluster === 'mainnet-beta' ? 'Mainnet' : solanaCluster} to mint or burn GRAI.
+          </p>
+        )}
+        {!isConfigured && (
+          <p className="grai-page-network-warning" role="status">
+            GRAI is not configured for this network. Set deployment env vars before using the app.
+          </p>
+        )}
         <p className="grai-page-ca">
           <span className="grai-page-ca-label">CA:</span>{' '}
           <a
-            href={`https://solscan.io/token/${graiMintAddress}?cluster=devnet`}
+            href={solscanTokenUrl(graiMintAddress)}
             target="_blank"
             rel="noreferrer"
             className="grai-page-ca-link"
@@ -605,7 +656,7 @@ function GraiPage() {
                         <p className="grai-mint-feedback is-success grai-mint-feedback-confirmed">
                           Mint confirmed:{' '}
                           <a
-                            href={`https://solscan.io/tx/${mintSignature}?cluster=devnet`}
+                            href={solscanTxUrl(mintSignature)}
                             target="_blank"
                             rel="noreferrer"
                             title={mintSignature}
@@ -742,7 +793,7 @@ function GraiPage() {
                         <p className="grai-mint-feedback is-success grai-burn-feedback-confirmed">
                           Burn confirmed:{' '}
                           <a
-                            href={`https://solscan.io/tx/${burnSignature}?cluster=devnet`}
+                            href={solscanTxUrl(burnSignature)}
                             target="_blank"
                             rel="noreferrer"
                             title={burnSignature}
@@ -926,22 +977,37 @@ function GraiPage() {
                 </button>
                 Grinders
               </span>
-              {!isGrindersTableHidden && (
-                <>
               <span role="columnheader" className="grai-grinders-group-title" style={{ gridColumn: '3 / span 2' }}>
                 📦 Balances
               </span>
               <span role="columnheader" className="grai-grinders-group-title" style={{ gridColumn: '5 / span 2' }}>
                 📈 Yield
               </span>
-                </>
-              )}
             </div>
             {!isGrindersTableHidden && (
               <>
             <div className="grai-grinders-row grai-grinders-row--head" role="row">
               <span role="columnheader" className="grai-grinders-col-grinder" aria-label="Grinder">
-                <img src="/logo.png" alt="" className="grai-grinders-col-logo" aria-hidden="true" />
+                <a
+                  href="/grai/manage"
+                  className="grai-grinders-col-grinder-link"
+                  title="Grinder management"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    navigateTo('/grai/manage')
+                  }}
+                >
+                  <span className="grai-grinders-col-logos" aria-hidden="true">
+                    {KNOWN_GRINDERS.map((grinder) => (
+                      <img
+                        key={grinder.id}
+                        src="/logo.png"
+                        alt=""
+                        className="grai-grinders-col-logo"
+                      />
+                    ))}
+                  </span>
+                </a>
               </span>
               <span role="columnheader" className="grai-grinders-col-head is-last-action">
                 <span className="grai-grinders-col-icon">{GRINDERS_COLUMN_ICONS.lastActionTime}</span>

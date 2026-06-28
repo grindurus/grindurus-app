@@ -1,6 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { decodeTokenAccountAmount, fetchAccountsByKey, getAccountData } from './accountBatch'
-import { createGraiRegistryConnection, GRAI_MINT, GRAI_PROGRAM_ID, graiStatePda } from './constants'
+import type { GraiSolanaConfig } from './deployments'
+import { graiStatePda } from './deployments'
 import { fetchGraiStateAssetMints } from './graiStateCache'
 import { resolveGraiAsset, type GraiAsset } from './knownMints'
 import { NATIVE_MINT } from './knownMints'
@@ -53,17 +54,19 @@ function formatBurnUsdLabel(usdRaw: bigint): string | null {
 export async function estimateGraiBurnOutputs(
   graiAmountInput: string,
   graiDecimals: number,
-  connection: Connection = createGraiRegistryConnection(),
+  connection: Connection,
+  config: GraiSolanaConfig,
 ): Promise<GraiBurnOutputEstimate[] | null> {
   const graiAmount = tryParseGraiAmount(graiAmountInput, graiDecimals)
   if (graiAmount === null) return null
 
-  const graiState = graiStatePda(GRAI_PROGRAM_ID)
-  const assetMints = await fetchGraiStateAssetMints(connection)
+  const graiState = graiStatePda(config.programId)
+  const assetMints = await fetchGraiStateAssetMints(connection, config)
+  const programId = config.programId
 
-  const accountKeys: PublicKey[] = [graiState, GRAI_MINT]
+  const accountKeys: PublicKey[] = [graiState, config.graiMint]
   for (const mint of assetMints) {
-    accountKeys.push(seniorVaultPda(mint), seniorVaultAtaPda(mint))
+    accountKeys.push(seniorVaultPda(mint, programId), seniorVaultAtaPda(mint, programId))
     if (mint.toBase58() !== NATIVE_MINT) {
       accountKeys.push(mint)
     }
@@ -71,7 +74,7 @@ export async function estimateGraiBurnOutputs(
 
   const accounts = await fetchAccountsByKey(connection, accountKeys)
   const graiStateData = getAccountData(accounts, graiState)
-  const graiMintData = getAccountData(accounts, GRAI_MINT)
+  const graiMintData = getAccountData(accounts, config.graiMint)
 
   if (!graiStateData || !graiMintData) {
     throw new Error('Unable to load GRAI burn estimate data')
@@ -86,7 +89,7 @@ export async function estimateGraiBurnOutputs(
   }
 
   const priceFeedKeys = assetMints.map((mint) => {
-    const seniorVaultData = getAccountData(accounts, seniorVaultPda(mint))
+    const seniorVaultData = getAccountData(accounts, seniorVaultPda(mint, programId))
     return seniorVaultData ? decodeSeniorVaultPriceFeed(seniorVaultData) : null
   })
 
@@ -103,7 +106,7 @@ export async function estimateGraiBurnOutputs(
     const mintData = isNativeSol ? null : getAccountData(accounts, mint)
     const decimals = isNativeSol ? 9 : mintData ? decodeMintDecimals(mintData) : 0
 
-    const seniorAtaData = getAccountData(accounts, seniorVaultAtaPda(mint))
+    const seniorAtaData = getAccountData(accounts, seniorVaultAtaPda(mint, programId))
     const idleRaw = seniorAtaData ? decodeTokenAccountAmount(seniorAtaData) : 0n
     const redeemRaw = redeemAssetAmount(graiAmount, totalSupply, idleRaw)
 

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { PublicKey } from '@solana/web3.js'
-import { createGraiRegistryConnection } from '../grai/constants'
+import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance, fetchMintDecimals, fetchWalletAssetBalance } from '../grai/onchain'
 import { NATIVE_MINT } from '../grai/knownMints'
 import { useSolanaWallet } from './useSolanaWallet'
 
 export function useWalletAssetBalance(assetMint: string | undefined, symbol: string | undefined) {
-  const { publicKey, isConnected } = useSolanaWallet()
+  const { publicKey, isConnected, connection: walletConnection } = useSolanaWallet()
+  const { connection: graiConnection, clusterMismatch } = useGraiDeployment()
+  const connection = clusterMismatch ? graiConnection : (walletConnection ?? graiConnection)
   const [formattedBalance, setFormattedBalance] = useState<string | null>(null)
   const [maxAmount, setMaxAmount] = useState('')
   const [decimals, setDecimals] = useState<number | null>(null)
@@ -23,14 +25,18 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       return
     }
 
-    const connection = createGraiRegistryConnection()
-    void fetchMintDecimals(connection, new PublicKey(assetMint))
+    if (!graiConnection) {
+      setDecimals(null)
+      return
+    }
+
+    void fetchMintDecimals(graiConnection, new PublicKey(assetMint))
       .then(setDecimals)
       .catch(() => setDecimals(null))
-  }, [assetMint])
+  }, [assetMint, graiConnection])
 
   const refresh = useCallback(async () => {
-    if (!publicKey || !assetMint) {
+    if (!publicKey || !assetMint || !connection) {
       setFormattedBalance(null)
       setMaxAmount('')
       return
@@ -38,7 +44,6 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
 
     setIsLoading(true)
     try {
-      const connection = createGraiRegistryConnection()
       const mint = new PublicKey(assetMint)
       const isNativeSol = assetMint === NATIVE_MINT
       const { raw, maxRaw, decimals } = await fetchWalletAssetBalance(
@@ -55,7 +60,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     } finally {
       setIsLoading(false)
     }
-  }, [assetMint, publicKey])
+  }, [assetMint, connection, publicKey])
 
   useEffect(() => {
     void refresh()

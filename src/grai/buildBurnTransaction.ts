@@ -4,7 +4,8 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js'
-import { createGraiRegistryConnection, GRAI_MINT, GRAI_PROGRAM_ID, graiStatePda } from './constants'
+import type { GraiSolanaConfig } from './deployments'
+import { graiStatePda } from './deployments'
 import { fetchGraiRegistryAssetMints } from './fetchAssets'
 import { fetchMintDecimals, parseTokenAmount } from './onchain'
 import { getAssociatedTokenAddress, seniorVaultAtaPda, seniorVaultPda, TOKEN_PROGRAM_ID } from './pdas'
@@ -22,21 +23,24 @@ function encodeBurnInstructionData(graiAmount: bigint): Buffer {
 export type BuildBurnTransactionParams = {
   burner: PublicKey
   graiAmount: bigint
-  connection?: Connection
+  connection: Connection
+  config: GraiSolanaConfig
 }
 
 export async function buildBurnTransaction({
   burner,
   graiAmount,
-  connection = createGraiRegistryConnection(),
+  connection,
+  config,
 }: BuildBurnTransactionParams): Promise<Transaction> {
   if (graiAmount <= 0n) {
     throw new Error('Amount must be greater than zero')
   }
 
-  const graiState = graiStatePda(GRAI_PROGRAM_ID)
-  const burnerGraiAta = getAssociatedTokenAddress(GRAI_MINT, burner)
-  const assetMints = await fetchGraiRegistryAssetMints(connection)
+  const programId = config.programId
+  const graiState = graiStatePda(programId)
+  const burnerGraiAta = getAssociatedTokenAddress(config.graiMint, burner)
+  const assetMints = await fetchGraiRegistryAssetMints(connection, config)
 
   if (assetMints.length === 0) {
     throw new Error('No assets registered in GRAI protocol')
@@ -55,8 +59,8 @@ export async function buildBurnTransaction({
   }
 
   const remainingAccounts = assetMints.flatMap((assetMint) => {
-    const seniorVault = seniorVaultPda(assetMint)
-    const seniorVaultAta = seniorVaultAtaPda(assetMint)
+    const seniorVault = seniorVaultPda(assetMint, programId)
+    const seniorVaultAta = seniorVaultAtaPda(assetMint, programId)
     const redeemerAta = getAssociatedTokenAddress(assetMint, burner)
 
     return [
@@ -67,12 +71,12 @@ export async function buildBurnTransaction({
   })
 
   const burnIx = new TransactionInstruction({
-    programId: GRAI_PROGRAM_ID,
+    programId,
     keys: [
       { pubkey: burner, isSigner: true, isWritable: false },
       { pubkey: graiState, isSigner: false, isWritable: true },
       { pubkey: burnerGraiAta, isSigner: false, isWritable: true },
-      { pubkey: GRAI_MINT, isSigner: false, isWritable: true },
+      { pubkey: config.graiMint, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       ...remainingAccounts,
     ],
@@ -96,18 +100,20 @@ export type ExecuteBurnParams = {
   burner: PublicKey
   amountInput: string
   signTransaction: (transaction: Transaction) => Promise<Transaction>
-  connection?: Connection
+  connection: Connection
+  config: GraiSolanaConfig
 }
 
 export async function executeBurn({
   burner,
   amountInput,
   signTransaction,
-  connection = createGraiRegistryConnection(),
+  connection,
+  config,
 }: ExecuteBurnParams): Promise<{ signature: string; amount: bigint }> {
-  const decimals = await fetchMintDecimals(connection, GRAI_MINT)
+  const decimals = await fetchMintDecimals(connection, config.graiMint)
   const graiAmount = parseTokenAmount(amountInput, decimals)
-  const transaction = await buildBurnTransaction({ burner, graiAmount, connection })
+  const transaction = await buildBurnTransaction({ burner, graiAmount, connection, config })
   const signed = await signTransaction(transaction)
   const signature = await connection.sendRawTransaction(signed.serialize(), {
     skipPreflight: false,

@@ -29,7 +29,10 @@ const ACTIVE_SECTOR_STROKE = 'var(--grai-donut-sector-stroke)'
 export function GraiNavDonut({ slices, totalNavLabel, centerLabel, isLoading = false }: GraiNavDonutProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
-  const { chartData, isEmptyDistribution } = useMemo(() => {
+  const { chartData, isEmptyDistribution } = useMemo((): {
+    chartData: DonutChartEntry[]
+    isEmptyDistribution: boolean
+  } => {
     const activeSlices = slices
       .filter((slice) => slice.pct > 0)
       .map((slice) => ({
@@ -66,7 +69,7 @@ export function GraiNavDonut({ slices, totalNavLabel, centerLabel, isLoading = f
     setActiveIndex(null)
   }, [chartData])
 
-  const handleSectorEnter = (_: DonutChartEntry, index: number) => {
+  const handleSectorEnter = (_: unknown, index: number) => {
     setActiveIndex(index)
   }
 

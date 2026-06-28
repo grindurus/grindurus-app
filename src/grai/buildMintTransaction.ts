@@ -5,7 +5,8 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js'
-import { createGraiRegistryConnection, GRAI_MINT, GRAI_PROGRAM_ID, graiStatePda } from './constants'
+import type { GraiSolanaConfig } from './deployments'
+import { graiStatePda } from './deployments'
 import { NATIVE_MINT } from './knownMints'
 import { fetchMintDecimals, fetchSeniorVaultPriceFeed, parseTokenAmount } from './onchain'
 import {
@@ -32,35 +33,38 @@ export type BuildMintTransactionParams = {
   minter: PublicKey
   assetMint: PublicKey
   amount: bigint
-  connection?: Connection
+  connection: Connection
+  config: GraiSolanaConfig
 }
 
 export async function buildMintTransaction({
   minter,
   assetMint,
   amount,
-  connection = createGraiRegistryConnection(),
+  connection,
+  config,
 }: BuildMintTransactionParams): Promise<Transaction> {
   if (amount <= 0n) {
     throw new Error('Amount must be greater than zero')
   }
 
+  const programId = config.programId
   const isSol = assetMint.toBase58() === NATIVE_MINT
-  const graiState = graiStatePda(GRAI_PROGRAM_ID)
-  const seniorVault = seniorVaultPda(assetMint)
-  const seniorVaultAta = seniorVaultAtaPda(assetMint)
-  const juniorVaultAta = juniorVaultAtaPda(assetMint)
+  const graiState = graiStatePda(programId)
+  const seniorVault = seniorVaultPda(assetMint, programId)
+  const seniorVaultAta = seniorVaultAtaPda(assetMint, programId)
+  const juniorVaultAta = juniorVaultAtaPda(assetMint, programId)
   const priceFeed = await fetchSeniorVaultPriceFeed(connection, seniorVault)
-  const minterGraiAta = getAssociatedTokenAddress(GRAI_MINT, minter)
+  const minterGraiAta = getAssociatedTokenAddress(config.graiMint, minter)
   const minterAssetAta = getAssociatedTokenAddress(assetMint, minter)
 
   const mintIx = new TransactionInstruction({
-    programId: GRAI_PROGRAM_ID,
+    programId,
     keys: [
       { pubkey: minter, isSigner: true, isWritable: true },
       { pubkey: graiState, isSigner: false, isWritable: true },
       { pubkey: assetMint, isSigner: false, isWritable: false },
-      { pubkey: GRAI_MINT, isSigner: false, isWritable: true },
+      { pubkey: config.graiMint, isSigner: false, isWritable: true },
       { pubkey: priceFeed, isSigner: false, isWritable: false },
       { pubkey: seniorVault, isSigner: false, isWritable: true },
       { pubkey: seniorVaultAta, isSigner: false, isWritable: true },
@@ -107,7 +111,8 @@ export type ExecuteMintParams = {
   assetMint: PublicKey
   amountInput: string
   signTransaction: (transaction: Transaction) => Promise<Transaction>
-  connection?: Connection
+  connection: Connection
+  config: GraiSolanaConfig
 }
 
 export async function executeMint({
@@ -115,11 +120,12 @@ export async function executeMint({
   assetMint,
   amountInput,
   signTransaction,
-  connection = createGraiRegistryConnection(),
+  connection,
+  config,
 }: ExecuteMintParams): Promise<{ signature: string; amount: bigint }> {
   const decimals = await fetchMintDecimals(connection, assetMint)
   const amount = parseTokenAmount(amountInput, decimals)
-  const transaction = await buildMintTransaction({ minter, assetMint, amount, connection })
+  const transaction = await buildMintTransaction({ minter, assetMint, amount, connection, config })
   const signed = await signTransaction(transaction)
   const signature = await connection.sendRawTransaction(signed.serialize(), {
     skipPreflight: false,

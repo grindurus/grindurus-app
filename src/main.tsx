@@ -2,10 +2,13 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { AppWalletProvider } from './providers/AppWalletProvider'
+import { GraiDeploymentProvider } from './grai/GraiDeploymentProvider'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <AppWalletProvider>
-    <App />
+    <GraiDeploymentProvider>
+      <App />
+    </GraiDeploymentProvider>
   </AppWalletProvider>,
 )

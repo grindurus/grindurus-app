@@ -1,6 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { fetchAccountsByKey, getAccountData } from './accountBatch'
-import { createGraiRegistryConnection, GRAI_MINT, GRAI_PROGRAM_ID, graiStatePda } from './constants'
+import type { GraiSolanaConfig } from './deployments'
+import { graiStatePda } from './deployments'
 import { decodeMintSupply, decodeSeniorVaultPriceFeed, parseTokenAmount } from './onchain'
 import { parseOraclePriceFeed } from './oraclePrice'
 import { seniorVaultPda } from './pdas'
@@ -33,17 +34,18 @@ export async function estimateGraiMintOutput(
   assetMint: PublicKey,
   amountInput: string,
   assetDecimals: number,
-  connection: Connection = createGraiRegistryConnection(),
+  connection: Connection,
+  config: GraiSolanaConfig,
 ): Promise<bigint | null> {
   const depositAmount = tryParseDepositAmount(amountInput, assetDecimals)
   if (depositAmount === null) return null
 
-  const graiState = graiStatePda(GRAI_PROGRAM_ID)
-  const seniorVault = seniorVaultPda(assetMint)
+  const graiState = graiStatePda(config.programId)
+  const seniorVault = seniorVaultPda(assetMint, config.programId)
 
-  const accounts = await fetchAccountsByKey(connection, [graiState, GRAI_MINT, seniorVault])
+  const accounts = await fetchAccountsByKey(connection, [graiState, config.graiMint, seniorVault])
   const graiStateData = getAccountData(accounts, graiState)
-  const graiMintData = getAccountData(accounts, GRAI_MINT)
+  const graiMintData = getAccountData(accounts, config.graiMint)
   const seniorVaultData = getAccountData(accounts, seniorVault)
 
   if (!graiStateData || !graiMintData || !seniorVaultData) {

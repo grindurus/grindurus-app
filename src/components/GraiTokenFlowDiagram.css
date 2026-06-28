@@ -1,0 +1,188 @@
+.grai-token-flow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.grai-token-flow-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0;
+}
+
+.grai-token-flow-step-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.grai-token-flow-step-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #ff69b4;
+}
+
+.grai-token-flow-step-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.grai-token-flow-canvas {
+  width: 100%;
+  min-width: 0;
+  border-radius: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.grai-token-flow-canvas .react-flow {
+  --xy-edge-stroke-default: rgba(255, 105, 180, 0.7);
+  --xy-node-border-default: transparent;
+  --xy-node-background-color-default: transparent;
+  --xy-background-color-default: transparent;
+}
+
+.grai-token-flow-canvas .react-flow__panel,
+.grai-token-flow-canvas .react-flow__controls,
+.grai-token-flow-canvas .react-flow__attribution {
+  display: none;
+}
+
+.grai-token-flow-canvas .react-flow__node {
+  width: var(--grai-flow-node-width);
+  height: var(--grai-flow-node-height);
+}
+
+.grai-flow-node {
+  --grai-flow-node-width: 5.35rem;
+  --grai-flow-node-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--grai-flow-node-width);
+  height: var(--grai-flow-node-height);
+  padding: 0.28rem 0.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  box-sizing: border-box;
+}
+
+.grai-flow-node-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.grai-flow-node--grai {
+  border-color: rgba(255, 105, 180, 0.5);
+  background: color-mix(in srgb, #ff69b4 12%, var(--bg-secondary));
+}
+
+.grai-flow-node--grai .grai-flow-node-label {
+  color: #ff69b4;
+}
+
+.grai-flow-node--senior {
+  border-color: rgba(125, 211, 252, 0.45);
+  background: color-mix(in srgb, #7dd3fc 10%, var(--bg-secondary));
+}
+
+.grai-flow-node--senior .grai-flow-node-label {
+  color: #7dd3fc;
+}
+
+.grai-flow-node--junior {
+  border-color: rgba(125, 255, 178, 0.4);
+  background: color-mix(in srgb, #7dffb2 10%, var(--bg-secondary));
+}
+
+.grai-flow-node--junior .grai-flow-node-label {
+  color: #7dffb2;
+}
+
+.grai-flow-node--custody {
+  --grai-flow-node-width: 6.1rem;
+  border-color: rgba(255, 179, 71, 0.45);
+  background: color-mix(in srgb, #ffb347 10%, var(--bg-secondary));
+}
+
+.grai-flow-node--custody .grai-flow-node-label {
+  color: #ffb347;
+}
+
+.grai-flow-node--treasury {
+  border-color: rgba(192, 132, 252, 0.45);
+  background: color-mix(in srgb, #c084fc 10%, var(--bg-secondary));
+}
+
+.grai-flow-node--treasury .grai-flow-node-label {
+  color: #c084fc;
+}
+
+.grai-flow-node--user {
+  border-color: color-mix(in srgb, var(--text-secondary) 35%, var(--border-color));
+}
+
+.grai-flow-node--user .grai-flow-node-label {
+  color: var(--text-secondary);
+}
+
+.grai-flow-handle {
+  width: 6px;
+  height: 6px;
+  opacity: 0;
+  border: 0;
+  background: transparent;
+}
+
+.grai-token-flow-canvas .react-flow__edge-path {
+  stroke: #ff69b4;
+  stroke-width: 2.4px;
+  stroke-opacity: 0.95;
+}
+
+.grai-flow-edge-label {
+  position: absolute;
+  max-width: 5.5rem;
+  padding: 0.12rem 0.38rem;
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  line-height: 1.15;
+  text-align: center;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.grai-flow-edge-label.is-prominent {
+  z-index: 3;
+  color: #ffb8da;
+  font-size: 0.66rem;
+  font-weight: 800;
+  border: 1px solid rgba(255, 105, 180, 0.55);
+  background: color-mix(in srgb, #ff69b4 14%, var(--bg-tertiary));
+  box-shadow: 0 0 10px rgba(255, 105, 180, 0.18);
+}
+
+@media (max-width: 900px) {
+  .grai-token-flow {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,22 +1,33 @@
-import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
+import {
+  createGraiConnection,
+  getDefaultGraiSolanaCluster,
+  getGraiSolanaConfigOrThrow,
+  graiStatePda as graiStatePdaFromDeployment,
+  type GraiSolanaConfig,
+} from './deployments'
 
-export const GRAI_PROGRAM_ID = new PublicKey(
-  import.meta.env.VITE_GRAI_PROGRAM_ID ?? 'APwEPN6PYrRgEqL2G2CnmhQNouikdKiNdPJ48YX5Y8a8',
-)
+export type { GraiSolanaConfig }
 
-/** RPC for read-only GRAI registry (program is on devnet). Override via VITE_GRAI_RPC_URL. */
-export const GRAI_REGISTRY_RPC_URL =
-  import.meta.env.VITE_GRAI_RPC_URL ?? clusterApiUrl('devnet')
-
-export function createGraiRegistryConnection(): Connection {
-  return new Connection(GRAI_REGISTRY_RPC_URL, 'confirmed')
+/** @deprecated Prefer `useGraiDeployment().solana` */
+export function getDefaultGraiSolanaConfig(): GraiSolanaConfig {
+  return getGraiSolanaConfigOrThrow(getDefaultGraiSolanaCluster())
 }
+
+/** @deprecated Prefer `useGraiDeployment().solana.programId` */
+export const GRAI_PROGRAM_ID = getDefaultGraiSolanaConfig().programId
+
+/** @deprecated Prefer `useGraiDeployment().connection` */
+export function createGraiRegistryConnection(config: GraiSolanaConfig = getDefaultGraiSolanaConfig()) {
+  return createGraiConnection(config)
+}
+
+/** @deprecated Prefer `useGraiDeployment().solana` */
+export const GRAI_REGISTRY_RPC_URL = getDefaultGraiSolanaConfig().rpcUrl
 
 export function graiStatePda(programId: PublicKey = GRAI_PROGRAM_ID): PublicKey {
-  return PublicKey.findProgramAddressSync([Buffer.from('protocol')], programId)[0]
+  return graiStatePdaFromDeployment(programId)
 }
 
-/** GRAI token mint (devnet deployment). Override via VITE_GRAI_MINT. */
-export const GRAI_MINT = new PublicKey(
-  import.meta.env.VITE_GRAI_MINT ?? '5UjazXW1NqBD1HnW9WfEdjHZUJsjk4prvuabq8GfEn5Q',
-)
+/** @deprecated Prefer `useGraiDeployment().solana.graiMint` */
+export const GRAI_MINT = getDefaultGraiSolanaConfig().graiMint

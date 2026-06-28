@@ -1,5 +1,18 @@
 import { Connection, PublicKey } from '@solana/web3.js'
-import { GRAI_PROGRAM_ID, graiStatePda } from './constants'
+import { graiStatePda } from './deployments'
+import type { GraiSolanaConfig } from './deployments'
+
+export type GraiStateFixedFields = {
+  authority: PublicKey
+  treasuryWallet: PublicKey
+}
+
+function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields {
+  return {
+    authority: new PublicKey(data.subarray(8, 40)),
+    treasuryWallet: new PublicKey(data.subarray(56, 88)),
+  }
+}
 
 function decodeGraiStateAssetMints(data: Buffer): PublicKey[] {
   let offset = 8 + 32 + 16 + 32
@@ -14,33 +27,53 @@ function decodeGraiStateAssetMints(data: Buffer): PublicKey[] {
   return assetMints
 }
 
-let cachedAssetMints: PublicKey[] | null = null
-let cachePromise: Promise<PublicKey[]> | null = null
+const cacheByProgram = new Map<string, PublicKey[]>()
+const cachePromiseByProgram = new Map<string, Promise<PublicKey[]>>()
 
 export function clearGraiStateCache(): void {
-  cachedAssetMints = null
-  cachePromise = null
+  cacheByProgram.clear()
+  cachePromiseByProgram.clear()
+}
+
+export async function fetchGraiStateFixedFields(
+  connection: Connection,
+  config: GraiSolanaConfig,
+): Promise<GraiStateFixedFields> {
+  const graiState = graiStatePda(config.programId)
+  const accountInfo = await connection.getAccountInfo(graiState)
+  if (!accountInfo?.data) {
+    throw new Error('GRAI protocol state account not found on this cluster')
+  }
+  return decodeGraiStateFixedFields(Buffer.from(accountInfo.data))
 }
 
 export async function fetchGraiStateAssetMints(
   connection: Connection,
+  config: GraiSolanaConfig,
 ): Promise<PublicKey[]> {
-  if (cachedAssetMints) return cachedAssetMints
-  if (cachePromise) return cachePromise
+  const cacheKey = config.programId.toBase58()
+  const cached = cacheByProgram.get(cacheKey)
+  if (cached) return cached
 
-  cachePromise = (async () => {
-    const graiState = graiStatePda(GRAI_PROGRAM_ID)
+  const existingPromise = cachePromiseByProgram.get(cacheKey)
+  if (existingPromise) return existingPromise
+
+  const promise = (async () => {
+    const graiState = graiStatePda(config.programId)
     const accountInfo = await connection.getAccountInfo(graiState)
     if (!accountInfo?.data) {
       throw new Error('GRAI protocol state account not found on this cluster')
     }
-    cachedAssetMints = decodeGraiStateAssetMints(Buffer.from(accountInfo.data))
-    return cachedAssetMints
+    const assetMints = decodeGraiStateAssetMints(Buffer.from(accountInfo.data))
+    cacheByProgram.set(cacheKey, assetMints)
+    return assetMints
   })()
 
+  cachePromiseByProgram.set(cacheKey, promise)
+
   try {
-    return await cachePromise
+    return await promise
   } finally {
-    cachePromise = null
+    cachePromiseByProgram.delete(cacheKey)
   }
 }

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { estimateGraiBurnOutputs, type GraiBurnOutputEstimate } from '../grai/estimateGraiBurn'
+import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { GRAI_DECIMALS } from '../grai/tokenomics'
 
 export function useGraiBurnEstimate(graiAmountInput: string, enabled: boolean) {
+  const { connection, solana, isConfigured } = useGraiDeployment()
   const [burnOutputs, setBurnOutputs] = useState<GraiBurnOutputEstimate[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (!enabled || !graiAmountInput.trim()) {
+    if (!enabled || !graiAmountInput.trim() || !connection || !solana || !isConfigured) {
       setBurnOutputs([])
       setIsLoading(false)
       return
@@ -16,7 +18,7 @@ export function useGraiBurnEstimate(graiAmountInput: string, enabled: boolean) {
     let cancelled = false
     const timer = window.setTimeout(() => {
       setIsLoading(true)
-      void estimateGraiBurnOutputs(graiAmountInput, GRAI_DECIMALS)
+      void estimateGraiBurnOutputs(graiAmountInput, GRAI_DECIMALS, connection, solana)
         .then((outputs) => {
           if (cancelled) return
           setBurnOutputs(outputs ?? [])
@@ -33,7 +35,7 @@ export function useGraiBurnEstimate(graiAmountInput: string, enabled: boolean) {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [enabled, graiAmountInput])
+  }, [connection, enabled, graiAmountInput, isConfigured, solana])
 
   return { burnOutputs, isLoading }
 }

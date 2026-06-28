@@ -1,13 +1,14 @@
 import { useCallback, useState } from 'react'
 import { PublicKey, Transaction } from '@solana/web3.js'
 import { executeMint } from '../grai/buildMintTransaction'
-import { createGraiRegistryConnection } from '../grai/constants'
+import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { useSolanaWallet } from './useSolanaWallet'
 
 export type GraiMintStatus = 'idle' | 'building' | 'signing' | 'confirming' | 'success' | 'error'
 
 export function useGraiMint() {
   const solanaWallet = useSolanaWallet()
+  const { connection, solana, clusterMismatch } = useGraiDeployment()
   const [status, setStatus] = useState<GraiMintStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [lastSignature, setLastSignature] = useState<string | null>(null)
@@ -26,12 +27,19 @@ export function useGraiMint() {
         throw new Error('Connected wallet cannot sign transactions')
       }
 
+      if (!connection || !solana) {
+        throw new Error('GRAI is not configured for this network')
+      }
+
+      if (clusterMismatch) {
+        throw new Error(`Switch your Solana wallet to ${solana.cluster} to mint GRAI`)
+      }
+
       const amountInput = params.amountInput.trim()
       if (!amountInput || amountInput === '0' || amountInput === '0.') {
         throw new Error('Enter an amount to mint')
       }
 
-      const connection = createGraiRegistryConnection()
       const minter = solanaWallet.publicKey
       const assetMint = new PublicKey(params.assetMint)
 
@@ -45,6 +53,7 @@ export function useGraiMint() {
         setStatus('confirming')
         const { signature } = await executeMint({
           connection,
+          config: solana,
           minter,
           assetMint,
           amountInput,
@@ -62,7 +71,7 @@ export function useGraiMint() {
         throw mintError
       }
     },
-    [solanaWallet],
+    [clusterMismatch, connection, solana, solanaWallet],
   )
 
   const reset = useCallback(() => {

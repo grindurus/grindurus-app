@@ -50,3 +50,14 @@ export function getAssociatedTokenAddress(mint: PublicKey, owner: PublicKey): Pu
     ASSOCIATED_TOKEN_PROGRAM_ID,
   )[0]
 }
+
+export function custodyAllocationPda(
+  custodyWallet: PublicKey,
+  assetMint: PublicKey,
+  programId: PublicKey = GRAI_PROGRAM_ID,
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('custody_alloc'), custodyWallet.toBuffer(), assetMint.toBuffer()],
+    programId,
+  )[0]
+}
