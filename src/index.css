@@ -13,6 +13,9 @@
   --border-color: #333333;
   --text-primary: rgba(255, 255, 255, 0.87);
   --text-secondary: #888888;
+  --grai-donut-track-fill: rgba(255, 255, 255, 0.12);
+  --grai-donut-sector-stroke: rgba(255, 255, 255, 0.55);
+  --grai-donut-empty-segment-opacity: 0.24;
 }
 
 [data-theme="dark"] {
@@ -28,6 +31,9 @@
   --border-color: #dddddd;
   --text-primary: #1a1a1a;
   --text-secondary: #666666;
+  --grai-donut-track-fill: rgba(0, 0, 0, 0.1);
+  --grai-donut-sector-stroke: rgba(0, 0, 0, 0.35);
+  --grai-donut-empty-segment-opacity: 0.38;
 
   color-scheme: light;
   color: var(--text-primary);

@@ -14,6 +14,21 @@ const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
 const DEFAULT_QUOTE_ASSETS = ['USDC', 'USDT', 'USD', 'SOL'] as const
 const DEFAULT_BASE_ASSET = 'SOL'
 
+function normalizeAssetQuery(value: string) {
+  return value.trim().toUpperCase()
+}
+
+function assetMatchesOption(value: string, options: readonly string[]) {
+  const query = normalizeAssetQuery(value)
+  return query.length > 0 && options.includes(query)
+}
+
+function filterAssetOptions(options: readonly string[], query: string) {
+  const normalized = normalizeAssetQuery(query)
+  if (!normalized) return [...options]
+  return options.filter((option) => option.includes(normalized))
+}
+
 const PAY_METHODS = ['x402', 'kirapay', 'promocode'] as const
 type PayMethod = (typeof PAY_METHODS)[number]
 const PAY_METHOD_LABEL: Record<PayMethod, string> = {
@@ -21,6 +36,59 @@ const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   kirapay: 'kirapay',
   promocode: 'promocode',
 }
+
+const PAIR_FIELD_ICONS = {
+  base: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v8" />
+      <path d="M9.5 10.5h3a2 2 0 1 1 0 4h-3" />
+    </svg>
+  ),
+  quote: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2v20" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  ),
+} as const
+
+const DATE_FIELD_ICONS = {
+  from: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M8 14h.01" />
+      <path d="M12 14h.01" />
+    </svg>
+  ),
+  to: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M16 14h.01" />
+      <path d="M12 18h.01" />
+    </svg>
+  ),
+} as const
+
+const PAY_METHOD_CAPTION_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect width="20" height="14" x="2" y="5" rx="2" />
+    <line x1="2" x2="22" y1="10" y2="10" />
+  </svg>
+)
+
+const MAX_PERIOD_NOTE_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+)
 
 type BacktestQueueItem = {
   id: string
@@ -340,6 +408,10 @@ function BacktestPage() {
   const [paySuccess, setPaySuccess] = useState('')
   const [payMethod, setPayMethod] = useState<PayMethod>('x402')
   const [payMenuOpen, setPayMenuOpen] = useState(false)
+  const [baseAssetMenuOpen, setBaseAssetMenuOpen] = useState(false)
+  const [quoteAssetMenuOpen, setQuoteAssetMenuOpen] = useState(false)
+  const [baseAssetListAll, setBaseAssetListAll] = useState(true)
+  const [quoteAssetListAll, setQuoteAssetListAll] = useState(true)
   const [promocode, setPromocode] = useState('')
   const [appliedPromocode, setAppliedPromocode] = useState('')
   const [queueColumns, setQueueColumns] = useState(4)
@@ -359,6 +431,8 @@ function BacktestPage() {
   const [showX402NetworkSwitch, setShowX402NetworkSwitch] = useState(false)
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const payMethodWrapRef = useRef<HTMLDivElement>(null)
+  const baseAssetMenuRef = useRef<HTMLDivElement>(null)
+  const quoteAssetMenuRef = useRef<HTMLDivElement>(null)
   const queueScrollerRef = useRef<HTMLDivElement>(null)
   const queueSearchInputRef = useRef<HTMLInputElement>(null)
   const { isConnected: isEvmConnected } = useAccount()
@@ -385,6 +459,19 @@ function BacktestPage() {
     () => quoteAssets.filter((q) => !(baseAsset === 'SOL' && q === 'SOL')),
     [baseAsset, quoteAssets]
   )
+
+  const filteredBaseAssets = useMemo(
+    () => filterAssetOptions(baseAssets, baseAsset),
+    [baseAsset, baseAssets]
+  )
+
+  const filteredQuoteAssets = useMemo(
+    () => filterAssetOptions(quoteOptions, quoteAsset),
+    [quoteAsset, quoteOptions]
+  )
+
+  const visibleBaseAssets = baseAssetListAll ? baseAssets : filteredBaseAssets
+  const visibleQuoteAssets = quoteAssetListAll ? quoteOptions : filteredQuoteAssets
 
   const onFromChange = (v: string) => {
     const nextFrom = parseInputDate(v)
@@ -604,8 +691,10 @@ function BacktestPage() {
 
   const baseValue = baseAsset.trim() || baseAssets[0] || DEFAULT_BASE_ASSET
   const quoteValue = quoteAsset.trim() || quoteOptions[0] || DEFAULT_QUOTE_ASSETS[0]
-  const isBaseSelected = baseAsset.trim().length > 0
-  const isQuoteSelected = quoteAsset.trim().length > 0
+  const isBaseSelected = assetMatchesOption(baseAsset, baseAssets)
+  const isQuoteSelected = assetMatchesOption(quoteAsset, quoteOptions)
+  const isBaseUnmatched = normalizeAssetQuery(baseAsset).length > 0 && !isBaseSelected
+  const isQuoteUnmatched = normalizeAssetQuery(quoteAsset).length > 0 && !isQuoteSelected
   const hasEvmSigner = isEvmConnected && !!walletClient?.account?.address
   const hasSvmSigner =
     !!solanaWallet.address &&
@@ -865,6 +954,39 @@ function BacktestPage() {
   }, [payMenuOpen])
 
   useEffect(() => {
+    if (!baseAssetMenuOpen && !quoteAssetMenuOpen) return
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node
+      if (
+        baseAssetMenuOpen &&
+        baseAssetMenuRef.current &&
+        !baseAssetMenuRef.current.contains(target)
+      ) {
+        setBaseAssetMenuOpen(false)
+      }
+      if (
+        quoteAssetMenuOpen &&
+        quoteAssetMenuRef.current &&
+        !quoteAssetMenuRef.current.contains(target)
+      ) {
+        setQuoteAssetMenuOpen(false)
+      }
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setBaseAssetMenuOpen(false)
+        setQuoteAssetMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [baseAssetMenuOpen, quoteAssetMenuOpen])
+
+  useEffect(() => {
     const el = queueScrollerRef.current
     if (!el) return
 
@@ -971,10 +1093,18 @@ function BacktestPage() {
           <p className="backtest-panel-heading">Create Backtest</p>
 
           <div className="backtest-field">
-            <p className="backtest-date-limit-note">Max period: 5 days</p>
+            <p className="backtest-date-limit-note">
+              <span className="backtest-date-limit-note-label">
+                <span className="backtest-date-limit-note-icon">{MAX_PERIOD_NOTE_ICON}</span>
+                Max period:
+              </span>
+              <span className="backtest-date-limit-note-leader" aria-hidden="true" />
+              <span className="backtest-date-limit-note-value">5 days</span>
+            </p>
             <div className="backtest-dates" role="group" aria-label="Backtest date range">
               <div className="backtest-date-col">
-                <label className="backtest-sublabel" htmlFor="backtest-date-from">
+                <label className="backtest-sublabel backtest-sublabel--with-icon is-from" htmlFor="backtest-date-from">
+                  <span className="backtest-sublabel-icon">{DATE_FIELD_ICONS.from}</span>
                   From
                 </label>
                 <input
@@ -989,7 +1119,8 @@ function BacktestPage() {
                 –
               </span>
               <div className="backtest-date-col">
-                <label className="backtest-sublabel" htmlFor="backtest-date-to">
+                <label className="backtest-sublabel backtest-sublabel--with-icon is-to" htmlFor="backtest-date-to">
+                  <span className="backtest-sublabel-icon">{DATE_FIELD_ICONS.to}</span>
                   To
                 </label>
                 <input
@@ -1001,79 +1132,240 @@ function BacktestPage() {
                 />
               </div>
             </div>
-            <p className="backtest-time-estimate-note">Est. backtest time ~ 5 min</p>
           </div>
 
           <div className="backtest-pair-card" role="group" aria-label="Trading pair">
             <div className="backtest-pair-row">
               <div className="backtest-pair-col">
-                <label className="backtest-sublabel" htmlFor="backtest-base">
-                  Base
-                </label>
-                <input
-                  id="backtest-base"
-                  type="text"
-                  list="backtest-base-options"
-                  className={`backtest-select ${isBaseSelected ? 'is-selected' : ''}`}
-                  value={baseAsset}
-                  onChange={(e) => {
-                    const v = e.target.value.toUpperCase()
-                    setBaseAsset(v)
-                    if (v === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
-                  }}
-                />
-                <datalist id="backtest-base-options">
-                  {baseAssets.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </datalist>
-                <div className="backtest-amount-with-suffix">
-                  <input
-                    id="backtest-base-amt"
-                    type="text"
-                    inputMode="decimal"
-                    className="backtest-amount-input"
-                    placeholder="0"
-                    value={baseAmount}
-                    onChange={(e) => setBaseAmount(sanitizeDecimal(e.target.value))}
-                    aria-label={`Amount, ${baseAsset}`}
-                  />
-                  <span className="backtest-amount-suffix">{baseAsset}</span>
+                <div className="backtest-pair-field">
+                  <label className="backtest-sublabel backtest-sublabel--with-icon is-base" htmlFor="backtest-base-amt">
+                    <span className="backtest-sublabel-icon">{PAIR_FIELD_ICONS.base}</span>
+                    Base
+                  </label>
+                  <div className="backtest-pair-input-row">
+                    <input
+                      id="backtest-base-amt"
+                      type="text"
+                      inputMode="decimal"
+                      className="backtest-amount-input"
+                      placeholder="0"
+                      value={baseAmount}
+                      onChange={(e) => setBaseAmount(sanitizeDecimal(e.target.value))}
+                      aria-label={`Amount, ${baseAsset}`}
+                    />
+                    <div
+                      className={`backtest-pair-asset-select-wrap ${baseAssetMenuOpen ? 'is-open' : ''}`}
+                      ref={baseAssetMenuRef}
+                    >
+                      <div
+                        className="backtest-pair-asset-trigger"
+                        onClick={() => {
+                          setQuoteAssetMenuOpen(false)
+                          setBaseAssetListAll(true)
+                          setBaseAssetMenuOpen(true)
+                        }}
+                      >
+                        <input
+                          id="backtest-base"
+                          type="text"
+                          className={`backtest-amount-input backtest-pair-asset-input ${isBaseSelected ? 'is-selected' : ''} ${isBaseUnmatched ? 'is-unmatched' : ''}`}
+                          value={baseAsset}
+                          size={Math.max(baseAsset.length, 3)}
+                          autoComplete="off"
+                          spellCheck={false}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const v = e.target.value.toUpperCase()
+                            setBaseAsset(v)
+                            if (v === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
+                            setQuoteAssetMenuOpen(false)
+                            setBaseAssetListAll(false)
+                            setBaseAssetMenuOpen(true)
+                          }}
+                          onFocus={(e) => {
+                            e.stopPropagation()
+                            setQuoteAssetMenuOpen(false)
+                            setBaseAssetListAll(false)
+                            setBaseAssetMenuOpen(true)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setBaseAssetMenuOpen(false)
+                              return
+                            }
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              const query = normalizeAssetQuery(e.currentTarget.value)
+                              const exact = visibleBaseAssets.find((a) => a === query)
+                              const match =
+                                exact ?? (visibleBaseAssets.length === 1 ? visibleBaseAssets[0] : undefined)
+                              if (match) {
+                                setBaseAsset(match)
+                                if (match === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
+                                setBaseAssetMenuOpen(false)
+                              }
+                            }
+                          }}
+                          aria-haspopup="listbox"
+                          aria-expanded={baseAssetMenuOpen}
+                          aria-invalid={isBaseUnmatched}
+                          aria-label="Base asset"
+                        />
+                        <button
+                          type="button"
+                          className="backtest-pair-asset-caret-btn"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setQuoteAssetMenuOpen(false)
+                            setBaseAssetListAll(true)
+                            setBaseAssetMenuOpen((open) => !open)
+                          }}
+                        >
+                          ▾
+                        </button>
+                      </div>
+                      {baseAssetMenuOpen && (
+                        <div className="backtest-pair-asset-list" role="listbox" aria-label="Base asset">
+                          {visibleBaseAssets.length > 0 ? (
+                            visibleBaseAssets.map((a) => (
+                              <button
+                                key={a}
+                                type="button"
+                                role="option"
+                                aria-selected={normalizeAssetQuery(baseAsset) === a}
+                                className={`backtest-pair-asset-list-item ${normalizeAssetQuery(baseAsset) === a ? 'is-active' : ''}`}
+                                onClick={() => {
+                                  setBaseAsset(a)
+                                  if (a === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
+                                  setBaseAssetMenuOpen(false)
+                                }}
+                              >
+                                {a}
+                              </button>
+                            ))
+                          ) : (
+                            <p className="backtest-pair-asset-list-empty">No matches</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="backtest-pair-col">
-                <label className="backtest-sublabel" htmlFor="backtest-quote">
-                  Quote
-                </label>
-                <input
-                  id="backtest-quote"
-                  type="text"
-                  list="backtest-quote-options"
-                  className={`backtest-select ${isQuoteSelected ? 'is-selected' : ''}`}
-                  value={quoteAsset}
-                  onChange={(e) => setQuoteAsset(e.target.value.toUpperCase())}
-                />
-                <datalist id="backtest-quote-options">
-                  {quoteOptions.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </datalist>
-                <div className="backtest-amount-with-suffix">
-                  <input
-                    id="backtest-quote-amt"
-                    type="text"
-                    inputMode="decimal"
-                    className="backtest-amount-input"
-                    placeholder="0"
-                    value={quoteAmount}
-                    onChange={(e) => setQuoteAmount(sanitizeDecimal(e.target.value))}
-                    aria-label={`Amount, ${quoteAsset}`}
-                  />
-                  <span className="backtest-amount-suffix">{quoteAsset}</span>
+                <div className="backtest-pair-field">
+                  <label className="backtest-sublabel backtest-sublabel--with-icon is-quote" htmlFor="backtest-quote-amt">
+                    <span className="backtest-sublabel-icon">{PAIR_FIELD_ICONS.quote}</span>
+                    Quote
+                  </label>
+                  <div className="backtest-pair-input-row">
+                    <input
+                      id="backtest-quote-amt"
+                      type="text"
+                      inputMode="decimal"
+                      className="backtest-amount-input"
+                      placeholder="0"
+                      value={quoteAmount}
+                      onChange={(e) => setQuoteAmount(sanitizeDecimal(e.target.value))}
+                      aria-label={`Amount, ${quoteAsset}`}
+                    />
+                    <div
+                      className={`backtest-pair-asset-select-wrap ${quoteAssetMenuOpen ? 'is-open' : ''}`}
+                      ref={quoteAssetMenuRef}
+                    >
+                      <div
+                        className="backtest-pair-asset-trigger"
+                        onClick={() => {
+                          setBaseAssetMenuOpen(false)
+                          setQuoteAssetListAll(true)
+                          setQuoteAssetMenuOpen(true)
+                        }}
+                      >
+                        <input
+                          id="backtest-quote"
+                          type="text"
+                          className={`backtest-amount-input backtest-pair-asset-input ${isQuoteSelected ? 'is-selected' : ''} ${isQuoteUnmatched ? 'is-unmatched' : ''}`}
+                          value={quoteAsset}
+                          size={Math.max(quoteAsset.length, 3)}
+                          autoComplete="off"
+                          spellCheck={false}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            setQuoteAsset(e.target.value.toUpperCase())
+                            setBaseAssetMenuOpen(false)
+                            setQuoteAssetListAll(false)
+                            setQuoteAssetMenuOpen(true)
+                          }}
+                          onFocus={(e) => {
+                            e.stopPropagation()
+                            setBaseAssetMenuOpen(false)
+                            setQuoteAssetListAll(false)
+                            setQuoteAssetMenuOpen(true)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setQuoteAssetMenuOpen(false)
+                              return
+                            }
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              const query = normalizeAssetQuery(e.currentTarget.value)
+                              const exact = visibleQuoteAssets.find((a) => a === query)
+                              const match =
+                                exact ?? (visibleQuoteAssets.length === 1 ? visibleQuoteAssets[0] : undefined)
+                              if (match) {
+                                setQuoteAsset(match)
+                                setQuoteAssetMenuOpen(false)
+                              }
+                            }
+                          }}
+                          aria-haspopup="listbox"
+                          aria-expanded={quoteAssetMenuOpen}
+                          aria-invalid={isQuoteUnmatched}
+                          aria-label="Quote asset"
+                        />
+                        <button
+                          type="button"
+                          className="backtest-pair-asset-caret-btn"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setBaseAssetMenuOpen(false)
+                            setQuoteAssetListAll(true)
+                            setQuoteAssetMenuOpen((open) => !open)
+                          }}
+                        >
+                          ▾
+                        </button>
+                      </div>
+                      {quoteAssetMenuOpen && (
+                        <div className="backtest-pair-asset-list" role="listbox" aria-label="Quote asset">
+                          {visibleQuoteAssets.length > 0 ? (
+                            visibleQuoteAssets.map((a) => (
+                              <button
+                                key={a}
+                                type="button"
+                                role="option"
+                                aria-selected={normalizeAssetQuery(quoteAsset) === a}
+                                className={`backtest-pair-asset-list-item ${normalizeAssetQuery(quoteAsset) === a ? 'is-active' : ''}`}
+                                onClick={() => {
+                                  setQuoteAsset(a)
+                                  setQuoteAssetMenuOpen(false)
+                                }}
+                              >
+                                {a}
+                              </button>
+                            ))
+                          ) : (
+                            <p className="backtest-pair-asset-list-empty">No matches</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1121,8 +1413,12 @@ function BacktestPage() {
                       payButtonLabel
                     )}
                   </button>
+                  <p className="backtest-time-estimate-note">Est. backtest time ~ 5 min</p>
                   <div className="backtest-pay-method-wrap">
-                    <span className="backtest-pay-method-caption">Payment method</span>
+                    <span className="backtest-pay-method-caption backtest-pay-method-caption--with-icon">
+                      <span className="backtest-pay-method-caption-icon">{PAY_METHOD_CAPTION_ICON}</span>
+                      Payment method
+                    </span>
                     <button
                       type="button"
                       className={`backtest-pay-method-btn ${payMenuOpen ? 'is-open' : ''}`}
@@ -1283,7 +1579,7 @@ function BacktestPage() {
                   className={`backtest-queue-view-btn is-queue ${queueView === 'queue' ? 'is-active' : ''}`}
                   onClick={() => setQueueView('queue')}
                 >
-                  BACKTEST QUEUE
+                  Backtest Queue
                 </button>
                 <button
                   type="button"
@@ -1292,7 +1588,7 @@ function BacktestPage() {
                   className={`backtest-queue-view-btn is-stack ${queueView === 'history' ? 'is-active' : ''}`}
                   onClick={() => setQueueView('history')}
                 >
-                  BACKTEST STACK
+                  Backtest Stack
                 </button>
               </div>
               <div

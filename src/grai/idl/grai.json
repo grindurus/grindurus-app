@@ -1,0 +1,1107 @@
+{
+  "address": "APwEPN6PYrRgEqL2G2CnmhQNouikdKiNdPJ48YX5Y8a8",
+  "metadata": {
+    "name": "grai",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_asset",
+      "discriminator": [
+        81,
+        53,
+        134,
+        142,
+        243,
+        73,
+        42,
+        179
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "junior_vault",
+          "writable": true
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        },
+        {
+          "name": "junior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "senior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "price_feed"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "rent"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "allocate",
+      "discriminator": [
+        64,
+        38,
+        189,
+        129,
+        24,
+        157,
+        82,
+        136
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "junior_vault",
+          "writable": true
+        },
+        {
+          "name": "junior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "custody_wallet"
+        },
+        {
+          "name": "custody_ata",
+          "writable": true
+        },
+        {
+          "name": "custody_allocation",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "burn",
+      "docs": [
+        "Burns GRAI and redeems a proportional share of senior idle per registered asset.",
+        "Remaining accounts in `grai_state.asset_mints` order per mint:",
+        "senior_vault, senior_vault_ata, redeemer_ata."
+      ],
+      "discriminator": [
+        116,
+        110,
+        29,
+        56,
+        107,
+        219,
+        42,
+        93
+      ],
+      "accounts": [
+        {
+          "name": "burner",
+          "signer": true
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "burner_grai_ata",
+          "writable": true
+        },
+        {
+          "name": "grai_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "grai_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "distribute",
+      "discriminator": [
+        191,
+        44,
+        223,
+        207,
+        164,
+        236,
+        126,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "custody_wallet",
+          "signer": true
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "price_feed"
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        },
+        {
+          "name": "custody_allocation",
+          "writable": true
+        },
+        {
+          "name": "custody_ata",
+          "writable": true
+        },
+        {
+          "name": "senior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "treasury_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "yield_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "get_assets",
+      "docs": [
+        "View: registered asset mints from on-chain registry."
+      ],
+      "discriminator": [
+        120,
+        189,
+        135,
+        174,
+        32,
+        140,
+        201,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "grai_state"
+        }
+      ],
+      "args": [],
+      "returns": {
+        "vec": "pubkey"
+      }
+    },
+    {
+      "name": "get_nav",
+      "docs": [
+        "View: sum of senior idle balances priced via oracle for registered assets.",
+        "Remaining accounts per mint in `grai_state.asset_mints` order:",
+        "senior_vault, senior_vault_ata, price_feed, mint."
+      ],
+      "discriminator": [
+        200,
+        89,
+        76,
+        53,
+        215,
+        218,
+        63,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "grai_state"
+        }
+      ],
+      "args": [],
+      "returns": "u128"
+    },
+    {
+      "name": "get_vaults",
+      "docs": [
+        "View: senior/junior vault token balances for registered assets.",
+        "Pass vault accounts in registry order: senior_vault, senior_vault_ata, junior_vault, junior_vault_ata per mint."
+      ],
+      "discriminator": [
+        7,
+        171,
+        189,
+        148,
+        119,
+        243,
+        187,
+        114
+      ],
+      "accounts": [
+        {
+          "name": "grai_state"
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "VaultsSnapshot"
+        }
+      }
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "grai_mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "token_metadata_program"
+        },
+        {
+          "name": "metadata",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "rent"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "mint",
+      "discriminator": [
+        51,
+        57,
+        225,
+        47,
+        182,
+        146,
+        137,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "minter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_mint",
+          "writable": true
+        },
+        {
+          "name": "price_feed"
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        },
+        {
+          "name": "senior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "junior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "minter_ata",
+          "writable": true
+        },
+        {
+          "name": "minter_grai_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "mint_sol",
+      "discriminator": [
+        150,
+        224,
+        6,
+        12,
+        74,
+        224,
+        40,
+        133
+      ],
+      "accounts": [
+        {
+          "name": "minter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_mint",
+          "writable": true
+        },
+        {
+          "name": "price_feed"
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        },
+        {
+          "name": "senior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "junior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "minter_wsol_ata",
+          "writable": true
+        },
+        {
+          "name": "minter_grai_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "remove_asset",
+      "discriminator": [
+        139,
+        243,
+        2,
+        142,
+        50,
+        197,
+        54,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "junior_vault",
+          "writable": true
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        },
+        {
+          "name": "senior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "junior_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "authority_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_mint_split",
+      "discriminator": [
+        87,
+        42,
+        134,
+        191,
+        180,
+        63,
+        6,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "mint_split",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "set_paused_minting",
+      "discriminator": [
+        236,
+        194,
+        199,
+        1,
+        86,
+        132,
+        38,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "paused_minting",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_price_feed",
+      "discriminator": [
+        13,
+        15,
+        231,
+        129,
+        61,
+        7,
+        28,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        },
+        {
+          "name": "price_feed"
+        }
+      ],
+      "args": [
+        {
+          "name": "price_feed",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_treasury",
+      "discriminator": [
+        57,
+        97,
+        196,
+        95,
+        195,
+        206,
+        106,
+        136
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "treasury_wallet",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_yield_split",
+      "discriminator": [
+        42,
+        149,
+        203,
+        65,
+        213,
+        113,
+        133,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "senior_vault",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "yield_split",
+          "type": "u16"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CustodyAllocation",
+      "discriminator": [
+        65,
+        103,
+        87,
+        195,
+        7,
+        139,
+        3,
+        206
+      ]
+    },
+    {
+      "name": "GraiState",
+      "discriminator": [
+        145,
+        250,
+        216,
+        73,
+        29,
+        234,
+        121,
+        33
+      ]
+    },
+    {
+      "name": "JuniorVault",
+      "discriminator": [
+        18,
+        72,
+        19,
+        3,
+        208,
+        129,
+        83,
+        215
+      ]
+    },
+    {
+      "name": "SeniorVault",
+      "discriminator": [
+        7,
+        86,
+        119,
+        39,
+        46,
+        216,
+        83,
+        123
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Only the configured authority can perform this action"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6002,
+      "name": "InsufficientGraiBalance",
+      "msg": "Insufficient GRAI balance"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidMint",
+      "msg": "GRAI mint authority does not match program config"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidDestination",
+      "msg": "Token account is invalid for this operation"
+    },
+    {
+      "code": 6005,
+      "name": "ChainlinkReadError",
+      "msg": "Failed to read Chainlink feed account"
+    },
+    {
+      "code": 6006,
+      "name": "ChainlinkRoundMissing",
+      "msg": "Chainlink feed has no latest round data"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidChainlinkPrice",
+      "msg": "Chainlink price must be positive"
+    },
+    {
+      "code": 6008,
+      "name": "StaleChainlinkPrice",
+      "msg": "Chainlink price is stale"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidChainlinkFeed",
+      "msg": "Chainlink feed does not match graiVault config"
+    },
+    {
+      "code": 6010,
+      "name": "AssetMintingPaused",
+      "msg": "Minting is paused for this graiVault"
+    },
+    {
+      "code": 6011,
+      "name": "AssetMintingEnabled",
+      "msg": "Minting must be paused before removing graiVault"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidGraiVault",
+      "msg": "graiVault does not match mint"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidCustody",
+      "msg": "Custody wallet does not match"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidVault",
+      "msg": "Vault does not match graiVault"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidDepositSource",
+      "msg": "Depositor token account is invalid"
+    },
+    {
+      "code": 6016,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6017,
+      "name": "InsufficientIdleLiquidity",
+      "msg": "Insufficient idle liquidity for redemption"
+    },
+    {
+      "code": 6018,
+      "name": "InsufficientActiveCapital",
+      "msg": "Insufficient active capital in custody"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidRedeemAccountCount",
+      "msg": "burn remaining accounts must match grai_state.asset_mints length"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidInternalValueAccountCount",
+      "msg": "get_nav remaining accounts must match grai_state.asset_mints length"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidVaultBalanceAccountCount",
+      "msg": "get_vaults remaining accounts must match asset registry length"
+    },
+    {
+      "code": 6022,
+      "name": "AssetAlreadyRegistered",
+      "msg": "Asset is already registered"
+    },
+    {
+      "code": 6023,
+      "name": "AssetNotRegistered",
+      "msg": "Asset is not registered"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidCustomPriceFeed",
+      "msg": "Custom price feed does not match asset mint"
+    },
+    {
+      "code": 6025,
+      "name": "PythReadError",
+      "msg": "Failed to read Pyth price feed account"
+    },
+    {
+      "code": 6026,
+      "name": "StalePythPrice",
+      "msg": "Pyth price is stale"
+    },
+    {
+      "code": 6027,
+      "name": "InvalidPythPrice",
+      "msg": "Pyth price must be positive"
+    },
+    {
+      "code": 6028,
+      "name": "InvalidTreasuryWallet",
+      "msg": "Treasury wallet must be a valid pubkey"
+    },
+    {
+      "code": 6029,
+      "name": "InvalidSplit",
+      "msg": "Deposit split must be <= 10_000 bps"
+    }
+  ],
+  "types": [
+    {
+      "name": "CustodyAllocation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allocated_amount",
+            "type": "u64"
+          },
+          {
+            "name": "yield_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GraiState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_value",
+            "type": "u128"
+          },
+          {
+            "name": "treasury_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_mints",
+            "type": {
+              "vec": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "JuniorVault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "active_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JuniorVaultInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "balance",
+            "type": "u64"
+          },
+          {
+            "name": "active_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SeniorVault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_feed",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_split",
+            "type": "u16"
+          },
+          {
+            "name": "yield_split",
+            "type": "u16"
+          },
+          {
+            "name": "paused_minting",
+            "type": "bool"
+          },
+          {
+            "name": "total_value",
+            "docs": [
+              "Cumulative USD value (9 decimals) from mint deposits and senior yield credited via `distribute`."
+            ],
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SeniorVaultInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_feed",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_split",
+            "type": "u16"
+          },
+          {
+            "name": "yield_split",
+            "type": "u16"
+          },
+          {
+            "name": "paused_minting",
+            "type": "bool"
+          },
+          {
+            "name": "total_value",
+            "type": "u128"
+          },
+          {
+            "name": "balance",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultsSnapshot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "senior_vaults",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "SeniorVaultInfo"
+                }
+              }
+            }
+          },
+          {
+            "name": "junior_vaults",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "JuniorVaultInfo"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
