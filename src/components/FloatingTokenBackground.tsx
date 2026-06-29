@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { FALLBACK_GRAI_ASSETS, type GraiAssetIcon } from '../grai/knownMints'
+import { assetUrl } from '../utils/appPaths'
 import './FloatingTokenBackground.css'
 
 export type FloatingTokenSpec = {
@@ -93,7 +94,7 @@ function buildSpreadLayout(count: number) {
 const FLOATING_LAYOUT = buildSpreadLayout(FLOATING_TOKEN_COUNT)
 
 export function buildFloatingTokens(icons: GraiAssetIcon[]): FloatingTokenSpec[] {
-  const graiIcon: GraiAssetIcon = { src: '/logo.png', alt: 'GRAI' }
+  const graiIcon: GraiAssetIcon = { src: assetUrl('logo.png'), alt: 'GRAI' }
   const unique = [...new Map(icons.map((icon) => [icon.src, icon])).values()].filter(
     (icon) => icon.src !== graiIcon.src,
   )

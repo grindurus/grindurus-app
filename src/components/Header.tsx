@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ThemeToggle } from './ThemeToggle'
 import { ConnectWalletButton } from './ConnectWalletButton'
 import { navigateTo } from '../utils/navigate'
+import { assetUrl } from '../utils/appPaths'
 import {
   navigateToGraiSection,
   readGraiSectionFromHash,
@@ -125,7 +126,7 @@ function Header({ activeView, onViewChange, isGraiManage = false }: HeaderProps)
       <div className="header-container">
         <div className="header-left">
           <a href={MAIN_APP_URL} className="header-logo" style={{ textDecoration: 'none' }}>
-            <img src="/logo.png" alt="GrindURUS" className="header-logo-img" />
+            <img src={assetUrl('logo.png')} alt="GrindURUS" className="header-logo-img" />
           </a>
           <nav className="header-nav" aria-label="Product sections">
             <button

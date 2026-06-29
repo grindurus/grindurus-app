@@ -3,13 +3,15 @@ import GraiPage from './pages/GraiPage'
 import GraiManagePage from './pages/GraiManagePage'
 import BacktestPage from './pages/BacktestPage'
 import Header, { type HeaderMainView } from './components/Header'
+import { isAtAppPath, stripBasePath, toAppPath } from './utils/appPaths'
 import './App.css'
 
 type AppRoute = 'grai' | 'grai-manage' | 'backtest'
 
 function routeFromPath(pathname: string): AppRoute {
-  if (pathname === '/backtest') return 'backtest'
-  if (pathname === '/grai/manage') return 'grai-manage'
+  const logical = stripBasePath(pathname)
+  if (logical === '/backtest') return 'backtest'
+  if (logical === '/grai/manage') return 'grai-manage'
   return 'grai'
 }
 
@@ -28,8 +30,8 @@ function App() {
   const mainView: HeaderMainView = route === 'backtest' ? 'backtest' : 'grai'
 
   useEffect(() => {
-    if (window.location.pathname === '/') {
-      window.history.replaceState({}, '', '/grai')
+    if (isAtAppPath('/')) {
+      window.history.replaceState({}, '', toAppPath('/grai'))
       setRoute('grai')
     }
     const onPopState = () => {
@@ -41,8 +43,8 @@ function App() {
 
   const handleViewChange = useCallback((view: HeaderMainView) => {
     const targetPath = pathFromView(view)
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState({}, '', targetPath)
+    if (!isAtAppPath(targetPath)) {
+      window.history.pushState({}, '', toAppPath(targetPath))
     }
     setRoute(routeFromPath(targetPath))
   }, [])

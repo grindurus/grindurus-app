@@ -21,6 +21,7 @@ import { ChainSelectorModal } from '../components/ChainSelectorModal'
 import { WalletIcon } from '../components/WalletIcon'
 import { playBullSound, primeBullSound } from '../utils/playBullSound'
 import { navigateTo } from '../utils/navigate'
+import { assetUrl, toAppPath } from '../utils/appPaths'
 import { type GraiSection } from '../utils/graiNavigation'
 import { KNOWN_GRINDERS } from '../grai/grinders'
 import './GraiPage.css'
@@ -783,7 +784,7 @@ function GraiPage() {
               <div className="grai-grinders-row grai-grinders-row--head" role="row">
               <span role="columnheader" className="grai-grinders-col-grinder" aria-label="Grinder">
                 <a
-                  href="/grai/manage"
+                  href={toAppPath('/grai/manage')}
                   className="grai-grinders-col-grinder-link"
                   title="Grinder management"
                   onClick={(event) => {
@@ -795,7 +796,7 @@ function GraiPage() {
                     {KNOWN_GRINDERS.map((grinder) => (
                       <img
                         key={grinder.id}
-                        src="/logo.png"
+                        src={assetUrl('logo.png')}
                         alt=""
                         className="grai-grinders-col-logo"
                       />
@@ -1221,7 +1222,7 @@ function GraiPage() {
                         <span className="grai-burn-amount-suffix">
                           <span className="grai-mint-asset-item-icon" aria-hidden="true">
                             <img
-                              src="/logo.png"
+                              src={assetUrl('logo.png')}
                               alt=""
                               width={16}
                               height={16}

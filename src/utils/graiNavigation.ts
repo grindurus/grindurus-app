@@ -1,3 +1,5 @@
+import { isAtAppPath, toAppPath } from './appPaths'
+
 export type GraiSection = 'mint' | 'burn' | 'assets' | 'grinders'
 
 export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
@@ -19,10 +21,10 @@ export function navigateToGraiSection(
   section: GraiSection,
   onViewChange?: (view: 'grai') => void,
 ): void {
-  const path = '/grai'
+  const path = toAppPath('/grai')
   const hash = `#${section}`
 
-  if (window.location.pathname !== path) {
+  if (!isAtAppPath('/grai')) {
     window.history.pushState({}, '', `${path}${hash}`)
     window.dispatchEvent(new PopStateEvent('popstate'))
     onViewChange?.('grai')

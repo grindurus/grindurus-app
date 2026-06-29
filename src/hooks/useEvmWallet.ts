@@ -29,7 +29,7 @@ export function useEvmWallet() {
     }).ethereum
     if (!eth) return false
     if (eth.isMetaMask) return true
-    return Array.isArray(eth.providers) && eth.providers.some((p) => p?.isMetaMask)
+    return Array.isArray(eth.providers) && eth.providers.some((p: { isMetaMask?: boolean }) => p?.isMetaMask)
   }, [])
 
   useEffect(() => {

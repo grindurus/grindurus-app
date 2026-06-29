@@ -1,6 +1,7 @@
 import { readSoundEnabled } from './soundPreference'
+import { assetUrl } from './appPaths'
 
-const BULL_SOUND_SRC = '/byk-mychit.mp3'
+const BULL_SOUND_SRC = assetUrl('byk-mychit.mp3')
 
 let bullAudio: HTMLAudioElement | null = null
 

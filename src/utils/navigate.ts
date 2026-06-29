@@ -1,5 +1,7 @@
+import { isAtAppPath, toAppPath } from './appPaths'
+
 export function navigateTo(path: string): void {
-  if (window.location.pathname === path) return
-  window.history.pushState({}, '', path)
+  if (isAtAppPath(path)) return
+  window.history.pushState({}, '', toAppPath(path))
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
