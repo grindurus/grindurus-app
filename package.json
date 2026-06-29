@@ -13,7 +13,7 @@
     "build:pages": "tsc && vite build && cp dist/index.html dist/404.html",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "preview:pages": "GITHUB_PAGES=true npm run build:pages && vite preview --base /grindurus-app/"
+    "preview:pages": "GITHUB_PAGES=true npm run build:pages && vite preview"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.10",

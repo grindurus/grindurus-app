@@ -70,12 +70,13 @@ docker run --rm -p 3001:3001 grindurus-app sh -c "npm run build && npm run previ
 
 The app deploys automatically on every push to `main` via [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml).
 
-**Live URL:** https://grindurus.github.io/grindurus-app/
+**Live URL:** https://app.grindurus.xyz/
 
 ### One-time setup
 
 1. In the repo on GitHub: **Settings → Pages → Build and deployment → Source** → choose **GitHub Actions**.
-2. Copy [`.env.example`](.env.example) values into **Settings → Secrets and variables → Actions**:
+2. **Custom domain:** `app.grindurus.xyz` (CNAME `app` → `grindurus.github.io` in Namecheap).
+3. Copy [`.env.example`](.env.example) values into **Settings → Secrets and variables → Actions**:
    - **Secrets** — RPC URLs, mint addresses, `VITE_WALLETCONNECT_PROJECT_ID`, `VITE_BACKTEST_API_URL`, etc.
    - **Variables** (optional) — `VITE_GRAI_SOLANA_CLUSTER` (default `devnet`), `VITE_MAIN_APP_URL`.
 3. Push to `main` or run the workflow manually (**Actions → Deploy to GitHub Pages → Run workflow**).
@@ -84,13 +85,11 @@ The app deploys automatically on every push to `main` via [`.github/workflows/de
 
 ### Local Pages preview
 
-Simulates the `/grindurus-app/` base path used on GitHub Pages:
-
 ```bash
 npm run preview:pages
 ```
 
-Open http://localhost:4173/grindurus-app/
+Open http://localhost:4173/grai
 
 ## Environment variables
 
