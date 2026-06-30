@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { base, baseSepolia } from 'wagmi/chains'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
@@ -12,21 +13,50 @@ export function WalletInfo() {
   const [isNetworkDropdownOpen, setIsNetworkDropdownOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [isMobileMenu, setIsMobileMenu] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
+  )
   const activeWallet = useActiveWallet()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-      setIsDropdownOpen(false)
-      setIsNetworkDropdownOpen(false)
-    }
+    const target = e.target as Node
+    if (dropdownRef.current?.contains(target)) return
+    if (menuRef.current?.contains(target)) return
+    setIsDropdownOpen(false)
+    setIsNetworkDropdownOpen(false)
   }, [])
 
   useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [handleClickOutside])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)')
+    const syncMobileMenu = (event: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobileMenu(event.matches)
+    }
+    syncMobileMenu(mediaQuery)
+    mediaQuery.addEventListener('change', syncMobileMenu)
+    return () => mediaQuery.removeEventListener('change', syncMobileMenu)
+  }, [])
+
+  useEffect(() => {
+    if (!isDropdownOpen || !isMobileMenu) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isDropdownOpen, isMobileMenu])
+
+  const closeDropdown = useCallback(() => {
+    setIsDropdownOpen(false)
+    setIsNetworkDropdownOpen(false)
+  }, [])
 
   const handleDisconnect = useCallback(async () => {
     await activeWallet.disconnect()
@@ -187,20 +217,35 @@ export function WalletInfo() {
     )
   }
 
-  return (
-    <div className="wallet-info" ref={dropdownRef}>
-      <button 
-        className="wallet-info-btn"
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+  const dropdownMenu = isDropdownOpen ? (
+    <>
+      <button
+        type="button"
+        className={`wallet-dropdown-backdrop${isMobileMenu ? ' wallet-dropdown-backdrop--sheet' : ''}`}
+        aria-label="Close wallet menu"
+        onClick={closeDropdown}
+      />
+      <div
+        ref={menuRef}
+        className={`wallet-dropdown${isMobileMenu ? ' wallet-dropdown--sheet' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Wallet menu"
       >
-        {getCurrentNetworkIcon()}
-        <span className="wallet-address">{activeWallet.shortAddress}</span>
-        <WalletExpandToggle expanded={isDropdownOpen} />
-      </button>
-
-      {isDropdownOpen && (
-        <div className="wallet-dropdown">
-          <div className="wallet-dropdown-top">
+            <div className="wallet-dropdown-mobile-header">
+              <span className="wallet-dropdown-mobile-title">Wallet</span>
+              <button
+                type="button"
+                className="wallet-dropdown-close"
+                aria-label="Close wallet menu"
+                onClick={closeDropdown}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="wallet-dropdown-top">
             <div className="wallet-network-select wallet-network-select-inline">
               <span className="wallet-dropdown-label">Network</span>
               <button
@@ -307,7 +352,26 @@ export function WalletInfo() {
             </svg>
             Disconnect
           </button>
-        </div>
+      </div>
+    </>
+  ) : null
+
+  return (
+    <div className="wallet-info" ref={dropdownRef}>
+      <button 
+        className="wallet-info-btn"
+        type="button"
+        aria-label={`Wallet ${activeWallet.shortAddress}`}
+        aria-expanded={isDropdownOpen}
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+      >
+        {getCurrentNetworkIcon()}
+        <span className="wallet-address">{activeWallet.shortAddress}</span>
+        <WalletExpandToggle expanded={isDropdownOpen} />
+      </button>
+
+      {dropdownMenu && (
+        isMobileMenu ? createPortal(dropdownMenu, document.body) : dropdownMenu
       )}
     </div>
   )

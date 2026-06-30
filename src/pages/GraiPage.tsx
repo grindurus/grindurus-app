@@ -1419,6 +1419,7 @@ function GraiPage() {
               />
             </div>
             <div className="grai-vault-balance-shell">
+            <div className="grai-vault-balance-table-scroll">
             <div
               className="grai-balance-table"
               id="grai-vault-balance-table"
@@ -1502,6 +1503,7 @@ function GraiPage() {
                     </div>
                   </div>
                 </div>
+            </div>
             </div>
             <div className="grai-vault-balance-toggle">
               <button

@@ -80,10 +80,54 @@ const GRAI_MANAGE_MENU_ICON = (
   </svg>
 )
 
+const BACKTEST_MENU_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 3v18h18" />
+    <path d="M7 16l4-6 4 3 5-7" />
+  </svg>
+)
+
+const GRAI_SECTIONS: { section: GraiSection; label: string; icon: JSX.Element }[] = [
+  { section: 'grinders', label: 'Grinders', icon: GRAI_GRINDERS_MENU_ICON },
+  { section: 'mint', label: 'MINT', icon: GRAI_MINT_MENU_ICON },
+  { section: 'burn', label: 'BURN', icon: GRAI_BURN_MENU_ICON },
+  { section: 'assets', label: 'ASSETS', icon: GRAI_ASSET_MENU_ICON },
+  { section: 'manage', label: 'MANAGE', icon: GRAI_MANAGE_MENU_ICON },
+]
+
+interface GraiMenuItemsProps {
+  isGraiPage: boolean
+  graiSection: GraiSection | null
+  onSectionClick: (section: GraiSection) => void
+}
+
+function GraiMenuItems({ isGraiPage, graiSection, onSectionClick }: GraiMenuItemsProps) {
+  return (
+    <>
+      {GRAI_SECTIONS.map(({ section, label, icon }) => (
+        <button
+          key={section}
+          type="button"
+          role="menuitem"
+          className={`header-nav-grai-dropdown-item ${isGraiPage && graiSection === section ? 'is-active' : ''}`}
+          onClick={() => onSectionClick(section)}
+        >
+          <span className="header-nav-grai-dropdown-item-icon" aria-hidden="true">
+            {icon}
+          </span>
+          {label}
+        </button>
+      ))}
+    </>
+  )
+}
+
 function Header({ activeView, onViewChange }: HeaderProps) {
   const [graiMenuOpen, setGraiMenuOpen] = useState(false)
+  const [mobileGraiOpen, setMobileGraiOpen] = useState(false)
   const [graiSection, setGraiSection] = useState<GraiSection | null>(() => readGraiSectionFromHash())
   const graiMenuRef = useRef<HTMLDivElement>(null)
+  const mobileGraiRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!graiMenuOpen) return
@@ -94,6 +138,16 @@ function Header({ activeView, onViewChange }: HeaderProps) {
     document.addEventListener('mousedown', onDocumentClick)
     return () => document.removeEventListener('mousedown', onDocumentClick)
   }, [graiMenuOpen])
+
+  useEffect(() => {
+    if (!mobileGraiOpen) return
+    const onDocumentClick = (event: MouseEvent) => {
+      if (mobileGraiRef.current?.contains(event.target as Node)) return
+      setMobileGraiOpen(false)
+    }
+    document.addEventListener('mousedown', onDocumentClick)
+    return () => document.removeEventListener('mousedown', onDocumentClick)
+  }, [mobileGraiOpen])
 
   useEffect(() => {
     const syncGraiSection = () => setGraiSection(readGraiSectionFromHash())
@@ -109,12 +163,8 @@ function Header({ activeView, onViewChange }: HeaderProps) {
 
   const handleGraiSectionClick = (section: GraiSection) => {
     setGraiMenuOpen(false)
+    setMobileGraiOpen(false)
     navigateToGraiSection(section, () => onViewChange('grai'))
-  }
-
-  const handleManageClick = () => {
-    navigateToGraiSection('manage', () => onViewChange('grai'))
-    setGraiMenuOpen(false)
   }
 
   const isGraiPage = activeView === 'grai'
@@ -126,6 +176,59 @@ function Header({ activeView, onViewChange }: HeaderProps) {
           <a href={MAIN_APP_URL} className="header-logo" style={{ textDecoration: 'none' }}>
             <img src={assetUrl('logo.png')} alt="GrindURUS" className="header-logo-img" />
           </a>
+          <div
+            ref={mobileGraiRef}
+            className={`header-grai-burger-wrap ${isGraiPage ? 'is-active' : ''}`}
+          >
+            <button
+              type="button"
+              className={`header-grai-burger ${mobileGraiOpen ? 'is-open' : ''}`}
+              onClick={() => setMobileGraiOpen((open) => !open)}
+              aria-expanded={mobileGraiOpen}
+              aria-haspopup="menu"
+              aria-label="GRAI menu"
+            >
+              <span className="header-grai-burger-lines" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              <span className="header-grai-burger-label">GRAI</span>
+            </button>
+            <div
+              className={`header-grai-mobile-menu ${mobileGraiOpen ? 'is-open' : ''}`}
+              role="menu"
+              aria-label="GRAI"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="header-nav-grai-dropdown-item header-grai-mobile-backtest"
+                disabled
+              >
+                <span className="header-nav-grai-dropdown-item-icon" aria-hidden="true">
+                  {BACKTEST_MENU_ICON}
+                </span>
+                BACKTEST (SOON)
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className={`header-nav-grai-dropdown-item header-grai-mobile-home ${isGraiPage && !graiSection ? 'is-active' : ''}`}
+                onClick={() => {
+                  setMobileGraiOpen(false)
+                  onViewChange('grai')
+                }}
+              >
+                GRAI Home
+              </button>
+              <GraiMenuItems
+                isGraiPage={isGraiPage}
+                graiSection={graiSection}
+                onSectionClick={handleGraiSectionClick}
+              />
+            </div>
+          </div>
           <nav className="header-nav" aria-label="Product sections">
             <button
               type="button"
@@ -164,61 +267,11 @@ function Header({ activeView, onViewChange }: HeaderProps) {
                   role="menu"
                   aria-label="GRAI"
                 >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`header-nav-grai-dropdown-item ${isGraiPage && graiSection === 'grinders' ? 'is-active' : ''}`}
-                    onClick={() => handleGraiSectionClick('grinders')}
-                  >
-                    <span className="header-nav-grai-dropdown-item-icon" aria-hidden="true">
-                      {GRAI_GRINDERS_MENU_ICON}
-                    </span>
-                    Grinders
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`header-nav-grai-dropdown-item ${isGraiPage && graiSection === 'mint' ? 'is-active' : ''}`}
-                    onClick={() => handleGraiSectionClick('mint')}
-                  >
-                    <span className="header-nav-grai-dropdown-item-icon" aria-hidden="true">
-                      {GRAI_MINT_MENU_ICON}
-                    </span>
-                    MINT
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`header-nav-grai-dropdown-item ${isGraiPage && graiSection === 'burn' ? 'is-active' : ''}`}
-                    onClick={() => handleGraiSectionClick('burn')}
-                  >
-                    <span className="header-nav-grai-dropdown-item-icon" aria-hidden="true">
-                      {GRAI_BURN_MENU_ICON}
-                    </span>
-                    BURN
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`header-nav-grai-dropdown-item ${isGraiPage && graiSection === 'assets' ? 'is-active' : ''}`}
-                    onClick={() => handleGraiSectionClick('assets')}
-                  >
-                    <span className="header-nav-grai-dropdown-item-icon" aria-hidden="true">
-                      {GRAI_ASSET_MENU_ICON}
-                    </span>
-                    ASSETS
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`header-nav-grai-dropdown-item ${isGraiPage && graiSection === 'manage' ? 'is-active' : ''}`}
-                    onClick={handleManageClick}
-                  >
-                    <span className="header-nav-grai-dropdown-item-icon" aria-hidden="true">
-                      {GRAI_MANAGE_MENU_ICON}
-                    </span>
-                    MANAGE
-                  </button>
+                  <GraiMenuItems
+                    isGraiPage={isGraiPage}
+                    graiSection={graiSection}
+                    onSectionClick={handleGraiSectionClick}
+                  />
                 </div>
               </div>
             </div>

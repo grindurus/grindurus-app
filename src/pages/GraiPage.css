@@ -1104,11 +1104,23 @@
   gap: 0;
   width: 100%;
   min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.grai-vault-balance-table-scroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .grai-vault-balance-shell .grai-balance-table {
-  border-bottom: 0;
-  border-radius: 10px 10px 0 0;
+  border: 0;
+  border-radius: 0;
 }
 
 .grai-vault-balance-body-panel {
@@ -1164,14 +1176,20 @@
   display: block;
 }
 
-.grai-donut-legend-toggle.grai-vault-balance-show-toggle,
-.grai-donut-legend-toggle.grai-grinders-show-all-toggle {
-  display: flex;
-  width: 100%;
-  height: 1.75rem;
-  border-radius: 0 0 8px 8px;
-  flex-shrink: 1;
+.grai-vault-balance-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle {
+  border-radius: 0;
+}
+
+.grai-donut-legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
   border: 0;
+  border-radius: 999px;
   background: linear-gradient(
     120deg,
     #ff69b4 0%,
@@ -1184,17 +1202,41 @@
   animation: grai-action-switch-gradient-flow 4.5s ease-in-out infinite;
   color: #fff;
   box-shadow: 0 2px 10px rgba(255, 105, 180, 0.3);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: box-shadow 0.2s ease, color 0.2s ease;
 }
 
-.grai-donut-legend-toggle.grai-vault-balance-show-toggle:hover,
-.grai-donut-legend-toggle.grai-grinders-show-all-toggle:hover {
+.grai-donut-legend-toggle.grai-vault-balance-show-toggle,
+.grai-donut-legend-toggle.grai-grinders-show-all-toggle {
+  display: flex;
+  width: 100%;
+  height: 1.75rem;
+  border-radius: 0 0 8px 8px;
+  flex-shrink: 1;
+}
+
+.grai-donut-legend-toggle:hover,
+.grai-donut-legend-toggle:focus,
+.grai-donut-legend-toggle:focus-visible,
+.grai-donut-legend-toggle:active {
+  border: 0;
+  background: linear-gradient(
+    120deg,
+    #ff69b4 0%,
+    #ff7dbc 22%,
+    #ff1493 45%,
+    #ff5fb1 68%,
+    #ff69b4 100%
+  );
+  background-size: 220% 220%;
   color: #fff;
   box-shadow: 0 3px 14px rgba(255, 105, 180, 0.42);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .grai-donut-legend-toggle.grai-vault-balance-show-toggle,
-  .grai-donut-legend-toggle.grai-grinders-show-all-toggle {
+  .grai-donut-legend-toggle {
     animation: none;
     background-size: auto;
     background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
@@ -1209,28 +1251,6 @@
 .grai-donut-legend-toggle.grai-vault-balance-show-toggle:not(.is-collapsed) .grai-donut-legend-toggle-icon,
 .grai-donut-legend-toggle.grai-grinders-show-all-toggle:not(.is-collapsed) .grai-donut-legend-toggle-icon {
   transform: rotate(180deg);
-}
-
-.grai-donut-legend-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.grai-donut-legend-toggle:hover {
-  color: var(--text-primary);
-  border-color: rgba(255, 105, 180, 0.45);
-  background: rgba(255, 105, 180, 0.08);
 }
 
 .grai-donut-legend-toggle-icon {
@@ -3120,16 +3140,51 @@
     justify-content: space-between;
   }
 
-  .grai-grinders-table-panel-inner,
-  .grai-vault-balance-shell {
+  .grai-grinders-table-panel-inner {
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
+    padding-inline-end: 0.35rem;
+  }
+
+  .grai-vault-balance-table-scroll {
+    scroll-padding-inline-end: 0.35rem;
+  }
+
+  .grai-vault-balance-shell .grai-balance-table {
+    overflow: visible;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .grai-vault-balance-shell .grai-vault-balance-body-panel.is-open,
+  .grai-vault-balance-shell .grai-vault-balance-body-panel.is-open .grai-vault-balance-body-panel-inner {
+    overflow: visible;
+  }
+
+  .grai-vault-balance-shell .grai-vault-balance-body-grid {
+    min-width: 42rem;
+  }
+
+  .grai-vault-balance-shell .grai-vault-balance-toggle {
+    width: 100%;
+    flex-shrink: 0;
   }
 
   .grai-grinders-table,
   .grai-balance-table {
-    min-width: 36rem;
+    min-width: 42rem;
+  }
+
+  .grai-grinders-table {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .grai-grinders-row {
+    min-width: 42rem;
   }
 
   .grai-balance-table-cell--head {
@@ -3166,6 +3221,35 @@
 
   .grai-action-card {
     padding: 0.5rem 1rem 1.25rem;
+  }
+
+  .grai-action-card .grai-mint-amount-field,
+  .grai-action-card .grai-mint-amount-row {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .grai-action-card .grai-mint-amount-row {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .grai-action-card .grai-mint-amount-row .grai-input-with-suffix {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .grai-action-card .grai-mint-amount-row .grai-mint-asset-dropdown,
+  .grai-action-card .grai-mint-amount-row .grai-burn-amount-suffix {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .grai-action-card .grai-mint-amount-row .grai-mint-asset-value {
+    min-width: 5.5rem;
+    max-width: none;
   }
 
   .grai-action-switch-btn {
@@ -3205,17 +3289,21 @@
     gap: 0.45rem;
   }
 
-  .grai-mint-amount-row {
-    flex-wrap: wrap;
+  .grai-action-card .grai-mint-amount-row {
+    flex-wrap: nowrap;
+    align-items: center;
   }
 
-  .grai-mint-amount-row .grai-input-with-suffix {
-    flex: 1 1 100%;
-  }
-
-  .grai-mint-amount-row .grai-mint-asset-dropdown,
-  .grai-mint-amount-row .grai-burn-amount-suffix {
+  .grai-action-card .grai-mint-amount-row .grai-input-with-suffix {
     flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .grai-action-card .grai-mint-amount-row .grai-mint-asset-dropdown,
+  .grai-action-card .grai-mint-amount-row .grai-burn-amount-suffix {
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .grai-mint-asset-label-text {

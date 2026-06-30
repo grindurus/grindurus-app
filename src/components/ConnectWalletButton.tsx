@@ -16,7 +16,7 @@ export function ConnectWalletButton() {
 
   if (activeWallet.isConnected) {
     return (
-      <div className="header-wallet-slot">
+      <div className="header-wallet-slot header-wallet-slot--connected">
         <WalletInfo />
       </div>
     )

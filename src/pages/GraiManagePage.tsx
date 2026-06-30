@@ -1631,6 +1631,7 @@ export function GraiManageSection() {
             </span>
           </div>
           <div className="grai-manage-vault-table-shell">
+            <div className="grai-manage-vault-table-scroll">
             <div
               className="grai-balance-table grai-manage-junior-vault-table"
               id="grai-manage-junior-vault-table"
@@ -1696,6 +1697,7 @@ export function GraiManageSection() {
                 </div>
               </div>
             </div>
+            </div>
             <div className="grai-vault-balance-toggle">
               <button
                 type="button"
@@ -1738,6 +1740,7 @@ export function GraiManageSection() {
             <span className="grai-manage-custody-wallet-link">{KNOWN_GRINDERS.length} grinders</span>
           </div>
           <div className="grai-manage-vault-table-shell">
+            <div className="grai-manage-vault-table-scroll">
             <div
               className="grai-balance-table grai-manage-custody-vault-table"
               id="grai-manage-custody-table"
@@ -1885,6 +1888,7 @@ export function GraiManageSection() {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
             <div className="grai-vault-balance-toggle">
               <button
