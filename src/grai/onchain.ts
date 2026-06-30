@@ -20,6 +20,11 @@ export function decodeSeniorVaultMintSplit(data: Buffer): number {
   return data.readUInt16LE(72)
 }
 
+/** Anchor SeniorVault.yield_split (basis points) at byte 74. */
+export function decodeSeniorVaultYieldSplit(data: Buffer): number {
+  return data.readUInt16LE(74)
+}
+
 export async function fetchSeniorVaultPriceFeed(
   connection: Connection,
   seniorVault: PublicKey,

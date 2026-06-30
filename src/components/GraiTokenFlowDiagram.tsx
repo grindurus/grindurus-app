@@ -72,7 +72,7 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'mint',
     title: 'Mint',
     description:
-      'User deposits assets into GRAI. The protocol splits capital across senior and junior vaults, then mints GRAI to the user at current NAV.',
+      'User deposits assets into GRAI. The protocol splits capital across senior and junior vaults, then mints GRAI to the user.',
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
       { id: 'user', type: 'graiFlow', position: { x: 0, y: 50 }, data: { label: 'User', variant: 'user' } },
@@ -147,7 +147,7 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'distribute',
     title: 'Distribute',
     description:
-      'Custody wallet sends earned yield back on-chain. Most replenishes the senior vault (NAV); the remainder goes to treasury.',
+      'Custody wallet sends earned yield back on-chain. Yield goes to senior vault; the remainder goes to treasury as fee.',
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
       { id: 'custody', type: 'graiFlow', position: { x: 0, y: 30 }, data: { label: 'Grinder Custody X', variant: 'custody' } },
@@ -181,7 +181,7 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'burn',
     title: 'Burn',
     description:
-      'User burns GRAI. The senior vault returns idle collateral back to the user in proportion to the burn.',
+      'User burns GRAI. The senior vault returns collateral to the user in proportion to the burn.',
     height: FLOW_CANVAS_HEIGHT,
     centerInPane: true,
     nodes: [

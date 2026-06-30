@@ -3,12 +3,13 @@ import { PublicKey } from '@solana/web3.js'
 import type { GraiAsset } from '../grai/knownMints'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { fetchGraiStateFixedFields } from '../grai/graiStateCache'
-import { fetchMintDecimals, formatTokenBalance, normalizeDecimalInput } from '../grai/onchain'
+import { decodeSeniorVaultYieldSplit, fetchMintDecimals, formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../grai/onchain'
 import { formatVaultBalanceDisplay } from '../grai/formatVaultBalance'
+import { seniorVaultPda } from '../grai/pdas'
 import { KNOWN_GRINDERS, grinderCustodyAddress } from '../grai/grinders'
 import type { GrinderCustodyState } from '../hooks/useGrindersCustodyBalances'
 import type { CustodyNetwork } from '../grai/custodyHoldings'
-import { USD_SCALE } from '../grai/tokenomics'
+import { USD_SCALE, yieldSplit } from '../grai/tokenomics'
 import { useGraiAllocate } from '../hooks/useGraiAllocate'
 import { useGraiAssets } from '../hooks/useGraiAssets'
 import { useGraiDistribute } from '../hooks/useGraiDistribute'
@@ -17,6 +18,7 @@ import { useCustodyWalletBalances } from '../hooks/useCustodyWalletBalances'
 import { useGrindersCustodyBalances } from '../hooks/useGrindersCustodyBalances'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { navigateTo } from '../utils/navigate'
+import { WalletIcon } from '../components/WalletIcon'
 import './GraiPage.css'
 import './GraiManagePage.css'
 
@@ -63,6 +65,20 @@ const YIELD_AMOUNT_FIELD_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M3 17l6-6 4 4 8-8" />
     <path d="M14 7h7v7" />
+  </svg>
+)
+
+const SENIOR_VAULT_FIELD_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 3l7 4v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V7l7-4z" />
+  </svg>
+)
+
+const DISTRIBUTION_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 4v7" />
+    <path d="M12 11 5 20" />
+    <path d="M12 11 19 20" />
   </svg>
 )
 
@@ -165,48 +181,6 @@ function GraiFieldLabel({ children, icon }: { children: string; icon?: ReactNode
       {icon && <span className="grai-field-label-icon">{icon}</span>}
       {children}
     </span>
-  )
-}
-
-const INFO_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 16v-4" />
-    <path d="M12 8h.01" />
-  </svg>
-)
-
-function GraiManageCardTitle({
-  id,
-  title,
-  info,
-  icon,
-}: {
-  id: string
-  title: string
-  info: string
-  icon?: ReactNode
-}) {
-  return (
-    <div className="grai-manage-card-title-row">
-      <h2 id={id} className="grai-manage-card-title">
-        {icon && <span className="grai-manage-card-title-icon">{icon}</span>}
-        {title}
-      </h2>
-      <span className="grai-manage-info-wrap">
-        <button
-          type="button"
-          className="grai-manage-info-btn"
-          aria-label={`About ${title}`}
-          aria-describedby={`${id}-info`}
-        >
-          {INFO_ICON}
-        </button>
-        <span id={`${id}-info`} role="tooltip" className="grai-manage-info-tooltip">
-          {info}
-        </span>
-      </span>
-    </div>
   )
 }
 
@@ -436,22 +410,17 @@ function GraiManageCustodyField({
     <div className="grai-mint-asset-field grai-manage-custody-field" id={id}>
       <div className="grai-mint-asset-dropdown" ref={dropdownRef}>
         <div className={`grai-mint-asset-trigger ${menuOpen ? 'is-open' : ''}`}>
-          <div className="grai-mint-asset-value grai-mint-asset-value--combined">
-            <div className={`grai-mint-asset-label-row${selectedGrinder ? ' has-custody-selection' : ''}`}>
-              <span className="grai-mint-asset-label-text">
-                <span className="grai-field-label grai-field-label--with-icon">
-                  <span className="grai-field-label-icon">{CUSTODY_FIELD_ICON}</span>
-                  Custody
+          <div className="grai-mint-amount-field">
+            <div className={`grai-mint-amount-header${selectedGrinder ? ' has-custody-selection' : ''}`}>
+              <GraiFieldLabel icon={CUSTODY_FIELD_ICON}>Custody</GraiFieldLabel>
+              {selectedGrinder && (
+                <span className="grai-grinder-name grai-manage-custody-selected-name">
+                  <span className="grai-grinder-active-dot" aria-hidden="true" />
+                  {selectedGrinder.name}
                 </span>
-                {selectedGrinder && (
-                  <span className="grai-grinder-name grai-manage-custody-selected-name">
-                    <span className="grai-grinder-active-dot" aria-hidden="true" />
-                    {selectedGrinder.name}
-                  </span>
-                )}
-              </span>
+              )}
             </div>
-            <div className="grai-mint-asset-value-main">
+            <div className="grai-mint-amount-row">
               <input
                 ref={inputRef}
                 id={`${id}-input`}
@@ -580,6 +549,7 @@ type GraiManageInputFieldProps = {
   maxLabel?: string
   labelPosition?: 'above' | 'below'
   trailing?: ReactNode
+  footer?: ReactNode
 }
 
 function GraiManageInputField({
@@ -596,6 +566,7 @@ function GraiManageInputField({
   maxLabel = 'MAX',
   labelPosition = 'below',
   trailing,
+  footer,
 }: GraiManageInputFieldProps) {
   const hasSuffix = Boolean(suffix)
   const hasAll = allAmount !== undefined
@@ -636,6 +607,7 @@ function GraiManageInputField({
 
   const amountField = (
     <div className="grai-mint-amount-field">
+      {header}
       {labelPosition === 'above' && labelNode}
       {trailing ? (
         <div className="grai-mint-amount-row">
@@ -652,9 +624,18 @@ function GraiManageInputField({
   if (header) {
     return (
       <div className="grai-mint-amount-block">
-        {header}
         {amountField}
+        {footer}
       </div>
+    )
+  }
+
+  if (footer) {
+    return (
+      <>
+        {amountField}
+        {footer}
+      </>
     )
   }
 
@@ -679,7 +660,7 @@ function GraiManagePage() {
   const [distributeCustodyWallet, setDistributeCustodyWallet] = useState('')
   const [selectedAllocateCustodyGrinderId, setSelectedAllocateCustodyGrinderId] = useState('')
   const [selectedDistributeCustodyGrinderId, setSelectedDistributeCustodyGrinderId] = useState('')
-  const [activeCustodyTarget, setActiveCustodyTarget] = useState<'allocate' | 'distribute'>('distribute')
+  const [activeCustodyTarget, setActiveCustodyTarget] = useState<'allocate' | 'distribute'>('allocate')
   const [allocateAmount, setAllocateAmount] = useState('')
   const [distributeAmount, setDistributeAmount] = useState('')
   const [allocateAssetDecimals, setAllocateAssetDecimals] = useState(9)
@@ -692,7 +673,20 @@ function GraiManagePage() {
   const [copiedGrinderId, setCopiedGrinderId] = useState<string | null>(null)
   const [isCustodyTableHidden, setIsCustodyTableHidden] = useState(false)
   const [isJuniorVaultTableHidden, setIsJuniorVaultTableHidden] = useState(false)
+  const [isDistributeDistributionHidden, setIsDistributeDistributionHidden] = useState(true)
+  const [isAllocateAllocationHidden, setIsAllocateAllocationHidden] = useState(true)
+  const [distributeYieldSplitBps, setDistributeYieldSplitBps] = useState<number | null>(null)
+  const [manageActionView, setManageActionView] = useState<'allocate' | 'distribute'>('allocate')
   const [walletWarningDismissed, setWalletWarningDismissed] = useState(false)
+
+  const handleManageActionViewChange = useCallback((view: 'allocate' | 'distribute') => {
+    setManageActionView(view)
+    setActiveCustodyTarget(view)
+    setAllocateCustodyMenuOpen(false)
+    setDistributeCustodyMenuOpen(false)
+    setAllocateAssetMenuOpen(false)
+    setDistributeAssetMenuOpen(false)
+  }, [])
 
   const copyGrinderAddress = useCallback(async (wallet: string, grinderId: string) => {
     try {
@@ -752,6 +746,13 @@ function GraiManagePage() {
     if (!vault || vault.juniorRaw <= 0n) return ''
     return formatTokenBalance(vault.juniorRaw, vault.decimals)
   }, [allocateAsset?.mint, vaultBalances])
+
+  const allocateCustodyReceiveAmount = useMemo(() => {
+    const trimmed = allocateAmount.trim()
+    return trimmed || '—'
+  }, [allocateAmount])
+
+  const allocateCustodyReceiveSymbol = allocateAsset?.symbol?.trim() || '—'
 
   const juniorVaultRows = useMemo(
     () =>
@@ -882,6 +883,51 @@ function GraiManagePage() {
     if (!entry || entry.yieldRaw <= 0n) return ''
     return formatTokenBalance(entry.yieldRaw, entry.decimals)
   }, [distributeAsset?.mint, distributeCustodyWallet, custodyBalances])
+
+  useEffect(() => {
+    if (!distributeAsset?.mint || !connection || !solana || !isConfigured) {
+      setDistributeYieldSplitBps(null)
+      return
+    }
+
+    let cancelled = false
+    const seniorVault = seniorVaultPda(new PublicKey(distributeAsset.mint), solana.programId)
+
+    void connection.getAccountInfo(seniorVault).then((account) => {
+      if (cancelled) return
+      if (!account?.data) {
+        setDistributeYieldSplitBps(null)
+        return
+      }
+      setDistributeYieldSplitBps(decodeSeniorVaultYieldSplit(Buffer.from(account.data)))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [connection, distributeAsset?.mint, isConfigured, solana])
+
+  const distributeSeniorLabel = useMemo(() => {
+    if (!distributeAmount.trim() || distributeYieldSplitBps === null) return null
+    try {
+      const amount = parseTokenAmount(distributeAmount, distributeAssetDecimals)
+      const [senior] = yieldSplit(amount, distributeYieldSplitBps)
+      return formatTokenBalance(senior, distributeAssetDecimals)
+    } catch {
+      return null
+    }
+  }, [distributeAmount, distributeAssetDecimals, distributeYieldSplitBps])
+
+  const distributeTreasuryLabel = useMemo(() => {
+    if (!distributeAmount.trim() || distributeYieldSplitBps === null) return null
+    try {
+      const amount = parseTokenAmount(distributeAmount, distributeAssetDecimals)
+      const [, treasury] = yieldSplit(amount, distributeYieldSplitBps)
+      return formatTokenBalance(treasury, distributeAssetDecimals)
+    } catch {
+      return null
+    }
+  }, [distributeAmount, distributeAssetDecimals, distributeYieldSplitBps])
 
   useEffect(() => {
     if (distributeGrinderAssets.length === 0) {
@@ -1166,20 +1212,42 @@ function GraiManagePage() {
       )}
 
       <div className="grai-manage-cards">
-        <section className="grai-manage-card" aria-labelledby="grai-allocate-title">
-          <GraiManageCardTitle
-            id="grai-allocate-title"
-            title="Allocate"
-            icon={ALLOCATED_TABLE_ICON}
-            info="Move tokens from the junior vault to a grinder custody wallet. Must be signed by the protocol authority."
-          />
+        <section className="grai-manage-card grai-manage-action-card" aria-label="Allocate or distribute capital">
+          <div className="grai-action-switch" role="tablist" aria-label="Allocate or distribute">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={manageActionView === 'allocate'}
+              className={`grai-action-switch-btn is-allocate ${manageActionView === 'allocate' ? 'is-active' : ''}`}
+              onClick={() => handleManageActionViewChange('allocate')}
+            >
+              <span className="grai-action-switch-icon">{ALLOCATED_TABLE_ICON}</span>
+              Allocate
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={manageActionView === 'distribute'}
+              className={`grai-action-switch-btn is-distribute ${manageActionView === 'distribute' ? 'is-active' : ''}`}
+              onClick={() => handleManageActionViewChange('distribute')}
+            >
+              <span className="grai-action-switch-icon">{YIELD_AMOUNT_FIELD_ICON}</span>
+              Distribute
+            </button>
+          </div>
 
+          <div className="grai-action-content">
+            {manageActionView === 'allocate' ? (
+              <>
           <p
             className={`grai-manage-hint${allocateWalletWarning ? ' is-wallet-warning' : ''}${
               allocateWalletWarning && walletWarningDismissed ? ' is-wallet-warning-acknowledged' : ''
             }`}
           >
-            <span>
+            <span className="grai-manage-hint-label">
+              <span className="grai-manage-hint-icon" aria-hidden="true">
+                <WalletIcon size={16} />
+              </span>
               Wallet:{' '}
               {!connectedWallet ? (
                 'not connected'
@@ -1246,6 +1314,76 @@ function GraiManagePage() {
                 listId="grai-allocate-asset-list"
               />
             }
+            footer={
+              <div className="grai-mint-split-shares-hint is-open" aria-label="Allocate custody estimate">
+                <div className="grai-burn-assets-section-title">
+                  <span className="grai-burn-assets-section-title-icon" aria-hidden="true">
+                    {ALLOCATED_TABLE_ICON}
+                  </span>
+                  <span className="grai-burn-assets-section-title-label">Allocation:</span>
+                  <button
+                    type="button"
+                    className={`grai-donut-legend-toggle ${isAllocateAllocationHidden ? 'is-collapsed' : ''}`}
+                    onClick={() => setIsAllocateAllocationHidden((hidden) => !hidden)}
+                    aria-expanded={!isAllocateAllocationHidden}
+                    aria-controls="grai-allocate-allocation"
+                    aria-label={
+                      isAllocateAllocationHidden
+                        ? 'Show allocation estimate'
+                        : 'Hide allocation estimate'
+                    }
+                  >
+                    <svg
+                      className="grai-donut-legend-toggle-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                </div>
+                {!isAllocateAllocationHidden && (
+                  <div id="grai-allocate-allocation" className="grai-burn-assets-rows" aria-live="polite">
+                    <div className="grai-burn-assets-row">
+                      <span className="grai-burn-assets-amount">
+                        <span className="grai-mint-split-vault-prefix">
+                          <span className="grai-mint-split-vault-prefix-icon" aria-hidden="true">
+                            {CUSTODY_FIELD_ICON}
+                          </span>
+                          Custody:
+                        </span>
+                        <span className="grai-burn-assets-amount-value">{allocateCustodyReceiveAmount}</span>
+                      </span>
+                      <span className="grai-burn-assets-token">
+                        <span className="grai-burn-assets-token-icon" aria-hidden="true">
+                          {allocateAsset && (
+                            <img src={allocateAsset.icon.src} alt={allocateAsset.icon.alt} />
+                          )}
+                        </span>
+                        {allocateCustodyReceiveSymbol}
+                        {allocateAsset?.mint && (
+                          <a
+                            href={solscanTokenUrl(allocateAsset.mint)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="grai-burn-assets-solscan"
+                            aria-label={`View ${allocateAsset.symbol} on Solscan`}
+                            title={`View ${allocateAsset.symbol} on Solscan`}
+                          >
+                            {MINT_ASSET_SOLSCAN_ICON}
+                          </a>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            }
           />
           {assetsError && <p className="grai-registry-hint is-error">{assetsError}</p>}
 
@@ -1278,22 +1416,18 @@ function GraiManagePage() {
           >
             Allocate
           </button>
-        </section>
-
-        <section className="grai-manage-card" aria-labelledby="grai-distribute-title">
-          <GraiManageCardTitle
-            id="grai-distribute-title"
-            title="Distribute"
-            icon={YIELD_AMOUNT_FIELD_ICON}
-            info="Send yield from the custody wallet to senior vault and treasury. Must be signed by the custody wallet."
-          />
-
+              </>
+            ) : (
+              <>
           <p
             className={`grai-manage-hint${distributeWalletWarning ? ' is-wallet-warning' : ''}${
               distributeWalletWarning && walletWarningDismissed ? ' is-wallet-warning-acknowledged' : ''
             }`}
           >
-            <span>
+            <span className="grai-manage-hint-label">
+              <span className="grai-manage-hint-icon" aria-hidden="true">
+                <WalletIcon size={16} />
+              </span>
               Wallet:{' '}
               {!connectedWallet ? (
                 distributeConnectedWalletLabel
@@ -1366,6 +1500,95 @@ function GraiManagePage() {
                 }
               />
             }
+            footer={
+              <div className="grai-mint-split-shares-hint is-open" aria-label="Distribute yield split estimate">
+                <div className="grai-burn-assets-section-title">
+                  <span className="grai-burn-assets-section-title-icon" aria-hidden="true">
+                    {DISTRIBUTION_ICON}
+                  </span>
+                  <span className="grai-burn-assets-section-title-label">Distribution:</span>
+                  <button
+                    type="button"
+                    className={`grai-donut-legend-toggle ${isDistributeDistributionHidden ? 'is-collapsed' : ''}`}
+                    onClick={() => setIsDistributeDistributionHidden((hidden) => !hidden)}
+                    aria-expanded={!isDistributeDistributionHidden}
+                    aria-controls="grai-distribute-distribution"
+                    aria-label={
+                      isDistributeDistributionHidden
+                        ? 'Show distribution estimate'
+                        : 'Hide distribution estimate'
+                    }
+                  >
+                    <svg
+                      className="grai-donut-legend-toggle-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                </div>
+                {!isDistributeDistributionHidden && (
+                  <div id="grai-distribute-distribution" className="grai-burn-assets-rows">
+                    {(
+                      [
+                        {
+                          key: 'senior',
+                          label: 'Senior Vault:',
+                          icon: SENIOR_VAULT_FIELD_ICON,
+                          shareLabel: distributeSeniorLabel,
+                        },
+                        {
+                          key: 'treasury',
+                          label: 'Treasury:',
+                          icon: TREASURY_WALLET_ICON,
+                          shareLabel: distributeTreasuryLabel,
+                        },
+                      ] as const
+                    ).map((row) => (
+                      <div className="grai-burn-assets-row" key={row.key}>
+                        <span className="grai-burn-assets-amount">
+                          <span className="grai-mint-split-vault-prefix">
+                            <span className="grai-mint-split-vault-prefix-icon" aria-hidden="true">
+                              {row.icon}
+                            </span>
+                            {row.label}
+                          </span>
+                          <span className="grai-burn-assets-amount-value">
+                            {!distributeAmount.trim() ? '—' : (row.shareLabel ?? '…')}
+                          </span>
+                        </span>
+                        <span className="grai-burn-assets-token">
+                          <span className="grai-burn-assets-token-icon" aria-hidden="true">
+                            {distributeAsset && (
+                              <img src={distributeAsset.icon.src} alt={distributeAsset.icon.alt} />
+                            )}
+                          </span>
+                          {distributeAsset?.symbol ?? '—'}
+                          {distributeAsset?.mint && (
+                            <a
+                              href={solscanTokenUrl(distributeAsset.mint)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="grai-burn-assets-solscan"
+                              aria-label={`View ${distributeAsset.symbol} on Solscan`}
+                              title={`View ${distributeAsset.symbol} on Solscan`}
+                            >
+                              {MINT_ASSET_SOLSCAN_ICON}
+                            </a>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            }
           />
 
           {isDistributing ? (
@@ -1398,6 +1621,9 @@ function GraiManagePage() {
           >
             Distribute
           </button>
+              </>
+            )}
+          </div>
         </section>
       </div>
 

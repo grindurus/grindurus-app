@@ -61,3 +61,14 @@ export function mintSplit(amount: bigint, mintSplitBps: number): [bigint, bigint
   const junior = amount - senior
   return [senior, junior]
 }
+
+/** `senior = amount * split_bps / 10_000`, remainder to treasury — matches on-chain distribute. */
+export function yieldSplit(amount: bigint, yieldSplitBps: number): [bigint, bigint] {
+  if (yieldSplitBps < 0 || yieldSplitBps > MINT_SPLIT_BPS_MAX) {
+    throw new Error('Invalid yield split')
+  }
+
+  const senior = (amount * BigInt(yieldSplitBps)) / BigInt(MINT_SPLIT_BPS_MAX)
+  const treasury = amount - senior
+  return [senior, treasury]
+}
