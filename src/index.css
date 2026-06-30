@@ -53,14 +53,13 @@ html {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 #root {
   width: 100%;
+  min-height: 100vh;
   margin: 0 auto;
-  text-align: center;
 }

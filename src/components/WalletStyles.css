@@ -1374,6 +1374,26 @@
 }
 
 /* Responsive */
+@media (max-width: 768px) {
+  .header-wallet-slot {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+    max-width: 9.5rem;
+  }
+
+  .connect-wallet-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+    min-height: 2rem;
+    border-radius: 10px;
+  }
+
+  .connect-wallet-btn-label {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 480px) {
   .wallet-modal {
     margin: 1rem;

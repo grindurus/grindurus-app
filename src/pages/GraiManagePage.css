@@ -317,9 +317,35 @@
 }
 
 @media (max-width: 768px) {
+  .grai-manage-page {
+    padding: 1rem 0 1.5rem;
+  }
+
+  .grai-manage-back {
+    font-size: 1.15rem;
+  }
+
+  .grai-manage-junior-vault-body-grid,
+  .grai-manage-custody-vault-body-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .grai-manage-junior-vault-table,
+  .grai-manage-custody-vault-table {
+    min-width: 28rem;
+  }
+}
+
+@media (max-width: 480px) {
   .grai-manage-card.grai-manage-action-card {
-    width: 100%;
-    max-width: 100%;
+    padding: 0.5rem 1rem 1.25rem;
+  }
+
+  .grai-manage-back-icon {
+    width: 32px;
+    height: 32px;
   }
 }
 

@@ -2,6 +2,8 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  overflow-x: clip;
 }
 
 .App-main {
@@ -14,4 +16,16 @@
 
 .App-main.App-main--backtest {
   max-width: 1280px;
+}
+
+@media (max-width: 768px) {
+  .App-main {
+    padding: 0 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .App-main {
+    padding: 0 0.75rem 1.25rem;
+  }
 }

@@ -3074,3 +3074,177 @@
     grid-column: 1 / -1;
   }
 }
+
+@media (max-width: 768px) {
+  .grai-page {
+    padding: 1rem 0 1.5rem;
+  }
+
+  .grai-page h1 {
+    font-size: 1.2rem;
+  }
+
+  .grai-page-ca {
+    font-size: 0.88rem;
+  }
+
+  .grai-grinders-row--summary {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: 0.45rem 0.35rem;
+  }
+
+  .grai-grinders-row--summary > span {
+    grid-column: auto !important;
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+
+  .grai-grinders-group-general,
+  .grai-grinders-group-title,
+  .grai-grinders-group-title-label,
+  .grai-grinders-group-title-value {
+    font-size: 1rem;
+  }
+
+  .grai-grinders-group-title.is-stacked {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .grai-grinders-group-title.is-uptime {
+    justify-content: space-between;
+  }
+
+  .grai-grinders-table-panel-inner,
+  .grai-vault-balance-shell {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .grai-grinders-table,
+  .grai-balance-table {
+    min-width: 36rem;
+  }
+
+  .grai-balance-table-cell--head {
+    font-size: 0.82rem;
+    padding: 0.38rem 0.45rem;
+  }
+
+  .grai-balance-table-row:not(.grai-balance-table-row--head) .grai-balance-table-cell.grai-balance-table-value,
+  .grai-balance-table-row:not(.grai-balance-table-row--head) .grai-balance-table-cell.grai-asset-cell {
+    font-size: 0.82rem;
+    padding: 0.38rem 0.45rem;
+  }
+
+  .grai-grinders-row--head span {
+    font-size: 0.68rem;
+  }
+
+  .grai-grinders-row span[role='cell'] {
+    font-size: 0.78rem;
+  }
+
+  .grai-content-row {
+    padding: 1.5rem 0;
+    gap: 1.25rem;
+  }
+
+  .grai-assets-chart-card {
+    margin-top: 1.5rem;
+  }
+
+  .grai-assets-split {
+    row-gap: 1.5rem;
+  }
+
+  .grai-action-card {
+    padding: 0.5rem 1rem 1.25rem;
+  }
+
+  .grai-action-switch-btn {
+    font-size: 0.95rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .grai-mint-amount-header .grai-field-label,
+  .grai-mint-amount-header .grai-wallet-balance,
+  .grai-mint-feedback-wallet .grai-field-label,
+  .grai-mint-feedback-wallet .grai-mint-asset-short-address {
+    font-size: 0.95rem;
+  }
+
+  .grai-input-with-suffix .grai-input,
+  .grai-mint-asset-value,
+  .grai-mint-amount-row .grai-burn-amount-suffix,
+  .grai-estimated-amount-label,
+  .grai-burn-estimate-label,
+  .grai-burn-assets-row {
+    font-size: 1.05rem;
+  }
+
+  .grai-mint-btn,
+  .grai-burn-btn {
+    width: 100%;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .grai-page h1 {
+    font-size: 1.05rem;
+  }
+
+  .grai-page-header {
+    gap: 0.45rem;
+  }
+
+  .grai-mint-amount-row {
+    flex-wrap: wrap;
+  }
+
+  .grai-mint-amount-row .grai-input-with-suffix {
+    flex: 1 1 100%;
+  }
+
+  .grai-mint-amount-row .grai-mint-asset-dropdown,
+  .grai-mint-amount-row .grai-burn-amount-suffix {
+    flex: 1 1 auto;
+  }
+
+  .grai-mint-asset-label-text {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .grai-mint-amount-header {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .grai-burn-assets-row {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+  }
+
+  .grai-burn-assets-token {
+    margin-left: 0;
+  }
+
+  .grai-assets-split {
+    grid-template-columns: 1fr;
+  }
+
+  .grai-donut-slot--supply,
+  .grai-donut-slot--senior,
+  .grai-donut-slot--junior,
+  .grai-donut-slot--allocated {
+    grid-column: 1 / -1;
+  }
+}

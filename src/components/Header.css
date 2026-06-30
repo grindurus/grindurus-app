@@ -367,3 +367,82 @@
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
   color: white;
 }
+
+@media (max-width: 768px) {
+  .header {
+    min-height: 0;
+  }
+
+  .header-container {
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.65rem 1rem;
+    min-height: 0;
+  }
+
+  .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0.5rem;
+  }
+
+  .header-logo-img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .header-nav {
+    gap: 0.35rem;
+  }
+
+  .header-nav-btn,
+  .header-nav-grai-label {
+    padding: 0.38rem 0.6rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+  }
+
+  .header-nav-grai-label {
+    padding-left: 0.15rem;
+  }
+
+  .header-nav-grai-menu-wrap {
+    padding: 0 0.2rem;
+  }
+
+  .header-actions {
+    gap: 0.45rem;
+    flex-shrink: 0;
+  }
+
+  .my-grinders-btn {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .theme-toggle-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-container {
+    padding: 0.55rem 0.75rem;
+  }
+
+  .header-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .header-nav-btn {
+    display: none;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
