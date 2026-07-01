@@ -549,7 +549,6 @@ function GraiPage() {
     const applySection = (section: GraiSection) => {
       if (section === 'mint') setActionView('mint')
       else if (section === 'burn') setActionView('burn')
-      else if (section === 'grinders') setIsGrindersTableHidden(false)
       setIsManageSectionOpen(section === 'allocate' || section === 'distribute')
     }
 
