@@ -257,23 +257,7 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
                 className="floating-token-bg__token-inner"
               >
                 <img
-                  className="floating-token-bg__img floating-token-bg__img--tint"
-                  src={token.icon.src}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                />
-                <img
-                  className="floating-token-bg__img floating-token-bg__img--mist"
-                  src={token.icon.src}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                />
-                <img
-                  className="floating-token-bg__img floating-token-bg__img--sharp"
+                  className="floating-token-bg__img"
                   src={token.icon.src}
                   alt=""
                   loading="lazy"

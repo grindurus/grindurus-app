@@ -1,98 +1,40 @@
-import { ReactNode, useEffect, useState } from 'react'
-import { WagmiProvider, createConfig, http } from 'wagmi'
-import { mainnet, base, arbitrum, sepolia, baseSepolia } from 'wagmi/chains'
+import { ReactNode, Suspense, lazy, useMemo } from 'react'
+import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit'
-import { connectorsForWallets } from '@rainbow-me/rainbowkit'
-import {
-  metaMaskWallet,
-  walletConnectWallet,
-} from '@rainbow-me/rainbowkit/wallets'
-import '@rainbow-me/rainbowkit/styles.css'
-import '../rainbowkit-fix.css'
-import { startScrollLockGapPatch } from '../utils/patchScrollLockGap'
+import { wagmiConfig } from './evmConfig'
+import { EvmWalletPublisher } from './EvmWalletPublisher'
 
-const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'demo-project-id'
-
-if (import.meta.env.DEV && projectId === 'demo-project-id') {
-  console.warn('[GRAI] VITE_WALLETCONNECT_PROJECT_ID is missing; WalletConnect will not work.')
-}
-
-const connectors = connectorsForWallets(
-  [
-    {
-      groupName: 'Recommended',
-      wallets: [metaMaskWallet, walletConnectWallet],
-    },
-  ],
-  {
-    appName: 'GRAI',
-    projectId,
-  }
+const LazyRainbowKitShell = lazy(() =>
+  import('./RainbowKitShell').then((module) => ({ default: module.RainbowKitShell })),
 )
-
-const config = createConfig({
-  connectors,
-  chains: [mainnet, base, arbitrum, sepolia, baseSepolia],
-  transports: {
-    [mainnet.id]: http(),
-    [base.id]: http(),
-    [arbitrum.id]: http(),
-    [sepolia.id]: http(),
-    [baseSepolia.id]: http(),
-  },
-})
 
 const queryClient = new QueryClient()
 
-function useDataThemeIsDark() {
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.getAttribute('data-theme') === 'dark'
-  )
-  useEffect(() => {
-    const el = document.documentElement
-    const sync = () => setIsDark(el.getAttribute('data-theme') === 'dark')
-    const obs = new MutationObserver(sync)
-    obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => obs.disconnect()
-  }, [])
-  return isDark
-}
-
-function useScrollLockGapPatch() {
-  useEffect(() => startScrollLockGapPatch(), [])
-}
-
 interface EvmProviderProps {
   children: ReactNode
+  rainbowKitEnabled: boolean
+  onReady?: () => void
 }
 
-export function EvmProvider({ children }: EvmProviderProps) {
-  useScrollLockGapPatch()
-  const isDark = useDataThemeIsDark()
-  const rkTheme = isDark
-    ? darkTheme({
-        accentColor: '#ff69b4',
-        accentColorForeground: 'white',
-        borderRadius: 'medium',
-        fontStack: 'system',
-      })
-    : lightTheme({
-        accentColor: '#ff69b4',
-        accentColorForeground: 'white',
-        borderRadius: 'medium',
-        fontStack: 'system',
-      })
+export function EvmProvider({ children, rainbowKitEnabled, onReady }: EvmProviderProps) {
+  const inner = useMemo(
+    () => <EvmWalletPublisher onReady={onReady}>{children}</EvmWalletPublisher>,
+    [children, onReady],
+  )
 
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={rkTheme} modalSize="compact" locale="en-US">
-          {children}
-        </RainbowKitProvider>
+        {rainbowKitEnabled ? (
+          <Suspense fallback={inner}>
+            <LazyRainbowKitShell>{inner}</LazyRainbowKitShell>
+          </Suspense>
+        ) : (
+          inner
+        )}
       </QueryClientProvider>
     </WagmiProvider>
   )
 }
 
-export { config }
+export { wagmiConfig as config }

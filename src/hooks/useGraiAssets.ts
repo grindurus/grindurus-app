@@ -1,59 +1,19 @@
-import { useEffect, useState } from 'react'
-import { useWalletContext } from '../providers/AppWalletProvider'
-import { fetchGraiRegistryAssets } from '../grai/fetchAssets'
-import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
-import { type GraiAsset } from '../grai/knownMints'
-import { useSolanaWallet } from './useSolanaWallet'
+import { useGraiData } from '../providers/GraiDataProvider'
 
 export function useGraiAssets() {
-  const { selectedChainType } = useWalletContext()
-  const { isConnected } = useSolanaWallet()
-  const { connection, solana, hasStaticConfig } = useGraiDeployment()
-  const [assets, setAssets] = useState<GraiAsset[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isRegistryLoaded, setIsRegistryLoaded] = useState(false)
-  const isWalletReady = selectedChainType === 'solana' && isConnected
+  const {
+    assets,
+    assetsLoading,
+    assetsError,
+    isRegistryLoaded,
+    isWalletReady,
+  } = useGraiData()
 
-  useEffect(() => {
-    let cancelled = false
-
-    const load = async () => {
-      if (!hasStaticConfig) {
-        setAssets([])
-        setIsRegistryLoaded(false)
-        setError('GRAI is not configured for this network')
-        setIsLoading(false)
-        return
-      }
-      if (!connection || !solana) {
-        setIsLoading(true)
-        return
-      }
-
-      setIsLoading(true)
-      setError(null)
-      try {
-        const registryAssets = await fetchGraiRegistryAssets(connection, solana)
-        if (cancelled) return
-        setAssets(registryAssets)
-        setIsRegistryLoaded(registryAssets.length > 0)
-      } catch (err) {
-        if (cancelled) return
-        setAssets([])
-        setIsRegistryLoaded(false)
-        setError(err instanceof Error ? err.message : 'Failed to load GRAI assets')
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-
-    void load()
-
-    return () => {
-      cancelled = true
-    }
-  }, [connection, hasStaticConfig, solana])
-
-  return { assets, isLoading, error, isRegistryLoaded, isWalletReady }
+  return {
+    assets,
+    isLoading: assetsLoading,
+    error: assetsError,
+    isRegistryLoaded,
+    isWalletReady,
+  }
 }

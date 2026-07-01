@@ -17,15 +17,20 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   const [activeTab, setActiveTab] = useState<TabType>('evm')
   const [evmConnectError, setEvmConnectError] = useState('')
   const [isHandingOffToRainbowKit, setIsHandingOffToRainbowKit] = useState(false)
-  const { setSelectedChainType } = useWalletContext()
+  const { setSelectedChainType, requestRainbowKit, isEvmStackReady } = useWalletContext()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
 
   const openRainbowKit = useCallback(() => {
+    requestRainbowKit()
     setIsHandingOffToRainbowKit(true)
-    evmWallet.connectWalletConnect()
     requestAnimationFrame(() => onClose())
-  }, [evmWallet, onClose])
+  }, [onClose, requestRainbowKit])
+
+  useEffect(() => {
+    if (!isHandingOffToRainbowKit || !isEvmStackReady) return
+    evmWallet.connectWalletConnect()
+  }, [evmWallet, isEvmStackReady, isHandingOffToRainbowKit])
 
   useEffect(() => {
     if (isOpen) return
@@ -188,7 +193,11 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
               hidden={activeTab !== 'evm'}
             >
               <div className="wallet-options">
-                {evmWallet.connectors.length > 0 ? (
+                {!isEvmStackReady ? (
+                  <div className="no-wallets-message">
+                    <p>Loading EVM wallets...</p>
+                  </div>
+                ) : evmWallet.connectors.length > 0 ? (
                   evmWallet.connectors.map((connector) => (
                     <button
                       key={connector.uid}

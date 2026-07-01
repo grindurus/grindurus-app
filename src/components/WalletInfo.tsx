@@ -1,12 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { base, baseSepolia } from 'wagmi/chains'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import baseNetworkIcon from '../assets/base-network.svg'
 import { WalletExpandToggle } from './WalletExpandToggle'
 import './WalletStyles.css'
+
+const BASE_CHAIN_ID = 8453
+const BASE_SEPOLIA_CHAIN_ID = 84532
 
 export function WalletInfo() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -100,7 +102,7 @@ export function WalletInfo() {
         )
       }
 
-      if (evmWallet.chainId === base.id) {
+      if (evmWallet.chainId === BASE_CHAIN_ID) {
         return (
           <img
             className="wallet-current-network-icon"
@@ -112,7 +114,7 @@ export function WalletInfo() {
         )
       }
 
-      if (evmWallet.chainId === baseSepolia.id) {
+      if (evmWallet.chainId === BASE_SEPOLIA_CHAIN_ID) {
         return (
           <img
             className="wallet-current-network-icon"

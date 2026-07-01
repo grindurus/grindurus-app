@@ -31,4 +31,16 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('recharts') || id.includes('/d3-')) return 'recharts'
+          if (id.includes('@xyflow')) return 'xyflow'
+          if (id.includes('lightweight-charts')) return 'lightweight-charts'
+        },
+      },
+    },
+  },
 })

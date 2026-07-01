@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import { normalizeDecimalInput } from '../grai/onchain'
 import { VaultBalanceTableValue } from '../components/VaultBalanceTableValue'
 import { formatVaultBalanceDisplay } from '../grai/formatVaultBalance'
@@ -17,7 +17,6 @@ import { useWalletAssetBalance } from '../hooks/useWalletAssetBalance'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { FloatingTokenBackground, STABLE_FLOATING_TOKENS } from '../components/FloatingTokenBackground'
 import { GraiNavDonut } from '../components/GraiNavDonut'
-import { GraiTokenFlowDiagram } from '../components/GraiTokenFlowDiagram'
 import { ChainSelectorModal } from '../components/ChainSelectorModal'
 import { WalletIcon } from '../components/WalletIcon'
 import { playBullSound, primeBullSound } from '../utils/playBullSound'
@@ -27,9 +26,18 @@ import { KNOWN_GRINDERS } from '../grai/grinders'
 import { useDocumentChartTheme } from '../chart/useDocumentChartTheme'
 import type { DocumentChartTheme } from '../chart/grindurusChartTheme'
 import { ACTION_TX_ICON } from '../grai/graiActionIcons'
-import { GraiManageSection } from './GraiManagePage'
-import './GraiManagePage.css'
 import './GraiPage.css'
+
+const GraiTokenFlowDiagram = lazy(() =>
+  import('../components/GraiTokenFlowDiagram').then((m) => ({ default: m.GraiTokenFlowDiagram })),
+)
+const GraiManageSection = lazy(() =>
+  import('./GraiManagePage').then((m) => ({ default: m.GraiManageSection })),
+)
+
+function isManageSectionHash(hash: string): boolean {
+  return hash === 'allocate' || hash === 'distribute' || hash === 'manage'
+}
 
 const BALANCE_COLUMN_ICONS = {
   assets: (
@@ -530,19 +538,19 @@ function GraiPage() {
   const [isBurnAssetsRowsHidden, setIsBurnAssetsRowsHidden] = useState(true)
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const [isTokenFlowOpen, setIsTokenFlowOpen] = useState(false)
-  const [hasTokenFlowMounted, setHasTokenFlowMounted] = useState(false)
+  const [isManageSectionOpen, setIsManageSectionOpen] = useState(() =>
+    isManageSectionHash(window.location.hash.slice(1)),
+  )
   const mintAssetMenuRef = useRef<HTMLDivElement>(null)
   const toggleTokenFlow = useCallback(() => {
     setIsTokenFlowOpen((open) => !open)
   }, [])
   useEffect(() => {
-    if (isTokenFlowOpen) setHasTokenFlowMounted(true)
-  }, [isTokenFlowOpen])
-  useEffect(() => {
     const applySection = (section: GraiSection) => {
       if (section === 'mint') setActionView('mint')
       else if (section === 'burn') setActionView('burn')
       else if (section === 'grinders') setIsGrindersTableHidden(false)
+      setIsManageSectionOpen(section === 'allocate' || section === 'distribute')
     }
 
     const onSectionNav = (event: Event) => {
@@ -551,6 +559,7 @@ function GraiPage() {
 
     const onHashChange = () => {
       const hash = window.location.hash.slice(1)
+      setIsManageSectionOpen(isManageSectionHash(hash))
       if (hash === 'mint' || hash === 'burn' || hash === 'grinders' || hash === 'allocate' || hash === 'distribute' || hash === 'manage') {
         applySection(hash === 'manage' ? 'allocate' : hash)
       }
@@ -766,7 +775,11 @@ function GraiPage() {
         aria-hidden={!isTokenFlowOpen}
       >
         <div className="grai-token-flow-panel-inner">
-          {hasTokenFlowMounted ? <GraiTokenFlowDiagram /> : null}
+          {isTokenFlowOpen ? (
+            <Suspense fallback={null}>
+              <GraiTokenFlowDiagram />
+            </Suspense>
+          ) : null}
         </div>
       </div>
 
@@ -1665,7 +1678,11 @@ function GraiPage() {
             </div>
             </div>
             </div>
-            <GraiManageSection />
+            {isManageSectionOpen ? (
+              <Suspense fallback={null}>
+                <GraiManageSection />
+              </Suspense>
+            ) : null}
           </div>
         </aside>
       <ChainSelectorModal

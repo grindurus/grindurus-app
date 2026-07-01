@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
-import BacktestPage from './pages/BacktestPage'
 import Header, { type HeaderMainView } from './components/Header'
+import { useWalletContext } from './providers/AppWalletProvider'
 import { isAtAppPath, stripBasePath, toAppPath } from './utils/appPaths'
 import { navigateToGraiSection } from './utils/graiNavigation'
 import './App.css'
 
 const GraiPage = lazy(() => import('./pages/GraiPage'))
+const BacktestPage = lazy(() => import('./pages/BacktestPage'))
 
 type AppRoute = 'grai' | 'grai-manage' | 'backtest'
 
@@ -27,6 +28,7 @@ function titleFromRoute(route: AppRoute): string {
 }
 
 function App() {
+  const { isEvmStackReady } = useWalletContext()
   const [route, setRoute] = useState<AppRoute>(() => routeFromPath(window.location.pathname))
   const mainView: HeaderMainView = route === 'backtest' ? 'backtest' : 'grai'
 
@@ -46,6 +48,7 @@ function App() {
     const targetPath = pathFromView(view)
     if (!isAtAppPath(targetPath)) {
       window.history.pushState({}, '', toAppPath(targetPath))
+      window.dispatchEvent(new PopStateEvent('popstate'))
     }
     setRoute(routeFromPath(targetPath))
   }, [])
@@ -70,8 +73,14 @@ function App() {
           <Suspense fallback={null}>
             <GraiPage />
           </Suspense>
+        ) : isEvmStackReady ? (
+          <Suspense fallback={null}>
+            <BacktestPage />
+          </Suspense>
         ) : (
-          <BacktestPage />
+          <div className="App-main-loading" role="status">
+            Loading backtest runtime...
+          </div>
         )}
       </main>
     </div>

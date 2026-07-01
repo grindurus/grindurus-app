@@ -1,10 +1,10 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react'
 import { Connection } from '@solana/web3.js'
+import { useConnection } from '@solana/wallet-adapter-react'
 import { useWalletContext, type SolanaCluster } from '../providers/AppWalletProvider'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { deferAfterPaint } from '../utils/deferAfterPaint'
 import {
-  createGraiConnection,
   getDefaultGraiSolanaCluster,
   GraiEvmConfig,
   GraiSolanaConfig,
@@ -41,12 +41,13 @@ const GraiDeploymentContext = createContext<GraiDeploymentContextValue | undefin
 export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
   const { selectedChainType, evmChain } = useWalletContext()
   const { cluster: walletCluster, isConnected } = useSolanaWallet()
+  const { connection: walletConnection } = useConnection()
 
   const solanaCluster = getDefaultGraiSolanaCluster()
   const staticSolana = useMemo(() => resolveGraiSolanaConfig(solanaCluster), [solanaCluster])
   const connection = useMemo(
-    () => (staticSolana ? createGraiConnection(staticSolana) : null),
-    [staticSolana],
+    () => (staticSolana ? walletConnection : null),
+    [staticSolana, walletConnection],
   )
   const [solana, setSolana] = useState<GraiSolanaRuntime | null>(null)
   const [isProtocolResolving, setIsProtocolResolving] = useState(() => staticSolana !== null)

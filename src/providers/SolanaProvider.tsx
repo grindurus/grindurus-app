@@ -6,7 +6,7 @@ import {
   SolflareWalletAdapter,
   CoinbaseWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
-import { resolveSolanaRpcUrl } from '../grai/deployments'
+import { resolveSolanaRpcUrl, getDefaultGraiSolanaCluster } from '../grai/deployments'
 import { deferAfterPaint } from '../utils/deferAfterPaint'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
@@ -14,11 +14,10 @@ export type SolanaNetwork = 'mainnet-beta' | 'testnet' | 'devnet'
 
 interface SolanaProviderProps {
   children: ReactNode
-  network?: SolanaNetwork
 }
 
-export function SolanaProvider({ children, network = 'mainnet-beta' }: SolanaProviderProps) {
-  const endpoint = useMemo(() => resolveSolanaRpcUrl(network), [network])
+export function SolanaProvider({ children }: SolanaProviderProps) {
+  const endpoint = useMemo(() => resolveSolanaRpcUrl(getDefaultGraiSolanaCluster()), [])
   const [autoConnect, setAutoConnect] = useState(false)
 
   const wallets = useMemo(

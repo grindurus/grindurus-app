@@ -1,7 +1,9 @@
-import { ReactNode, createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { ReactNode, createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import { getDefaultGraiSolanaCluster } from '../grai/deployments'
-import { EvmProvider } from './EvmProvider'
-import { SolanaProvider, SolanaNetwork } from './SolanaProvider'
+import { stripBasePath } from '../utils/appPaths'
+import { SolanaProvider } from './SolanaProvider'
+import { EvmProviderGate } from './EvmProviderGate'
+import { EvmWalletSnapshotProvider } from './EvmWalletSnapshotContext'
 
 export type ChainType = 'evm' | 'solana' | null
 export type EvmChain = 'ethereum' | 'arbitrum' | 'sepolia'
@@ -18,6 +20,10 @@ interface WalletContextType {
   openChainSelector: () => void
   closeChainSelector: () => void
   disconnect: () => void
+  requestEvmStack: () => void
+  requestRainbowKit: () => void
+  isEvmStackEnabled: boolean
+  isEvmStackReady: boolean
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -32,6 +38,10 @@ export function useWalletContext() {
 
 interface AppWalletProviderProps {
   children: ReactNode
+}
+
+function readIsBacktestRoute(): boolean {
+  return stripBasePath(window.location.pathname) === '/backtest'
 }
 
 export function AppWalletProvider({ children }: AppWalletProviderProps) {
@@ -52,10 +62,41 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
+  const [isBacktestRoute, setIsBacktestRoute] = useState(readIsBacktestRoute)
+  const [evmStackPinned, setEvmStackPinned] = useState(
+    () => localStorage.getItem('selectedChainType') === 'evm' || readIsBacktestRoute(),
+  )
+  const [rainbowKitEnabled, setRainbowKitEnabled] = useState(false)
+  const [isEvmStackReady, setIsEvmStackReady] = useState(false)
+
+  const isEvmStackEnabled =
+    evmStackPinned || selectedChainType === 'evm' || isChainSelectorOpen || isBacktestRoute
+
+  useEffect(() => {
+    if (!isEvmStackEnabled) {
+      setIsEvmStackReady(false)
+    }
+  }, [isEvmStackEnabled])
+
+  useEffect(() => {
+    const syncRoute = () => setIsBacktestRoute(readIsBacktestRoute())
+    syncRoute()
+    window.addEventListener('popstate', syncRoute)
+    return () => window.removeEventListener('popstate', syncRoute)
+  }, [])
+
+  useEffect(() => {
+    if (isBacktestRoute) {
+      setEvmStackPinned(true)
+    }
+  }, [isBacktestRoute])
 
   useEffect(() => {
     if (selectedChainType) {
       localStorage.setItem('selectedChainType', selectedChainType)
+      if (selectedChainType === 'evm') {
+        setEvmStackPinned(true)
+      }
     } else {
       localStorage.removeItem('selectedChainType')
     }
@@ -75,7 +116,17 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
     localStorage.setItem('solanaCluster', solanaCluster)
   }, [solanaCluster])
 
+  const requestEvmStack = useCallback(() => {
+    setEvmStackPinned(true)
+  }, [])
+
+  const requestRainbowKit = useCallback(() => {
+    setEvmStackPinned(true)
+    setRainbowKitEnabled(true)
+  }, [])
+
   const openChainSelector = useCallback(() => {
+    setEvmStackPinned(true)
     setIsChainSelectorOpen(true)
   }, [])
 
@@ -88,26 +139,51 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
     localStorage.removeItem('selectedChainType')
   }, [])
 
-  const value: WalletContextType = {
-    selectedChainType,
-    setSelectedChainType,
-    evmChain,
-    setEvmChain,
-    solanaCluster,
-    setSolanaCluster,
-    isChainSelectorOpen,
-    openChainSelector,
-    closeChainSelector,
-    disconnect,
-  }
+  const value = useMemo<WalletContextType>(
+    () => ({
+      selectedChainType,
+      setSelectedChainType,
+      evmChain,
+      setEvmChain,
+      solanaCluster,
+      setSolanaCluster,
+      isChainSelectorOpen,
+      openChainSelector,
+      closeChainSelector,
+      disconnect,
+      requestEvmStack,
+      requestRainbowKit,
+      isEvmStackEnabled,
+      isEvmStackReady,
+    }),
+    [
+      selectedChainType,
+      evmChain,
+      solanaCluster,
+      isChainSelectorOpen,
+      openChainSelector,
+      closeChainSelector,
+      disconnect,
+      requestEvmStack,
+      requestRainbowKit,
+      isEvmStackEnabled,
+      isEvmStackReady,
+    ],
+  )
 
   return (
     <WalletContext.Provider value={value}>
-      <EvmProvider>
-        <SolanaProvider network={solanaCluster as SolanaNetwork}>
-          {children}
+      <EvmWalletSnapshotProvider>
+        <SolanaProvider>
+          <EvmProviderGate
+            enabled={isEvmStackEnabled}
+            rainbowKitEnabled={rainbowKitEnabled}
+            onStackReady={() => setIsEvmStackReady(true)}
+          >
+            {children}
+          </EvmProviderGate>
         </SolanaProvider>
-      </EvmProvider>
+      </EvmWalletSnapshotProvider>
     </WalletContext.Provider>
   )
 }

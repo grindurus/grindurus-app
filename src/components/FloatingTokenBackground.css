@@ -83,51 +83,33 @@
   display: block;
   border-radius: 50%;
   pointer-events: none;
-}
-
-/* True token colors at rest — light blur only so hues stay readable */
-.floating-token-bg__img--tint {
-  opacity: calc(0.38 * (1 - var(--reveal)));
-  filter: blur(3px) saturate(1.55) contrast(1.08);
-  transition: opacity 0.35s ease;
-}
-
-/* Soft colored glow around each token */
-.floating-token-bg__img--mist {
-  opacity: calc(0.34 * (1 - var(--reveal)));
-  filter: blur(16px) saturate(1.7) brightness(1.08);
-  transform: scale(1.22);
-  transition: opacity 0.35s ease;
-}
-
-.floating-token-bg__img--sharp {
-  opacity: var(--reveal);
-  filter: saturate(1.08) contrast(1.04);
-  transition: opacity 0.2s ease;
+  opacity: calc(0.4 * (1 - var(--reveal)) + var(--reveal));
+  filter:
+    blur(calc(13px * (1 - var(--reveal))))
+    saturate(calc(1.45 + var(--reveal) * 0.15))
+    contrast(calc(1.05 + var(--reveal) * 0.03))
+    brightness(calc(1.04 + var(--reveal) * 0.02));
+  transform: scale(calc(1.14 - var(--reveal) * 0.14));
+  transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
 }
 
 .floating-token-bg__token-inner.is-revealed {
   transform: rotate(var(--token-rotate)) scale(1);
 }
 
-.floating-token-bg__token-inner.is-revealed .floating-token-bg__img--tint,
-.floating-token-bg__token-inner.is-revealed .floating-token-bg__img--mist {
-  opacity: 0;
-}
-
-.floating-token-bg__token-inner.is-revealed .floating-token-bg__img--sharp {
+.floating-token-bg__token-inner.is-revealed .floating-token-bg__img {
   opacity: 1;
   filter: none;
+  transform: none;
 }
 
-[data-theme='light'] .floating-token-bg__img--tint {
-  opacity: calc(0.38 * (1 - var(--reveal)));
-  filter: blur(2px) saturate(1.45) contrast(1.06);
-}
-
-[data-theme='light'] .floating-token-bg__img--mist {
-  opacity: calc(0.28 * (1 - var(--reveal)));
-  filter: blur(14px) saturate(1.55) brightness(1.04);
+[data-theme='light'] .floating-token-bg__img {
+  opacity: calc(0.34 * (1 - var(--reveal)) + var(--reveal));
+  filter:
+    blur(calc(11px * (1 - var(--reveal))))
+    saturate(calc(1.35 + var(--reveal) * 0.15))
+    contrast(calc(1.04 + var(--reveal) * 0.02))
+    brightness(calc(1.02 + var(--reveal) * 0.02));
 }
 
 @keyframes floating-token-drift {
@@ -151,19 +133,10 @@
     animation: none;
   }
 
-  .floating-token-bg__img--tint {
-    opacity: 0.38;
-    filter: blur(2px) saturate(1.4);
+  .floating-token-bg__img {
+    opacity: 0.34;
+    filter: blur(10px) saturate(1.35);
+    transform: scale(1.08);
     transition: none;
-  }
-
-  .floating-token-bg__img--mist {
-    opacity: 0.24;
-    filter: blur(12px) saturate(1.5);
-    transition: none;
-  }
-
-  .floating-token-bg__img--sharp {
-    opacity: 0;
   }
 }
