@@ -33,6 +33,8 @@ export type GraiMintEstimate = {
   graiRaw: bigint
   seniorRaw: bigint
   juniorRaw: bigint
+  seniorUsdRaw: bigint
+  juniorUsdRaw: bigint
 }
 
 export async function estimateGraiMintOutput(
@@ -78,6 +80,8 @@ export async function estimateGraiMintOutput(
   const graiRaw = graiMintAmount(depositValueUsd, totalSupply, totalValue)
   const mintSplitBps = decodeSeniorVaultMintSplit(seniorVaultData)
   const [seniorRaw, juniorRaw] = mintSplit(depositAmount, mintSplitBps)
+  const seniorUsdRaw = depositValue(seniorRaw, assetDecimals, oracle.price, oracle.decimals)
+  const juniorUsdRaw = depositValue(juniorRaw, assetDecimals, oracle.price, oracle.decimals)
 
-  return { graiRaw, seniorRaw, juniorRaw }
+  return { graiRaw, seniorRaw, juniorRaw, seniorUsdRaw, juniorUsdRaw }
 }

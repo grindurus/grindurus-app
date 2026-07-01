@@ -18,21 +18,6 @@ interface HeaderProps {
   onViewChange: (view: HeaderMainView) => void
 }
 
-const GRAI_MENU_CHEVRON = (
-  <svg
-    className="header-nav-grai-toggle-icon"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M6 9l6 6 6-6" />
-  </svg>
-)
-
 const GRAI_MINT_MENU_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r="10" />
@@ -66,17 +51,21 @@ const GRAI_GRINDERS_MENU_ICON = (
   </svg>
 )
 
-const GRAI_MANAGE_MENU_ICON = (
+const GRAI_ALLOCATE_MENU_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M12 1v2" />
-    <path d="M12 21v2" />
-    <path d="M4.22 4.22l1.42 1.42" />
-    <path d="M18.36 18.36l1.42 1.42" />
-    <path d="M1 12h2" />
-    <path d="M21 12h2" />
-    <path d="M4.22 19.78l1.42-1.42" />
-    <path d="M18.36 5.64l1.42-1.42" />
+    <circle cx="6" cy="6" r="2" />
+    <circle cx="18" cy="6" r="2" />
+    <circle cx="12" cy="18" r="2" />
+    <path d="M8 6h8" />
+    <path d="M7.3 7.7l5.4 9.6" />
+    <path d="M16.7 7.7l-5.4 9.6" />
+  </svg>
+)
+
+const GRAI_DISTRIBUTE_MENU_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 17l6-6 4 4 8-8" />
+    <path d="M14 7h7v7" />
   </svg>
 )
 
@@ -92,7 +81,8 @@ const GRAI_SECTIONS: { section: GraiSection; label: string; icon: JSX.Element }[
   { section: 'mint', label: 'MINT', icon: GRAI_MINT_MENU_ICON },
   { section: 'burn', label: 'BURN', icon: GRAI_BURN_MENU_ICON },
   { section: 'assets', label: 'ASSETS', icon: GRAI_ASSET_MENU_ICON },
-  { section: 'manage', label: 'MANAGE', icon: GRAI_MANAGE_MENU_ICON },
+  { section: 'allocate', label: 'ALLOCATE', icon: GRAI_ALLOCATE_MENU_ICON },
+  { section: 'distribute', label: 'DISTRIBUTE', icon: GRAI_DISTRIBUTE_MENU_ICON },
 ]
 
 interface GraiMenuItemsProps {
@@ -244,13 +234,17 @@ function Header({ activeView, onViewChange }: HeaderProps) {
               <div className="header-nav-grai-menu-wrap">
                 <button
                   type="button"
-                  className={`header-nav-grai-toggle ${graiMenuOpen ? '' : 'is-collapsed'}`}
+                  className={`header-nav-grai-toggle ${graiMenuOpen ? 'is-open' : ''}`}
                   onClick={() => setGraiMenuOpen((open) => !open)}
                   aria-expanded={graiMenuOpen}
                   aria-haspopup="menu"
                   aria-label="GRAI menu"
                 >
-                  {GRAI_MENU_CHEVRON}
+                  <span className="header-grai-burger-lines" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
                 </button>
                 <button
                   type="button"

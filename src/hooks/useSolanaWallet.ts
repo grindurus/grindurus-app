@@ -12,6 +12,12 @@ function detectClusterFromRpcEndpoint(endpoint?: string): 'mainnet-beta' | 'test
   return null
 }
 
+export type WalletSolanaCluster = 'mainnet-beta' | 'devnet'
+
+function toWalletSolanaCluster(cluster: 'mainnet-beta' | 'testnet' | 'devnet'): WalletSolanaCluster {
+  return cluster === 'testnet' ? 'devnet' : cluster
+}
+
 export function useSolanaWallet() {
   const {
     publicKey,
@@ -76,17 +82,21 @@ export function useSolanaWallet() {
     return null
   }, [wallet])
 
-  const effectiveCluster = walletDetectedCluster ?? solanaCluster
+  const normalizedSolanaCluster = toWalletSolanaCluster(solanaCluster)
+  const normalizedWalletCluster =
+    walletDetectedCluster && walletDetectedCluster !== 'testnet'
+      ? toWalletSolanaCluster(walletDetectedCluster)
+      : null
+
+  const effectiveCluster = normalizedWalletCluster ?? normalizedSolanaCluster
   const effectiveClusterName = useMemo(() => {
     if (effectiveCluster === 'mainnet-beta') return 'Mainnet'
-    if (effectiveCluster === 'testnet') return 'Testnet'
     return 'Devnet'
   }, [effectiveCluster])
 
   const supportedClusters = useMemo(
     () => [
       { id: 'mainnet-beta' as const, name: 'Mainnet', icon: '🟢' },
-      { id: 'testnet' as const, name: 'Testnet', icon: '🟡' },
       { id: 'devnet' as const, name: 'Devnet', icon: '🟣' },
     ],
     []
@@ -113,7 +123,7 @@ export function useSolanaWallet() {
   }, [select, walletDisconnect])
 
   const switchCluster = useCallback(
-    (cluster: 'mainnet-beta' | 'testnet' | 'devnet') => {
+    (cluster: 'mainnet-beta' | 'devnet') => {
       setSolanaCluster(cluster)
     },
     [setSolanaCluster]

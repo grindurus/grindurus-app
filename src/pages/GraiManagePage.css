@@ -184,7 +184,7 @@
 }
 
 .grai-manage-junior-vault-nav strong {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
   font-weight: 800;
 }
 
@@ -194,7 +194,9 @@
   gap: 0;
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   border: 1px solid var(--border-color);
+  border-bottom: 0;
   border-radius: 10px;
   overflow: hidden;
 }
@@ -205,7 +207,8 @@
 }
 
 .grai-manage-vault-table-scroll {
-  width: 100%;
+  width: calc(100% + 2px);
+  margin-inline: -1px;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -214,17 +217,32 @@
 }
 
 .grai-manage-vault-table-shell .grai-vault-balance-toggle {
-  width: 100%;
+  width: calc(100% + 2px);
+  margin-inline: -1px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle {
-  border-radius: 0;
+  display: flex;
+  width: 100%;
+  min-width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-radius: 0 0 10px 10px;
+  box-shadow: none;
+}
+
+.grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle:hover,
+.grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle:focus,
+.grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle:focus-visible,
+.grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle:active {
+  box-shadow: none;
 }
 
 .grai-manage-junior-vault-body-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   width: 100%;
   min-width: 0;
 }
@@ -242,7 +260,7 @@
 }
 
 .grai-manage-junior-vault-table {
-  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .grai-manage-junior-vault-table .grai-balance-table-cell--head {
@@ -300,6 +318,10 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.28rem;
+}
+
+.grai-manage-custody-held-values .grai-balance-table-value-stack {
+  align-items: flex-end;
 }
 
 .grai-manage-custody-wallet-link {
@@ -368,7 +390,7 @@
 
   .grai-manage-junior-vault-table,
   .grai-manage-junior-vault-body-grid {
-    grid-template-columns: 11rem 9rem 9rem;
+    grid-template-columns: repeat(3, 9.67rem);
     min-width: 29rem;
   }
 
@@ -379,11 +401,20 @@
   }
 
   .grai-manage-vault-table-shell .grai-vault-balance-toggle {
-    width: 100%;
+    width: calc(100% + 2px);
+    margin-inline: -1px;
     flex-shrink: 0;
+    box-sizing: border-box;
   }
 
   .grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle {
+    display: flex;
+    width: 100%;
+    min-width: 100%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    border-radius: 0 0 10px 10px;
+    box-shadow: none;
     border: 0;
     background: linear-gradient(
       120deg,
@@ -403,6 +434,7 @@
   .grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle:focus-visible,
   .grai-manage-vault-table-shell .grai-donut-legend-toggle.grai-vault-balance-show-toggle:active {
     border: 0;
+    box-shadow: none;
     background: linear-gradient(
       120deg,
       #ff69b4 0%,
@@ -613,14 +645,33 @@
 }
 
 .grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
   color: #fff;
 }
 
+.grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix .grai-field-label-icon,
 .grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
   color: #fff;
+}
+
+.grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix .grai-field-label-icon svg,
+.grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix-icon svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
 }
 
 [data-theme='light'] .grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix,
+[data-theme='light'] .grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix .grai-field-label-icon,
 [data-theme='light'] .grai-manage-card .grai-mint-split-shares-hint .grai-mint-split-vault-prefix-icon {
   color: var(--text-primary);
 }
@@ -721,6 +772,11 @@
   align-items: center;
   gap: 0.35rem;
   color: #fff;
+  text-transform: uppercase;
+}
+
+.grai-manage-hint-label code {
+  text-transform: none;
 }
 
 [data-theme='light'] .grai-manage-hint-label {
@@ -835,7 +891,7 @@
 }
 
 .grai-manage-btn.is-distribute {
-  background: linear-gradient(135deg, #7dd3fc, #34d399);
+  background: linear-gradient(135deg, var(--grai-accent-blue), #34d399);
 }
 
 .grai-manage-protocol-info-block {

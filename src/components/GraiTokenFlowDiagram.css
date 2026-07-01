@@ -153,12 +153,12 @@
 }
 
 .grai-flow-node--senior {
-  border-color: rgba(125, 211, 252, 0.45);
-  background: color-mix(in srgb, #7dd3fc 10%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--grai-accent-blue) 45%, transparent);
+  background: color-mix(in srgb, var(--grai-accent-blue) 10%, var(--bg-secondary));
 }
 
 .grai-flow-node--senior .grai-flow-node-label {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-flow-node--junior {

@@ -464,7 +464,6 @@ function BacktestPage() {
   const solanaWalletNetwork = useMemo(() => {
     if (!solanaWallet.cluster) return null
     if (solanaWallet.cluster === 'mainnet-beta') return 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
-    if (solanaWallet.cluster === 'testnet') return 'solana:4uhcVJyU9pJkvQyS88uRDiswHXSCkY3z'
     return 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
   }, [solanaWallet.cluster])
   const evmWalletNetwork = useMemo(() => (chainId ? `eip155:${chainId}` : null), [chainId])

@@ -51,9 +51,9 @@ function App() {
 
   useEffect(() => {
     if (route === 'grai-manage') {
-      window.history.replaceState({}, '', `${toAppPath('/grai')}#manage`)
+      window.history.replaceState({}, '', `${toAppPath('/grai')}#allocate`)
       setRoute('grai')
-      navigateToGraiSection('manage')
+      navigateToGraiSection('allocate')
     }
   }, [route])
 

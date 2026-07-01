@@ -154,40 +154,42 @@
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ff69b4;
   cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .header-nav-grai-toggle:hover {
-  color: var(--text-primary);
-  border-color: rgba(255, 105, 180, 0.45);
-  background: rgba(255, 105, 180, 0.08);
+  color: #ff1493;
+  opacity: 0.9;
 }
 
 .header-nav-grai.is-active .header-nav-grai-toggle {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.12);
 }
 
 .header-nav-grai.is-active .header-nav-grai-toggle:hover {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  opacity: 0.85;
 }
 
-.header-nav-grai-toggle-icon {
-  width: 0.9rem;
-  height: 0.9rem;
-  flex-shrink: 0;
-  transition: transform 0.22s ease;
+.header-grai-burger.is-open .header-grai-burger-lines span:nth-child(1),
+.header-nav-grai-toggle.is-open .header-grai-burger-lines span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
 }
 
-.header-nav-grai-toggle.is-collapsed .header-nav-grai-toggle-icon {
-  transform: rotate(-90deg);
+.header-grai-burger.is-open .header-grai-burger-lines span:nth-child(2),
+.header-nav-grai-toggle.is-open .header-grai-burger-lines span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.header-grai-burger.is-open .header-grai-burger-lines span:nth-child(3),
+.header-nav-grai-toggle.is-open .header-grai-burger-lines span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 .header-nav-grai-dropdown {
@@ -317,19 +319,6 @@
   background: currentColor;
   transition: transform 0.22s ease, opacity 0.22s ease;
   transform-origin: center;
-}
-
-.header-grai-burger.is-open .header-grai-burger-lines span:nth-child(1) {
-  transform: translateY(6px) rotate(45deg);
-}
-
-.header-grai-burger.is-open .header-grai-burger-lines span:nth-child(2) {
-  opacity: 0;
-  transform: scaleX(0);
-}
-
-.header-grai-burger.is-open .header-grai-burger-lines span:nth-child(3) {
-  transform: translateY(-6px) rotate(-45deg);
 }
 
 .header-grai-mobile-menu {

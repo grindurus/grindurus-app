@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PublicKey } from '@solana/web3.js'
 import type { GraiAsset } from '../grai/knownMints'
+import type { GraiAssetVaultBalances } from '../grai/fetchVaultBalances'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { fetchGraiStateFixedFields } from '../grai/graiStateCache'
 import { decodeSeniorVaultYieldSplit, fetchMintDecimals, formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../grai/onchain'
@@ -17,7 +18,10 @@ import { useGraiVaultBalances } from '../hooks/useGraiVaultBalances'
 import { useCustodyWalletBalances } from '../hooks/useCustodyWalletBalances'
 import { useGrindersCustodyBalances } from '../hooks/useGrindersCustodyBalances'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { ACTION_TX_ICON } from '../grai/graiActionIcons'
 import { WalletIcon } from '../components/WalletIcon'
+import { VaultBalanceTableValue, vaultBalanceUsdRaw } from '../components/VaultBalanceTableValue'
+import { readGraiSectionFromHash, type GraiSection } from '../utils/graiNavigation'
 import './GraiPage.css'
 import './GraiManagePage.css'
 
@@ -34,6 +38,13 @@ const TREASURY_WALLET_ICON = (
     <path d="M5 10V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
     <path d="M3 10v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8" />
     <path d="M16 14h.01" />
+  </svg>
+)
+
+const ASSET_TABLE_COLUMN_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 2 20 7v10l-8 5-8-5V7l8-5z" />
+    <circle cx="12" cy="12" r="2.5" />
   </svg>
 )
 
@@ -73,14 +84,6 @@ const SENIOR_VAULT_FIELD_ICON = (
   </svg>
 )
 
-const DISTRIBUTION_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M12 4v7" />
-    <path d="M12 11 5 20" />
-    <path d="M12 11 19 20" />
-  </svg>
-)
-
 const JUNIOR_VAULT_TABLE_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -109,14 +112,21 @@ type CustodyHeldAssetRow = {
   balance: string
   yield: string
   network: CustodyNetwork
+  balanceUsdRaw: bigint
+  yieldUsdRaw: bigint
 }
 
-function grinderHeldAssets(grinder: Pick<GrinderCustodyState, 'holdings'>): CustodyHeldAssetRow[] {
+function grinderHeldAssets(
+  grinder: Pick<GrinderCustodyState, 'holdings'>,
+  vaultBalances: Record<string, GraiAssetVaultBalances>,
+): CustodyHeldAssetRow[] {
   return grinder.holdings.map((holding) => ({
     asset: holding.asset,
     balance: formatVaultBalanceDisplay(holding.balanceRaw, holding.decimals),
     yield: formatVaultBalanceDisplay(holding.yieldRaw, holding.decimals),
     network: holding.network,
+    balanceUsdRaw: vaultBalanceUsdRaw(holding.balanceRaw, vaultBalances[holding.asset.mint]),
+    yieldUsdRaw: vaultBalanceUsdRaw(holding.yieldRaw, vaultBalances[holding.asset.mint]),
   }))
 }
 
@@ -687,6 +697,34 @@ export function GraiManageSection() {
     setDistributeAssetMenuOpen(false)
   }, [])
 
+  useEffect(() => {
+    const applySection = (section: GraiSection) => {
+      if (section === 'allocate' || section === 'distribute') {
+        handleManageActionViewChange(section)
+      }
+    }
+
+    const onSectionNav = (event: Event) => {
+      applySection((event as CustomEvent<GraiSection>).detail)
+    }
+
+    const onHashChange = () => {
+      const section = readGraiSectionFromHash()
+      if (section === 'allocate' || section === 'distribute') {
+        applySection(section)
+      }
+    }
+
+    window.addEventListener('grai-section-nav', onSectionNav)
+    window.addEventListener('hashchange', onHashChange)
+    onHashChange()
+
+    return () => {
+      window.removeEventListener('grai-section-nav', onSectionNav)
+      window.removeEventListener('hashchange', onHashChange)
+    }
+  }, [handleManageActionViewChange])
+
   const copyGrinderAddress = useCallback(async (wallet: string, grinderId: string) => {
     try {
       await navigator.clipboard.writeText(wallet)
@@ -761,6 +799,8 @@ export function GraiManageSection() {
           asset,
           idle: vault ? formatVaultBalanceDisplay(vault.juniorRaw, vault.decimals) : '—',
           allocated: vault ? formatVaultBalanceDisplay(vault.allocatedRaw, vault.decimals) : '—',
+          idleUsdRaw: vault?.juniorUsdRaw ?? 0n,
+          allocatedUsdRaw: vault?.allocatedUsdRaw ?? 0n,
           juniorUsdRaw: vault?.juniorUsdRaw ?? 0n,
         }
       }),
@@ -868,10 +908,10 @@ export function GraiManageSection() {
   const distributeGrinderAssets = useMemo(() => {
     if (!selectedDistributeGrinder) return []
     const graiAssetMints = new Set(assets.map((asset) => asset.mint))
-    return grinderHeldAssets(selectedDistributeGrinder)
+    return grinderHeldAssets(selectedDistributeGrinder, vaultBalances)
       .filter((row) => graiAssetMints.has(row.asset.mint))
       .map((row) => row.asset)
-  }, [assets, selectedDistributeGrinder])
+  }, [assets, selectedDistributeGrinder, vaultBalances])
 
   const distributeAsset =
     distributeGrinderAssets.find((asset) => asset.mint === distributeAssetMint) ?? distributeGrinderAssets[0]
@@ -965,9 +1005,9 @@ export function GraiManageSection() {
       grinderCustodyRows.map((grinder) => ({
         key: grinder.id,
         grinder,
-        held: grinderHeldAssets(grinder),
+        held: grinderHeldAssets(grinder, vaultBalances),
       })),
-    [grinderCustodyRows],
+    [grinderCustodyRows, vaultBalances],
   )
 
   const authorityMatches =
@@ -1210,7 +1250,7 @@ export function GraiManageSection() {
               onClick={() => handleManageActionViewChange('allocate')}
             >
               <span className="grai-action-switch-icon">{ALLOCATED_TABLE_ICON}</span>
-              Allocate
+              ALLOCATE
             </button>
             <button
               type="button"
@@ -1220,7 +1260,7 @@ export function GraiManageSection() {
               onClick={() => handleManageActionViewChange('distribute')}
             >
               <span className="grai-action-switch-icon">{YIELD_AMOUNT_FIELD_ICON}</span>
-              Distribute
+              DISTRIBUTE
             </button>
           </div>
 
@@ -1306,9 +1346,9 @@ export function GraiManageSection() {
               <div className="grai-mint-split-shares-hint is-open" aria-label="Allocate custody estimate">
                 <div className="grai-burn-assets-section-title">
                   <span className="grai-burn-assets-section-title-icon" aria-hidden="true">
-                    {ALLOCATED_TABLE_ICON}
+                    {ACTION_TX_ICON}
                   </span>
-                  <span className="grai-burn-assets-section-title-label">Allocation:</span>
+                  <span className="grai-burn-assets-section-title-label">TX PREVIEW</span>
                   <button
                     type="button"
                     className={`grai-donut-legend-toggle ${isAllocateAllocationHidden ? 'is-collapsed' : ''}`}
@@ -1340,10 +1380,10 @@ export function GraiManageSection() {
                     <div className="grai-burn-assets-row">
                       <span className="grai-burn-assets-amount">
                         <span className="grai-mint-split-vault-prefix">
-                          <span className="grai-mint-split-vault-prefix-icon" aria-hidden="true">
+                          <span className="grai-field-label-icon" aria-hidden="true">
                             {CUSTODY_FIELD_ICON}
                           </span>
-                          Custody:
+                          Custody +
                         </span>
                         <span className="grai-burn-assets-amount-value">{allocateCustodyReceiveAmount}</span>
                       </span>
@@ -1492,9 +1532,9 @@ export function GraiManageSection() {
               <div className="grai-mint-split-shares-hint is-open" aria-label="Distribute yield split estimate">
                 <div className="grai-burn-assets-section-title">
                   <span className="grai-burn-assets-section-title-icon" aria-hidden="true">
-                    {DISTRIBUTION_ICON}
+                    {ACTION_TX_ICON}
                   </span>
-                  <span className="grai-burn-assets-section-title-label">Distribution:</span>
+                  <span className="grai-burn-assets-section-title-label">TX PREVIEW</span>
                   <button
                     type="button"
                     className={`grai-donut-legend-toggle ${isDistributeDistributionHidden ? 'is-collapsed' : ''}`}
@@ -1527,13 +1567,13 @@ export function GraiManageSection() {
                       [
                         {
                           key: 'senior',
-                          label: 'Senior Vault:',
+                          label: 'Sr. Vault +',
                           icon: SENIOR_VAULT_FIELD_ICON,
                           shareLabel: distributeSeniorLabel,
                         },
                         {
                           key: 'treasury',
-                          label: 'Treasury:',
+                          label: 'Treasury +',
                           icon: TREASURY_WALLET_ICON,
                           shareLabel: distributeTreasuryLabel,
                         },
@@ -1639,7 +1679,7 @@ export function GraiManageSection() {
             >
               <div className="grai-balance-table-row grai-balance-table-row--head" role="row">
                 <div className="grai-balance-table-cell grai-balance-table-cell--head grai-balance-table-cell--asset is-asset" role="columnheader">
-                  <span className="grai-balance-table-col-icon">{ASSET_FIELD_ICON}</span>
+                  <span className="grai-balance-table-col-icon">{ASSET_TABLE_COLUMN_ICON}</span>
                   Asset
                 </div>
                 <div className="grai-balance-table-cell grai-balance-table-cell--head is-junior" role="columnheader">
@@ -1685,10 +1725,18 @@ export function GraiManageSection() {
                             </span>
                           </div>
                           <div className="grai-balance-table-cell grai-balance-table-value" role="cell">
-                            {row.idle}
+                            <VaultBalanceTableValue
+                              amount={row.idle}
+                              usdRaw={row.idleUsdRaw}
+                              isLoading={vaultBalancesLoading}
+                            />
                           </div>
                           <div className="grai-balance-table-cell grai-balance-table-value" role="cell">
-                            {row.allocated}
+                            <VaultBalanceTableValue
+                              amount={row.allocated}
+                              usdRaw={row.allocatedUsdRaw}
+                              isLoading={vaultBalancesLoading}
+                            />
                           </div>
                         </div>
                       ))
@@ -1751,8 +1799,8 @@ export function GraiManageSection() {
                   <span className="grai-balance-table-col-icon">{CUSTODY_FIELD_ICON}</span>
                   Custody
                 </div>
-                <div className="grai-balance-table-cell grai-balance-table-cell--head is-asset" role="columnheader">
-                  <span className="grai-balance-table-col-icon">{ASSET_FIELD_ICON}</span>
+                <div className="grai-balance-table-cell grai-balance-table-cell--head grai-balance-table-cell--asset is-asset" role="columnheader">
+                  <span className="grai-balance-table-col-icon">{ASSET_TABLE_COLUMN_ICON}</span>
                   Assets
                 </div>
                 <div className="grai-balance-table-cell grai-balance-table-cell--head is-junior" role="columnheader">
@@ -1864,8 +1912,13 @@ export function GraiManageSection() {
                                 '—'
                               ) : (
                                 <div className="grai-manage-custody-held-values">
-                                  {row.held.map(({ asset, network, balance }) => (
-                                    <span key={`${network}-${asset.mint}-balance`}>{balance}</span>
+                                  {row.held.map(({ asset, network, balance, balanceUsdRaw }) => (
+                                    <VaultBalanceTableValue
+                                      key={`${network}-${asset.mint}-balance`}
+                                      amount={balance}
+                                      usdRaw={balanceUsdRaw}
+                                      isLoading={vaultBalancesLoading || grinderCustodyLoading}
+                                    />
                                   ))}
                                 </div>
                               )}
@@ -1875,8 +1928,13 @@ export function GraiManageSection() {
                                 '—'
                               ) : (
                                 <div className="grai-manage-custody-held-values">
-                                  {row.held.map(({ asset, network, yield: yieldAmount }) => (
-                                    <span key={`${network}-${asset.mint}-yield`}>{yieldAmount}</span>
+                                  {row.held.map(({ asset, network, yield: yieldAmount, yieldUsdRaw }) => (
+                                    <VaultBalanceTableValue
+                                      key={`${network}-${asset.mint}-yield`}
+                                      amount={yieldAmount}
+                                      usdRaw={yieldUsdRaw}
+                                      isLoading={vaultBalancesLoading || grinderCustodyLoading}
+                                    />
                                   ))}
                                 </div>
                               )}

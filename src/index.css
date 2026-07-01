@@ -16,6 +16,7 @@
   --grai-donut-track-fill: rgba(255, 255, 255, 0.12);
   --grai-donut-sector-stroke: rgba(255, 255, 255, 0.55);
   --grai-donut-empty-segment-opacity: 0.24;
+  --grai-accent-blue: #7dd3fc;
 }
 
 [data-theme="dark"] {
@@ -34,6 +35,7 @@
   --grai-donut-track-fill: rgba(0, 0, 0, 0.1);
   --grai-donut-sector-stroke: rgba(0, 0, 0, 0.35);
   --grai-donut-empty-segment-opacity: 0.38;
+  --grai-accent-blue: #0369a1;
 
   color-scheme: light;
   color: var(--text-primary);

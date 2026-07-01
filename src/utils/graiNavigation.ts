@@ -1,19 +1,23 @@
 import { isAtAppPath, toAppPath } from './appPaths'
 
-export type GraiSection = 'mint' | 'burn' | 'assets' | 'grinders' | 'manage'
+export type GraiSection = 'mint' | 'burn' | 'assets' | 'grinders' | 'allocate' | 'distribute'
 
 export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   mint: 'grai-actions-section',
   burn: 'grai-actions-section',
   assets: 'grai-assets-section',
   grinders: 'grai-grinders-summary',
-  manage: 'grai-manage-section',
+  allocate: 'grai-manage-section',
+  distribute: 'grai-manage-section',
 }
+
+const GRAI_SECTION_HASHES: GraiSection[] = ['mint', 'burn', 'assets', 'grinders', 'allocate', 'distribute']
 
 export function readGraiSectionFromHash(): GraiSection | null {
   const hash = window.location.hash.slice(1)
-  if (hash === 'mint' || hash === 'burn' || hash === 'assets' || hash === 'grinders' || hash === 'manage') {
-    return hash
+  if (hash === 'manage') return 'allocate'
+  if (GRAI_SECTION_HASHES.includes(hash as GraiSection)) {
+    return hash as GraiSection
   }
   return null
 }

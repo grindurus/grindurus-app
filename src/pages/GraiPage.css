@@ -26,6 +26,11 @@
   z-index: 20;
 }
 
+.grai-page-info-group {
+  display: inline-flex;
+  align-items: center;
+}
+
 .grai-page-info-btn {
   display: inline-flex;
   align-items: center;
@@ -571,7 +576,7 @@
 }
 
 .grai-grinders-group-title.is-tvl .grai-grinders-group-title-icon {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-grinders-group-title.is-yield .grai-grinders-group-title-icon {
@@ -583,17 +588,17 @@
 }
 
 .grai-grinders-group-title.is-uptime .grai-grinders-group-title-icon {
-  color: #c4b5fd;
+  color: var(--grai-accent-blue);
 }
 
 .grai-grinders-group-title.is-uptime {
-  color: #c4b5fd;
+  color: var(--grai-accent-blue);
   justify-content: center;
 }
 
 .grai-grinders-group-title.is-uptime .grai-grinders-group-title-label,
 .grai-grinders-group-title.is-uptime .grai-grinders-group-title-value {
-  color: #c4b5fd;
+  color: var(--grai-accent-blue);
 }
 
 .grai-grinders-group-title.is-stacked {
@@ -623,7 +628,7 @@
 }
 
 .grai-grinders-group-title.is-tvl .grai-grinders-group-title-value {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-grinders-group-title.is-yield .grai-grinders-group-title-value {
@@ -631,7 +636,7 @@
 }
 
 .grai-grinders-group-title.is-tvl .grai-grinders-group-title-label {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-grinders-group-title.is-yield .grai-grinders-group-title-label {
@@ -707,7 +712,7 @@
 }
 
 .grai-grinders-row--head .is-last-action .grai-grinders-col-icon {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-grinders-row--head .is-base .grai-grinders-col-icon {
@@ -719,7 +724,7 @@
 }
 
 .grai-grinders-row--head .is-yield-base .grai-grinders-col-icon {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-grinders-row--head .is-yield-quote .grai-grinders-col-icon {
@@ -1163,6 +1168,17 @@
   border-top: 1px solid var(--border-color);
 }
 
+.grai-vault-balance-shell .grai-balance-table-value-usd {
+  font-size: 0.92rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #fff;
+}
+
+[data-theme='light'] .grai-vault-balance-shell .grai-balance-table-value-usd {
+  color: #000;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .grai-vault-balance-body-panel,
   .grai-vault-balance-body-panel-inner {
@@ -1359,6 +1375,29 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.grai-balance-table-value-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.grai-balance-table-value-amount {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-balance-table-value-usd {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -1366,7 +1405,7 @@
   font-size: 1.12rem;
   font-weight: 600;
   line-height: 1.15;
-  min-height: 2.1875rem;
+  min-height: 2.75rem;
   color: #ffe6f4;
 }
 
@@ -1399,7 +1438,7 @@
 }
 
 .grai-balance-table-cell--head.is-senior .grai-balance-table-col-icon {
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-balance-table-cell--head.is-asset .grai-balance-table-col-icon {
@@ -1689,6 +1728,10 @@
 .grai-mint-feedback-wallet + .grai-mint-amount-header,
 .grai-mint-feedback-wallet + .grai-mint-amount-field {
   margin-top: 0;
+}
+
+.grai-action-content > .grai-mint-feedback-wallet + .grai-mint-amount-block {
+  margin-top: -0.75rem;
 }
 
 .grai-mint-amount-header + .grai-mint-amount-field {
@@ -2130,6 +2173,129 @@
   gap: 0.75rem;
 }
 
+.grai-action-card .grai-mint-amount-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.grai-action-card .grai-mint-amount-block .grai-mint-amount-field {
+  gap: 0;
+}
+
+.grai-action-card .grai-mint-amount-block .grai-mint-amount-header + .grai-mint-amount-field {
+  margin-top: 0;
+}
+
+.grai-action-card .grai-mint-amount-block .grai-mint-split-shares-hint,
+.grai-action-card .grai-mint-amount-block .grai-burn-assets-hint {
+  margin: 0.7rem 0 0;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-rows,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-rows {
+  padding-left: 1.35rem;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-rows > .grai-burn-assets-row:first-child,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-rows > .grai-burn-assets-row:first-child {
+  margin-top: 0.35rem;
+}
+
+.grai-action-card .grai-mint-split-shares-hint,
+.grai-action-card .grai-burn-assets-hint {
+  --grai-burn-row-height: 2.75rem;
+  overflow: visible;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-row,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-row {
+  align-items: flex-start;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value {
+  min-height: 2.75rem;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value .grai-balance-table-value-stack,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value .grai-balance-table-value-stack {
+  min-height: 2.75rem;
+  justify-content: flex-start;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value .grai-balance-table-value-usd,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value .grai-balance-table-value-usd {
+  font-size: 0.92rem;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value.is-placeholder .grai-balance-table-value-amount,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value.is-placeholder .grai-balance-table-value-amount {
+  color: var(--text-secondary);
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value.is-placeholder .grai-balance-table-value-usd,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value.is-placeholder .grai-balance-table-value-usd {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount {
+  align-items: flex-start;
+}
+
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount {
+  align-items: flex-start;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-amount,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-amount {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-amount,
+[data-theme='light'] .grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-amount {
+  color: #e91e8c;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-usd,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-usd {
+  color: #fff;
+}
+
+[data-theme='light'] .grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-usd,
+[data-theme='light'] .grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value:not(.is-placeholder) .grai-balance-table-value-usd {
+  color: #000;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value {
+  color: #ff69b4;
+  line-height: 1.2;
+}
+
+[data-theme='light'] .grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount-value,
+[data-theme='light'] .grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount-value {
+  color: #e91e8c;
+}
+
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount .grai-estimated-amount-prefix {
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-token {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-token {
+  color: #e91e8c;
+}
+
 .grai-mint-amount-row {
   --grai-mint-amount-control-height: 2rem;
   display: flex;
@@ -2212,12 +2378,115 @@
   color: #e91e8c;
 }
 
+.grai-mint-amount-row .grai-burn-amount-suffix .grai-mint-asset-value-solscan {
+  width: 1.5rem;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  margin-left: calc(-0.45rem + 0.1rem);
+}
+
+.grai-mint-amount-row .grai-burn-amount-suffix .grai-mint-asset-value-solscan svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
 .grai-mint-amount-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   min-height: var(--grai-wallet-slot-height, 2.4375rem);
+}
+
+.grai-balance-field-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.grai-field-info-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.grai-field-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #ff69b4;
+  cursor: help;
+}
+
+.grai-field-info-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: block;
+}
+
+.grai-field-info-btn:hover,
+.grai-field-info-btn:focus-visible {
+  color: #ff9ed3;
+  outline: none;
+}
+
+[data-theme='light'] .grai-field-info-btn {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-field-info-btn:hover,
+[data-theme='light'] .grai-field-info-btn:focus-visible {
+  color: #ff69b4;
+}
+
+.grai-field-info-tooltip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  z-index: 20;
+  width: max-content;
+  max-width: min(18rem, 72vw);
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  box-sizing: border-box;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%);
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='light'] .grai-field-info-tooltip {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.grai-field-info-wrap:hover .grai-field-info-tooltip,
+.grai-field-info-wrap:focus-within .grai-field-info-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .grai-mint-amount-header .grai-field-label,
@@ -2228,6 +2497,39 @@
   font-family: inherit;
   letter-spacing: 0.02em;
   line-height: 1.2;
+}
+
+.grai-action-card .grai-mint-amount-field > .grai-mint-amount-input-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  width: 100%;
+  margin: 0.5rem 0 0.35rem;
+  text-align: left;
+  text-transform: none;
+  font-size: 1.12rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.grai-action-card .grai-mint-amount-field > .grai-mint-amount-input-label .grai-field-label-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #fff;
+}
+
+.grai-action-card .grai-mint-amount-field > .grai-mint-amount-input-label .grai-field-label-icon svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+}
+
+[data-theme='light'] .grai-action-card .grai-mint-amount-field > .grai-mint-amount-input-label,
+[data-theme='light'] .grai-action-card .grai-mint-amount-field > .grai-mint-amount-input-label .grai-field-label-icon {
+  color: #000;
 }
 
 .grai-mint-amount-header .grai-field-label-icon {
@@ -2428,7 +2730,8 @@
 
 .grai-estimated-amount-prefix,
 .grai-estimated-amount-value,
-.grai-estimated-amount-suffix {
+.grai-estimated-amount-suffix,
+.grai-estimated-amount-hint {
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
@@ -2478,6 +2781,10 @@
 
 .grai-estimated-amount-suffix {
   color: #ff69b4;
+}
+
+.grai-estimated-amount-hint {
+  color: var(--text-secondary);
 }
 
 [data-theme="light"] .grai-estimated-amount-value,
@@ -2663,6 +2970,109 @@
   margin: 0;
 }
 
+.grai-mint-amount-field > .grai-estimated-amount-label,
+.grai-mint-amount-field > .grai-burn-estimate-label {
+  width: 100%;
+  margin: 0.5rem 0 0;
+  min-height: var(--grai-wallet-slot-height, 2.4375rem);
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  font-size: 1.12rem;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-value,
+.grai-mint-amount-field > .grai-burn-estimate-label .grai-burn-estimate-value {
+  min-height: 0;
+}
+
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-prefix,
+.grai-mint-amount-field > .grai-burn-estimate-label .grai-estimated-amount-prefix {
+  gap: 0.28rem;
+  flex-shrink: 0;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  height: 1.35rem;
+  font-size: 1.12rem;
+  line-height: 1.35rem;
+}
+
+.grai-mint-amount-field > .grai-burn-estimate-label .grai-burn-estimate-sigma {
+  display: inline;
+  line-height: inherit;
+}
+
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-prefix .grai-field-label-icon,
+.grai-mint-amount-field > .grai-burn-estimate-label .grai-estimated-amount-prefix .grai-field-label-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #fff;
+}
+
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-prefix .grai-field-label-icon svg,
+.grai-mint-amount-field > .grai-burn-estimate-label .grai-estimated-amount-prefix .grai-field-label-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.grai-mint-amount-field > .grai-burn-estimate-label .grai-burn-estimate-value {
+  min-width: 0;
+  flex-shrink: 1;
+  display: inline-flex;
+  align-items: center;
+  height: 1.35rem;
+  font-size: 1.35rem;
+  line-height: 1.35rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.grai-mint-amount-field > .grai-burn-estimate-label .grai-burn-estimate-value .grai-estimated-amount-hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.35rem;
+  font-family: 'Courier New', monospace;
+}
+
+[data-theme='light'] .grai-mint-amount-field > .grai-estimated-amount-label,
+[data-theme='light'] .grai-mint-amount-field > .grai-burn-estimate-label,
+[data-theme='light'] .grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-prefix,
+[data-theme='light'] .grai-mint-amount-field > .grai-burn-estimate-label .grai-estimated-amount-prefix,
+[data-theme='light'] .grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-prefix .grai-field-label-icon,
+[data-theme='light'] .grai-mint-amount-field > .grai-burn-estimate-label .grai-estimated-amount-prefix .grai-field-label-icon {
+  color: #000;
+}
+
+[data-theme='light'] .grai-mint-amount-field > .grai-burn-estimate-label .grai-burn-estimate-value {
+  color: #e91e8c;
+}
+
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-value,
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-suffix,
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-hint {
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.01em;
+}
+
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-value,
+.grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-suffix {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-value,
+[data-theme='light'] .grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-suffix {
+  color: #e91e8c;
+}
+
 .grai-burn-assets-hint,
 .grai-mint-split-shares-hint {
   --grai-burn-row-height: 2rem;
@@ -2718,6 +3128,10 @@
   align-items: center;
 }
 
+.grai-mint-split-shares-hint .grai-burn-assets-section-title-label {
+  text-transform: uppercase;
+}
+
 .grai-burn-assets-section-title-icon {
   display: inline-flex;
   align-items: center;
@@ -2725,7 +3139,7 @@
   flex-shrink: 0;
   width: 1rem;
   height: 1rem;
-  color: #7dd3fc;
+  color: var(--grai-accent-blue);
 }
 
 .grai-burn-assets-section-title-icon svg {
@@ -2759,7 +3173,15 @@
   display: inline-flex;
   align-items: center;
   min-height: 26px;
-  color: #ff69b4;
+  color: var(--text-primary);
+}
+
+.grai-burn-estimate-value .grai-estimated-amount-hint {
+  color: var(--text-secondary);
+}
+
+[data-theme='light'] .grai-burn-estimate-value .grai-estimated-amount-hint {
+  color: var(--text-secondary);
 }
 
 [data-theme='light'] .grai-burn-estimate-value {
@@ -2832,7 +3254,8 @@
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
-  color: var(--text-secondary);
+  overflow: visible;
+  color: #fff;
   font-size: inherit;
   font-weight: inherit;
   font-family: inherit;
@@ -2840,20 +3263,46 @@
   letter-spacing: 0;
 }
 
-.grai-mint-split-vault-prefix-icon {
+.grai-mint-split-vault-prefix .grai-field-info-wrap {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  color: #7dd3fc;
+  position: relative;
+  z-index: 3;
 }
 
-.grai-mint-split-vault-prefix-icon svg {
-  width: 1rem;
-  height: 1rem;
-  display: block;
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-rows,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-rows:not(.is-scrollable) {
+  overflow: visible;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-row,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-row {
+  overflow: visible;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-amount,
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-amount {
+  overflow: visible;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-field-info-tooltip,
+.grai-action-card .grai-burn-assets-hint .grai-field-info-tooltip {
+  top: auto;
+  bottom: calc(100% + 8px);
+  z-index: 40;
+}
+
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-row:has(.grai-field-info-wrap:hover),
+.grai-action-card .grai-mint-split-shares-hint .grai-burn-assets-row:has(.grai-field-info-wrap:focus-within),
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-row:has(.grai-field-info-wrap:hover),
+.grai-action-card .grai-burn-assets-hint .grai-burn-assets-row:has(.grai-field-info-wrap:focus-within) {
+  position: relative;
+  z-index: 2;
+}
+
+[data-theme='light'] .grai-mint-split-vault-prefix {
+  color: var(--text-primary);
 }
 
 .grai-burn-assets-row {
@@ -2906,12 +3355,12 @@
 }
 
 .grai-burn-assets-amount {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
   justify-content: flex-start;
   flex: 1;
   min-width: 0;
-  gap: 0.12rem;
+  gap: 0.35rem;
   color: #ffe6f4;
   font-size: 1.35rem;
   font-weight: 600;
@@ -2921,12 +3370,34 @@
   text-align: left;
   white-space: nowrap;
   line-height: 1.2;
+  overflow: hidden;
+}
+
+.grai-burn-assets-amount .grai-estimated-amount-prefix {
+  flex-shrink: 0;
 }
 
 .grai-burn-assets-amount-prefix {
   flex-shrink: 0;
   color: inherit;
   font-weight: inherit;
+}
+
+.grai-burn-assets-amount .grai-estimated-amount-hint {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.grai-burn-assets-amount-value {
+  flex-shrink: 0;
 }
 
 .grai-burn-assets-solscan {
@@ -3108,18 +3579,69 @@
     font-size: 0.88rem;
   }
 
+  .grai-grinders-summary-shell {
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+  }
+
   .grai-grinders-row--summary {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 0.55rem;
     padding: 0.45rem 0.35rem;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
   }
 
   .grai-grinders-row--summary > span {
     grid-column: auto !important;
     border-left: none !important;
     padding-left: 0 !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  .grai-grinders-row--summary .grai-grinders-group-title.is-stacked {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .grai-grinders-row--summary .grai-grinders-group-title.is-uptime {
+    justify-content: space-between;
+  }
+
+  .grai-grinders-row--summary .grai-grinders-group-general {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .grai-grinders-row--summary .grai-grinders-group-title-label {
+    min-width: 0;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .grai-grinders-row--summary .grai-grinders-group-title-value {
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+    text-align: right;
+  }
+
+  .grai-grinders-row:not(.grai-grinders-row--summary) {
+    min-width: 42rem;
   }
 
   .grai-grinders-group-general,
@@ -3127,17 +3649,6 @@
   .grai-grinders-group-title-label,
   .grai-grinders-group-title-value {
     font-size: 1rem;
-  }
-
-  .grai-grinders-group-title.is-stacked {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .grai-grinders-group-title.is-uptime {
-    justify-content: space-between;
   }
 
   .grai-grinders-table-panel-inner {
@@ -3181,10 +3692,6 @@
   .grai-grinders-table {
     width: max-content;
     min-width: 100%;
-  }
-
-  .grai-grinders-row {
-    min-width: 42rem;
   }
 
   .grai-balance-table-cell--head {
@@ -3259,6 +3766,9 @@
 
   .grai-mint-amount-header .grai-field-label,
   .grai-mint-amount-header .grai-wallet-balance,
+  .grai-mint-amount-field > .grai-mint-amount-input-label,
+  .grai-mint-amount-field > .grai-estimated-amount-label,
+  .grai-mint-amount-field > .grai-burn-estimate-label,
   .grai-mint-feedback-wallet .grai-field-label,
   .grai-mint-feedback-wallet .grai-mint-asset-short-address {
     font-size: 0.95rem;
@@ -3266,8 +3776,12 @@
 
   .grai-input-with-suffix .grai-input,
   .grai-mint-asset-value,
+  .grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-value,
+  .grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-suffix,
+  .grai-mint-amount-field > .grai-estimated-amount-label .grai-estimated-amount-hint,
+  .grai-mint-amount-field > .grai-burn-estimate-label .grai-burn-estimate-value,
+  .grai-mint-amount-field > .grai-burn-estimate-label .grai-burn-estimate-value .grai-estimated-amount-hint,
   .grai-mint-amount-row .grai-burn-amount-suffix,
-  .grai-estimated-amount-label,
   .grai-burn-estimate-label,
   .grai-burn-assets-row {
     font-size: 1.05rem;
@@ -3317,12 +3831,18 @@
   }
 
   .grai-burn-assets-row {
-    flex-wrap: wrap;
-    row-gap: 0.25rem;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+  }
+
+  .grai-burn-assets-amount {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .grai-burn-assets-token {
     margin-left: 0;
+    flex: 0 0 auto;
   }
 
   .grai-assets-split {

@@ -47,7 +47,8 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
 
   const [solanaCluster, setSolanaCluster] = useState<SolanaCluster>(() => {
     const saved = localStorage.getItem('solanaCluster')
-    return (saved as SolanaCluster) || getDefaultGraiSolanaCluster()
+    const cluster = (saved as SolanaCluster) || getDefaultGraiSolanaCluster()
+    return cluster === 'testnet' ? 'devnet' : cluster
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
@@ -63,6 +64,12 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   useEffect(() => {
     localStorage.setItem('evmChain', evmChain)
   }, [evmChain])
+
+  useEffect(() => {
+    if (solanaCluster === 'testnet') {
+      setSolanaCluster('devnet')
+    }
+  }, [solanaCluster])
 
   useEffect(() => {
     localStorage.setItem('solanaCluster', solanaCluster)
