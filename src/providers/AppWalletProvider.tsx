@@ -24,6 +24,8 @@ interface WalletContextType {
   requestRainbowKit: () => void
   isEvmStackEnabled: boolean
   isEvmStackReady: boolean
+  pendingWalletConnectOpen: boolean
+  clearPendingWalletConnectOpen: () => void
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -68,6 +70,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   )
   const [rainbowKitEnabled, setRainbowKitEnabled] = useState(false)
   const [isEvmStackReady, setIsEvmStackReady] = useState(false)
+  const [pendingWalletConnectOpen, setPendingWalletConnectOpen] = useState(false)
 
   const isEvmStackEnabled =
     evmStackPinned || selectedChainType === 'evm' || isChainSelectorOpen || isBacktestRoute
@@ -123,6 +126,11 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   const requestRainbowKit = useCallback(() => {
     setEvmStackPinned(true)
     setRainbowKitEnabled(true)
+    setPendingWalletConnectOpen(true)
+  }, [])
+
+  const clearPendingWalletConnectOpen = useCallback(() => {
+    setPendingWalletConnectOpen(false)
   }, [])
 
   const openChainSelector = useCallback(() => {
@@ -155,6 +163,8 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       requestRainbowKit,
       isEvmStackEnabled,
       isEvmStackReady,
+      pendingWalletConnectOpen,
+      clearPendingWalletConnectOpen,
     }),
     [
       selectedChainType,
@@ -168,6 +178,8 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       requestRainbowKit,
       isEvmStackEnabled,
       isEvmStackReady,
+      pendingWalletConnectOpen,
+      clearPendingWalletConnectOpen,
     ],
   )
 

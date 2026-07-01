@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { useEvmWallet } from '../hooks/useEvmWallet'
@@ -16,26 +16,14 @@ interface ChainSelectorModalProps {
 export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('evm')
   const [evmConnectError, setEvmConnectError] = useState('')
-  const [isHandingOffToRainbowKit, setIsHandingOffToRainbowKit] = useState(false)
   const { setSelectedChainType, requestRainbowKit, isEvmStackReady } = useWalletContext()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
 
   const openRainbowKit = useCallback(() => {
     requestRainbowKit()
-    setIsHandingOffToRainbowKit(true)
-    requestAnimationFrame(() => onClose())
+    onClose()
   }, [onClose, requestRainbowKit])
-
-  useEffect(() => {
-    if (!isHandingOffToRainbowKit || !isEvmStackReady) return
-    evmWallet.connectWalletConnect()
-  }, [evmWallet, isEvmStackReady, isHandingOffToRainbowKit])
-
-  useEffect(() => {
-    if (isOpen) return
-    setIsHandingOffToRainbowKit(false)
-  }, [isOpen])
 
   const isWalletConnectConnector = useCallback((connector: { id: string; name: string }) => {
     const id = connector.id.toLowerCase()
@@ -121,10 +109,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   if (!isOpen) return null
 
   return createPortal(
-    <div
-      className={`wallet-modal-backdrop${isHandingOffToRainbowKit ? ' is-handing-off' : ''}`}
-      onClick={handleBackdropClick}
-    >
+    <div className="wallet-modal-backdrop" onClick={handleBackdropClick}>
       <div className="wallet-modal" onClick={(e) => e.stopPropagation()}>
         <div className="wallet-modal-header">
           <h2>
