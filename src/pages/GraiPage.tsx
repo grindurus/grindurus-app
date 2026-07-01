@@ -17,7 +17,7 @@ import { useWalletAssetBalance } from '../hooks/useWalletAssetBalance'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { FloatingTokenBackground, STABLE_FLOATING_TOKENS } from '../components/FloatingTokenBackground'
 import { GraiNavDonut } from '../components/GraiNavDonut'
-import { ChainSelectorModal } from '../components/ChainSelectorModal'
+import { useWalletContext } from '../providers/AppWalletProvider'
 import { WalletIcon } from '../components/WalletIcon'
 import { playBullSound, primeBullSound } from '../utils/playBullSound'
 import { assetUrl, toAppPath } from '../utils/appPaths'
@@ -511,6 +511,7 @@ function GraiEstimateSuffix({ solscanHref }: { solscanHref?: string | null }) {
 }
 
 function GraiPage() {
+  const { openChainSelector } = useWalletContext()
   const chartTheme = useDocumentChartTheme()
   const assetChartColors = useMemo(() => getAssetChartColors(chartTheme), [chartTheme])
   const { solana, staticSolana, solscanTokenUrl, solscanTxUrl, solscanAccountUrl, clusterMismatch, solanaCluster, hasStaticConfig, protocolError } = useGraiDeployment()
@@ -536,7 +537,6 @@ function GraiPage() {
   const [isLegendTableHidden, setIsLegendTableHidden] = useState(false)
   const [isGrindersTableHidden, setIsGrindersTableHidden] = useState(true)
   const [isBurnAssetsRowsHidden, setIsBurnAssetsRowsHidden] = useState(true)
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const [isTokenFlowOpen, setIsTokenFlowOpen] = useState(false)
   const [isManageSectionOpen, setIsManageSectionOpen] = useState(() =>
     isManageSectionHash(window.location.hash.slice(1)),
@@ -995,7 +995,7 @@ function GraiPage() {
                       connectedWalletAddress={connectedWalletAddress}
                       walletCopied={minterWalletCopied}
                       onCopyWallet={copyMinterWalletAddress}
-                      onConnect={() => setIsWalletModalOpen(true)}
+                      onConnect={openChainSelector}
                       solscanAccountUrl={solscanAccountUrl}
                     />
                     <div className="grai-mint-amount-block">
@@ -1285,7 +1285,7 @@ function GraiPage() {
                       connectedWalletAddress={connectedWalletAddress}
                       walletCopied={minterWalletCopied}
                       onCopyWallet={copyMinterWalletAddress}
-                      onConnect={() => setIsWalletModalOpen(true)}
+                      onConnect={openChainSelector}
                       solscanAccountUrl={solscanAccountUrl}
                     />
                     <div className="grai-mint-amount-block">
@@ -1685,10 +1685,6 @@ function GraiPage() {
             ) : null}
           </div>
         </aside>
-      <ChainSelectorModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-      />
     </div>
   )
 }

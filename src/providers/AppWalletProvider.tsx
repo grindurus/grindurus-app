@@ -1,4 +1,5 @@
 import { ReactNode, createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
+import { ChainSelectorModal } from '../components/ChainSelectorModal'
 import { getDefaultGraiSolanaCluster } from '../grai/deployments'
 import { stripBasePath } from '../utils/appPaths'
 import { SolanaProvider } from './SolanaProvider'
@@ -194,6 +195,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
           >
             {children}
           </EvmProviderGate>
+          <ChainSelectorModal isOpen={isChainSelectorOpen} onClose={closeChainSelector} />
         </SolanaProvider>
       </EvmWalletSnapshotProvider>
     </WalletContext.Provider>

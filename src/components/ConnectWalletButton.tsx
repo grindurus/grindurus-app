@@ -1,18 +1,13 @@
-import { useState } from 'react'
 import { useActiveWallet } from '../hooks/useActiveWallet'
-import { ChainSelectorModal } from './ChainSelectorModal'
+import { useWalletContext } from '../providers/AppWalletProvider'
 import { WalletIcon } from './WalletIcon'
 import { WalletInfo } from './WalletInfo'
 import './WalletStyles.css'
 
 export function ConnectWalletButton() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const { isChainSelectorOpen, openChainSelector } = useWalletContext()
   const activeWallet = useActiveWallet()
-  const showConnecting = isModalOpen && activeWallet.isConnecting
-
-  const closeModal = () => {
-    setIsModalOpen(false)
-  }
+  const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
 
   if (activeWallet.isConnected) {
     return (
@@ -28,7 +23,7 @@ export function ConnectWalletButton() {
         className="connect-wallet-btn"
         type="button"
         onClick={() => {
-          setIsModalOpen(true)
+          openChainSelector()
         }}
         disabled={showConnecting}
       >
@@ -44,8 +39,6 @@ export function ConnectWalletButton() {
           </>
         )}
       </button>
-
-      <ChainSelectorModal isOpen={isModalOpen} onClose={closeModal} />
     </div>
   )
 }

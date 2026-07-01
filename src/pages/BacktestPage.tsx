@@ -7,7 +7,7 @@ import { VersionedTransaction } from '@solana/web3.js'
 import { Buffer } from 'buffer'
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
-import { ChainSelectorModal } from '../components/ChainSelectorModal'
+import { useWalletContext } from '../providers/AppWalletProvider'
 import { InventoryHistoryChart, type InventoryHistoryPoint } from '../components/InventoryHistoryChart'
 import { YieldChart, type YieldHistoryPoint } from '../components/YieldChart'
 import './BacktestPage.css'
@@ -412,6 +412,7 @@ function buildBacktestChartHistory(
 }
 
 function BacktestPage() {
+  const { openChainSelector } = useWalletContext()
   const end = new Date()
   const start = new Date()
   start.setDate(end.getDate() - 29)
@@ -450,7 +451,6 @@ function BacktestPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
   const [showX402NetworkSwitch, setShowX402NetworkSwitch] = useState(false)
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const payMethodWrapRef = useRef<HTMLDivElement>(null)
   const baseAssetMenuRef = useRef<HTMLDivElement>(null)
   const quoteAssetMenuRef = useRef<HTMLDivElement>(null)
@@ -1387,7 +1387,7 @@ function BacktestPage() {
                     onClick={() => {
                       if (x402NeedsWalletConnection) {
                         setPayError('')
-                        setIsWalletModalOpen(true)
+                        openChainSelector()
                         return
                       }
                       void handlePay()
@@ -1942,10 +1942,6 @@ function BacktestPage() {
           </div>
         </section>
       </div>
-      <ChainSelectorModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-      />
     </div>
   )
 }

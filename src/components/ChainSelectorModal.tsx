@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { useEvmWallet } from '../hooks/useEvmWallet'
@@ -7,6 +7,57 @@ import { WalletIcon } from './WalletIcon'
 import './WalletStyles.css'
 
 type TabType = 'evm' | 'solana' | 'movevm'
+
+const EVM_LOADING_STEPS = [
+  'Initializing EVM providers…',
+  'Detecting installed wallets…',
+  'Preparing WalletConnect…',
+] as const
+
+function EvmWalletsLoadingPanel() {
+  const [stepIndex, setStepIndex] = useState(0)
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setStepIndex((index) => (index + 1) % EVM_LOADING_STEPS.length)
+    }, 1500)
+
+    return () => window.clearInterval(id)
+  }, [])
+
+  return (
+    <div className="wallet-evm-loading" aria-busy="true" aria-live="polite">
+      <div className="wallet-evm-loading-status">
+        <span className="wallet-evm-loading-spinner" aria-hidden="true" />
+        <span className="wallet-evm-loading-text" key={stepIndex}>
+          {EVM_LOADING_STEPS[stepIndex]}
+        </span>
+      </div>
+
+      <div className="wallet-evm-loading-skeletons">
+        {[0, 1, 2].map((index) => (
+          <div
+            key={index}
+            className="wallet-evm-loading-row"
+            style={{ animationDelay: `${index * 0.12}s` }}
+          >
+            <div className="wallet-evm-loading-icon wallet-evm-shimmer" style={{ animationDelay: `${index * 0.18}s` }} />
+            <div className="wallet-evm-loading-lines">
+              <div
+                className="wallet-evm-loading-line wallet-evm-loading-line--title wallet-evm-shimmer"
+                style={{ animationDelay: `${index * 0.18 + 0.08}s` }}
+              />
+              <div
+                className="wallet-evm-loading-line wallet-evm-loading-line--desc wallet-evm-shimmer"
+                style={{ animationDelay: `${index * 0.18 + 0.16}s` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface ChainSelectorModalProps {
   isOpen: boolean
@@ -179,9 +230,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
             >
               <div className="wallet-options">
                 {!isEvmStackReady ? (
-                  <div className="no-wallets-message">
-                    <p>Loading EVM wallets...</p>
-                  </div>
+                  <EvmWalletsLoadingPanel />
                 ) : evmWallet.connectors.length > 0 ? (
                   evmWallet.connectors.map((connector) => (
                     <button
