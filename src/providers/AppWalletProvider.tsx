@@ -1,9 +1,8 @@
 import { ReactNode, createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import { ChainSelectorModal } from '../components/ChainSelectorModal'
 import { getDefaultGraiSolanaCluster } from '../grai/deployments'
-import { stripBasePath } from '../utils/appPaths'
 import { SolanaProvider } from './SolanaProvider'
-import { EvmProviderGate } from './EvmProviderGate'
+import { EvmProvider } from './EvmProvider'
 import { EvmWalletSnapshotProvider } from './EvmWalletSnapshotContext'
 
 export type ChainType = 'evm' | 'solana' | null
@@ -21,9 +20,7 @@ interface WalletContextType {
   openChainSelector: () => void
   closeChainSelector: () => void
   disconnect: () => void
-  requestEvmStack: () => void
   requestRainbowKit: () => void
-  isEvmStackEnabled: boolean
   isEvmStackReady: boolean
   pendingWalletConnectOpen: boolean
   clearPendingWalletConnectOpen: () => void
@@ -41,10 +38,6 @@ export function useWalletContext() {
 
 interface AppWalletProviderProps {
   children: ReactNode
-}
-
-function readIsBacktestRoute(): boolean {
-  return stripBasePath(window.location.pathname) === '/backtest'
 }
 
 export function AppWalletProvider({ children }: AppWalletProviderProps) {
@@ -65,42 +58,13 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
-  const [isBacktestRoute, setIsBacktestRoute] = useState(readIsBacktestRoute)
-  const [evmStackPinned, setEvmStackPinned] = useState(
-    () => localStorage.getItem('selectedChainType') === 'evm' || readIsBacktestRoute(),
-  )
   const [rainbowKitEnabled, setRainbowKitEnabled] = useState(false)
   const [isEvmStackReady, setIsEvmStackReady] = useState(false)
   const [pendingWalletConnectOpen, setPendingWalletConnectOpen] = useState(false)
 
-  const isEvmStackEnabled =
-    evmStackPinned || selectedChainType === 'evm' || isChainSelectorOpen || isBacktestRoute
-
-  useEffect(() => {
-    if (!isEvmStackEnabled) {
-      setIsEvmStackReady(false)
-    }
-  }, [isEvmStackEnabled])
-
-  useEffect(() => {
-    const syncRoute = () => setIsBacktestRoute(readIsBacktestRoute())
-    syncRoute()
-    window.addEventListener('popstate', syncRoute)
-    return () => window.removeEventListener('popstate', syncRoute)
-  }, [])
-
-  useEffect(() => {
-    if (isBacktestRoute) {
-      setEvmStackPinned(true)
-    }
-  }, [isBacktestRoute])
-
   useEffect(() => {
     if (selectedChainType) {
       localStorage.setItem('selectedChainType', selectedChainType)
-      if (selectedChainType === 'evm') {
-        setEvmStackPinned(true)
-      }
     } else {
       localStorage.removeItem('selectedChainType')
     }
@@ -120,12 +84,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
     localStorage.setItem('solanaCluster', solanaCluster)
   }, [solanaCluster])
 
-  const requestEvmStack = useCallback(() => {
-    setEvmStackPinned(true)
-  }, [])
-
   const requestRainbowKit = useCallback(() => {
-    setEvmStackPinned(true)
     setRainbowKitEnabled(true)
     setPendingWalletConnectOpen(true)
   }, [])
@@ -135,7 +94,6 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   }, [])
 
   const openChainSelector = useCallback(() => {
-    setEvmStackPinned(true)
     setIsChainSelectorOpen(true)
   }, [])
 
@@ -160,9 +118,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       openChainSelector,
       closeChainSelector,
       disconnect,
-      requestEvmStack,
       requestRainbowKit,
-      isEvmStackEnabled,
       isEvmStackReady,
       pendingWalletConnectOpen,
       clearPendingWalletConnectOpen,
@@ -175,9 +131,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       openChainSelector,
       closeChainSelector,
       disconnect,
-      requestEvmStack,
       requestRainbowKit,
-      isEvmStackEnabled,
       isEvmStackReady,
       pendingWalletConnectOpen,
       clearPendingWalletConnectOpen,
@@ -188,13 +142,12 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
     <WalletContext.Provider value={value}>
       <EvmWalletSnapshotProvider>
         <SolanaProvider>
-          <EvmProviderGate
-            enabled={isEvmStackEnabled}
+          <EvmProvider
             rainbowKitEnabled={rainbowKitEnabled}
-            onStackReady={() => setIsEvmStackReady(true)}
+            onReady={() => setIsEvmStackReady(true)}
           >
             {children}
-          </EvmProviderGate>
+          </EvmProvider>
           <ChainSelectorModal isOpen={isChainSelectorOpen} onClose={closeChainSelector} />
         </SolanaProvider>
       </EvmWalletSnapshotProvider>
