@@ -13,6 +13,8 @@
   width: 100%;
   min-height: 2.4375rem;
   padding: 0.65rem 1.25rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
   border: none;
@@ -116,8 +118,8 @@
 }
 
 /* Lock scroll while our wallet modal or RainbowKit modal is open */
-html:has(.wallet-modal-backdrop),
-html:has(.wallet-modal-backdrop) body,
+html:has(.wallet-modal-backdrop.is-open),
+html:has(.wallet-modal-backdrop.is-open) body,
 html:has(body[data-scroll-locked]),
 html:has(body[data-scroll-locked]) body {
   overflow: hidden;
@@ -133,7 +135,20 @@ html:has(body[data-scroll-locked]) body {
   align-items: center;
   justify-content: center;
   z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.wallet-modal-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
   animation: fadeIn 0.2s ease;
+}
+
+.wallet-modal-backdrop:not(.is-open) .wallet-modal {
+  pointer-events: none;
 }
 
 .wallet-modal-backdrop.is-handing-off {

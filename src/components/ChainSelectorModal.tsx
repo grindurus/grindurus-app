@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { useEvmWallet } from '../hooks/useEvmWallet'
@@ -67,6 +67,7 @@ interface ChainSelectorModalProps {
 export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('evm')
   const [evmConnectError, setEvmConnectError] = useState('')
+  const backdropDismissArmedRef = useRef(false)
   const { setSelectedChainType, requestRainbowKit, isEvmStackReady } = useWalletContext()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
@@ -151,16 +152,39 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
 
   const isSolanaMetamask = (walletName: string) => walletName.toLowerCase().includes('metamask')
 
+  useEffect(() => {
+    if (!isOpen) {
+      backdropDismissArmedRef.current = false
+      return
+    }
+
+    backdropDismissArmedRef.current = false
+    const armTimer = window.setTimeout(() => {
+      backdropDismissArmedRef.current = true
+    }, 400)
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      window.clearTimeout(armTimer)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isOpen])
+
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
+    if (!backdropDismissArmedRef.current) return
     if (e.target === e.currentTarget) {
       onClose()
     }
   }, [onClose])
 
-  if (!isOpen) return null
-
   return createPortal(
-    <div className="wallet-modal-backdrop" onClick={handleBackdropClick}>
+    <div
+      className={`wallet-modal-backdrop${isOpen ? ' is-open' : ''}`}
+      onClick={handleBackdropClick}
+      aria-hidden={!isOpen}
+    >
       <div className="wallet-modal" onClick={(e) => e.stopPropagation()}>
         <div className="wallet-modal-header">
           <h2>
