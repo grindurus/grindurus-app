@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
 import type { GraiAmountAsset } from './GraiAmountInput'
+import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
+import { GraiUiCaret } from './GraiUiCaret'
 
 type Props = {
   assets: GraiAmountAsset[]
@@ -9,6 +12,7 @@ type Props = {
 }
 
 export function GraiAssetSelect({ assets, selected, onSelect, ariaLabel = 'Select asset' }: Props) {
+  const { explorerTokenUrl } = useGraiDeployment()
   const [isOpen, setIsOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -47,32 +51,48 @@ export function GraiAssetSelect({ assets, selected, onSelect, ariaLabel = 'Selec
         ) : (
           <span className="grai-asset-select-symbol">—</span>
         )}
-        {hasChoices && (
-          <span className="grai-asset-select-caret" aria-hidden="true">
-            ▾
-          </span>
-        )}
+        {hasChoices && <GraiUiCaret className="grai-asset-select-caret" />}
       </button>
       {isOpen && (
         <div className="grai-asset-select-list" role="listbox" aria-label={ariaLabel}>
-          {assets.map((asset) => (
-            <button
-              key={asset.address || asset.symbol}
-              type="button"
-              role="option"
-              aria-selected={asset.symbol === selected?.symbol}
-              className={`grai-asset-select-option${asset.symbol === selected?.symbol ? ' is-active' : ''}`}
-              onClick={() => {
-                onSelect(asset)
-                setIsOpen(false)
-              }}
-            >
-              <span className="grai-asset-select-icon" aria-hidden="true">
-                <img src={asset.icon} alt="" width={20} height={20} loading="lazy" decoding="async" />
-              </span>
-              <span className="grai-asset-select-symbol">{asset.symbol}</span>
-            </button>
-          ))}
+          {assets.map((asset) => {
+            const explorerHref = asset.address ? explorerTokenUrl(asset.address) : null
+            const isActive = asset.symbol === selected?.symbol
+            return (
+              <div
+                key={asset.address || asset.symbol}
+                className={`grai-asset-select-option${isActive ? ' is-active' : ''}`}
+              >
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  className="grai-asset-select-option-btn"
+                  onClick={() => {
+                    onSelect(asset)
+                    setIsOpen(false)
+                  }}
+                >
+                  <span className="grai-asset-select-icon" aria-hidden="true">
+                    <img src={asset.icon} alt="" width={20} height={20} loading="lazy" decoding="async" />
+                  </span>
+                  <span className="grai-asset-select-symbol">{asset.symbol}</span>
+                </button>
+                {explorerHref ? (
+                  <a
+                    href={explorerHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="grai-mint-asset-value-solscan grai-asset-select-explorer"
+                    aria-label={`View ${asset.symbol} on block explorer`}
+                    title={`View ${asset.symbol} on block explorer`}
+                  >
+                    {MINT_ASSET_SOLSCAN_ICON}
+                  </a>
+                ) : null}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

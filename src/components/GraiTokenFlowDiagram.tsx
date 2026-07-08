@@ -533,38 +533,61 @@ function FlowCanvas({
   )
 }
 
-export function GraiTokenFlowDiagram() {
+export function GraiTokenFlowDiagram({
+  stepIds,
+  className,
+}: {
+  stepIds?: string[]
+  className?: string
+} = {}) {
+  const diagrams = useMemo(() => {
+    if (!stepIds?.length) return FLOW_DIAGRAMS
+    const selected = new Set(stepIds)
+    return FLOW_DIAGRAMS.filter((diagram) => selected.has(diagram.id)).sort(
+      (a, b) => stepIds.indexOf(a.id) - stepIds.indexOf(b.id),
+    )
+  }, [stepIds])
+
   return (
-    <div className="grai-token-flow" role="region" aria-label="GRAI token flow">
-      {FLOW_DIAGRAMS.map((diagram, index) => (
-        <article
-          className={`grai-token-flow-step${diagram.fullWidth ? ' grai-token-flow-step--full' : ''}`}
-          key={diagram.id}
-        >
-          <div className="grai-token-flow-step-head">
-            <span className="grai-token-flow-step-title">
-              {index + 1}. {diagram.title}
-            </span>
-            <p className="grai-token-flow-step-desc">
-              {(Array.isArray(diagram.description) ? diagram.description : [diagram.description]).map(
-                (paragraph, paragraphIndex) => (
-                  <span className="grai-token-flow-step-desc-line" key={paragraphIndex}>
-                    {paragraph}
-                  </span>
-                ),
-              )}
-            </p>
-          </div>
-          <FlowCanvas
-            nodes={diagram.nodes}
-            edges={diagram.edges}
-            height={diagram.height}
-            fitPadding={diagram.fitPadding}
-            centerInPane={diagram.centerInPane}
-            paneOffsetY={diagram.paneOffsetY}
-          />
-        </article>
-      ))}
+    <div
+      className={['grai-token-flow', className].filter(Boolean).join(' ')}
+      role="region"
+      aria-label="GRAI token flow"
+    >
+      {diagrams.map((diagram, index) => {
+        const stepNumber = stepIds?.length
+          ? FLOW_DIAGRAMS.findIndex((item) => item.id === diagram.id) + 1
+          : index + 1
+        return (
+          <article
+            className={`grai-token-flow-step${diagram.fullWidth ? ' grai-token-flow-step--full' : ''}`}
+            key={diagram.id}
+          >
+            <div className="grai-token-flow-step-head">
+              <span className="grai-token-flow-step-title">
+                {stepNumber}. {diagram.title}
+              </span>
+              <p className="grai-token-flow-step-desc">
+                {(Array.isArray(diagram.description) ? diagram.description : [diagram.description]).map(
+                  (paragraph, paragraphIndex) => (
+                    <span className="grai-token-flow-step-desc-line" key={paragraphIndex}>
+                      {paragraph}
+                    </span>
+                  ),
+                )}
+              </p>
+            </div>
+            <FlowCanvas
+              nodes={diagram.nodes}
+              edges={diagram.edges}
+              height={diagram.height}
+              fitPadding={diagram.fitPadding}
+              centerInPane={diagram.centerInPane}
+              paneOffsetY={diagram.paneOffsetY}
+            />
+          </article>
+        )
+      })}
     </div>
   )
 }

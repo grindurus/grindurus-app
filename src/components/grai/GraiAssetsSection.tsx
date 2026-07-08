@@ -207,20 +207,25 @@ export function GraiAssetsSection({ isManageSectionOpen }: { isManageSectionOpen
                 onClick={() => setIsLegendTableHidden((hidden) => !hidden)}
                 aria-expanded={!isLegendTableHidden}
                 aria-controls="grai-vault-balance-table"
-                aria-label={isLegendTableHidden ? 'Show vault balances table' : 'Hide vault balances table'}
+                aria-label={isLegendTableHidden ? 'View vault balances table' : 'Hide vault balances table'}
               >
-                <svg
-                  className="grai-donut-legend-toggle-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                <span className="grai-grinders-section-toggle-inner">
+                  <svg
+                    className="grai-donut-legend-toggle-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                  <span className="grai-grinders-section-toggle-label" aria-hidden="true">
+                    {isLegendTableHidden ? 'VIEW' : 'HIDE'}
+                  </span>
+                </span>
               </button>
             </div>
           </div>

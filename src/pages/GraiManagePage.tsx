@@ -1656,20 +1656,25 @@ export function GraiManageSection() {
                 onClick={() => setIsCustodyTableHidden((hidden) => !hidden)}
                 aria-expanded={!isCustodyTableHidden}
                 aria-controls="grai-manage-custody-table"
-                aria-label={isCustodyTableHidden ? 'Show custodies table' : 'Hide custodies table'}
+                aria-label={isCustodyTableHidden ? 'View custodies table' : 'Hide custodies table'}
               >
-                <svg
-                  className="grai-donut-legend-toggle-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                <span className="grai-grinders-section-toggle-inner">
+                  <svg
+                    className="grai-donut-legend-toggle-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                  <span className="grai-grinders-section-toggle-label" aria-hidden="true">
+                    {isCustodyTableHidden ? 'VIEW' : 'HIDE'}
+                  </span>
+                </span>
               </button>
             </div>
           </div>

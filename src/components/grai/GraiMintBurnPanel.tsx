@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'react-toastify'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
@@ -17,12 +17,44 @@ import { GraiActionSwitch } from './GraiActionSwitch'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
 import { GraiTransactionToast } from './GraiTransactionToast'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
+import { GraiFieldInfoButton } from './GraiFieldInfo'
+import { GraiUiCaret } from './GraiUiCaret'
 
 type ActionView = 'mint' | 'burn'
 
 type Props = {
   actionView: ActionView
   onActionViewChange: (view: ActionView) => void
+}
+
+function buildVaultShareHint(vault: 'senior' | 'junior', assetSymbol?: string): ReactNode {
+  const title = assetSymbol ? `Share of ${assetSymbol} amount` : 'Share of asset amount'
+  const description =
+    vault === 'senior'
+      ? 'Portion allocated to the Senior Vault collateral pool.'
+      : 'Portion allocated to the Junior Vault for grinder strategies.'
+
+  return (
+    <>
+      <span className="grai-field-info-tooltip-title">{title}</span>
+      <span className="grai-field-info-tooltip-section">{description}</span>
+    </>
+  )
+}
+
+function GraiDetailedPreviewVaultLabel({
+  label,
+  hint,
+}: {
+  label: string
+  hint: ReactNode
+}) {
+  return (
+    <span className="grai-detailed-preview-label-wrap">
+      <span className="grai-detailed-preview-label">{label}</span>
+      <GraiFieldInfoButton hint={hint} ariaLabel={`${label} information`} structured />
+    </span>
+  )
 }
 
 export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
@@ -109,10 +141,10 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
   )
 
   const mintedGraiLabel = !amount.trim()
-    ? '0.00'
+    ? '0.0'
     : isEstimateLoading
       ? '…'
-      : estimatedGrai ?? '0.00'
+      : estimatedGrai ?? '0.0'
 
   const isPending = actionView === 'mint' ? isMinting : isBurning
 
@@ -173,7 +205,7 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
           <div className="grai-action-result" aria-live="polite">
             {actionView === 'mint' ? (
               <>
-                <span className="grai-action-result-label">Will be minted:</span>
+                <span className="grai-action-result-label">You receive:</span>
                 <span className="grai-action-result-value">
                   {mintedGraiLabel}
                   <img src={assetUrl('logo.png')} alt="" width={18} height={18} loading="lazy" decoding="async" />
@@ -182,7 +214,10 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
               </>
             ) : (
               <>
-                <span className="grai-action-result-label">You'll receive:</span>
+                <span className="grai-action-result-label">
+                  <span className="grai-action-result-sigma" aria-hidden="true">Σ</span>
+                  You receive:
+                </span>
                 <span className="grai-action-result-value">{redeemUsdLabel}</span>
               </>
             )}
@@ -195,14 +230,17 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
               onClick={() => setIsPreviewOpen((open) => !open)}
             >
               <span>Detailed Preview</span>
-              <span className="grai-detailed-preview-chevron" aria-hidden="true">▾</span>
+              <GraiUiCaret className="grai-detailed-preview-chevron" />
             </button>
             <div className="grai-detailed-preview-collapse">
               <div className="grai-detailed-preview-body">
                 {actionView === 'mint' ? (
                   <>
                     <div className="grai-detailed-preview-row">
-                      <span className="grai-detailed-preview-label">Sr. Vault:</span>
+                      <GraiDetailedPreviewVaultLabel
+                        label="Sr. Vault:"
+                        hint={buildVaultShareHint('senior', selectedAsset?.symbol)}
+                      />
                       <span className="grai-detailed-preview-value">
                         + {isEstimateLoading ? '…' : seniorShareLabel ?? '0.0'}
                         {selectedAsset ? (
@@ -217,7 +255,10 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
                       </span>
                     </div>
                     <div className="grai-detailed-preview-row">
-                      <span className="grai-detailed-preview-label">Jr. Vault:</span>
+                      <GraiDetailedPreviewVaultLabel
+                        label="Jr. Vault:"
+                        hint={buildVaultShareHint('junior', selectedAsset?.symbol)}
+                      />
                       <span className="grai-detailed-preview-value">
                         + {isEstimateLoading ? '…' : juniorShareLabel ?? '0.0'}
                         {selectedAsset ? (
@@ -234,18 +275,18 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
                   </>
                 ) : isBurnEstimateLoading ? (
                   <div className="grai-detailed-preview-row">
-                    <span className="grai-detailed-preview-label">You'll receive:</span>
+                    <span className="grai-detailed-preview-label">You receive:</span>
                     <span className="grai-detailed-preview-value">…</span>
                   </div>
                 ) : burnOutputs.length === 0 ? (
                   <div className="grai-detailed-preview-row">
-                    <span className="grai-detailed-preview-label">You'll receive:</span>
+                    <span className="grai-detailed-preview-label">You receive:</span>
                     <span className="grai-detailed-preview-empty">Enter an amount to see the estimate</span>
                   </div>
                 ) : (
                   burnOutputs.map((output) => (
                     <div key={output.asset.mint} className="grai-detailed-preview-row">
-                      <span className="grai-detailed-preview-label">You'll receive:</span>
+                      <span className="grai-detailed-preview-label">You receive:</span>
                       <span className="grai-detailed-preview-value">
                         + {output.amountLabel}
                         <img

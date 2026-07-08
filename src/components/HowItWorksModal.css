@@ -28,7 +28,7 @@
   flex-direction: column;
   width: 100%;
   max-width: 1280px;
-  height: 100%;
+  height: fit-content;
   max-height: calc(100dvh - 3rem);
   box-sizing: border-box;
   border: 1px solid rgba(255, 105, 180, 0.25);
@@ -109,10 +109,14 @@
 }
 
 .hiw-modal-body {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.hiw-modal-body > .grai-token-flow {
+  width: 100%;
 }
 
 /* Replays the token flow step entrance animation inside the modal

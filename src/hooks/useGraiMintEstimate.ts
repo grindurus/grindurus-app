@@ -14,6 +14,13 @@ function formatMintShareLabel(raw: bigint, decimals: number): string {
   return label.includes('.') ? label : `${label}.0`
 }
 
+function formatMintGraiLabel(raw: bigint, decimals: number): string {
+  if (raw <= 0n) return '0.0'
+
+  const label = formatTokenBalance(raw, decimals, 1)
+  return label.includes('.') ? label : `${label}.0`
+}
+
 export function useGraiMintEstimate(
   assetMint: string | undefined,
   amountInput: string,
@@ -77,7 +84,7 @@ export function useGraiMintEstimate(
             setJuniorShareUsdRaw(0n)
             return
           }
-          setEstimatedGrai(formatTokenBalance(estimate.graiRaw, graiDecimals))
+          setEstimatedGrai(formatMintGraiLabel(estimate.graiRaw, graiDecimals))
           setSeniorShareLabel(formatMintShareLabel(estimate.seniorRaw, assetDecimals))
           setJuniorShareLabel(formatMintShareLabel(estimate.juniorRaw, assetDecimals))
           setSeniorShareUsdRaw(estimate.seniorUsdRaw)

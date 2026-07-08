@@ -103,23 +103,35 @@
   color: #ff9cac;
 }
 
-[data-theme="light"] .header-nav-link:hover:not(.is-disabled):not(.header-nav-info) {
+[data-theme="light"] .header-nav-link:hover:not(.is-disabled):not(.header-nav-info):not(.is-current) {
   color: #6d28d9;
 }
 
 .header-nav-link.is-current {
-  color: #ffc0cb;
+  color: #ff69b4;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
+.header-nav-link.is-current:hover,
+.header-nav-link.header-nav-info:hover {
+  color: #fff;
+}
+
 .header-nav-link.is-disabled {
+  color: #ff69b4;
+  opacity: 0.45;
   cursor: default;
 }
 
+[data-theme="light"] .header-nav-link.is-disabled {
+  color: #ff69b4;
+  opacity: 0.5;
+}
+
 .header-nav-info {
-  color: #ffc0cb;
+  color: #ff69b4;
   gap: 0.35rem;
   text-decoration: underline;
   text-decoration-style: dashed;
@@ -130,8 +142,9 @@
   text-decoration-style: solid;
 }
 
-[data-theme="light"] .header-nav-info:hover {
-  color: #6d28d9;
+[data-theme="light"] .header-nav-link.is-current:hover,
+[data-theme="light"] .header-nav-link.header-nav-info:hover {
+  color: #fff;
 }
 
 .header-nav-info-icon {
@@ -160,6 +173,43 @@
   --header-wallet-accent-border: #b0557a;
 }
 
+.header-nav-item--info {
+  display: flex;
+  align-items: flex-end;
+}
+
+.header-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--header-control-size, 40px);
+  height: var(--header-control-size, 40px);
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.header-menu-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.header-menu-btn:hover {
+  border-color: rgba(255, 105, 180, 0.55);
+  color: #ff69b4;
+  background: rgba(255, 105, 180, 0.08);
+}
+
+.header-mobile-nav,
+.header-mobile-backdrop {
+  display: none;
+}
+
 .my-grinders-btn {
   display: flex;
   align-items: center;
@@ -181,7 +231,7 @@
   box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .header {
     min-height: 0;
     --header-control-size: 40px;
@@ -191,26 +241,28 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.65rem;
     padding: 0.65rem 1rem;
     min-height: 0;
   }
 
   .header-left {
-    gap: 1rem;
+    gap: 0;
     flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-nav--desktop {
+    display: none;
   }
 
   .header-logo-text {
     font-size: 1.25rem;
   }
 
-  .header-nav {
-    gap: 0.85rem;
-  }
-
-  .header-nav-link {
-    font-size: 0.78rem;
+  .header-logo-img {
+    width: 34px;
+    height: 34px;
   }
 
   .header-actions {
@@ -222,11 +274,72 @@
     --header-wallet-cluster-gap: 0.5rem;
   }
 
+  .header-menu-btn {
+    display: inline-flex;
+  }
+
+  .header-mobile-nav {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 102;
+    padding: 0.35rem 1rem 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    background: inherit;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease,
+      visibility 0.2s ease;
+  }
+
+  .header-mobile-nav.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .header-mobile-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .header-mobile-nav-list .header-nav-link {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.7rem 0.35rem;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+  }
+
+  .header-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    top: 0;
+    z-index: 99;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+  }
+
   .my-grinders-btn {
     padding: 0.45rem 0.75rem;
     font-size: 0.78rem;
   }
-
 }
 
 @media (max-width: 480px) {
@@ -235,19 +348,24 @@
     gap: 0.45rem;
   }
 
-  .header-left {
-    gap: 0.65rem;
-  }
-
   .header-logo-text {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
 
-  .header-nav {
-    gap: 0.55rem;
+  .header-logo-img {
+    width: 30px;
+    height: 30px;
   }
 
-  .header-nav-link {
-    font-size: 0.7rem;
+  .header-mobile-nav {
+    padding-inline: 0.75rem;
+  }
+}
+
+@media (min-width: 901px) {
+  .header-menu-btn,
+  .header-mobile-nav,
+  .header-mobile-backdrop {
+    display: none !important;
   }
 }

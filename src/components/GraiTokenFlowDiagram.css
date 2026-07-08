@@ -5,6 +5,15 @@
   width: 100%;
 }
 
+.grai-token-flow.grai-token-flow--hover-preview {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step {
+  grid-column: 1 / -1;
+}
+
 .grai-token-flow-step {
   display: flex;
   flex-direction: column;

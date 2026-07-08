@@ -183,7 +183,7 @@ export function GraiGrindersSection() {
       >
         <span className="grai-grinders-section-toggle-inner">
           <span className="grai-grinders-section-toggle-label" aria-hidden="true">
-            VIEW ENDPOINTS
+            {isBossEndpointsOpen ? 'HIDE ENDPOINTS' : 'VIEW ENDPOINTS'}
           </span>
           <svg
             className="grai-donut-legend-toggle-icon"
@@ -474,7 +474,7 @@ export function GraiGrindersSection() {
                   <path d="M6 9l6 6 6-6" />
                 </svg>
                 <span className="grai-grinders-section-toggle-label" aria-hidden="true">
-                  VIEW GRINDERS
+                  {isGrindersTableHidden ? 'VIEW GRINDERS' : 'HIDE GRINDERS'}
                   <span className="grai-grinders-section-toggle-count">{grinderTotalCount}</span>
                 </span>
               </span>

@@ -1,26 +1,47 @@
-import { useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { Info } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { ConnectWalletButton } from './ConnectWalletButton'
 import { HeaderSettingsPopover } from './HeaderSettingsPopover'
-import { HowItWorksModal } from './HowItWorksModal'
 import { assetUrl } from '../utils/appPaths'
 import './Header.css'
 
 function Header() {
   const { pathname } = useLocation()
   const isBacktestActive = pathname.startsWith('/backtest')
-  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const mobileNavId = useId()
+
+  useEffect(() => {
+    setIsMobileNavOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!isMobileNavOpen) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMobileNavOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isMobileNavOpen])
 
   return (
-    <header className="header">
+    <header className={`header${isMobileNavOpen ? ' is-nav-open' : ''}`}>
       <div className="header-container">
         <div className="header-left">
-          <Link to="/" className="header-logo">
+          <Link to="/" className="header-logo" onClick={() => setIsMobileNavOpen(false)}>
             <img src={assetUrl('logo.png')} alt="" className="header-logo-img" />
             <span className="header-logo-text">GrindURUS</span>
           </Link>
-          <nav className="header-nav" aria-label="Product sections">
+          <nav className="header-nav header-nav--desktop" aria-label="Product sections">
             <ul className="header-nav-list">
               <li>
                 <span
@@ -38,17 +59,6 @@ function Header() {
                   GRAI
                 </NavLink>
               </li>
-              <li style={{ display: "flex", alignItems: "end" }}>
-                <button
-                  type="button"
-                  className="header-nav-link header-nav-info"
-                  onClick={() => setIsHowItWorksOpen(true)}
-                  aria-haspopup="dialog"
-                >
-                  <Info className="header-nav-info-icon" aria-hidden="true" />
-                  How it works?
-                </button>
-              </li>
             </ul>
           </nav>
         </div>
@@ -57,9 +67,55 @@ function Header() {
             <ConnectWalletButton />
             <HeaderSettingsPopover />
           </div>
+          <button
+            type="button"
+            className="header-menu-btn"
+            aria-expanded={isMobileNavOpen}
+            aria-controls={mobileNavId}
+            aria-label={isMobileNavOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setIsMobileNavOpen((open) => !open)}
+          >
+            {isMobileNavOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+          </button>
         </div>
       </div>
-      <HowItWorksModal isOpen={isHowItWorksOpen} onClose={() => setIsHowItWorksOpen(false)} />
+
+      <div
+        className={`header-mobile-nav${isMobileNavOpen ? ' is-open' : ''}`}
+        id={mobileNavId}
+        aria-hidden={!isMobileNavOpen}
+      >
+        <nav aria-label="Product sections">
+          <ul className="header-mobile-nav-list">
+            <li>
+              <span
+                className={`header-nav-link is-disabled${isBacktestActive ? ' is-current' : ''}`}
+                aria-disabled="true"
+              >
+                Backtest (soon)
+              </span>
+            </li>
+            <li>
+              <NavLink
+                to="/grai"
+                className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+                onClick={() => setIsMobileNavOpen(false)}
+              >
+                GRAI
+              </NavLink>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      {isMobileNavOpen ? (
+        <button
+          type="button"
+          className="header-mobile-backdrop"
+          aria-label="Close menu"
+          onClick={() => setIsMobileNavOpen(false)}
+        />
+      ) : null}
     </header>
   )
 }

@@ -98,7 +98,7 @@ export function GraiAmountInput({
       </div>
       <div className="grai-amount-input-footer">
         <span className={`grai-amount-input-usd${value.trim() ? '' : ' is-placeholder'}`} aria-live="polite">
-          ≈ {usdLabel}
+          {usdLabel}
         </span>
         <div className="grai-amount-preset-btns" aria-label="Amount presets">
           {PRESET_FRACTIONS.map((percent) => (
