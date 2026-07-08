@@ -146,8 +146,8 @@
   left: var(--header-settings-segment-padding);
   width: calc((100% - 2 * var(--header-settings-segment-padding) - var(--header-settings-segment-gap)) / 2);
   border-radius: 999px;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
+  background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+  box-shadow: 0 2px 8px rgba(255, 105, 180, 0.35);
   transform: translateX(0);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
@@ -183,7 +183,7 @@
 }
 
 .header-settings-segment:focus-visible {
-  outline: 2px solid #22c55e;
+  outline: 2px solid #ff69b4;
   outline-offset: 1px;
 }
 
@@ -227,6 +227,30 @@
 
 .header-settings-action-label {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+}
+
+.header-settings-action-name {
+  line-height: 1.2;
+}
+
+.header-settings-action-caip2 {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0;
+}
+
+.header-settings-action--disconnect .header-settings-action-label {
+  flex: 0 1 auto;
+  flex-direction: row;
+  align-items: center;
 }
 
 .header-settings-action-chevron {
@@ -239,10 +263,6 @@
   text-align: center;
   color: #f87171;
   border-color: var(--header-settings-disconnect-border);
-}
-
-.header-settings-action--disconnect .header-settings-action-label {
-  flex: 0 1 auto;
 }
 
 .header-settings-action--disconnect:hover {
@@ -284,6 +304,30 @@
 
 .header-settings-network-item.is-active {
   background: rgba(255, 105, 180, 0.14);
+}
+
+.header-settings-network-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-settings-network-name {
+  line-height: 1.2;
+}
+
+.header-settings-network-caip2 {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
+.header-settings-network-item.is-active .header-settings-network-caip2 {
+  color: rgba(255, 105, 180, 0.8);
 }
 
 .header-settings-network-item:focus-visible {

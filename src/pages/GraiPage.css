@@ -4370,7 +4370,8 @@
 .grai-action-content {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--grai-action-content-gap, 0.75rem);
+  --grai-action-content-gap: 0.75rem;
   --grai-wallet-slot-height: 2.4375rem;
 }
 
@@ -6085,6 +6086,32 @@
   line-height: 1.2;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.grai-action-submit {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.grai-action-submit .grai-mint-btn,
+.grai-action-submit .grai-burn-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.grai-action-submit:has(.grai-mint-btn:disabled),
+.grai-action-submit:has(.grai-burn-btn:disabled) {
+  opacity: 0.55;
+}
+
+.grai-action-submit:has(.grai-mint-btn:disabled) .grai-mint-btn,
+.grai-action-submit:has(.grai-burn-btn:disabled) .grai-burn-btn {
+  opacity: 1;
+  cursor: not-allowed;
 }
 
 .grai-mint-btn:hover:not(:disabled) {
@@ -8291,7 +8318,8 @@
 }
 
 .grai-action-card.grai-mint .grai-action-content {
-  gap: 1rem;
+  --grai-action-content-gap: 1rem;
+  gap: var(--grai-action-content-gap);
 }
 
 /* --- Mint / Redeem button-like tabs --- */
@@ -8556,12 +8584,65 @@
 
 /* --- "Will be minted / redeemed" row --- */
 
+.grai-action-result-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .grai-action-result {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0;
+}
+
+.grai-action-result-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.grai-action-result-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #ff69b4;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.grai-action-result-preview-toggle:hover,
+.grai-action-result-preview-toggle:focus-visible {
+  color: #ff9ed3;
+  background: rgba(255, 105, 180, 0.12);
+  outline: none;
+}
+
+[data-theme='light'] .grai-action-result-preview-toggle {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-action-result-preview-toggle:hover,
+[data-theme='light'] .grai-action-result-preview-toggle:focus-visible {
+  color: #ff69b4;
+}
+
+.grai-action-result-preview-toggle .grai-detailed-preview-chevron {
+  transform: rotate(-90deg);
+}
+
+.grai-action-result.is-preview-open .grai-action-result-preview-toggle .grai-detailed-preview-chevron {
+  transform: rotate(0deg);
 }
 
 .grai-action-result-label {
@@ -8598,18 +8679,256 @@
   border-radius: 50%;
 }
 
+.grai-action-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0;
+  overflow: visible;
+}
+
+.grai-action-metrics-labels {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  overflow: visible;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: visible;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap--start {
+  justify-self: start;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap--end {
+  justify-self: end;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap:has(.grai-field-info-wrap:hover),
+.grai-action-metrics-labels .grai-action-metric-label-wrap:has(.grai-field-info-wrap:focus-within),
+.grai-action-metrics-labels .grai-action-metric-label-wrap:has(.grai-field-info-wrap.is-open) {
+  position: relative;
+  z-index: 80;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-wrap.grai-action-metric-label-info {
+  flex-shrink: 0;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-btn {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: #ff69b4;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-btn:hover,
+.grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-btn:focus-visible {
+  color: #ff9ed3;
+}
+
+[data-theme='light'] .grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-btn {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-btn:hover,
+[data-theme='light'] .grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-btn:focus-visible {
+  color: #ff69b4;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-tooltip {
+  top: auto;
+  bottom: calc(100% + 10px);
+  transform: none;
+  z-index: 80;
+  width: min(20rem, calc(100cqi - 2rem));
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  padding: 0.6rem 0.75rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #fff;
+  border-color: rgba(255, 105, 180, 0.5);
+  background: rgba(18, 10, 26, 0.98);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 105, 180, 0.22);
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap--start .grai-field-info-tooltip {
+  left: 0;
+  right: auto;
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap--end .grai-field-info-tooltip {
+  left: auto;
+  right: 0;
+}
+
+[data-theme='light'] .grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-tooltip {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.99);
+  border-color: rgba(233, 30, 140, 0.35);
+  box-shadow:
+    0 12px 30px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(233, 30, 140, 0.12);
+}
+
+.grai-action-metrics-labels .grai-action-metric-label-wrap .grai-field-info-tooltip code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.grai-action-card:has(.grai-action-metric-label-wrap .grai-field-info-wrap:hover),
+.grai-action-card:has(.grai-action-metric-label-wrap .grai-field-info-wrap:focus-within),
+.grai-action-card:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open) {
+  overflow: visible;
+  position: relative;
+  z-index: 6;
+}
+
+.grai-action-content:has(.grai-action-metric-label-wrap .grai-field-info-wrap:hover),
+.grai-action-content:has(.grai-action-metric-label-wrap .grai-field-info-wrap:focus-within),
+.grai-action-content:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open) {
+  overflow: visible;
+}
+
+.grai-actions-block:has(.grai-action-metric-label-wrap .grai-field-info-wrap:hover),
+.grai-actions-block:has(.grai-action-metric-label-wrap .grai-field-info-wrap:focus-within),
+.grai-actions-block:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open),
+.grai-content-row:has(.grai-action-metric-label-wrap .grai-field-info-wrap:hover),
+.grai-content-row:has(.grai-action-metric-label-wrap .grai-field-info-wrap:focus-within),
+.grai-content-row:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open),
+.floating-token-bg-wrap:has(.grai-action-metric-label-wrap .grai-field-info-wrap:hover),
+.floating-token-bg-wrap:has(.grai-action-metric-label-wrap .grai-field-info-wrap:focus-within),
+.floating-token-bg-wrap:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open) {
+  overflow: visible;
+}
+
+.grai-action-metrics-arrow {
+  display: flex;
+  align-items: center;
+  min-width: 2.75rem;
+  height: 0.65rem;
+  color: rgba(255, 105, 180, 0.8);
+}
+
+.grai-action-metrics-arrow svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.grai-action-metrics-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.grai-action-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.grai-action-metric-label-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.grai-action-metric-label-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.grai-action-metric-value {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.grai-action-metric-value.is-yield {
+  text-align: right;
+  color: #ff69b4;
+}
+
 /* --- Detailed preview dropdown --- */
 
 .grai-detailed-preview {
-  border: 1px solid var(--border-color);
+  border: 1px solid transparent;
   border-radius: 14px;
   /* Same surface as .grai-amount-input */
   background: var(--bg-tertiary);
   overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  max-height: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    max-height 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.2s ease;
+}
+
+.grai-detailed-preview.is-open {
+  opacity: 1;
+  visibility: visible;
+  max-height: 14rem;
+  border-color: var(--border-color);
+  pointer-events: auto;
+  overflow: visible;
 }
 
 [data-theme='light'] .grai-detailed-preview {
   background: #ffffff;
+}
+
+.grai-detailed-preview--inline {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.grai-detailed-preview--inline.is-open {
+  max-height: 6rem;
+  border-color: transparent;
+  background: transparent;
+}
+
+[data-theme='light'] .grai-detailed-preview--inline,
+[data-theme='light'] .grai-detailed-preview--inline.is-open {
+  background: transparent;
+}
+
+.grai-detailed-preview--inline .grai-detailed-preview-body {
+  padding: 0;
+}
+
+.grai-detailed-preview--inline.is-open .grai-detailed-preview-collapse > .grai-detailed-preview-body {
+  padding-top: 0.3rem;
+  padding-bottom: 0;
 }
 
 .grai-detailed-preview-summary {
@@ -8631,10 +8950,6 @@
   text-align: left;
 }
 
-.grai-detailed-preview.is-open .grai-detailed-preview-chevron {
-  transform: rotate(180deg);
-}
-
 /* Smooth expand/collapse (same easing as the settings popup) */
 .grai-detailed-preview-collapse {
   display: grid;
@@ -8650,17 +8965,15 @@
   overflow: hidden;
   min-height: 0;
   /* Bottom padding must collapse too, otherwise it leaves dead space when closed */
+  padding-top: 0;
   padding-bottom: 0;
   opacity: 0;
   transform: scale(0.97) translateY(-6px);
   transition:
     opacity 0.2s ease,
     transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    padding-top 0.24s cubic-bezier(0.22, 1, 0.36, 1),
     padding-bottom 0.24s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.grai-detailed-preview.is-open {
-  overflow: visible;
 }
 
 .grai-detailed-preview.is-open .grai-detailed-preview-collapse {
@@ -8668,13 +8981,15 @@
 }
 
 .grai-detailed-preview.is-open .grai-detailed-preview-collapse > .grai-detailed-preview-body {
-  padding-bottom: 0.85rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.35rem;
   opacity: 1;
   transform: scale(1) translateY(0);
   overflow: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .grai-detailed-preview,
   .grai-detailed-preview-collapse,
   .grai-detailed-preview-collapse > .grai-detailed-preview-body,
   .grai-detailed-preview-chevron {
@@ -8685,7 +9000,7 @@
 .grai-detailed-preview-body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
   padding: 0 1rem;
 }
 
@@ -8696,10 +9011,37 @@
   gap: 0.75rem;
 }
 
+.grai-detailed-preview-row--value-only {
+  justify-content: flex-end;
+}
+
 .grai-detailed-preview-label-wrap {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.grai-detailed-preview-vault-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.grai-detailed-preview-vault-icon svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+}
+
+.grai-detailed-preview-vault-icon.is-senior {
+  color: var(--grai-accent-blue);
+}
+
+.grai-detailed-preview-vault-icon.is-junior {
+  color: #ff9ed3;
 }
 
 .grai-detailed-preview-label-wrap .grai-detailed-preview-label {
