@@ -1,12 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
+import { FALLBACK_GRAI_ASSETS, type GraiAsset, type GraiAssetIcon } from '../grai/knownMints'
 import { FloatingTokenBackground, STABLE_FLOATING_TOKENS } from '../components/FloatingTokenBackground'
 import { HowItWorksModal } from '../components/HowItWorksModal'
 import { GraiGrindersSection } from '../components/grai/GraiGrindersSection'
 import { GraiMintBurnPanel } from '../components/grai/GraiMintBurnPanel'
 import { GraiAssetsSection } from '../components/grai/GraiAssetsSection'
 import { GraiUiCaret } from '../components/grai/GraiUiCaret'
+import { useGraiAssets } from '../hooks/useGraiAssets'
 import { type GraiSection, isManageSectionHash } from '../utils/graiNavigation'
 import './GraiPage.css'
 
@@ -18,6 +20,121 @@ const HOVER_PREVIEW_MINT_STEP_IDS = ['mint', 'allocate', 'decision', 'swap', 'di
 const HOVER_PREVIEW_REDEEM_STEP_IDS = ['burn'] as const
 const HOVER_PREVIEW_CLOSE_DELAY_MS = 666
 const HOVER_PREVIEW_MIN_WIDTH = 1101
+const MINT_SUBTITLE_ROTATE_MS = 2400
+const MINT_SUBTITLE_STABLECOIN_SYMBOLS = new Set(['USDC', 'USDT', 'USD', 'DAI'])
+const MINT_SUBTITLE_FEATURED_SYMBOLS = ['ETH'] as const
+
+type MintSubtitleRotateEntry = {
+  label: string
+  icon?: GraiAssetIcon
+}
+
+function resolveMintSubtitleAsset(symbol: string, source: GraiAsset[]): MintSubtitleRotateEntry | null {
+  const normalized = symbol.toUpperCase()
+  const match = source.find((asset) => asset.symbol.toUpperCase() === normalized)
+  if (match) return { label: match.symbol, icon: match.icon }
+
+  const fallback = FALLBACK_GRAI_ASSETS.find((asset) => asset.symbol.toUpperCase() === normalized)
+  if (fallback) return { label: fallback.symbol, icon: fallback.icon }
+
+  return null
+}
+
+function buildMintSubtitleRotateEntries(source: GraiAsset[]): MintSubtitleRotateEntry[] {
+  const seen = new Set<string>()
+  const entries: MintSubtitleRotateEntry[] = [{ label: 'Assets' }]
+  seen.add('Assets')
+
+  for (const symbol of MINT_SUBTITLE_FEATURED_SYMBOLS) {
+    const featured = resolveMintSubtitleAsset(symbol, source)
+    if (!featured || seen.has(featured.label)) continue
+    seen.add(featured.label)
+    entries.push(featured)
+  }
+
+  for (const asset of source) {
+    if (!asset.symbol || seen.has(asset.symbol)) continue
+    if (MINT_SUBTITLE_STABLECOIN_SYMBOLS.has(asset.symbol.toUpperCase())) continue
+    seen.add(asset.symbol)
+    entries.push({ label: asset.symbol, icon: asset.icon })
+  }
+
+  return entries
+}
+
+function GraiMintSubtitleText() {
+  const { assets } = useGraiAssets()
+  const rotateEntries = useMemo(() => {
+    const source = assets.length > 0 ? assets : FALLBACK_GRAI_ASSETS
+    return buildMintSubtitleRotateEntries(source)
+  }, [assets])
+  const [entryIndex, setEntryIndex] = useState(0)
+  const currentEntry = rotateEntries[entryIndex] ?? { label: 'Assets' }
+  const innerRef = useRef<HTMLSpanElement>(null)
+  const [slotWidth, setSlotWidth] = useState<number | null>(null)
+  const [isWidthTransitionReady, setIsWidthTransitionReady] = useState(false)
+
+  const measureSlotWidth = useCallback(() => {
+    const el = innerRef.current
+    if (!el) return
+    setSlotWidth(el.scrollWidth)
+  }, [])
+
+  useLayoutEffect(() => {
+    measureSlotWidth()
+  }, [currentEntry.label, currentEntry.icon?.src, measureSlotWidth])
+
+  useLayoutEffect(() => {
+    if (slotWidth === null) return
+    const frame = window.requestAnimationFrame(() => {
+      setIsWidthTransitionReady(true)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [slotWidth])
+
+  useEffect(() => {
+    setEntryIndex(0)
+  }, [rotateEntries])
+
+  useEffect(() => {
+    if (rotateEntries.length <= 1) return undefined
+    const id = window.setInterval(() => {
+      setEntryIndex((current) => (current + 1) % rotateEntries.length)
+    }, MINT_SUBTITLE_ROTATE_MS)
+    return () => window.clearInterval(id)
+  }, [rotateEntries])
+
+  return (
+    <span className="grai-page-subtitle-text-line">
+      <span className="grai-page-subtitle-text-segment">Turn</span>
+      <span
+        className={`grai-page-subtitle-rotating-slot${isWidthTransitionReady ? ' is-width-ready' : ''}`}
+        style={slotWidth === null ? undefined : { width: `${slotWidth}px` }}
+        aria-live="polite"
+      >
+        <span
+          key={currentEntry.label}
+          ref={innerRef}
+          className="grai-page-subtitle-rotating-word-current"
+        >
+          {currentEntry.icon ? (
+            <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
+              <img
+                src={currentEntry.icon.src}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onLoad={measureSlotWidth}
+              />
+            </span>
+          ) : null}
+          <span className="grai-page-subtitle-rotating-word-label">{currentEntry.label}</span>
+        </span>
+      </span>
+      <span className="grai-page-subtitle-text-segment">Price Volatility into Yield</span>
+    </span>
+  )
+}
 
 function GraiPage() {
   const { clusterMismatch, evmChainMismatch, solanaCluster, chainKind, evm, hasStaticConfig, isConfigured, protocolError } = useGraiDeployment()
@@ -199,9 +316,7 @@ function GraiPage() {
               aria-expanded={isFlowPreviewAllowed ? isFlowPreviewOpen : undefined}
             >
               <span>
-                {actionView === 'mint'
-                  ? 'Turn Assets Price Volatility into Yield'
-                  : 'Redeem Anytime'}
+                {actionView === 'mint' ? <GraiMintSubtitleText /> : 'Redeem Anytime'}
               </span>
               {isFlowPreviewAllowed ? <GraiUiCaret className="grai-page-subtitle-caret" /> : null}
             </button>

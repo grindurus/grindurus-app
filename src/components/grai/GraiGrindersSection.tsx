@@ -157,12 +157,17 @@ export function GraiGrindersSection() {
   ) : (
     <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
   )
+  const compactToolbarNetworkAction = isGrinderNetworkConnected ? (
+    <WalletNetworkSelect variant="compact" ariaLabel="Select wallet network" />
+  ) : null
   const grindersSummaryFilterRow = isCompactGrindersLayout ? (
     <div className="grai-grinders-summary-filter-wrap grai-grinders-summary-filter-wrap--compact-row">
       {grindersNetworkFilterToggle}
-      <span className="grai-grinders-summary-toolbar-network">
-        <span className="grai-grinders-network-action">{grinderNetworkAction}</span>
-      </span>
+      {compactToolbarNetworkAction ? (
+        <span className="grai-grinders-summary-toolbar-network">
+          <span className="grai-grinders-network-action">{compactToolbarNetworkAction}</span>
+        </span>
+      ) : null}
     </div>
   ) : (
     <div className="grai-grinders-summary-filter-wrap">{grindersNetworkFilterToggle}</div>

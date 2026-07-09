@@ -24,7 +24,6 @@ import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
 import { GraiTransactionToast } from './GraiTransactionToast'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
-import { BALANCE_COLUMN_ICONS } from './graiPageIcons'
 import { GraiUiCaret } from './GraiUiCaret'
 
 type ActionView = 'mint' | 'burn'
@@ -79,35 +78,58 @@ function buildProjectedAnnualYieldHint(
   symbol?: string,
   metrics?: GraiAssetYieldMetrics | null,
 ): ReactNode {
-  const assetLabel = symbol ?? 'the selected asset'
   const volatilityLabel = metrics ? formatVolatilityPct(metrics.volatilityPct) : '—'
   const yieldLabel = metrics ? formatProjectedYieldPct(metrics.projectedAnnualYieldPct) : '—'
 
   return (
     <>
-      <span className="grai-field-info-tooltip-title">est. APY</span>
+      <span className="grai-field-info-tooltip-title">Expected APY</span>
       <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">Formula</span>
-        <code>max(baseline, capture_rate × annualized_volatility)</code>
-        <span className="grai-field-info-tooltip-formula-note">
-          Annualized volatility for {assetLabel} is {volatilityLabel}. Capture rate is calibrated per
-          asset from grinder backtests. Current projection: {yieldLabel}.
+        <span className="grai-field-info-tooltip-section-label">How we estimate</span>
+        Grinder backtests on historical prices, actual state with ML-adjusted forecast. Higher
+        volatility usually means more swing-trading opportunity.
+      </span>
+      <span className="grai-field-info-tooltip-section">
+        <span className="grai-field-info-tooltip-section-label">
+          {symbol ? `For ${symbol}` : 'For selected asset'}
+        </span>
+        <span className="grai-field-info-tooltip-flow">
+          <span className="grai-field-info-tooltip-flow-item">
+            <span className="grai-field-info-tooltip-flow-label">Price Volatility</span>
+            <span className="grai-field-info-tooltip-flow-value">{volatilityLabel}</span>
+          </span>
+          <span className="grai-field-info-tooltip-flow-arrow">
+            <svg viewBox="0 0 120 8" preserveAspectRatio="none" fill="none">
+              <path
+                d="M1 4 H106"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeDasharray="4 3"
+                strokeLinecap="round"
+              />
+              <path
+                d="M106 1.5 L114 4 L106 6.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <span className="grai-field-info-tooltip-flow-item">
+            <span className="grai-field-info-tooltip-flow-label">Expected APY</span>
+            <span className="grai-field-info-tooltip-flow-value is-yield">{yieldLabel}</span>
+          </span>
         </span>
       </span>
-      <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">What it means</span>
-        Junior vault grinders harvest price swings. Higher volatility usually creates more trading
-        opportunity and a higher projected annual return to GRAI holders.
-      </span>
       <p className="grai-field-info-tooltip-note">
-        Indicative estimate only. Actual returns depend on market conditions and grinder uptime.
+        Indicative only — not guaranteed. Actual returns can be higher or lower.
       </p>
     </>
   )
 }
 
 function GraiDetailedPreviewVaultLabel({
-  vault,
   label,
   hint,
 }: {
@@ -117,11 +139,8 @@ function GraiDetailedPreviewVaultLabel({
 }) {
   return (
     <span className="grai-detailed-preview-label-wrap">
-      <span className={`grai-detailed-preview-vault-icon is-${vault}`} aria-hidden="true">
-        {vault === 'senior' ? BALANCE_COLUMN_ICONS.seniorVault : BALANCE_COLUMN_ICONS.juniorVault}
-      </span>
-      <span className="grai-detailed-preview-label">{label}</span>
       <GraiFieldInfoButton hint={hint} ariaLabel={`${label} information`} structured />
+      <span className="grai-detailed-preview-label">{label}</span>
     </span>
   )
 }
@@ -162,7 +181,17 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
 
   const [amount, setAmount] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<GraiAmountAsset | null>(null)
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [previewOpenByAction, setPreviewOpenByAction] = useState<Record<ActionView, boolean>>({
+    mint: false,
+    burn: false,
+  })
+  const isPreviewOpen = previewOpenByAction[actionView]
+  const togglePreview = () => {
+    setPreviewOpenByAction((current) => ({
+      ...current,
+      [actionView]: !current[actionView],
+    }))
+  }
 
   const graiMintAddress =
     chainKind === 'evm' && evm
@@ -317,7 +346,7 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
                 <>
                   <GraiActionResultLabel
                     isPreviewOpen={isPreviewOpen}
-                    onTogglePreview={() => setIsPreviewOpen((open) => !open)}
+                    onTogglePreview={togglePreview}
                   >
                     You receive:
                   </GraiActionResultLabel>
@@ -331,7 +360,7 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
                 <>
                   <GraiActionResultLabel
                     isPreviewOpen={isPreviewOpen}
-                    onTogglePreview={() => setIsPreviewOpen((open) => !open)}
+                    onTogglePreview={togglePreview}
                   >
                     <span className="grai-action-result-sigma" aria-hidden="true">Σ</span>
                     You receive:
@@ -417,63 +446,54 @@ export function GraiMintBurnPanel({ actionView, onActionViewChange }: Props) {
           </div>
           {actionView === 'mint' ? (
             <div className="grai-action-metrics" aria-live="polite">
-              <div className="grai-action-metrics-labels">
-                <span className="grai-action-metric-label-wrap grai-action-metric-label-wrap--start">
-                  {selectedAsset?.icon ? (
-                    <span className="grai-action-metric-label-icon" aria-hidden="true">
-                      <img
-                        src={selectedAsset.icon}
-                        alt=""
-                        width={18}
-                        height={18}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </span>
-                  ) : null}
-                  <span className="grai-action-metric-label">
-                    {selectedAsset?.symbol ? `${selectedAsset.symbol} Volatility` : 'Asset Volatility'}
-                  </span>
+              <div className="grai-action-metric-row">
+                <span className="grai-action-metric-label-wrap">
                   <GraiFieldInfoButton
                     className="grai-action-metric-label-info"
                     hint={assetVolatilityHint}
                     ariaLabel="What realized volatility means"
                     structured
                   />
+                  <span className="grai-action-metric-label">
+                    {selectedAsset?.symbol ? (
+                      <>
+                        {'Annualized Volatility '}
+                        <span className="grai-action-metric-ticker">
+                          {selectedAsset.icon ? (
+                            <span className="grai-action-metric-label-icon" aria-hidden="true">
+                              <img
+                                src={selectedAsset.icon}
+                                alt=""
+                                width={18}
+                                height={18}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            </span>
+                          ) : null}
+                          <span className="grai-action-metric-ticker-symbol">{selectedAsset.symbol}</span>
+                        </span>
+                      </>
+                    ) : (
+                      'Asset Annualized Volatility'
+                    )}
+                  </span>
                 </span>
-                <span className="grai-action-metrics-arrow" aria-hidden="true">
-                  <svg viewBox="0 0 120 8" preserveAspectRatio="none" fill="none">
-                    <path
-                      d="M1 4 H106"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeDasharray="4 3"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M106 1.5 L114 4 L106 6.5"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                <span className="grai-action-metric-value">
+                  {assetYieldMetrics
+                    ? formatVolatilityPct(assetYieldMetrics.volatilityPct)
+                    : '—'}
                 </span>
-                <span className="grai-action-metric-label-wrap grai-action-metric-label-wrap--end">
-                  <span className="grai-action-metric-label">est. APY</span>
+              </div>
+              <div className="grai-action-metric-row">
+                <span className="grai-action-metric-label-wrap">
                   <GraiFieldInfoButton
                     className="grai-action-metric-label-info"
                     hint={projectedAnnualYieldHint}
-                    ariaLabel="How estimated APY is calculated"
+                    ariaLabel="About expected APY"
                     structured
                   />
-                </span>
-              </div>
-              <div className="grai-action-metrics-values">
-                <span className="grai-action-metric-value">
-                  {assetYieldMetrics
-                    ? `Annually ${formatVolatilityPct(assetYieldMetrics.volatilityPct)}`
-                    : '—'}
+                  <span className="grai-action-metric-label">Expected APY</span>
                 </span>
                 <span className="grai-action-metric-value is-yield">
                   {assetYieldMetrics
