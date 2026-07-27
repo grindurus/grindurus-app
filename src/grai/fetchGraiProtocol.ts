@@ -8,33 +8,59 @@ export type GraiProtocolSnapshot = {
   programId: PublicKey
   mintSupply: { raw: bigint; decimals: number }
   authority: PublicKey
+  /** @deprecated Prefer `treasury`. */
   treasuryWallet: PublicKey
+  treasury: PublicKey
+  grinders: PublicKey
+  settlementAsset: PublicKey
   totalValue: bigint
   assetMints: PublicKey[]
 }
 
 export type GraiStateFixedFields = {
   authority: PublicKey
+  /** @deprecated Prefer `treasury`. */
   treasuryWallet: PublicKey
+  treasury: PublicKey
+  grinders: PublicKey
+  settlementAsset: PublicKey
 }
 
+/**
+ * New GraiState layout (after 8-byte discriminator):
+ * authority(32) treasury(32) grinders(32) settlement_asset(32) total_value(16) …
+ * then fixed fields, then asset_mints vec, voters vec, bump.
+ */
 function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields {
+  const authority = new PublicKey(data.subarray(8, 40))
+  const treasury = new PublicKey(data.subarray(40, 72))
+  const grinders = new PublicKey(data.subarray(72, 104))
+  const settlementAsset = new PublicKey(data.subarray(104, 136))
   return {
-    authority: new PublicKey(data.subarray(8, 40)),
-    treasuryWallet: new PublicKey(data.subarray(56, 88)),
+    authority,
+    treasury,
+    treasuryWallet: treasury,
+    grinders,
+    settlementAsset,
   }
 }
 
 function decodeGraiStateTotalValue(data: Buffer): bigint {
   let value = 0n
   for (let i = 0; i < 16; i += 1) {
-    value |= BigInt(data[40 + i]!) << BigInt(i * 8)
+    value |= BigInt(data[136 + i]!) << BigInt(i * 8)
   }
   return value
 }
 
+/**
+ * asset_mints vec starts after fixed fields:
+ * disc(8) + authority+treasury+grinders+settlement(128) + total_value(16)
+ * + total_voted(8) + reward_per_vote(16) + pending_vote_rewards(8)
+ * + liquidation(1) + liquidation_at(8) + Config(18) = 8+128+16+8+16+8+1+8+18 = 211
+ */
 function decodeGraiStateAssetMints(data: Buffer): PublicKey[] {
-  let offset = 8 + 32 + 16 + 32
+  let offset = 8 + 32 + 32 + 32 + 32 + 16 + 8 + 16 + 8 + 1 + 8 + 18
   const assetCount = data.readUInt32LE(offset)
   offset += 4
 
@@ -94,7 +120,7 @@ export async function fetchGraiProtocol(
     }
 
     const stateData = Buffer.from(stateInfo.data)
-    const { authority, treasuryWallet } = decodeGraiStateFixedFields(stateData)
+    const fixed = decodeGraiStateFixedFields(stateData)
 
     const snapshot: GraiProtocolSnapshot = {
       graiMint,
@@ -104,8 +130,11 @@ export async function fetchGraiProtocol(
         raw: decodeMintSupply(mintData),
         decimals: decodeMintDecimals(mintData),
       },
-      authority,
-      treasuryWallet,
+      authority: fixed.authority,
+      treasury: fixed.treasury,
+      treasuryWallet: fixed.treasury,
+      grinders: fixed.grinders,
+      settlementAsset: fixed.settlementAsset,
       totalValue: decodeGraiStateTotalValue(stateData),
       assetMints: decodeGraiStateAssetMints(stateData),
     }

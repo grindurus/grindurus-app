@@ -7,24 +7,30 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
+import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { NATIVE_MINT } from './knownMints'
-import { fetchMintDecimals, fetchSeniorVaultPriceFeed, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
+import {
+  fetchAssetConfigPriceFeed,
+  fetchMintDecimals,
+  parseTokenAmount,
+  confirmSignatureViaHttp,
+} from './onchain'
+import { resolveSolanaGrindersProgramId } from './solanaAllocateCustody'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  assetConfigPda,
   getAssociatedTokenAddress,
-  juniorVaultAtaPda,
-  seniorVaultAtaPda,
-  seniorVaultPda,
+  grindersStatePda,
   TOKEN_PROGRAM_ID,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
 
-const MINT_DISCRIMINATOR = Buffer.from([51, 57, 225, 47, 182, 146, 137, 166])
-const MINT_SOL_DISCRIMINATOR = Buffer.from([150, 224, 6, 12, 74, 224, 40, 133])
+const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182])
+const DEPOSIT_SOL_DISCRIMINATOR = Buffer.from([108, 81, 78, 117, 125, 155, 56, 200])
 
-function encodeMintInstructionData(amount: bigint, isSol: boolean): Buffer {
+function encodeDepositInstructionData(amount: bigint, isSol: boolean): Buffer {
   const data = Buffer.alloc(16)
-  ;(isSol ? MINT_SOL_DISCRIMINATOR : MINT_DISCRIMINATOR).copy(data, 0)
+  ;(isSol ? DEPOSIT_SOL_DISCRIMINATOR : DEPOSIT_DISCRIMINATOR).copy(data, 0)
   data.writeBigUInt64LE(amount, 8)
   return data
 }
@@ -37,6 +43,7 @@ export type BuildMintTransactionParams = {
   config: GraiSolanaRuntime
 }
 
+/** Builds a `deposit` / `deposit_sol` transaction (legacy name kept for app hooks). */
 export async function buildMintTransaction({
   minter,
   assetMint,
@@ -51,49 +58,63 @@ export async function buildMintTransaction({
   const programId = config.programId
   const isSol = assetMint.toBase58() === NATIVE_MINT
   const graiState = graiStatePda(programId)
-  const seniorVault = seniorVaultPda(assetMint, programId)
-  const seniorVaultAta = seniorVaultAtaPda(assetMint, programId)
-  const juniorVaultAta = juniorVaultAtaPda(assetMint, programId)
-  const priceFeed = await fetchSeniorVaultPriceFeed(connection, seniorVault)
-  const minterGraiAta = getAssociatedTokenAddress(config.graiMint, minter)
-  const minterAssetAta = getAssociatedTokenAddress(assetMint, minter)
+  const protocol = await fetchGraiProtocol(connection, config.graiMint)
+  const grindersProgram = resolveSolanaGrindersProgramId(config.cluster)
+  const grindersState = protocol.grinders.equals(PublicKey.default)
+    ? grindersStatePda(grindersProgram)
+    : protocol.grinders
+  const assetConfig = assetConfigPda(assetMint, programId)
+  const priceFeed = await fetchAssetConfigPriceFeed(connection, assetConfig)
+  const depositorGraiAta = getAssociatedTokenAddress(config.graiMint, minter)
+  const depositorAssetAta = getAssociatedTokenAddress(assetMint, minter)
+  const grindersAta = getAssociatedTokenAddress(assetMint, grindersState)
 
-  const mintIx = new TransactionInstruction({
+  const depositIx = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: minter, isSigner: true, isWritable: true },
       { pubkey: graiState, isSigner: false, isWritable: true },
       { pubkey: assetMint, isSigner: false, isWritable: false },
       { pubkey: config.graiMint, isSigner: false, isWritable: true },
+      { pubkey: assetConfig, isSigner: false, isWritable: false },
       { pubkey: priceFeed, isSigner: false, isWritable: false },
-      { pubkey: seniorVault, isSigner: false, isWritable: true },
-      { pubkey: seniorVaultAta, isSigner: false, isWritable: true },
-      { pubkey: juniorVaultAta, isSigner: false, isWritable: true },
-      { pubkey: minterAssetAta, isSigner: false, isWritable: true },
-      { pubkey: minterGraiAta, isSigner: false, isWritable: true },
+      { pubkey: grindersState, isSigner: false, isWritable: false },
+      { pubkey: depositorAssetAta, isSigner: false, isWritable: true },
+      { pubkey: grindersAta, isSigner: false, isWritable: true },
+      { pubkey: depositorGraiAta, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: encodeMintInstructionData(amount, isSol),
+    data: encodeDepositInstructionData(amount, isSol),
   })
 
   const instructions: TransactionInstruction[] = []
 
   if (!isSol) {
-    const minterAssetAtaInfo = await connection.getAccountInfo(minterAssetAta)
-    if (!minterAssetAtaInfo) {
+    const depositorAssetAtaInfo = await connection.getAccountInfo(depositorAssetAta)
+    if (!depositorAssetAtaInfo) {
       instructions.push(
-        createAssociatedTokenAccountIdempotentInstruction(minter, minterAssetAta, minter, assetMint),
+        createAssociatedTokenAccountIdempotentInstruction(
+          minter,
+          depositorAssetAta,
+          minter,
+          assetMint,
+        ),
       )
     }
   } else {
     instructions.push(
-      createAssociatedTokenAccountIdempotentInstruction(minter, minterAssetAta, minter, assetMint),
+      createAssociatedTokenAccountIdempotentInstruction(
+        minter,
+        depositorAssetAta,
+        minter,
+        assetMint,
+      ),
     )
   }
 
-  instructions.push(mintIx)
+  instructions.push(depositIx)
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   const transaction = new Transaction({
@@ -134,3 +155,6 @@ export async function executeMint({
   await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }
+
+export const buildDepositTransaction = buildMintTransaction
+export const executeDeposit = executeMint

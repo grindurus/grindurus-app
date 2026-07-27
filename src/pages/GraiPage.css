@@ -1131,7 +1131,13 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   width: 100%;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.grai-content-row .grai-page-meta {
+  margin: 0 0 0.75rem;
 }
 
 .grai-page-network-warning {
@@ -1237,138 +1243,9 @@
   box-sizing: border-box;
 }
 
-.grai-flow-hover-preview {
-  position: absolute;
-  top: 3.5rem;
-  left: auto;
-  right: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  width: min(22rem, calc((100% - 33.333%) / 2 - 0.5rem));
-  max-height: calc(100% - 4rem);
-  overflow: auto;
-  padding: 0.15rem 0.35rem 0.35rem 0;
-  box-sizing: border-box;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateX(10px);
-  transition:
-    opacity 0.22s ease,
-    transform 0.22s ease,
-    visibility 0.22s ease;
-}
-
-.grai-flow-hover-preview.is-open {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateX(0);
-}
-
-.grai-flow-hover-preview-see-all {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  margin: 0 0 0.55rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #ff69b4;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-decoration: underline;
-  text-decoration-style: dashed;
-  text-underline-offset: 0.2em;
-  cursor: pointer;
-  transition: color 0.2s ease, text-decoration-style 0.2s ease;
-}
-
-.grai-flow-hover-preview-see-all:hover,
-.grai-flow-hover-preview-see-all:focus-visible {
-  color: #ff9ed3;
-  text-decoration-style: solid;
-  outline: none;
-}
-
-[data-theme='light'] .grai-flow-hover-preview-see-all {
-  color: #e91e8c;
-}
-
-[data-theme='light'] .grai-flow-hover-preview-see-all:hover,
-[data-theme='light'] .grai-flow-hover-preview-see-all:focus-visible {
-  color: #ff69b4;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.65rem;
-  width: 100%;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step {
-  grid-column: 1 / -1;
-  width: 100%;
-  opacity: 1;
-  transform: none;
-  padding: 0.5rem 0.6rem 0.55rem;
-  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  animation: grai-token-flow-step-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step:nth-child(1) {
-  animation-delay: 0.04s;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step:nth-child(2) {
-  animation-delay: 0.1s;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step:nth-child(3) {
-  animation-delay: 0.16s;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step:nth-child(4) {
-  animation-delay: 0.22s;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step:nth-child(5) {
-  animation-delay: 0.28s;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step:nth-child(6) {
-  animation-delay: 0.34s;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-step-desc {
-  font-size: 0.72rem;
-}
-
-.grai-token-flow.grai-token-flow--hover-preview .grai-token-flow-canvas {
-  height: 118px !important;
-}
-
 .grai-content-row .grai-actions-block {
   position: relative;
   z-index: 1;
-}
-
-@media (max-width: 1100px) {
-  .grai-flow-hover-preview,
-  .grai-flow-hover-preview.is-open {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    opacity: 0 !important;
-  }
 }
 
 .grai-assets-chart-card {
@@ -1568,7 +1445,7 @@
 
 .grai-bottom-row {
   width: 100%;
-  margin: 0;
+  margin: 1.25rem 0 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.35rem;
@@ -1613,6 +1490,7 @@
 
 .grai-grinders-summary-toggles-row {
   display: flex;
+  flex-direction: row;
   align-items: stretch;
   justify-content: flex-start;
   width: 100%;
@@ -1638,11 +1516,20 @@
   overflow: hidden;
 }
 
-.grai-grinders-summary-toggles-row .grai-grinders-show-all-toggle-wrap,
+.grai-grinders-summary-toggles-row .grai-grinders-show-all-toggle-wrap {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 0;
+}
+
 .grai-grinders-summary-toggles-row .grai-grinders-endpoints-toggle-wrap {
-  flex: 0 0 50%;
-  width: 50%;
-  max-width: 50%;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: none;
   min-width: 0;
   margin-top: 0;
 }
@@ -1687,8 +1574,8 @@
 
 .grai-grinders-summary-filter-wrap--compact-row .grai-grinders-filter-toggle {
   align-self: center;
-  height: var(--grai-grinders-summary-filter-row-height);
-  min-height: var(--grai-grinders-summary-filter-row-height);
+  height: auto;
+  min-height: 0;
 }
 
 .grai-grinders-summary-filter-wrap--compact-row .grai-grinders-summary-toolbar-network,
@@ -1767,35 +1654,36 @@
 
 .grai-grinders-summary-toolbar .grai-grinders-filter-toggle-stack,
 .grai-grinders-summary-filter-wrap .grai-grinders-filter-toggle-stack {
-  height: var(--grai-grinders-summary-filter-row-height);
-  min-height: var(--grai-grinders-summary-filter-row-height);
-  gap: 0.6rem;
+  height: auto;
+  min-height: 0;
+  gap: 0.18rem;
 }
 
 .grai-grinders-summary-toolbar .grai-grinders-filter-toggle-caption,
 .grai-grinders-summary-toolbar .grai-grinders-filter-toggle-caption--network,
 .grai-grinders-summary-filter-wrap .grai-grinders-filter-toggle-caption,
 .grai-grinders-summary-filter-wrap .grai-grinders-filter-toggle-caption--network {
-  font-size: calc(var(--grai-grinders-summary-filter-row-height) * 0.42);
+  font-size: 0.42rem;
   letter-spacing: 0.05em;
+  text-align: center;
 }
 
 .grai-grinders-summary-toolbar .grai-grinders-filter-toggle-track,
 .grai-grinders-summary-filter-wrap .grai-grinders-filter-toggle-track {
-  width: 3.35rem;
-  height: calc(var(--grai-grinders-summary-filter-row-height) * 0.72);
+  width: 2.45rem;
+  height: 1.05rem;
 }
 
 .grai-grinders-summary-toolbar .grai-grinders-filter-toggle-thumb,
 .grai-grinders-summary-filter-wrap .grai-grinders-filter-toggle-thumb {
-  width: calc(var(--grai-grinders-summary-filter-row-height) * 0.5);
-  height: calc(var(--grai-grinders-summary-filter-row-height) * 0.5);
+  width: 0.68rem;
+  height: 0.68rem;
   left: 0.16rem;
 }
 
 .grai-grinders-summary-toolbar .grai-grinders-filter-toggle.is-active .grai-grinders-filter-toggle-thumb,
 .grai-grinders-summary-filter-wrap .grai-grinders-filter-toggle.is-active .grai-grinders-filter-toggle-thumb {
-  left: calc(100% - 0.16rem - (var(--grai-grinders-summary-filter-row-height) * 0.5));
+  left: calc(100% - 0.16rem - 0.68rem);
 }
 
 .grai-grinders-summary-shell .grai-boss-endpoints-panel.is-open {
@@ -1805,7 +1693,7 @@
 
 .grai-grinders-summary-table-row:has(.grai-grinders-table-panel.is-open) + .grai-grinders-summary-toggles-row .grai-grinders-show-all-toggle,
 .grai-grinders-summary-table-row:has(.grai-grinders-table-panel.is-open) + .grai-grinders-summary-toggles-row .grai-grinders-endpoints-toggle {
-  border-top: 0;
+  border-top: 1px solid var(--border-color);
 }
 
 .grai-grinders-summary-table-row:has(.grai-grinders-table-panel.is-open)
@@ -1890,16 +1778,22 @@
   justify-content: flex-start;
   text-align: left;
   min-width: 0;
+  max-width: 100%;
   gap: 0.2rem;
+  overflow: hidden;
 }
 
 .grai-grinders-row--summary .grai-grinders-group-title.is-network.is-stacked .wallet-network-select.is-grai-compact {
   width: auto;
-  align-self: flex-start;
+  min-width: 0;
+  max-width: 100%;
+  align-self: stretch;
 }
 
 .grai-grinders-row--summary .grai-grinders-group-title.is-network.is-stacked .wallet-network-select.is-grai-compact .wallet-network-select-btn.grai-grinders-network-select-btn {
-  width: auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   justify-content: flex-start;
 }
 
@@ -2156,11 +2050,24 @@
   min-height: var(--grai-grinders-summary-value-row-height);
   height: var(--grai-grinders-summary-value-row-height);
   align-items: center;
-  gap: 0.08rem;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-network-action {
   margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-network-action,
@@ -2169,6 +2076,112 @@
   min-height: var(--grai-grinders-summary-value-row-height);
   height: var(--grai-grinders-summary-value-row-height);
   box-sizing: border-box;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-network-action:has(.grai-grinders-filter-toggle) {
+  height: auto;
+  min-height: var(--grai-grinders-summary-value-row-height);
+  align-self: stretch;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle {
+  height: auto;
+  min-height: 0;
+  width: auto;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  align-self: center;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .wallet-network-select-btn.grai-grinders-network-select-btn {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+  align-items: center;
+  overflow: hidden;
+  padding-right: 0.15rem;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .wallet-network-select-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  gap: 0.28rem;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .network-icon-svg {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .network-icon-svg img,
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .network-logo-img--ethereum {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  clip-path: none;
+  transform: none;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .grai-grinders-network-select-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.15rem;
+  line-height: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .wallet-network-select-arrow {
+  display: none;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-stack {
+  height: auto;
+  min-height: 0;
+  gap: 0.18rem;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-caption,
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-caption--network {
+  font-size: 0.42rem;
+  text-align: center;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-track {
+  width: 2.45rem;
+  height: 1.05rem;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-thumb {
+  width: 0.68rem;
+  height: 0.68rem;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle.is-active .grai-grinders-filter-toggle-thumb {
+  left: calc(100% - 0.16rem - 0.68rem);
 }
 
 .grai-grinders-row--summary .grai-grinders-group-general-top {
@@ -2400,9 +2413,10 @@
 
 .grai-grinders-filter-toggle-stack {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.2rem;
 }
 
 .grai-grinders-filter-toggle-caption {
@@ -2490,6 +2504,7 @@
 }
 
 .grai-grinders-row--summary > span + span {
+  border-left: none;
   padding-left: var(--grai-grinders-cell-pad);
 }
 
@@ -2667,7 +2682,7 @@
 }
 
 .grai-grinders-group-title.is-uptime .grai-grinders-group-title-icon {
-  color: var(--grai-accent-blue);
+  color: #ff69b4;
 }
 
 .grai-grinders-group-title.is-uptime {
@@ -2839,7 +2854,7 @@
 }
 
 [data-theme='light'] .grai-grinders-group-title.is-uptime .grai-grinders-group-title-icon {
-  color: var(--grai-accent-blue);
+  color: #ff1493;
 }
 
 .grai-grinders-group-title.is-yield .grai-grinders-group-title-label {
@@ -3284,8 +3299,7 @@
 }
 
 .grai-actions-block .grai-page-subtitle.is-clickable:hover .grai-page-subtitle-caret,
-.grai-actions-block .grai-page-subtitle.is-clickable:focus-visible .grai-page-subtitle-caret,
-.grai-content-row.is-flow-preview-open .grai-page-subtitle-caret {
+.grai-actions-block .grai-page-subtitle.is-clickable:focus-visible .grai-page-subtitle-caret {
   color: #ff9ed3;
 }
 
@@ -3313,8 +3327,103 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0;
   width: 100%;
+}
+
+/* Stack subtitle ↔ escrow tabs in one slot so amount input never shifts */
+.grai-page-subtitle-head {
+  --grai-subtitle-head-height: 2.5rem;
+  position: relative;
+  display: grid;
+  align-items: center;
+  width: 100%;
+  min-height: var(--grai-subtitle-head-height);
+}
+
+.grai-page-subtitle-head > .grai-page-subtitle {
+  grid-area: 1 / 1;
+  width: 100%;
+  min-height: var(--grai-subtitle-head-height);
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease,
+    visibility 0.28s ease;
+}
+
+.grai-page-subtitle-head > .grai-action-switch--escrow-below {
+  grid-area: 1 / 1;
+  align-self: stretch;
+  width: 100%;
+  height: 100%;
+  min-height: var(--grai-subtitle-head-height);
+  box-sizing: border-box;
+  margin: 0;
+  border-radius: 10px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(0.3rem);
+  /* Out of flow when hidden so it cannot expand the slot past subtitle height */
+  position: absolute;
+  inset: 0;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease,
+    visibility 0.28s ease;
+}
+
+.grai-page-subtitle-head.is-escrow > .grai-page-subtitle {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-0.3rem);
+}
+
+.grai-page-subtitle-head.is-escrow > .grai-action-switch--escrow-below {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-page-subtitle-head > .grai-page-subtitle,
+  .grai-page-subtitle-head > .grai-action-switch--escrow-below {
+    transition: none;
+    transform: none;
+  }
+}
+
+.grai-page-subtitle-head > .grai-action-switch--escrow-below .grai-action-switch-btn {
+  height: 100%;
+  min-height: 0;
+  padding: 0 0.55rem;
+  font-size: clamp(0.95rem, 4.2cqi, 1.15rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
+.grai-page-subtitle-head > .grai-action-switch--escrow-below .grai-action-switch-btn.is-lock {
+  border-radius: 9px 0 0 9px;
+}
+
+.grai-page-subtitle-head > .grai-action-switch--escrow-below .grai-action-switch-btn.is-unlock,
+.grai-page-subtitle-head > .grai-action-switch--escrow-below .grai-action-switch-btn.is-share {
+  border-radius: 0 9px 9px 0;
+}
+
+.grai-page-subtitle-head > .grai-action-switch--escrow-below::after {
+  border-radius: 0 0 0 9px;
+}
+
+.grai-page-subtitle-head > .grai-action-switch--escrow-below.is-unlock-active::after,
+.grai-page-subtitle-head > .grai-action-switch--escrow-below.is-share-active::after {
+  border-radius: 0 0 9px 0;
 }
 
 .grai-page-how-it-works-hint {
@@ -3623,7 +3732,7 @@
 }
 
 .grai-assets-split > .grai-assets-composition-block,
-.grai-assets-split > #grai-manage-section,
+.grai-assets-split > .grai-liquidation-actions,
 .grai-assets-split > .grai-manage-protocol-info-block,
 .grai-assets-split > .grai-manage-feedback.is-error {
   grid-column: 1 / -1;
@@ -3829,22 +3938,52 @@
 .grai-donut-legend-toggle.grai-grinders-endpoints-toggle {
   border-radius: 0 0 8px 0;
   border-bottom: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
 }
 
 .grai-donut-legend-toggle.grai-grinders-show-all-toggle {
   border-radius: 0 0 0 8px;
   border-right: 0;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .grai-grinders-summary-toggles-row .grai-donut-legend-toggle.grai-grinders-endpoints-toggle {
+  width: 2.125rem;
+  min-width: 2.125rem;
+  max-width: 2.125rem;
+  padding: 0;
   border-radius: 0 0 8px 0;
   border-bottom: 1px solid var(--border-color);
-  justify-content: flex-end;
+  border-top: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+  justify-content: center;
 }
 
 .grai-grinders-summary-toggles-row .grai-donut-legend-toggle.grai-grinders-show-all-toggle {
   border-radius: 0 0 0 8px;
   border-right: 0;
+}
+
+.grai-grinders-endpoints-gear-icon {
+  display: block;
+  color: #ff69b4;
+  transition: transform 0.28s ease, color 0.2s ease;
+}
+
+[data-theme='light'] .grai-grinders-endpoints-gear-icon {
+  color: #e91e8c;
+}
+
+.grai-donut-legend-toggle.grai-grinders-endpoints-toggle:not(.is-collapsed) .grai-grinders-endpoints-gear-icon {
+  transform: rotate(45deg);
+}
+
+.grai-donut-legend-toggle.grai-grinders-endpoints-toggle:hover .grai-grinders-endpoints-gear-icon,
+.grai-donut-legend-toggle.grai-grinders-endpoints-toggle:focus .grai-grinders-endpoints-gear-icon,
+.grai-donut-legend-toggle.grai-grinders-endpoints-toggle:focus-visible .grai-grinders-endpoints-gear-icon,
+.grai-donut-legend-toggle.grai-grinders-endpoints-toggle:active .grai-grinders-endpoints-gear-icon {
+  color: inherit;
 }
 
 .grai-donut-legend-toggle.grai-vault-balance-show-toggle:hover,
@@ -3924,7 +4063,7 @@
 }
 
 .grai-donut-legend-toggle.grai-grinders-endpoints-toggle.is-collapsed .grai-donut-legend-toggle-icon {
-  transform: rotate(180deg);
+  transform: none;
 }
 
 .grai-donut-legend-toggle.grai-grinders-endpoints-toggle:not(.is-collapsed) .grai-donut-legend-toggle-icon {
@@ -4329,7 +4468,8 @@
 }
 
 .grai-action-switch.is-burn-active::after,
-.grai-action-switch.is-distribute-active::after {
+.grai-action-switch.is-distribute-active::after,
+.grai-action-switch.is-bribe-active::after {
   transform: translateX(100%);
 }
 
@@ -6260,6 +6400,53 @@
 .grai-action-submit:has(.grai-burn-btn:disabled) .grai-burn-btn {
   opacity: 1;
   cursor: not-allowed;
+}
+
+.grai-action-deposit-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.grai-action-deposit-note {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.grai-action-deposit-term {
+  display: inline;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.grai-action-deposit-term .grai-field-info-trigger {
+  display: inline;
+  cursor: help;
+}
+
+.grai-action-deposit-term-label {
+  color: #ff69b4;
+  font-weight: 600;
+}
+
+.grai-action-deposit-term:hover .grai-action-deposit-term-label,
+.grai-action-deposit-term:focus-within .grai-action-deposit-term-label,
+.grai-action-deposit-term.is-open .grai-action-deposit-term-label {
+  color: #ff9ad0;
+}
+
+.grai-action-deposit-term-tooltip {
+  top: auto;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  max-width: min(16rem, 70vw);
+  z-index: 40;
 }
 
 .grai-mint-btn:hover:not(:disabled) {
@@ -8471,6 +8658,32 @@
   gap: var(--grai-action-content-gap);
 }
 
+.grai-action-card.grai-mint .grai-amount-input:not(.is-fill-layout) {
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.grai-action-card.grai-mint .grai-amount-input:not(.is-fill-layout) .grai-amount-input-header {
+  display: none;
+}
+
+.grai-action-card.grai-mint .grai-action-content-shell {
+  overflow: visible;
+  transition: height 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-action-card.grai-mint .grai-action-content-shell.is-animating {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-action-card.grai-mint .grai-action-content-shell {
+    transition: none;
+  }
+}
+
 /* --- Mint / Redeem button-like tabs --- */
 
 .grai-action-switch--buttons {
@@ -8479,7 +8692,7 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--bg-tertiary);
+  background: transparent;
 }
 
 .grai-action-switch--buttons::after {
@@ -8488,7 +8701,51 @@
   border-radius: 0 0 0 11px;
 }
 
-.grai-action-switch--buttons.is-burn-active::after {
+.grai-action-switch--buttons.is-burn-active::after,
+.grai-action-switch--buttons.is-bribe-active::after,
+.grai-action-switch--buttons.is-unlock-active::after,
+.grai-action-switch--buttons.is-distribute-active::after {
+  border-radius: 0 0 11px 0;
+}
+
+.grai-action-switch--market::after,
+.grai-action-switch--yield::after {
+  width: 50%;
+}
+
+.grai-action-switch--escrow::after {
+  width: 50%;
+}
+
+.grai-action-switch--market.is-vote-active::after,
+.grai-action-switch--yield.is-buyback-active::after {
+  transform: translateX(0);
+  border-radius: 0 0 0 11px;
+}
+
+.grai-action-switch--liquidation-screens.is-buyback-active::after {
+  transform: translateX(0);
+  border-radius: 0 0 0 11px;
+}
+
+.grai-action-switch--liquidation-screens.is-market-active::after {
+  transform: translateX(100%);
+  border-radius: 0 0 11px 0;
+}
+
+.grai-action-switch--escrow.is-lock-active::after {
+  transform: translateX(0);
+  border-radius: 0 0 0 11px;
+}
+
+.grai-action-switch--market.is-bribe-active::after,
+.grai-action-switch--yield.is-distribute-active::after {
+  transform: translateX(100%);
+  border-radius: 0 0 11px 0;
+}
+
+.grai-action-switch--escrow.is-unlock-active::after {
+  transform: translateX(100%);
   border-radius: 0 0 11px 0;
 }
 
@@ -8499,11 +8756,22 @@
   transition: color 0.2s ease, background-color 0.2s ease;
 }
 
-.grai-action-switch--buttons .grai-action-switch-btn.is-mint {
+.grai-action-switch--buttons .grai-action-switch-btn.is-mint,
+.grai-action-switch--buttons .grai-action-switch-btn.is-vote,
+.grai-action-switch--buttons .grai-action-switch-btn.is-buyback,
+.grai-action-switch--buttons .grai-action-switch-btn.is-claim,
+.grai-action-switch--buttons .grai-action-switch-btn.is-deposit {
   border-radius: 11px 0 0 11px;
 }
 
-.grai-action-switch--buttons .grai-action-switch-btn.is-burn {
+.grai-action-switch--buttons .grai-action-switch-btn.is-lock {
+  border-radius: 0;
+}
+
+.grai-action-switch--buttons .grai-action-switch-btn.is-burn,
+.grai-action-switch--buttons .grai-action-switch-btn.is-bribe,
+.grai-action-switch--buttons .grai-action-switch-btn.is-unlock,
+.grai-action-switch--buttons .grai-action-switch-btn.is-distribute {
   border-radius: 0 11px 11px 0;
 }
 
@@ -8528,51 +8796,293 @@
   padding: 1rem;
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  /* Lighter than the surrounding card */
-  background: var(--bg-tertiary);
+  background: transparent;
 }
 
-[data-theme='light'] .grai-amount-input {
-  background: #ffffff;
+.grai-amount-input.is-disabled {
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.grai-amount-input.is-disabled .grai-amount-input-control,
+.grai-amount-input.is-disabled .grai-asset-select-trigger {
+  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  cursor: not-allowed;
+}
+
+.grai-asset-select.is-disabled .grai-asset-select-trigger {
+  cursor: not-allowed;
+}
+
+[data-theme='light'] .grai-amount-input:not(.is-fill-layout) {
+  background: transparent;
 }
 
 .grai-amount-input-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+  column-gap: 0.75rem;
+  row-gap: 0.15rem;
 }
 
-.grai-amount-input-label {
+.grai-amount-input-header.has-balance-top {
+  grid-template-areas:
+    'label top'
+    '. balance';
+}
+
+.grai-amount-input-header.is-fill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  height: 1.25rem;
+  min-height: 1.25rem;
+}
+
+.grai-amount-input-header.is-fill-header .grai-amount-input-label {
+  flex: 0 0 auto;
+}
+
+.grai-amount-input-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.grai-amount-input-tools .grai-amount-preset-btns {
+  margin-left: 0;
+}
+
+.grai-amount-input-header.has-balance-top .grai-amount-input-balance-top {
+  grid-area: top;
+  justify-self: end;
+  align-self: center;
+}
+
+.grai-amount-input-header.has-balance-top .grai-amount-input-label {
+  grid-area: label;
+  align-self: center;
+}
+
+.grai-amount-input-header.has-balance-top .grai-amount-input-balance {
+  grid-area: balance;
+  justify-self: end;
+  align-self: center;
+}
+
+.grai-amount-input-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.grai-amount-input-meta .grai-amount-preset-btns {
+  margin-left: 0;
+  justify-content: flex-start;
+}
+
+.grai-amount-input.is-fill-layout {
+  height: var(--grai-fill-card-height, 5.6875rem);
+  min-height: var(--grai-fill-card-height, 5.6875rem);
+  padding: var(--grai-fill-card-padding, 0.45rem 0.85rem 0.75rem);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  gap: var(--grai-fill-card-gap, 0.28rem);
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .grai-amount-input.is-fill-layout {
+  background: var(--bg-secondary);
+}
+
+.grai-amount-input.is-fill-layout .grai-amount-input-field {
+  height: auto;
+  min-height: var(--grai-fill-input-height, 2.8125rem);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.grai-amount-input.is-fill-layout .grai-amount-input-field:focus-within {
+  border-color: rgba(255, 105, 180, 0.55);
+}
+
+.grai-amount-input.is-fill-layout .grai-amount-input-control {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px 0 0 10px;
+}
+
+.grai-amount-input.is-fill-layout .grai-amount-input-value-col.has-usd .grai-amount-input-control {
+  padding-top: 0.4rem;
+  padding-bottom: 0.12rem;
+  border-radius: 10px 0 0 0;
+}
+
+.grai-amount-input.is-fill-layout .grai-amount-input-value-col.has-usd.is-usd-collapsed .grai-amount-input-control {
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+  border-radius: 10px 0 0 10px;
+}
+
+.grai-amount-input.is-fill-layout .grai-asset-select {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+}
+
+.grai-amount-input.is-fill-layout .grai-asset-select-trigger {
+  height: 100%;
+  border-radius: 0 10px 10px 0;
+}
+
+.grai-amount-input.is-fill-layout .grai-amount-input-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+}
+
+.grai-amount-input-fill-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.grai-amount-input-fill-wrap .grai-amount-input-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.grai-amount-input-fill-wrap .grai-amount-input-balance-top,
+.grai-amount-input-fill-wrap .grai-amount-input-balance {
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
+.grai-amount-input-fill-wrap .grai-amount-input-balance {
+  text-align: left;
+  margin-left: 0;
+}
+
+.grai-amount-input-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.grai-amount-input-balance-top,
 .grai-amount-input-balance {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #fff;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+[data-theme='light'] .grai-amount-input-balance-top,
+[data-theme='light'] .grai-amount-input-balance {
+  color: rgba(0, 0, 0, 0.82);
 }
 
 .grai-amount-input-field {
   position: relative;
   display: flex;
   align-items: stretch;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid color-mix(in srgb, #ff69b4 32%, transparent);
   border-radius: 12px;
-  background: #303030;
+  background: color-mix(in srgb, #ff69b4 18%, #100c10);
 }
 
 [data-theme='light'] .grai-amount-input-field {
-  background: #e8e8e8;
-  border-color: rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, #ff69b4 14%, #f0e8ed);
+  border-color: color-mix(in srgb, #ff69b4 28%, rgba(0, 0, 0, 0.1));
+}
+
+.grai-amount-input-value-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: min-height 0.28s ease;
+}
+
+.grai-amount-input-value-col.has-usd:not(.is-usd-collapsed) {
+  min-height: 3.25rem;
+}
+
+.grai-amount-input-value-col.has-usd.is-usd-collapsed {
+  min-height: 2.5rem;
+}
+
+.grai-amount-input-max {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 0.6rem 0.12rem 0 0.28rem;
+}
+
+.grai-amount-input-value-col.has-usd:not(.is-usd-collapsed) ~ .grai-amount-input-max {
+  padding-top: 0.38rem;
+}
+
+.grai-amount-input-value-col.has-usd.is-usd-collapsed ~ .grai-amount-input-max {
+  align-self: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.grai-amount-input-max .grai-amount-preset-btn--field {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 105, 180, 0.45);
+  padding: 0.22rem 0.38rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  background: rgba(255, 105, 180, 0.12);
+  box-sizing: border-box;
+}
+
+.grai-amount-input-max .grai-amount-preset-btn--field:hover:not(:disabled) {
+  background: rgba(255, 105, 180, 0.2);
+  border-color: rgba(255, 105, 180, 0.65);
+}
+
+[data-theme='light'] .grai-amount-input-max .grai-amount-preset-btn--field {
+  color: #e91e8c;
+  border-color: rgba(233, 30, 140, 0.35);
+  background: rgba(233, 30, 140, 0.08);
+}
+
+[data-theme='light'] .grai-amount-input-max .grai-amount-preset-btn--field:hover:not(:disabled) {
+  background: rgba(233, 30, 140, 0.14);
+  border-color: rgba(233, 30, 140, 0.5);
 }
 
 .grai-amount-input-control {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   padding: 0.6rem 0.75rem;
   border: none;
@@ -8581,6 +9091,19 @@
   font-size: 1.25rem;
   font-weight: 600;
   font-family: 'Courier New', monospace;
+  box-sizing: border-box;
+}
+
+.grai-amount-input-value-col.has-usd .grai-amount-input-control {
+  padding-top: 0.38rem;
+  padding-bottom: 0.12rem;
+  transition: padding 0.28s ease;
+}
+
+/* Keep compact padding when USD collapses so the field actually shrinks */
+.grai-amount-input-value-col.has-usd.is-usd-collapsed .grai-amount-input-control {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .grai-amount-input-control:focus {
@@ -8607,19 +9130,740 @@
   flex-wrap: wrap;
 }
 
-.grai-amount-input-usd {
+.grai-amount-input-after-footer {
+  min-width: 0;
+}
+
+.grai-action-content > .grai-action-switch--escrow-below {
+  margin-top: 0;
+  margin-bottom: 0;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.grai-escrow-switch-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-0.35rem);
+  pointer-events: none;
+  /* Closed slot still sits in the flex stack — cancel one content gap so subtitle→amount stays tight. */
+  margin-bottom: calc(-1 * var(--grai-action-content-gap, 1rem) + 0.35rem);
+  transition:
+    grid-template-rows 0.32s ease,
+    opacity 0.28s ease,
+    transform 0.32s ease,
+    margin-bottom 0.32s ease;
+}
+
+.grai-escrow-switch-slot.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  margin-bottom: 0.15rem;
+}
+
+.grai-escrow-switch-slot-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grai-escrow-switch-slot .grai-action-switch--buttons {
+  margin: 0;
+}
+
+.grai-page-subtitle-swap {
+  position: relative;
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+}
+
+.grai-page-subtitle-mode-swap {
+  position: relative;
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+  min-width: 0;
+}
+
+.grai-page-subtitle-mode-swap-item {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.32s ease;
+}
+
+.grai-page-subtitle-mode-swap:not(.is-deposit) .grai-page-subtitle-mode-swap-item.is-deposit,
+.grai-page-subtitle-mode-swap:not(.is-lock) .grai-page-subtitle-mode-swap-item.is-lock,
+.grai-page-subtitle-mode-swap:not(.is-unlock) .grai-page-subtitle-mode-swap-item.is-unlock,
+.grai-page-subtitle-mode-swap:not(.is-claim) .grai-page-subtitle-mode-swap-item.is-claim {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, 0.28rem);
+}
+
+.grai-page-subtitle-mode-swap.is-deposit .grai-page-subtitle-mode-swap-item.is-deposit,
+.grai-page-subtitle-mode-swap.is-lock .grai-page-subtitle-mode-swap-item.is-lock,
+.grai-page-subtitle-mode-swap.is-unlock .grai-page-subtitle-mode-swap-item.is-unlock,
+.grai-page-subtitle-mode-swap.is-claim .grai-page-subtitle-mode-swap-item.is-claim {
+  position: relative;
+  left: auto;
+  top: auto;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-page-subtitle-mode-swap-item {
+    transition: none;
+  }
+}
+
+.grai-page-subtitle-swap-item {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+
+.grai-page-subtitle-swap-item.is-mint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.grai-page-subtitle-swap-item.is-grai {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  opacity: 0;
+  transform: translate(-50%, 0.35rem);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.grai-page-subtitle-swap.is-grai .grai-page-subtitle-swap-item.is-mint {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  opacity: 0;
+  transform: translate(-50%, -0.35rem);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.grai-page-subtitle-swap.is-grai .grai-page-subtitle-swap-item.is-grai {
+  position: static;
+  left: auto;
+  top: auto;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-escrow-switch-slot,
+  .grai-page-subtitle-swap-item {
+    transition: none;
+  }
+}
+
+.grai-action-content > .grai-action-switch--escrow-below .grai-action-switch-btn {
+  padding: 0.58rem 0.65rem;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.grai-action-content > .grai-action-switch--escrow-below .grai-action-switch-btn.is-claim,
+.grai-action-content > .grai-action-switch--escrow-below .grai-action-switch-btn.is-earn {
+  border-radius: 11px 0 0 11px;
+}
+
+.grai-action-content > .grai-action-switch--escrow-below .grai-action-switch-btn.is-lock {
+  border-radius: 0;
+}
+
+.grai-action-content > .grai-action-switch--escrow-below .grai-action-switch-btn.is-unlock,
+.grai-action-content > .grai-action-switch--escrow-below .grai-action-switch-btn.is-share {
+  border-radius: 0 11px 11px 0;
+}
+
+.grai-action-switch--dividends::after {
+  width: 50%;
+}
+
+.grai-action-switch--dividends.is-earn-active::after {
+  transform: translateX(0);
+  border-radius: 0 0 0 11px;
+}
+
+.grai-action-switch--dividends.is-share-active::after {
+  transform: translateX(100%);
+  border-radius: 0 0 11px 0;
+}
+
+.grai-action-switch--asset-flow::after {
+  width: 50%;
+}
+
+.grai-action-switch--asset-flow.is-deposit-active::after {
+  transform: translateX(0);
+  border-radius: 0 0 0 11px;
+}
+
+.grai-action-switch--asset-flow.is-claim-active::after {
+  transform: translateX(100%);
+  border-radius: 0 0 11px 0;
+}
+
+.grai-action-content > .grai-action-switch--asset-flow {
+  margin-top: 0;
+  margin-bottom: 0.15rem;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.grai-action-switch--asset-flow .grai-action-switch-btn.is-claim {
+  border-radius: 0 11px 11px 0;
+}
+
+.grai-action-switch--asset-flow .grai-action-switch-btn {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  padding-inline: 0.45rem;
+}
+
+.grai-action-switch--buttons.is-share-active::after {
+  border-radius: 0 0 11px 0;
+}
+
+.grai-mint-dividends-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.grai-mint-secondary-row-slot {
+  width: 100%;
+  margin-top: calc(-1 * var(--grai-action-content-gap, 1rem) + 0.7rem);
+  min-height: 1.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.grai-mint-secondary-row-slot + .grai-action-result-group {
+  margin-top: calc(0.4rem - var(--grai-action-content-gap, 1rem));
+}
+
+.grai-mint-secondary-row-slot > .grai-mint-dividends-toggle.is-below-amount,
+.grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row,
+.grai-mint-secondary-row-slot > .grai-action-result--penalty-row {
+  width: 100%;
+  margin-top: 0;
+  min-height: 1.9rem;
+  padding-top: 0;
+  box-sizing: border-box;
+}
+
+.grai-mint-secondary-row-slot > .grai-action-result--penalty-row {
+  align-items: center;
+}
+
+.grai-mint-secondary-row-slot > .grai-mint-dividends-toggle.is-below-amount.is-result-row {
+  padding: 0;
+  gap: 1rem;
+}
+
+.grai-mint-secondary-row-slot > .grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-btn {
+  min-height: 1.75rem;
+  padding: 0;
+}
+
+.grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-row {
+  min-height: 1.9rem;
+}
+
+.grai-mint-dividends-toggle.is-below-amount {
+  width: 100%;
+  margin-top: calc(-1 * var(--grai-action-content-gap, 1rem) + 0.4rem);
+  padding: 0.15rem 0 0;
+  gap: 1rem;
+}
+
+/* Keep Claim-all row metrics identical to Lock GRAI toggle */
+.grai-mint-dividends-toggle.is-below-amount.is-result-row {
+  align-items: center;
+  min-height: unset;
+  padding: 0.15rem 0 0;
+  gap: 1rem;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-label,
+.grai-mint-dividends-toggle.is-below-amount.is-result-row.is-active .grai-mint-dividends-toggle-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: normal;
+  color: var(--text-primary);
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-label-text {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-info {
+  width: var(--grai-action-label-lead-size, 1.25rem);
+  height: var(--grai-action-label-lead-size, 1.25rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-info .grai-field-info-btn {
+  width: var(--grai-action-label-lead-size, 1.25rem);
+  height: var(--grai-action-label-lead-size, 1.25rem);
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-info .grai-field-info-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-btn {
+  min-height: 1.75rem;
+  padding: 0.1rem 0;
+  align-items: center;
+}
+
+.grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label,
+.grai-mint-dividends-toggle.is-below-amount.is-active .grai-mint-dividends-toggle-label {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label,
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-active .grai-mint-dividends-toggle-label {
+  color: rgba(0, 0, 0, 0.82);
+}
+
+.grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-btn {
+  gap: 0.4rem;
+  min-height: 1.75rem;
+  padding: 0.1rem 0;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no .grai-mint-dividends-toggle-track {
+  width: 3.1rem;
+  height: 1.45rem;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-track {
+  border-color: color-mix(in srgb, #fff 55%, transparent);
+  background: transparent;
+  box-shadow: none;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no .grai-mint-dividends-toggle-thumb {
+  width: 1.05rem;
+  height: 1.05rem;
+  left: calc(100% - 1.05rem - 0.2rem);
+  background: #ff69b4;
+  box-shadow: 0 1px 3px rgba(255, 105, 180, 0.35);
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no.is-active .grai-mint-dividends-toggle-thumb,
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no .grai-mint-dividends-toggle-btn.is-active .grai-mint-dividends-toggle-thumb {
+  left: 0.2rem;
+  background: #fff;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no .grai-mint-dividends-toggle-option {
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 1.6rem;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-yes {
+  color: #fff;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-no {
+  color: #fff;
+}
+
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-no,
+.grai-mint-dividends-toggle.is-below-amount.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-yes {
+  color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-track {
+  border-color: rgba(0, 0, 0, 0.18);
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-no {
+  color: rgba(0, 0, 0, 0.78);
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-yes {
+  color: #fff;
+}
+
+.grai-mint-dividends-toggle-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  transition: color 0.18s ease;
+}
+
+.grai-mint-dividends-toggle-info {
+  flex-shrink: 0;
+}
+
+.grai-mint-dividends-toggle-info .grai-field-info-btn {
+  color: #ff69b4;
+}
+
+.grai-mint-dividends-toggle-info .grai-field-info-btn:hover,
+.grai-mint-dividends-toggle-info .grai-field-info-btn:focus-visible {
+  color: #ff9ed3;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle-info .grai-field-info-btn {
+  color: #e91e8c;
+}
+
+.grai-mint-dividends-toggle-label-text {
+  min-width: 0;
+}
+
+.grai-mint-dividends-toggle.is-active .grai-mint-dividends-toggle-label {
+  color: #ff69b4;
+}
+
+.grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-label,
+.grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-label {
+  color: #fff;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-label,
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-label {
+  color: rgba(0, 0, 0, 0.82);
+}
+
+.grai-mint-dividends-toggle-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.grai-mint-dividends-toggle-track {
+  position: relative;
+  display: block;
+  width: 2.6rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 45%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.grai-mint-dividends-toggle-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.14rem;
+  width: 0.82rem;
+  height: 0.82rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-secondary) 75%, transparent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  transform: translateY(-50%);
+  transition:
+    left 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.grai-mint-dividends-toggle-btn:hover .grai-mint-dividends-toggle-track,
+.grai-mint-dividends-toggle-btn:focus-visible .grai-mint-dividends-toggle-track {
+  border-color: color-mix(in srgb, var(--text-secondary) 65%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 20%, transparent);
+  outline: none;
+}
+
+.grai-mint-dividends-toggle.is-active .grai-mint-dividends-toggle-track,
+.grai-mint-dividends-toggle-btn.is-active .grai-mint-dividends-toggle-track {
+  border-color: #ff69b4;
+  background: #ff69b4;
+  box-shadow: inset 0 1px 3px rgba(255, 105, 180, 0.35);
+}
+
+.grai-mint-dividends-toggle.is-active .grai-mint-dividends-toggle-btn:hover .grai-mint-dividends-toggle-track,
+.grai-mint-dividends-toggle.is-active .grai-mint-dividends-toggle-btn:focus-visible .grai-mint-dividends-toggle-track {
+  border-color: #ff9ed3;
+  background: #ff7fbf;
+}
+
+.grai-mint-dividends-toggle.is-active .grai-mint-dividends-toggle-thumb,
+.grai-mint-dividends-toggle-btn.is-active .grai-mint-dividends-toggle-thumb {
+  left: calc(100% - 0.96rem);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+/* Deposit Yes/No switch: Yes left of track, No right; active (Yes) keeps thumb on the left */
+.grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-track {
+  width: 2.6rem;
+  height: 1.2rem;
+}
+
+.grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-option {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  transition: color 0.18s ease;
+}
+
+.grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-thumb {
+  width: 0.82rem;
+  height: 0.82rem;
+  left: calc(100% - 0.96rem);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-secondary) 75%, transparent);
+}
+
+.grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-thumb,
+.grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-btn.is-active .grai-mint-dividends-toggle-thumb {
+  left: 0.14rem;
+  background: #fff;
+}
+
+.grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-yes {
+  color: #fff;
+}
+
+.grai-mint-dividends-toggle.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-no {
+  color: #fff;
+}
+
+.grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-no {
+  color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+}
+
+.grai-mint-dividends-toggle.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-yes {
+  color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-yes {
+  color: #fff;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-no {
+  color: rgba(0, 0, 0, 0.78);
+}
+
+/* GRAI escrow: Lock left of track, Unlock right; Lock = pink (inactive), Unlock = white (active) */
+.grai-mint-dividends-toggle.is-grai-escrow {
+  justify-content: flex-end;
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow .grai-mint-dividends-toggle-track {
+  width: 2.6rem;
+  height: 1.2rem;
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow .grai-mint-dividends-toggle-option {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  transition: color 0.18s ease;
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow .grai-mint-dividends-toggle-track {
+  border-color: #ff69b4;
+  background: #ff69b4;
+  box-shadow: inset 0 1px 3px rgba(255, 105, 180, 0.35);
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow .grai-mint-dividends-toggle-thumb {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow .grai-mint-dividends-toggle-btn:hover .grai-mint-dividends-toggle-track,
+.grai-mint-dividends-toggle.is-grai-escrow .grai-mint-dividends-toggle-btn:focus-visible .grai-mint-dividends-toggle-track {
+  border-color: #ff9ed3;
+  background: #ff7fbf;
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow:not(.is-active) .grai-mint-dividends-toggle-option.is-lock {
+  color: #ff69b4;
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-option.is-lock {
+  color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-option.is-unlock {
+  color: #fff;
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow:not(.is-active) .grai-mint-dividends-toggle-option.is-unlock {
+  color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-track {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.12);
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-btn:hover .grai-mint-dividends-toggle-track,
+.grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-btn:focus-visible .grai-mint-dividends-toggle-track {
+  border-color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-thumb {
+  background: #fff;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-active .grai-mint-dividends-toggle-label {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-grai-escrow:not(.is-active) .grai-mint-dividends-toggle-option.is-lock {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-option.is-unlock {
+  color: rgba(0, 0, 0, 0.78);
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-track {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-btn:hover .grai-mint-dividends-toggle-track,
+[data-theme='light'] .grai-mint-dividends-toggle.is-grai-escrow.is-active .grai-mint-dividends-toggle-btn:focus-visible .grai-mint-dividends-toggle-track {
+  border-color: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .grai-mint-dividends-toggle.is-active .grai-mint-dividends-toggle-track,
+[data-theme='light'] .grai-mint-dividends-toggle-btn.is-active .grai-mint-dividends-toggle-track {
+  border-color: #e91e8c;
+  background: #e91e8c;
+}
+
+.grai-amount-input-footer-start {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.grai-amount-input-footer-start.is-placeholder {
+  color: var(--text-secondary);
+}
+
+.grai-amount-input-usd {
+  padding: 0 0.75rem 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text-primary);
   font-family: 'Courier New', monospace;
   font-variant-numeric: tabular-nums;
+  max-height: 1.6rem;
+  opacity: 1;
+  transform: translateY(0);
+  overflow: hidden;
+  transition:
+    opacity 0.24s ease,
+    max-height 0.28s ease,
+    padding 0.28s ease,
+    transform 0.28s ease;
 }
 
 .grai-amount-input-usd.is-placeholder {
   color: var(--text-secondary);
 }
 
+.grai-amount-input-usd.is-collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: translateY(-0.2rem);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-amount-input-value-col,
+  .grai-amount-input-value-col.has-usd .grai-amount-input-control,
+  .grai-amount-input-usd {
+    transition: none;
+  }
+}
+
 /* --- Asset dropdown --- */
+
+.grai-amount-input-field .grai-asset-select {
+  border-left: none;
+}
 
 .grai-asset-select {
   position: relative;
@@ -8632,14 +9876,101 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0 0.85rem;
+  padding: 0.22rem 0.85rem 0.22rem 0.55rem;
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   border-radius: 0 12px 12px 0;
+  transition: background 0.2s ease;
+}
+
+.grai-asset-select-main {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.grai-asset-select-main.is-swap-in {
+  animation: grai-asset-select-swap-in 0.28s ease;
+}
+
+@keyframes grai-asset-select-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.28rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.grai-asset-select-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 1.5rem;
+}
+
+.grai-asset-select-token .grai-asset-select-caret {
+  margin-left: 0.05rem;
+}
+
+.grai-asset-select-symbol {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.2;
+}
+
+.grai-asset-select-vol-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-0.15rem);
+  transition:
+    grid-template-rows 0.28s ease,
+    opacity 0.24s ease,
+    transform 0.28s ease;
+}
+
+.grai-asset-select-vol-slot.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.grai-asset-select-vol-slot > .grai-asset-select-vol {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.grai-amount-input-field .grai-asset-select-vol {
+  color: #fff;
+}
+
+[data-theme='light'] .grai-amount-input-field .grai-asset-select-vol {
+  color: rgba(0, 0, 0, 0.78);
+}
+
+.grai-asset-select-vol {
+  margin-left: 0;
+  align-self: flex-start;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-family: 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .grai-asset-select-trigger:hover {
@@ -8648,14 +9979,27 @@
 
 .grai-asset-select-icon {
   display: inline-flex;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .grai-asset-select-icon img {
-  width: 20px;
-  height: 20px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   display: block;
   object-fit: cover;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-asset-select-main.is-swap-in {
+    animation: none;
+  }
+
+  .grai-asset-select-vol-slot {
+    transition: none;
+  }
 }
 
 .grai-asset-select-caret,
@@ -8738,7 +10082,7 @@
 .grai-action-result-group {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 0.35rem;
 }
 
 .grai-action-result {
@@ -8749,11 +10093,72 @@
   padding: 0;
 }
 
+.grai-action-result--penalty {
+  color: color-mix(in srgb, currentColor 72%, transparent);
+}
+
+.grai-action-result--penalty .grai-action-result-label {
+  color: #fff;
+}
+
+.grai-action-result--penalty .grai-action-result-penalty-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--grai-action-label-lead-size, 1.25rem);
+  height: var(--grai-action-label-lead-size, 1.25rem);
+}
+
+.grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn {
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  opacity: 0.85;
+}
+
+.grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn:hover,
+.grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn:focus-visible {
+  opacity: 1;
+}
+
+.grai-action-result-penalty-time {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
 .grai-action-result-label-wrap {
   display: inline-flex;
   align-items: center;
   gap: var(--grai-action-label-lead-gap, 0.4rem);
   min-width: 0;
+  transition: gap 0.28s ease;
+}
+
+.grai-action-result-label-wrap.is-toggle-hidden {
+  gap: 0;
+}
+
+.grai-action-result-preview-toggle-slot {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--grai-action-label-lead-size, 1.25rem);
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    width 0.28s ease,
+    opacity 0.22s ease,
+    margin 0.28s ease;
+}
+
+.grai-action-result-label-wrap.is-toggle-hidden .grai-action-result-preview-toggle-slot {
+  width: 0;
+  opacity: 0;
+  margin: 0;
+  pointer-events: none;
 }
 
 .grai-action-result-preview-toggle {
@@ -8770,6 +10175,11 @@
   color: #ff69b4;
   cursor: pointer;
   transition: color 0.2s ease, background 0.2s ease;
+}
+
+.grai-action-result-preview-toggle.is-spacer {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .grai-action-result-preview-toggle:hover,
@@ -8805,6 +10215,34 @@
   color: var(--text-primary);
 }
 
+.grai-action-result-label-swap {
+  display: inline-grid;
+  align-items: center;
+  justify-items: start;
+}
+
+.grai-action-result-label-swap-item {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(3px);
+  pointer-events: none;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-action-result-label-swap-item.is-active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-action-result-label-swap-item {
+    transition: none;
+  }
+}
+
 .grai-action-result-sigma {
   font-size: 1.35rem;
   font-weight: 700;
@@ -8838,8 +10276,25 @@
   overflow: visible;
 }
 
+.grai-action-metrics.grai-action-metrics--result-row {
+  min-height: 1.9rem;
+  justify-content: center;
+}
+
+.grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-row {
+  min-height: 1.9rem;
+}
+
 .grai-action-card.grai-mint .grai-action-metrics {
   gap: var(--grai-action-metric-stack-gap, 0.55rem);
+}
+
+.grai-action-metrics + .grai-action-result-group {
+  margin-top: -0.45rem;
+}
+
+.grai-action-card.grai-mint .grai-action-metrics + .grai-action-result-group {
+  margin-top: calc(var(--grai-action-metric-stack-gap, 0.55rem) - var(--grai-action-content-gap, 1rem));
 }
 
 .grai-action-result-group + .grai-action-metrics {
@@ -8848,6 +10303,13 @@
 
 .grai-action-card.grai-mint .grai-action-result-group + .grai-action-metrics {
   margin-top: calc(var(--grai-action-metric-stack-gap, 0.55rem) - var(--grai-action-content-gap, 1rem));
+}
+
+.grai-action-card.grai-mint .grai-action-result-group + .grai-action-submit,
+.grai-action-card.grai-mint .grai-action-metrics + .grai-action-submit,
+.grai-action-card.grai-mint .grai-action-result-group + .connect-wallet-btn,
+.grai-action-card.grai-mint .grai-action-metrics + .connect-wallet-btn {
+  margin-top: calc(0.45rem - var(--grai-action-content-gap, 1rem));
 }
 
 .grai-action-metric-row {
@@ -9076,7 +10538,7 @@
 }
 
 .grai-detailed-preview--inline.is-open {
-  max-height: 6rem;
+  max-height: 9rem;
   border-color: transparent;
   background: transparent;
 }
@@ -9090,6 +10552,48 @@
   padding: 0;
 }
 
+.grai-detailed-preview--inline .grai-detailed-preview-row:not(.grai-detailed-preview-row--value-only) {
+  padding-left: calc(
+    var(--grai-action-label-lead-size, 1.25rem) + var(--grai-action-label-lead-gap, 0.4rem)
+  );
+}
+
+.grai-detailed-preview-row-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-detailed-preview-row-collapse.is-open {
+  grid-template-rows: 1fr;
+}
+
+.grai-detailed-preview-row-collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.24s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-detailed-preview-row-collapse.is-open .grai-detailed-preview-row-collapse-inner {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.grai-detailed-preview-row-collapse-inner > .grai-detailed-preview-row {
+  margin-bottom: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-detailed-preview-row-collapse,
+  .grai-detailed-preview-row-collapse-inner {
+    transition: none;
+  }
+}
+
 .grai-detailed-preview--inline.is-open .grai-detailed-preview-collapse > .grai-detailed-preview-body {
   padding-top: 0.3rem;
   padding-bottom: 0;
@@ -9097,6 +10601,8 @@
 
 .grai-detailed-preview--inline .grai-detailed-preview-label,
 .grai-detailed-preview--inline .grai-detailed-preview-label-wrap .grai-detailed-preview-label {
+  display: inline-flex;
+  align-items: center;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -9321,4 +10827,3105 @@
 .grai-detailed-preview-empty {
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.grai-liquidation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.grai-liquidation-actions > .grai-liquidation-notice {
+  width: 100%;
+}
+
+.grai-liquidation-actions > .grai-liquidation-panel--bribe {
+  margin-top: 0;
+}
+
+.grai-liquidation-ops-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  width: 50%;
+  max-width: 50%;
+  min-width: 0;
+}
+
+.grai-liquidation-escrow-block,
+.grai-liquidation-yield-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  container-type: inline-size;
+}
+
+.grai-liquidation-escrow-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.grai-liquidation-escrow-body > .grai-amount-input {
+  width: 100%;
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.grai-liquidation-escrow-body > .grai-amount-input .grai-amount-input-header {
+  display: none;
+}
+
+.grai-liquidation-buyback-picker-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.85rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-buyback-picker-row .grai-liquidation-buyback-assets-carousel {
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+
+.grai-liquidation-buyback-picker-row .grai-liquidation-buyback-assets-viewport {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.grai-liquidation-buyback-picker-row .grai-liquidation-buyback-assets-scroller {
+  min-height: 0;
+}
+
+.grai-liquidation-buyback-picker-row .grai-liquidation-buyback-assets-track {
+  padding-top: 0.5rem;
+  padding-bottom: 0;
+  align-items: flex-start;
+}
+
+.grai-liquidation-buyback-picker-row .grai-liquidation-buyback-assets-item {
+  display: flex;
+  align-items: flex-start;
+}
+
+.grai-liquidation-buyback-picker-row .grai-liquidation-buyback-asset {
+  height: auto;
+  min-height: 0;
+  justify-content: center;
+}
+
+.grai-liquidation-buyback-selection-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 10.5rem;
+  max-width: 52%;
+}
+
+.grai-liquidation-buyback-selection-meta .grai-liquidation-buyback-asset-meta-label {
+  font-size: 0.72rem;
+}
+
+.grai-liquidation-buyback-selection-meta .grai-liquidation-buyback-asset-available-usd {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.grai-liquidation-buyback-selection-meta .grai-liquidation-buyback-asset-timer,
+.grai-liquidation-buyback-selection-meta .grai-liquidation-buyback-asset-discount {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.grai-liquidation-buyback-assets-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-buyback-assets-viewport {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-buyback-assets-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, #ff69b4 42%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 78%, transparent);
+  color: #ff9ed3;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.grai-liquidation-buyback-assets-nav svg {
+  width: 0.55rem;
+  height: 0.85rem;
+  display: block;
+}
+
+.grai-liquidation-buyback-assets-nav--prev {
+  left: 0.1rem;
+}
+
+.grai-liquidation-buyback-assets-nav--prev svg {
+  transform: translateX(-1.5px);
+}
+
+.grai-liquidation-buyback-assets-nav--next {
+  right: 0.1rem;
+}
+
+.grai-liquidation-buyback-assets-nav--next svg {
+  transform: translateX(1.5px);
+}
+
+.grai-liquidation-buyback-assets-nav:hover,
+.grai-liquidation-buyback-assets-nav:focus-visible {
+  outline: none;
+  border-color: #ff69b4;
+  color: #fff;
+  background: color-mix(in srgb, #ff69b4 18%, var(--bg-primary));
+}
+
+[data-theme='light'] .grai-liquidation-buyback-assets-nav {
+  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-assets-nav:hover,
+[data-theme='light'] .grai-liquidation-buyback-assets-nav:focus-visible {
+  color: #fff;
+}
+
+.grai-liquidation-buyback-assets-scroller {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 16%,
+    #000 84%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 16%,
+    #000 84%,
+    transparent 100%
+  );
+}
+
+.grai-liquidation-buyback-assets-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.grai-liquidation-buyback-assets-track {
+  display: flex;
+  align-items: stretch;
+  gap: 0.65rem;
+  width: max-content;
+  min-width: 0;
+  padding-block: 0.1rem;
+  padding-inline: var(--grai-buyback-edge-pad, 0px);
+  box-sizing: border-box;
+  position: relative;
+  backface-visibility: hidden;
+}
+
+.grai-liquidation-buyback-assets-empty {
+  margin: 0;
+  padding: 0.35rem 0.15rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.grai-liquidation-buyback-assets-item {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: calc(100cqi - 1.25rem);
+  min-width: 0;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  opacity: 1;
+  transition: opacity 0.28s ease;
+}
+
+.grai-liquidation-buyback-assets-item.is-peek {
+  opacity: 0.42;
+}
+
+.grai-liquidation-buyback-assets-item.is-peek:hover {
+  opacity: 0.62;
+}
+
+.grai-liquidation-buyback-assets-item.is-selected {
+  opacity: 1;
+}
+
+.grai-liquidation-buyback-assets-item .grai-liquidation-buyback-asset {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-buyback-asset {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-height: 0;
+  padding: 0.28rem 0.65rem 0.28rem 0.4rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    border-color 0.28s ease,
+    color 0.28s ease,
+    opacity 0.28s ease;
+}
+
+.grai-liquidation-buyback-asset:hover,
+.grai-liquidation-buyback-asset:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, #ff69b4 45%, transparent);
+  color: #ff9ed3;
+  background: transparent;
+}
+
+.grai-liquidation-buyback-asset.is-selected {
+  border-color: #ff69b4;
+  background: transparent;
+  color: #ff9ed3;
+  box-shadow: none;
+}
+
+.grai-liquidation-buyback-asset-head {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-buyback-asset-head-col {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.grai-liquidation-buyback-asset-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+  line-height: 1;
+}
+
+.grai-liquidation-buyback-asset-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+
+.grai-liquidation-buyback-asset-symbol {
+  line-height: 1.7rem;
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.grai-liquidation-buyback-asset-available-amt {
+  font-size: 1.45rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.7rem;
+  color: #fff;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-liquidation-buyback-asset-unit-price {
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: color-mix(in srgb, #fff 55%, transparent);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-unit-price,
+.grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-unit-price,
+.grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-unit-price {
+  color: color-mix(in srgb, #ff9ed3 75%, #fff);
+}
+
+[data-theme='light'] .grai-liquidation-buyback-asset-unit-price,
+[data-theme='light'] .grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-unit-price,
+[data-theme='light'] .grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-unit-price,
+[data-theme='light'] .grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-unit-price {
+  color: color-mix(in srgb, #1a1a1a 55%, transparent);
+}
+
+.grai-liquidation-buyback-asset-meta {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-buyback-asset-meta-col.is-end {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.grai-liquidation-buyback-asset-meta-col {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.grai-liquidation-buyback-asset-meta-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: color-mix(in srgb, #fff 42%, transparent);
+  white-space: nowrap;
+}
+
+.grai-liquidation-buyback-asset-available-usd {
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.grai-liquidation-buyback-asset-discount {
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: color-mix(in srgb, #fff 45%, transparent);
+  white-space: nowrap;
+}
+
+.grai-liquidation-buyback-asset-discount.is-discounted {
+  color: #7ddea5;
+}
+
+.grai-liquidation-buyback-asset-timer {
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: color-mix(in srgb, #ff9ed3 78%, #fff);
+  white-space: nowrap;
+}
+
+.grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-available-amt,
+.grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-available-amt,
+.grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-available-amt {
+  color: #fff;
+}
+
+.grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-available-usd,
+.grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-available-usd,
+.grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-available-usd {
+  color: #fff;
+}
+
+.grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-discount.is-discounted,
+.grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-discount.is-discounted,
+.grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-discount.is-discounted {
+  color: #7ddea5;
+}
+
+.grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-timer,
+.grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-timer,
+.grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-timer {
+  color: #ff9ed3;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-asset-meta-label {
+  color: color-mix(in srgb, #1a1a1a 42%, transparent);
+}
+
+[data-theme='light'] .grai-liquidation-buyback-asset-available-amt,
+[data-theme='light'] .grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-available-amt,
+[data-theme='light'] .grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-available-amt,
+[data-theme='light'] .grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-available-amt {
+  color: #1a1a1a;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-asset-available-usd,
+[data-theme='light'] .grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-available-usd,
+[data-theme='light'] .grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-available-usd,
+[data-theme='light'] .grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-available-usd {
+  color: #1a1a1a;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-asset-discount {
+  color: color-mix(in srgb, #1a1a1a 42%, transparent);
+}
+
+[data-theme='light'] .grai-liquidation-buyback-asset-discount.is-discounted,
+[data-theme='light'] .grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-discount.is-discounted,
+[data-theme='light'] .grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-discount.is-discounted,
+[data-theme='light'] .grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-discount.is-discounted {
+  color: #1f8a4c;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-asset-timer,
+[data-theme='light'] .grai-liquidation-buyback-asset.is-selected .grai-liquidation-buyback-asset-timer,
+[data-theme='light'] .grai-liquidation-buyback-asset:hover .grai-liquidation-buyback-asset-timer,
+[data-theme='light'] .grai-liquidation-buyback-asset:focus-visible .grai-liquidation-buyback-asset-timer {
+  color: #e91e8c;
+}
+
+.grai-liquidation-escrow-body .grai-action-submit,
+.grai-liquidation-escrow-body .connect-wallet-btn {
+  width: 100%;
+}
+
+.grai-liquidation-yield-results {
+  width: 100%;
+  gap: 0.35rem;
+}
+
+.grai-liquidation-yield-results .grai-action-result {
+  min-height: 1.55rem;
+}
+
+.grai-assets-split > .grai-liquidation-actions > .grai-liquidation-ops-row {
+  width: 50%;
+  max-width: 50%;
+  min-width: 0;
+}
+
+.grai-liquidation-market-row {
+  display: grid;
+  grid-template-columns: minmax(18rem, 28rem) minmax(0, 1fr);
+  gap: 1.25rem 1.75rem;
+  align-items: start;
+  width: min(100%, 62rem);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-market-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 28rem;
+  justify-self: start;
+  order: -1;
+  transition: max-width 0.4s ease, gap 0.35s ease;
+}
+
+.grai-liquidation-quorum-slot {
+  overflow: hidden;
+  max-height: 12rem;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    max-height 0.4s ease,
+    opacity 0.28s ease,
+    transform 0.35s ease,
+    margin 0.35s ease;
+}
+
+.grai-liquidation-quorum-slot.is-collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: -0.85rem;
+  transform: translateY(-0.35rem);
+  pointer-events: none;
+}
+
+.grai-liquidation-market-aside .grai-liquidation-quorum-infographic {
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+}
+
+.grai-liquidation-market-aside .grai-liquidation-voters-carousel {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+.grai-liquidation-market-aside .grai-liquidation-panel-header {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+.grai-liquidation-market-aside.is-expanded {
+  max-width: 28rem;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-carousel {
+  max-width: 100%;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-carousel.is-grid {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  box-sizing: border-box;
+  min-height: 0;
+  max-height: none;
+  gap: 0.55rem;
+  padding-bottom: 0;
+  width: 100%;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item {
+  animation: none;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-viewport {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-pages {
+  width: 100%;
+  max-width: 100%;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-pages .grai-liquidation-voters-track {
+  height: auto;
+  grid-template-rows: repeat(3, minmax(4.35rem, auto));
+  gap: 0.55rem;
+  align-content: start;
+  min-height: calc(3 * 4.35rem + 2 * 0.55rem);
+  min-width: 100%;
+  max-width: 100%;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item.is-grid-slot-empty {
+  visibility: hidden;
+  pointer-events: none;
+  min-height: 4.35rem;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-item,
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-item-select {
+  min-height: 0;
+  height: auto;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter {
+  display: flex;
+  align-items: center;
+  height: auto;
+  min-height: 0;
+  padding: 0.42rem 0.55rem;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-rows {
+  gap: 0.18rem;
+  width: 100%;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-row {
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-row-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  padding-top: 0.08rem;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-address,
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-escrow {
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-escrow {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-escrow-share {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-pagination {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  margin-top: 0;
+  padding-top: 0;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1.85rem 5.75rem 1.85rem;
+  justify-content: center;
+  column-gap: 0.75rem;
+  align-items: center;
+  min-height: 1.85rem;
+}
+
+.grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-pagination-status {
+  justify-self: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-liquidation-market-aside,
+  .grai-liquidation-quorum-slot,
+  .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item,
+  .grai-liquidation-voters-track,
+  .grai-liquidation-voters-item,
+  .grai-liquidation-voters-pages {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.grai-liquidation-vote-block {
+  --grai-market-hero-height: 10.5rem;
+  --grai-fill-card-height: 5.6875rem;
+  --grai-fill-input-height: 2.8125rem;
+  --grai-fill-card-padding: 0.45rem 0.85rem 0.75rem;
+  --grai-fill-card-gap: 0.28rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  width: 100%;
+  max-width: 100%;
+  container-type: inline-size;
+}
+
+.grai-liquidation-vote-block > .grai-action-switch--market {
+  margin-bottom: 0;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  margin-inline: auto;
+  align-self: center;
+}
+
+.grai-liquidation-vote-block > .grai-liquidation-panel--vote,
+.grai-liquidation-vote-block > .grai-liquidation-panel--bribe {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  gap: 0.55rem;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  align-self: center;
+}
+
+.grai-assets-split > .grai-liquidation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.grai-assets-split > .grai-liquidation-actions > .grai-liquidation-notice {
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-actions.is-screen-tabs > .grai-liquidation-ops-row + .grai-liquidation-market-row,
+.grai-assets-split > .grai-liquidation-actions.is-screen-tabs > .grai-liquidation-ops-row + .grai-liquidation-market-row,
+.grai-liquidation-actions.is-screen-tabs .grai-liquidation-market-row {
+  margin-top: 0;
+}
+
+.grai-liquidation-actions.is-screen-tabs .grai-liquidation-ops-row.is-liquidation-screen-hidden,
+.grai-liquidation-actions.is-screen-tabs .grai-liquidation-market-row.is-liquidation-screen-hidden {
+  display: none;
+}
+
+.grai-liquidation-actions.is-screen-tabs > .grai-liquidation-ops-row,
+.grai-assets-split > .grai-liquidation-actions.is-screen-tabs > .grai-liquidation-ops-row {
+  width: 100%;
+  max-width: 100%;
+}
+
+.grai-liquidation-screen-switch {
+  display: flex;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  margin: 0 0 0.85rem;
+  align-self: center;
+}
+
+.grai-assets-split > .grai-liquidation-actions > .grai-liquidation-market-row {
+  width: min(100%, 62rem);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-vote-block .grai-yield-auctions {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .grai-liquidation-ops-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .grai-liquidation-market-row,
+  .grai-liquidation-vote-block,
+  .grai-liquidation-escrow-block,
+  .grai-liquidation-yield-block,
+  .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-market-row,
+  .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-ops-row {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .grai-liquidation-market-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .grai-liquidation-market-aside {
+    justify-self: stretch;
+    max-width: 100%;
+  }
+
+  .grai-liquidation-vote-block {
+    gap: 0.4rem;
+  }
+
+  .grai-action-switch--market .grai-action-switch-btn {
+    font-size: 1.08rem;
+    padding: 0.55rem 0.4rem;
+  }
+
+  .grai-yield-auctions-title,
+  .grai-liquidation-market-heading-title,
+  .grai-liquidation-vote-title,
+  .grai-liquidation-bribe-title {
+    white-space: normal;
+    text-wrap: balance;
+    padding-inline: 0.35rem;
+    font-size: 1.02rem;
+    line-height: 1.3;
+  }
+
+  .grai-liquidation-voters-carousel,
+  .grai-yield-auctions-carousel,
+  .grai-liquidation-quorum-infographic,
+  .grai-liquidation-panel-header,
+  .grai-liquidation-vote-block > .grai-liquidation-panel--vote,
+  .grai-liquidation-bribe-amount,
+  .grai-yield-auction-fill--section {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .grai-liquidation-voters-viewport {
+    --grai-voter-gap: 0.5rem;
+    --grai-voter-peek: 1.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .grai-liquidation-vote-block {
+    --grai-market-hero-height: auto;
+    gap: 0.65rem;
+  }
+
+  .grai-action-switch--market {
+    margin-bottom: 0;
+  }
+
+  .grai-action-switch--market .grai-action-switch-btn {
+    font-size: 1.05rem;
+    padding: 0.52rem 0.3rem;
+    letter-spacing: 0.01em;
+  }
+
+  .grai-yield-auctions-title,
+  .grai-liquidation-market-heading-title,
+  .grai-liquidation-vote-title,
+  .grai-liquidation-bribe-title {
+    font-size: 0.95rem;
+    line-height: 1.35;
+    padding-inline: 0.15rem;
+  }
+
+  .grai-liquidation-quorum-infographic {
+    height: auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0.25rem 0.35rem;
+  }
+
+  .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-track {
+    grid-template-columns: 1fr;
+  }
+
+  .grai-liquidation-quorum-ring {
+    grid-column: 1;
+    grid-row: auto;
+    width: 6.75rem;
+    height: 6.75rem;
+  }
+
+  .grai-liquidation-quorum-body,
+  .grai-liquidation-quorum-footer-stats {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .grai-liquidation-quorum-heading {
+    justify-content: flex-start;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .grai-liquidation-quorum-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grai-liquidation-quorum-stat-value {
+    align-items: flex-start;
+  }
+
+  .grai-liquidation-quorum-stat--bribe .grai-liquidation-quorum-stat-value {
+    align-items: flex-end;
+  }
+
+  .grai-liquidation-quorum-stat--bribe {
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  .grai-liquidation-quorum-footer-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grai-yield-auctions-carousel,
+  .grai-liquidation-voters-carousel {
+    height: auto;
+    gap: 0.55rem;
+  }
+
+  .grai-yield-auctions-carousel .grai-yield-auctions-viewport {
+    flex: 0 0 auto;
+  }
+
+  .grai-yield-auctions-viewport {
+    --grai-auction-peek: 1.5rem;
+  }
+
+  .grai-liquidation-voters-viewport {
+    --grai-voter-peek: 1.5rem;
+  }
+
+  .grai-yield-auction-card,
+  .grai-liquidation-voter {
+    padding: 0.65rem 0.7rem 0.75rem;
+  }
+
+  .grai-liquidation-panel-header {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    gap: 0.45rem;
+  }
+
+  .grai-liquidation-see-all-bribes {
+    width: 100%;
+  }
+
+  .grai-liquidation-bribe-toolbar {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .grai-liquidation-bribe-search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .grai-liquidation-bribe-filter {
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
+
+  .grai-liquidation-bribe-filter select {
+    min-width: 6.5rem;
+    font-size: 0.72rem;
+  }
+
+  .grai-liquidation-vote-block {
+    --grai-fill-card-height: 5.5rem;
+    --grai-fill-card-padding: 0.4rem 0.7rem 0.65rem;
+  }
+
+  .grai-liquidation-vote-amount .grai-amount-input.is-fill-layout {
+    padding: var(--grai-fill-card-padding);
+  }
+
+  .grai-liquidation-vote-amount .grai-amount-input-tools .grai-amount-preset-btns {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    width: auto;
+    gap: 0.22rem;
+  }
+
+  .grai-liquidation-vote-amount .grai-amount-preset-btn {
+    padding: 0.1rem 0.32rem;
+    font-size: 0.62rem;
+  }
+
+  .grai-liquidation-vote-amount .grai-amount-input-fill-wrap .grai-amount-input-meta {
+    gap: 0.15rem;
+  }
+
+  .grai-liquidation-vote-amount .grai-amount-input-fill-wrap .grai-amount-input-balance-top,
+  .grai-liquidation-vote-amount .grai-amount-input-fill-wrap .grai-amount-input-balance {
+    font-size: 0.95rem;
+  }
+
+  .grai-yield-auction-fill--section {
+    margin-top: 0.45rem;
+  }
+
+  .grai-yield-auction-fill--section .grai-yield-auction-fill-field {
+    padding: var(--grai-fill-card-padding);
+  }
+
+  .grai-yield-auction-fill-label-row {
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .grai-yield-auction-fill-label {
+    flex: 0 0 auto;
+  }
+
+  .grai-yield-auction-fill-tools {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  .grai-yield-auction-fill-tools .grai-amount-preset-btns {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    width: auto;
+    gap: 0.22rem;
+  }
+
+  .grai-yield-auction-fill-tools .grai-amount-preset-btn {
+    padding: 0.1rem 0.32rem;
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .grai-action-switch--market .grai-action-switch-btn {
+    font-size: 1rem;
+    padding: 0.5rem 0.22rem;
+  }
+
+  .grai-liquidation-bribe-toolbar {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    width: 100%;
+  }
+
+  .grai-liquidation-bribe-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+  }
+
+  .grai-liquidation-bribe-filter {
+    flex: 0 0 auto;
+    width: auto;
+    margin-left: 0;
+  }
+
+  .grai-liquidation-bribe-filter select {
+    min-width: 5.5rem;
+    font-size: 0.72rem;
+  }
+
+  .grai-yield-auctions-viewport,
+  .grai-liquidation-voters-viewport {
+    --grai-auction-peek: 1.15rem;
+    --grai-voter-peek: 1.15rem;
+  }
+}
+
+.grai-liquidation-notice {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 193, 7, 0.12);
+  color: #fff;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+[data-theme='light'] .grai-liquidation-notice {
+  border-color: rgba(180, 130, 0, 0.4);
+  background: rgba(255, 193, 7, 0.18);
+  color: #1a1a1a;
+}
+
+.grai-liquidation-quorum-infographic {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: 0.4rem 1.5rem;
+  align-items: center;
+  align-content: center;
+  width: 100%;
+  max-width: 28rem;
+  height: var(--grai-market-hero-height, 10.5rem);
+  box-sizing: border-box;
+  margin-inline: 0;
+  min-width: 0;
+  padding: 0.35rem 0.35rem 0.4rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  isolation: isolate;
+  align-self: center;
+}
+
+.grai-liquidation-quorum-infographic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 42% 78% at 22% 50%, color-mix(in srgb, #ff69b4 18%, transparent), transparent 72%),
+    radial-gradient(ellipse 62% 90% at 58% 50%, color-mix(in srgb, #ff69b4 7%, transparent), transparent 78%),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, #ff69b4 4%, transparent) 28%,
+      color-mix(in srgb, #ff69b4 5%, transparent) 50%,
+      color-mix(in srgb, #ff1493 3%, transparent) 72%,
+      transparent 100%
+    );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 10%,
+    #000 90%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 10%,
+    #000 90%,
+    transparent 100%
+  );
+}
+
+.grai-liquidation-quorum-infographic.is-reached::before {
+  background:
+    radial-gradient(ellipse 42% 78% at 22% 50%, color-mix(in srgb, #ff69b4 22%, transparent), transparent 72%),
+    radial-gradient(ellipse 62% 90% at 58% 50%, color-mix(in srgb, #ff69b4 9%, transparent), transparent 78%),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, #ff69b4 5%, transparent) 28%,
+      color-mix(in srgb, #ff69b4 7%, transparent) 50%,
+      color-mix(in srgb, #7dffb2 4%, transparent) 72%,
+      transparent 100%
+    );
+}
+
+.grai-liquidation-quorum-infographic.is-open::before {
+  background:
+    radial-gradient(ellipse 42% 78% at 22% 50%, color-mix(in srgb, #ffb347 18%, transparent), transparent 72%),
+    radial-gradient(ellipse 62% 90% at 58% 50%, color-mix(in srgb, #ffb347 8%, transparent), transparent 78%),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, #ffb347 5%, transparent) 28%,
+      color-mix(in srgb, #ffb347 7%, transparent) 50%,
+      color-mix(in srgb, #ff69b4 4%, transparent) 72%,
+      transparent 100%
+    );
+}
+
+.grai-liquidation-quorum-ring {
+  position: relative;
+  width: 7.25rem;
+  height: 7.25rem;
+  flex-shrink: 0;
+  grid-column: 1;
+  grid-row: 2 / 4;
+  align-self: center;
+}
+
+.grai-liquidation-quorum-ring-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.grai-liquidation-quorum-ring-track {
+  stroke: color-mix(in srgb, #ff69b4 18%, transparent);
+}
+
+.grai-liquidation-quorum-ring-progress {
+  stroke: #ff69b4;
+  transition: stroke-dashoffset 0.55s ease;
+}
+
+.grai-liquidation-quorum-infographic.is-reached .grai-liquidation-quorum-ring-progress {
+  stroke: #ff9ed3;
+}
+
+.grai-liquidation-quorum-infographic.is-open .grai-liquidation-quorum-ring-progress {
+  stroke: #ffb347;
+}
+
+.grai-liquidation-quorum-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  pointer-events: none;
+}
+
+.grai-liquidation-quorum-ring-pct {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme='light'] .grai-liquidation-quorum-ring-pct {
+  color: #1a1a1a;
+}
+
+.grai-liquidation-quorum-ring-caption {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.grai-liquidation-quorum-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.grai-liquidation-quorum-footer-stats {
+  grid-column: 2;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1.25rem;
+  min-width: 0;
+}
+
+.grai-liquidation-quorum-stat--supply,
+.grai-liquidation-quorum-stat--nav {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.2rem;
+}
+
+.grai-liquidation-quorum-stat--nav {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.grai-liquidation-quorum-stat--nav .grai-liquidation-quorum-stat-value {
+  justify-content: flex-end;
+}
+
+.grai-liquidation-quorum-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.grai-liquidation-market-heading,
+.grai-liquidation-vote-header,
+.grai-liquidation-bribe-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0;
+  min-width: 0;
+  min-height: 2.4rem;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}
+
+.grai-liquidation-market-heading-title,
+.grai-liquidation-vote-title,
+.grai-liquidation-bribe-title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+.grai-liquidation-market-heading .grai-liquidation-panel-title-info,
+.grai-liquidation-bribe-heading .grai-liquidation-panel-title-info {
+  align-self: center;
+}
+
+.grai-liquidation-quorum-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.45rem 0.75rem;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: start;
+  width: 100%;
+}
+
+.grai-liquidation-quorum-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ff69b4;
+}
+
+.grai-liquidation-quorum-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+}
+
+.grai-liquidation-quorum-status.is-active {
+  color: #ff9ed3;
+  background: rgba(255, 105, 180, 0.14);
+}
+
+.grai-liquidation-quorum-status.is-warning {
+  color: #ffb347;
+  background: rgba(255, 179, 71, 0.14);
+}
+
+.grai-liquidation-quorum-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1.25rem;
+}
+
+.grai-liquidation-quorum-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.grai-liquidation-quorum-stat--bribe {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.grai-liquidation-quorum-stat--bribe .grai-liquidation-quorum-stat-value {
+  align-items: flex-end;
+}
+
+.grai-liquidation-quorum-stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+[data-theme='light'] .grai-liquidation-quorum-stat-label {
+  color: #1a1a1a;
+}
+
+.grai-liquidation-quorum-stat-value {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 0.05rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-liquidation-quorum-stat-amount {
+  min-width: 0;
+}
+
+.grai-liquidation-quorum-stat-unit {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
+.grai-liquidation-quorum-track {
+  position: relative;
+  height: 0.45rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, #ff69b4 14%, transparent);
+}
+
+.grai-liquidation-quorum-track-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff69b4 0%, #ff1493 100%);
+  transition: width 0.55s ease;
+}
+
+.grai-liquidation-quorum-infographic.is-open .grai-liquidation-quorum-track-fill {
+  background: linear-gradient(90deg, #ffb347 0%, #ff69b4 100%);
+}
+
+.grai-liquidation-quorum-track-mark {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 2px;
+  height: 0.7rem;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, #fff 55%, transparent);
+  pointer-events: none;
+}
+
+[data-theme='light'] .grai-liquidation-quorum-track-mark {
+  background: color-mix(in srgb, #1a1a1a 45%, transparent);
+}
+
+.grai-liquidation-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px dashed rgba(255, 105, 180, 0.28);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+}
+
+.grai-liquidation-panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.grai-liquidation-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.grai-liquidation-see-all-bribes {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  min-width: 7.25rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(255, 105, 180, 0.65);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-liquidation-see-all-bribes:hover,
+.grai-liquidation-see-all-bribes:focus-visible {
+  outline: none;
+  border-color: #ff69b4;
+  color: #ff69b4;
+}
+
+.grai-liquidation-see-all-bribes.is-active {
+  border-color: #ff69b4;
+  color: #ff69b4;
+  background: color-mix(in srgb, #ff69b4 10%, var(--bg-tertiary));
+}
+
+.grai-liquidation-bribe-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  margin-left: 0;
+}
+
+.grai-liquidation-bribe-search,
+.grai-liquidation-bribe-filter {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.grai-liquidation-bribe-search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.grai-liquidation-bribe-filter {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.grai-liquidation-bribe-search-icon,
+.grai-liquidation-bribe-filter-icon {
+  position: absolute;
+  left: 0.55rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.grai-liquidation-bribe-search input,
+.grai-liquidation-bribe-filter select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 2rem;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.grai-liquidation-bribe-search input {
+  padding: 0 0.65rem 0 1.85rem;
+}
+
+.grai-liquidation-bribe-filter select {
+  padding: 0 1.7rem 0 1.85rem;
+  cursor: pointer;
+  min-width: 7.25rem;
+}
+
+.grai-liquidation-bribe-filter::after {
+  content: '';
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1.75px solid #ff69b4;
+  border-bottom: 1.75px solid #ff69b4;
+  transform: translateY(calc(-50% - 2px)) rotate(45deg);
+  pointer-events: none;
+}
+
+.grai-liquidation-bribe-search input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+.grai-liquidation-bribe-search input:hover,
+.grai-liquidation-bribe-filter select:hover,
+.grai-liquidation-bribe-search input:focus,
+.grai-liquidation-bribe-filter select:focus {
+  border-color: color-mix(in srgb, #ff69b4 45%, transparent);
+}
+
+.grai-liquidation-bribe-search .visually-hidden,
+.grai-liquidation-bribe-filter .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.grai-liquidation-bribe-market-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ff69b4;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  white-space: nowrap;
+}
+
+.grai-liquidation-bribe-market-link:hover,
+.grai-liquidation-bribe-market-link:focus-visible {
+  color: #e91e8c;
+  outline: none;
+}
+
+.grai-liquidation-bribe-market-caret {
+  display: inline-flex;
+  width: 0.55rem;
+  height: 0.35rem;
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+}
+
+.grai-liquidation-bribe-market-caret svg {
+  width: 100%;
+  height: 100%;
+}
+
+.grai-liquidation-panel-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.grai-liquidation-panel--bribe {
+  gap: 0.55rem;
+}
+
+.grai-liquidation-bribe-body {
+  min-width: 0;
+}
+
+.grai-liquidation-panel-title-info {
+  align-self: flex-start;
+  min-width: 0;
+}
+
+.grai-liquidation-panel-title-info .grai-field-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+
+.grai-liquidation-panel-title-info .grai-field-info-trigger:hover .grai-liquidation-panel-title,
+.grai-liquidation-panel-title-info .grai-field-info-trigger:focus-visible .grai-liquidation-panel-title,
+.grai-liquidation-panel-title-info.is-open .grai-liquidation-panel-title {
+  color: #ff69b4;
+}
+
+.grai-liquidation-panel-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.grai-liquidation-vote-amount.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.grai-liquidation-vote-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-fill-wrap,
+.grai-liquidation-vote-amount > .grai-amount-input {
+  width: 100%;
+  margin-inline: 0;
+}
+
+.grai-liquidation-vote-amount > .grai-amount-input {
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.grai-liquidation-vote-amount > .grai-amount-input .grai-amount-input-header {
+  display: none;
+}
+
+.grai-liquidation-vote-hint {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.grai-liquidation-vote-min-receive {
+  margin: 0;
+  min-height: 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-liquidation-vote-min-receive.is-placeholder {
+  color: var(--text-primary);
+}
+
+.grai-liquidation-vote-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--grai-action-label-lead-gap, 0.4rem);
+  min-width: 0;
+}
+
+.grai-liquidation-vote-line--split {
+  display: flex;
+  width: 100%;
+}
+
+.grai-liquidation-vote-line-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.grai-liquidation-vote-line-value {
+  flex: 0 0 auto;
+  margin-left: auto;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.grai-liquidation-vote-line > .grai-field-info-wrap.grai-liquidation-vote-line-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--grai-action-label-lead-size, 1.25rem);
+  height: var(--grai-action-label-lead-size, 1.25rem);
+}
+
+.grai-liquidation-vote-line .grai-field-info-btn {
+  width: var(--grai-action-label-lead-size, 1.25rem);
+  height: var(--grai-action-label-lead-size, 1.25rem);
+  color: #ff69b4;
+}
+
+.grai-liquidation-vote-line .grai-field-info-btn:hover,
+.grai-liquidation-vote-line .grai-field-info-btn:focus-visible {
+  color: #ff9ed3;
+}
+
+.grai-liquidation-vote-line .grai-field-info-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+[data-theme='light'] .grai-liquidation-vote-line .grai-field-info-btn {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-liquidation-vote-line .grai-field-info-btn:hover,
+[data-theme='light'] .grai-liquidation-vote-line .grai-field-info-btn:focus-visible {
+  color: #ff69b4;
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-footer {
+  justify-content: space-between;
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-footer-start,
+.grai-liquidation-vote-amount .grai-amount-input-usd {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-footer-start {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-footer-start.is-placeholder,
+.grai-liquidation-vote-amount .grai-amount-input-usd.is-placeholder {
+  color: var(--text-secondary);
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-usd {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.grai-liquidation-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.grai-liquidation-field-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.grai-liquidation-field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.grai-liquidation-field-label--right {
+  text-align: right;
+}
+
+.grai-liquidation-field-balance,
+.grai-liquidation-field-hint {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.grai-liquidation-field-input,
+.grai-liquidation-field-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.grai-liquidation-field-input:focus,
+.grai-liquidation-field-select:focus {
+  outline: none;
+  border-color: rgba(255, 105, 180, 0.55);
+}
+
+.grai-liquidation-field-input:disabled,
+.grai-liquidation-field-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.grai-liquidation-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.grai-liquidation-voters-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.grai-liquidation-voters-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.grai-liquidation-voters-carousel.is-grid {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-viewport {
+  overflow: hidden;
+  scroll-snap-type: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.grai-liquidation-voters-pages {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.grai-liquidation-voters-pages .grai-liquidation-voters-track {
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  grid-template-rows: repeat(3, minmax(4.35rem, auto));
+  min-height: calc(3 * 4.35rem + 2 * 0.55rem);
+}
+
+.grai-liquidation-voters-pages .grai-liquidation-voters-item {
+  animation: none;
+}
+
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  scroll-snap-align: unset;
+  opacity: 1;
+  animation: grai-voters-grid-in 0.38s ease both;
+}
+
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item.is-peek {
+  opacity: 1;
+}
+
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item:nth-child(4) {
+  animation-delay: 0.11s;
+}
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item:nth-child(5) {
+  animation-delay: 0.14s;
+}
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item:nth-child(6) {
+  animation-delay: 0.17s;
+}
+.grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item:nth-child(n + 7) {
+  animation-delay: 0.2s;
+}
+
+@keyframes grai-voters-grid-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.45rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.grai-liquidation-voters-viewport {
+  --grai-voter-gap: 0.75rem;
+  --grai-voter-peek: 2rem;
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
+}
+
+.grai-liquidation-voters-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.grai-liquidation-voters-track {
+  display: flex;
+  align-items: stretch;
+  gap: var(--grai-voter-gap);
+  width: max-content;
+  min-width: 100%;
+  padding: 0.1rem var(--grai-voter-peek);
+  box-sizing: border-box;
+}
+
+.grai-liquidation-voters-item {
+  flex: 0 0 calc(100cqi - (2 * var(--grai-voter-peek)));
+  min-width: 0;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  opacity: 1;
+  transition: opacity 0.25s ease, transform 0.3s ease;
+}
+
+.grai-liquidation-voters-item.is-peek {
+  opacity: 0.38;
+}
+
+.grai-liquidation-voters-item.is-peek:hover {
+  opacity: 0.55;
+}
+
+.grai-liquidation-voters-item-select {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.grai-liquidation-voters-carousel.is-compact .grai-liquidation-voters-viewport {
+  --grai-voter-peek: 1.75rem;
+}
+
+.grai-liquidation-voters-carousel.is-compact .grai-liquidation-voters-item {
+  flex-basis: calc(100cqi - (2 * var(--grai-voter-peek)));
+}
+
+.grai-liquidation-bribe-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.grai-liquidation-bribe-amount > .grai-amount-input {
+  width: 100%;
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.grai-liquidation-bribe-amount > .grai-amount-input .grai-amount-input-header {
+  display: none;
+}
+
+.grai-liquidation-bribe-amount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 1.5rem;
+  line-height: 1.4;
+}
+
+.grai-liquidation-bribe-amount-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.grai-liquidation-bribe-amount-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.grai-liquidation-bribe-amount .grai-action-submit,
+.grai-liquidation-bribe-amount .connect-wallet-btn {
+  width: 100%;
+}
+
+.grai-liquidation-voters-pagination {
+  display: grid;
+  grid-template-columns: 1.85rem 5.75rem 1.85rem;
+  justify-content: center;
+  column-gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  min-height: 1.85rem;
+  flex: 0 0 auto;
+}
+
+.grai-liquidation-voters-pagination-status {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  justify-self: center;
+  text-align: center;
+}
+
+.grai-liquidation-voters-pagination-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #ff69b4;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.grai-liquidation-voters-pagination-btn svg {
+  width: 0.45rem;
+  height: 0.7rem;
+}
+
+.grai-liquidation-voters-pagination-btn:hover:not(:disabled) {
+  color: #ff9ed3;
+}
+
+.grai-liquidation-voters-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.grai-liquidation-voters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-height: 18rem;
+  overflow: auto;
+  padding-right: 0.1rem;
+  min-width: 0;
+}
+
+.grai-liquidation-voters--blocks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  height: 32.125rem;
+  min-height: 32.125rem;
+  max-height: 32.125rem;
+  overflow: hidden;
+  align-content: stretch;
+}
+
+@media (max-width: 640px) {
+  .grai-liquidation-voters--blocks {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow-x: hidden;
+  }
+}
+
+.grai-liquidation-voters--blocks .grai-liquidation-voter {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.grai-liquidation-voters--blocks .grai-liquidation-voter-main {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.grai-liquidation-voters--blocks .grai-liquidation-voter-action {
+  align-items: stretch;
+}
+
+.grai-liquidation-voters--blocks .grai-liquidation-voter-bribe-btn {
+  width: 100%;
+}
+
+.grai-liquidation-voter {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.95rem 0.55rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.grai-liquidation-voter.is-selected {
+  border-color: rgba(255, 105, 180, 0.7);
+  box-shadow: 0 0 0 1px rgba(255, 105, 180, 0.35);
+}
+
+.grai-liquidation-voter-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.grai-liquidation-voter-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.grai-liquidation-voter-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.grai-liquidation-voter-row-label {
+  flex: 0 1 auto;
+  max-width: 42%;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 1.2;
+}
+
+[data-theme='light'] .grai-liquidation-voter-row-label {
+  color: #1a1a1a;
+}
+
+.grai-liquidation-voter-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  flex: 0 0 auto;
+}
+
+.grai-liquidation-voter-address {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 58%;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-family: 'Courier New', monospace;
+  color: #ff9ed3;
+}
+
+.grai-liquidation-voter-address-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-liquidation-voter-address .grai-mint-asset-value-solscan {
+  flex: 0 0 auto;
+}
+
+.grai-liquidation-voter-escrow,
+.grai-liquidation-voter-cost {
+  min-width: 0;
+  max-width: 58%;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  text-align: right;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.grai-liquidation-voter-cost {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  max-width: none;
+  flex: 0 1 auto;
+}
+
+.grai-liquidation-voter-escrow {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.grai-liquidation-voter-escrow-share {
+  display: block;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.grai-liquidation-voter-bribe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.4rem 0.7rem;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff69b4 0%, #e91e8c 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.18s ease, background 0.18s ease;
+}
+
+.grai-liquidation-voter-bribe-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e91e8c 0%, #c2185b 100%);
+}
+
+.grai-liquidation-voter-bribe-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.connect-wallet-btn.grai-liquidation-voter-connect-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: auto;
+  min-width: 0;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 1.12rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
+.connect-wallet-btn.grai-liquidation-voter-connect-btn svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+/* --- Yield auctions (Dutch fill) --- */
+
+.grai-yield-auctions {
+  width: 100%;
+  margin-top: 1.75rem;
+  min-width: 0;
+}
+
+.grai-yield-auctions-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.85rem;
+  min-width: 0;
+  text-align: center;
+  align-items: center;
+}
+
+.grai-yield-auctions-title-info {
+  align-self: center;
+  min-width: 0;
+}
+
+.grai-yield-auctions-title-info .grai-field-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+
+.grai-yield-auctions-title-info .grai-field-info-trigger:hover .grai-yield-auctions-title,
+.grai-yield-auctions-title-info .grai-field-info-trigger:focus-visible .grai-yield-auctions-title,
+.grai-yield-auctions-title-info.is-open .grai-yield-auctions-title {
+  color: #ff69b4;
+}
+
+.grai-yield-auctions-title-info .grai-field-info-tooltip {
+  left: 0;
+  transform: none;
+  max-width: min(22rem, 80vw);
+  z-index: 40;
+}
+
+.grai-yield-auctions-title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .grai-yield-auctions-title {
+    white-space: normal;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .grai-yield-auctions-title-break {
+    display: block;
+  }
+}
+
+.grai-yield-auctions-scroller {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding-bottom: 0.35rem;
+}
+
+.grai-yield-auctions-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  width: min(100%, 28rem);
+  max-width: 28rem;
+  height: auto;
+  box-sizing: border-box;
+  margin-inline: auto;
+}
+
+.grai-yield-auctions-carousel .grai-yield-auctions-viewport {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.grai-yield-auctions-viewport {
+  --grai-auction-gap: 0.75rem;
+  --grai-auction-peek: 2rem;
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.grai-yield-auctions-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.grai-yield-auctions-track {
+  display: flex;
+  align-items: stretch;
+  gap: var(--grai-auction-gap);
+  width: max-content;
+  min-width: 100%;
+  padding: 0.1rem 0;
+}
+
+.grai-yield-auctions-item {
+  flex: 0 0 calc(100cqi - (2 * var(--grai-auction-peek)));
+  min-width: 0;
+  max-width: none;
+  scroll-snap-align: start;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.grai-yield-auctions-item.is-peek {
+  opacity: 0.38;
+}
+
+.grai-yield-auctions-item.is-peek:hover {
+  opacity: 0.55;
+}
+
+.grai-yield-auctions-item-select {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+@media (max-width: 900px) {
+  .grai-yield-auctions-viewport {
+    --grai-auction-gap: 0.5rem;
+    --grai-auction-peek: 2.25rem;
+  }
+}
+
+.grai-yield-auctions.is-compact .grai-yield-auctions-viewport {
+  --grai-auction-peek: 1.75rem;
+}
+
+.grai-yield-auctions.is-compact .grai-yield-auctions-item {
+  flex-basis: calc(100cqi - (2 * var(--grai-auction-peek)));
+}
+
+.grai-yield-auctions-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.grai-yield-auctions-dot {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    width 0.2s ease;
+}
+
+.grai-yield-auctions-dot.is-active {
+  width: 1.1rem;
+  background: #ff69b4;
+}
+
+.grai-yield-auctions-dot:hover,
+.grai-yield-auctions-dot:focus-visible {
+  background: color-mix(in srgb, #ff69b4 70%, transparent);
+  outline: none;
+}
+
+.grai-yield-auction-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  height: 100%;
+  min-width: 0;
+  padding: 0.75rem 0.85rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.grai-yield-auction-card.is-selected {
+  border-color: rgba(255, 105, 180, 0.7);
+  box-shadow: 0 0 0 1px rgba(255, 105, 180, 0.35);
+}
+
+.grai-yield-auction-remaining {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.grai-yield-auction-asset-icon {
+  display: inline-flex;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.grai-yield-auction-asset-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.grai-yield-auction-asset-symbol {
+  font-size: inherit;
+  font-weight: 700;
+  color: inherit;
+}
+
+.grai-yield-auction-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.grai-yield-auction-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.grai-yield-auction-row-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.grai-yield-auction-row-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-yield-auction-row-value.is-accent {
+  color: #ff69b4;
+}
+
+.grai-yield-auction-row-discount {
+  margin-right: 0.4rem;
+  margin-left: 0;
+  font-weight: 700;
+}
+
+.grai-yield-auction-track {
+  position: relative;
+  width: 100%;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 18%, transparent);
+  overflow: hidden;
+}
+
+.grai-yield-auction-track-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff69b4, #ffb347);
+  transition: width 0.4s ease;
+}
+
+.grai-yield-auction-fill-btn {
+  width: 100%;
+}
+
+.grai-yield-auction-fill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: auto;
+}
+
+.grai-yield-auction-fill--section {
+  width: min(100%, 28rem);
+  margin: 0.55rem auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-sizing: border-box;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
+}
+
+.grai-yield-auction-fill--section .grai-yield-auction-fill-field {
+  height: var(--grai-fill-card-height, 5.6875rem);
+  min-height: var(--grai-fill-card-height, 5.6875rem);
+  padding: var(--grai-fill-card-padding, 0.45rem 0.85rem 0.75rem);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  box-sizing: border-box;
+  gap: var(--grai-fill-card-gap, 0.28rem);
+}
+
+.grai-yield-auction-fill-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--grai-fill-card-gap, 0.28rem);
+  min-width: 0;
+}
+
+.grai-yield-auction-fill-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  height: 1.25rem;
+  min-height: 1.25rem;
+}
+
+.grai-yield-auction-fill-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.grai-yield-auction-fill-tools .grai-amount-preset-btns {
+  margin-left: 0;
+}
+
+.grai-yield-auction-slippage {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.grai-yield-auction-slippage-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.125rem;
+  width: 1.125rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ff9ad0;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.grai-yield-auction-slippage-btn svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.grai-yield-auction-slippage-btn:hover,
+.grai-yield-auction-slippage-btn.is-open,
+.grai-yield-auction-slippage-btn:focus-visible {
+  background: transparent;
+  color: #ff69b4;
+  outline: none;
+}
+
+.grai-yield-auction-slippage-popover {
+  position: absolute;
+  bottom: calc(100% + 0.45rem);
+  top: auto;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 9.5rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.grai-yield-auction-slippage-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.grai-yield-auction-slippage-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.grai-yield-auction-slippage-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 1.6rem 0.45rem 0.55rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.grai-yield-auction-slippage-input:focus {
+  outline: none;
+  border-color: rgba(255, 105, 180, 0.55);
+}
+
+.grai-yield-auction-slippage-suffix {
+  position: absolute;
+  right: 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.grai-yield-auction-slippage-popover .grai-amount-preset-btn.is-active {
+  background: rgba(255, 105, 180, 0.28);
+  border-color: rgba(255, 105, 180, 0.75);
+}
+
+.grai-yield-auction-fill-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--text-primary);
+}
+
+.grai-yield-auction-fill-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  height: var(--grai-fill-input-height, 2.8125rem);
+  min-height: var(--grai-fill-input-height, 2.8125rem);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.grai-yield-auction-fill-input-wrap:focus-within {
+  border-color: rgba(255, 105, 180, 0.55);
+}
+
+.grai-yield-auction-fill-input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  border-radius: 10px 0 0 10px;
+  background: transparent;
+  color: #ff69b4;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.grai-yield-auction-fill-input:focus {
+  outline: none;
+  border-color: transparent;
+}
+
+.grai-yield-auction-fill-input-wrap .grai-asset-select {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+}
+
+.grai-yield-auction-fill-input-wrap .grai-asset-select-trigger {
+  height: 100%;
+  border-radius: 0 10px 10px 0;
+}
+
+.grai-yield-auction-fill-input::placeholder {
+  color: rgba(255, 105, 180, 0.45);
+  font-weight: 600;
+}
+
+[data-theme='light'] .grai-yield-auction-fill-input {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-yield-auction-fill-input::placeholder {
+  color: rgba(233, 30, 140, 0.45);
+}
+
+.grai-yield-auction-fill-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.grai-yield-auction-fill-pay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0;
+}
+
+.grai-yield-auction-fill-pay-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-primary);
+}
+
+.grai-yield-auction-fill-pay-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.grai-yield-auction-fill-pay-value.is-placeholder {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.grai-yield-auction-fill-receive-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.grai-yield-auction-fill-receive-discount {
+  font-weight: 700;
+  color: #ff69b4;
+}
+
+.grai-yield-auction-fill-pay-value.is-placeholder .grai-yield-auction-fill-receive-discount {
+  color: color-mix(in srgb, #ff69b4 55%, transparent);
+}
+
+.grai-yield-auction-fill--section .grai-action-submit,
+.grai-yield-auction-fill--section .connect-wallet-btn {
+  width: 100%;
+}
+
+.grai-assets-chart-card {
+  margin-top: 2rem;
 }

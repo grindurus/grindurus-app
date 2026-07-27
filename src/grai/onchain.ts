@@ -1,39 +1,55 @@
 import { Connection, PublicKey, type Commitment } from '@solana/web3.js'
 import { getAssociatedTokenAddress } from './pdas'
 
-/** Anchor SeniorVault.total_value (USD 9 decimals) at byte 77. */
-export function decodeSeniorVaultTotalValue(data: Buffer): bigint {
-  let value = 0n
-  for (let i = 0; i < 16; i += 1) {
-    value |= BigInt(data[77 + i]!) << BigInt(i * 8)
-  }
-  return value
-}
-
-/** Anchor account discriminator + SeniorVault fields; price_feed follows asset_mint. */
-export function decodeSeniorVaultPriceFeed(data: Buffer): PublicKey {
+/**
+ * AssetConfig layout after 8-byte discriminator:
+ * asset_mint(32) price_feed(32) paused(1) id(4) auction… bump(1)
+ */
+export function decodeAssetConfigPriceFeed(data: Buffer): PublicKey {
   return new PublicKey(data.subarray(40, 72))
 }
 
-/** Anchor SeniorVault.mint_split (basis points) at byte 72. */
-export function decodeSeniorVaultMintSplit(data: Buffer): number {
-  return data.readUInt16LE(72)
+export function decodeAssetConfigPaused(data: Buffer): boolean {
+  return data[72] === 1
 }
 
-/** Anchor SeniorVault.yield_split (basis points) at byte 74. */
-export function decodeSeniorVaultYieldSplit(data: Buffer): number {
-  return data.readUInt16LE(74)
+/** @deprecated Senior vaults removed — use `decodeAssetConfigPriceFeed`. */
+export function decodeSeniorVaultPriceFeed(data: Buffer): PublicKey {
+  return decodeAssetConfigPriceFeed(data)
 }
 
+/** @deprecated */
+export function decodeSeniorVaultTotalValue(_data: Buffer): bigint {
+  return 0n
+}
+
+/** @deprecated */
+export function decodeSeniorVaultMintSplit(_data: Buffer): number {
+  return 0
+}
+
+/** @deprecated */
+export function decodeSeniorVaultYieldSplit(_data: Buffer): number {
+  return 0
+}
+
+export async function fetchAssetConfigPriceFeed(
+  connection: Connection,
+  assetConfig: PublicKey,
+): Promise<PublicKey> {
+  const account = await connection.getAccountInfo(assetConfig)
+  if (!account?.data) {
+    throw new Error('Asset config account not found for this asset')
+  }
+  return decodeAssetConfigPriceFeed(Buffer.from(account.data))
+}
+
+/** @deprecated Prefer `fetchAssetConfigPriceFeed`. */
 export async function fetchSeniorVaultPriceFeed(
   connection: Connection,
   seniorVault: PublicKey,
 ): Promise<PublicKey> {
-  const account = await connection.getAccountInfo(seniorVault)
-  if (!account?.data) {
-    throw new Error('Senior vault account not found for this asset')
-  }
-  return decodeSeniorVaultPriceFeed(Buffer.from(account.data))
+  return fetchAssetConfigPriceFeed(connection, seniorVault)
 }
 
 /** SPL mint account: mint_authority COption<Pubkey> at offset 0. */

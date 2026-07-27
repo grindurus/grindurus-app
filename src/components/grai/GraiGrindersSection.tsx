@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { Settings } from 'lucide-react'
 import { WalletNetworkSelect } from '../WalletNetworkSelect'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
 import { useBossGrinderTable } from '../../hooks/useBossGrinderTable'
@@ -152,11 +153,6 @@ export function GraiGrindersSection() {
     </button>
   )
 
-  const grinderNetworkAction = isGrinderNetworkConnected ? (
-    <WalletNetworkSelect variant="compact" ariaLabel="Select wallet network" />
-  ) : (
-    <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
-  )
   const compactToolbarNetworkAction = isGrinderNetworkConnected ? (
     <WalletNetworkSelect variant="compact" ariaLabel="Select wallet network" />
   ) : null
@@ -169,15 +165,22 @@ export function GraiGrindersSection() {
         </span>
       ) : null}
     </div>
+  ) : null
+
+  const desktopNetworkAction = isGrinderNetworkConnected ? (
+    <>
+      {grindersNetworkFilterToggle}
+      <WalletNetworkSelect variant="compact" ariaLabel="Selected wallet network" />
+    </>
   ) : (
-    <div className="grai-grinders-summary-filter-wrap">{grindersNetworkFilterToggle}</div>
+    <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
   )
 
   const bossEndpointsToggle = (
     <div className="grai-grinders-summary-toggle grai-grinders-endpoints-toggle-wrap">
       <button
         type="button"
-        className={`grai-donut-legend-toggle grai-grinders-endpoints-toggle ${isBossEndpointsOpen ? '' : 'is-collapsed'}`}
+        className={`grai-donut-legend-toggle grai-grinders-endpoints-toggle is-icon${isBossEndpointsOpen ? '' : ' is-collapsed'}`}
         onClick={(event) => {
           event.stopPropagation()
           toggleBossEndpoints()
@@ -185,24 +188,14 @@ export function GraiGrindersSection() {
         aria-expanded={isBossEndpointsOpen}
         aria-controls="grai-boss-endpoints-panel"
         aria-label={isBossEndpointsOpen ? 'Hide endpoints' : 'View endpoints'}
+        title={isBossEndpointsOpen ? 'Hide endpoints' : 'View endpoints'}
       >
-        <span className="grai-grinders-section-toggle-inner">
-          <span className="grai-grinders-section-toggle-label" aria-hidden="true">
-            {isBossEndpointsOpen ? 'HIDE ENDPOINTS' : 'VIEW ENDPOINTS'}
-          </span>
-          <svg
-            className="grai-donut-legend-toggle-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </span>
+        <Settings
+          className="grai-grinders-endpoints-gear-icon"
+          size={16}
+          strokeWidth={2.2}
+          aria-hidden="true"
+        />
       </button>
     </div>
   )
@@ -218,7 +211,7 @@ export function GraiGrindersSection() {
             className="grai-grinders-group-title is-network is-stacked grai-grinders-network-slot--desktop"
           >
             <span className="grai-grinders-network-main">
-              <span className="grai-grinders-network-action">{grinderNetworkAction}</span>
+              <span className="grai-grinders-network-action">{desktopNetworkAction}</span>
             </span>
           </span>
           ) : null}
@@ -336,7 +329,7 @@ export function GraiGrindersSection() {
                   </span>
                   <span role="columnheader" className="grai-grinders-col-grinder" aria-label="Grinders">
                     <a
-                      href={`${toAppPath('/grai')}#allocate`}
+                      href={`${toAppPath('/grinders')}#allocate`}
                       className="grai-grinders-col-grinder-link"
                       title="Grinder management"
                       onClick={(event) => {
@@ -484,8 +477,8 @@ export function GraiGrindersSection() {
                 </span>
               </span>
             </button>
+            {bossEndpointsToggle}
           </div>
-          {bossEndpointsToggle}
         </div>
         <div className="grai-grinders-summary-endpoints-panel-row">
           <div

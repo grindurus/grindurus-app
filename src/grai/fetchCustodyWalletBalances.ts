@@ -4,19 +4,21 @@ import type { GraiSolanaConfig } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { decodeMintDecimals } from './onchain'
 import { NATIVE_MINT } from './knownMints'
-import { custodyAllocationPda, getAssociatedTokenAddress } from './pdas'
+import { allocationPda, getAssociatedTokenAddress } from './pdas'
+import { resolveSolanaGrindersProgramId } from './solanaAllocateCustody'
 
 export type CustodyAssetBalances = {
   balanceRaw: bigint
   allocatedRaw: bigint
+  /** Yield tracking lives on GRAI Position PDA; always 0 here. */
   yieldRaw: bigint
   decimals: number
 }
 
-function decodeCustodyAllocation(data: Buffer): { allocatedRaw: bigint; yieldRaw: bigint } {
+/** Grinders Allocation: disc(8) + allocated_amount(u64) + bump(u8). */
+function decodeAllocation(data: Buffer): { allocatedRaw: bigint } {
   return {
     allocatedRaw: data.readBigUInt64LE(8),
-    yieldRaw: data.readBigUInt64LE(16),
   }
 }
 
@@ -27,12 +29,12 @@ export async function fetchCustodyWalletBalances(
 ): Promise<Record<string, CustodyAssetBalances>> {
   const protocol = await fetchGraiProtocol(connection, config.graiMint)
   const assetMints = protocol.assetMints
-  const programId = protocol.programId
+  const grindersProgram = resolveSolanaGrindersProgramId(config.cluster)
 
   const accountKeys: PublicKey[] = []
   for (const mint of assetMints) {
     accountKeys.push(getAssociatedTokenAddress(mint, custodyWallet))
-    accountKeys.push(custodyAllocationPda(custodyWallet, mint, programId))
+    accountKeys.push(allocationPda(custodyWallet, mint, grindersProgram))
     if (mint.toBase58() !== NATIVE_MINT) {
       accountKeys.push(mint)
     }
@@ -42,25 +44,25 @@ export async function fetchCustodyWalletBalances(
 
   const entries = assetMints.map((mint) => {
     const custodyAta = getAssociatedTokenAddress(mint, custodyWallet)
-    const custodyAllocation = custodyAllocationPda(custodyWallet, mint, programId)
+    const allocation = allocationPda(custodyWallet, mint, grindersProgram)
     const isNativeSol = mint.toBase58() === NATIVE_MINT
 
     const custodyAtaData = getAccountData(accounts, custodyAta)
-    const custodyAllocationData = getAccountData(accounts, custodyAllocation)
+    const allocationData = getAccountData(accounts, allocation)
     const mintData = isNativeSol ? null : getAccountData(accounts, mint)
 
     const decimals = isNativeSol ? 9 : mintData ? decodeMintDecimals(mintData) : 0
-    const allocation =
-      custodyAllocationData && custodyAllocationData.length >= 24
-        ? decodeCustodyAllocation(custodyAllocationData)
-        : { allocatedRaw: 0n, yieldRaw: 0n }
+    const allocatedRaw =
+      allocationData && allocationData.length >= 16
+        ? decodeAllocation(allocationData).allocatedRaw
+        : 0n
 
     return [
       mint.toBase58(),
       {
         balanceRaw: custodyAtaData ? decodeTokenAccountAmount(custodyAtaData) : 0n,
-        allocatedRaw: allocation.allocatedRaw,
-        yieldRaw: allocation.yieldRaw,
+        allocatedRaw,
+        yieldRaw: 0n,
         decimals,
       },
     ] as const

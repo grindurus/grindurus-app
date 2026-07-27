@@ -12,13 +12,64 @@ import { isNativeEvmAsset, resolveEvmGraiAsset } from './knownAssets'
 export async function fetchEvmGraiAssets(config: GraiEvmConfig): Promise<GraiAsset[]> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const assetAddresses = await client.readContract({
+  const entries = await client.readContract({
     address: graiAddress,
     abi: graiAbi,
     functionName: 'getAssets',
   })
 
-  return assetAddresses.map((address) => resolveEvmGraiAsset(address))
+  return entries.map((entry) => resolveEvmGraiAsset(entry.asset))
+}
+
+export type EvmListedAsset = {
+  address: `0x${string}`
+  symbol: string
+  icon: string
+  decimals: number
+}
+
+async function fetchEvmListedAssets(config: GraiEvmConfig): Promise<EvmListedAsset[]> {
+  const client = createGraiEvmPublicClient(config)
+  const graiAddress = resolveGraiContractAddress(config)
+  const entries = await client.readContract({
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'getAssets',
+  })
+
+  return Promise.all(
+    entries.map(async (entry) => {
+      const address = entry.asset
+      const meta = resolveEvmGraiAsset(address)
+      const decimals = await readAssetDecimals(config, address)
+      return {
+        address,
+        symbol: meta.symbol,
+        icon: meta.icon.src,
+        decimals,
+      }
+    }),
+  )
+}
+
+async function readBribeOrSettlementAsset(
+  config: GraiEvmConfig,
+  graiAddress: `0x${string}`,
+): Promise<`0x${string}`> {
+  const client = createGraiEvmPublicClient(config)
+  try {
+    return await client.readContract({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'bribeAsset',
+    })
+  } catch {
+    return await client.readContract({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'settlementAsset',
+    })
+  }
 }
 
 export async function fetchEvmGraiTotalSupply(config: GraiEvmConfig) {
@@ -65,14 +116,9 @@ async function readAssetPrice(
 ): Promise<{ price: bigint; decimals: number }> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const oracleAddress = await client.readContract({
-    address: graiAddress,
-    abi: graiAbi,
-    functionName: 'oracle',
-  })
 
   const [price, priceDecimals] = await client.readContract({
-    address: oracleAddress,
+    address: graiAddress,
     abi: priceOracleAbi,
     functionName: 'getPrice',
     args: [asset],
@@ -89,7 +135,7 @@ export async function fetchEvmGraiVaultBalances(
   const vaults = await client.readContract({
     address: graiAddress,
     abi: graiAbi,
-    functionName: 'getVaults',
+    functionName: 'getVaultsData',
   })
 
   const entries = await Promise.all(
@@ -178,6 +224,153 @@ export async function fetchEvmWalletAssetBalance(
   ])
   const dec = Number(decimals)
   return { raw, maxRaw: raw, decimals: dec }
+}
+
+export type EvmVoterEntry = {
+  address: `0x${string}`
+  escrowGrai: bigint
+}
+
+export type EvmLiquidationVoteState = {
+  graiDecimals: number
+  walletGrai: bigint
+  votedGrai: bigint
+  lockedGrai: bigint
+  totalVoted: bigint
+  totalSupply: bigint
+  totalValue: bigint
+  hasQuorum: boolean
+  liquidationOpen: boolean
+  settlementAsset: `0x${string}`
+  settlementDecimals: number
+  settlementSymbol: string
+  bribePremiumBps: number
+  liquidationQuorumBps: number
+  voters: `0x${string}`[]
+  voterEntries: EvmVoterEntry[]
+  listedAssets: EvmListedAsset[]
+}
+
+export async function fetchEvmLiquidationVoteState(
+  config: GraiEvmConfig,
+  owner: `0x${string}` | null,
+): Promise<EvmLiquidationVoteState> {
+  const client = createGraiEvmPublicClient(config)
+  const graiAddress = resolveGraiContractAddress(config)
+
+  const [
+    graiDecimalsRaw,
+    totalVoted,
+    totalSupply,
+    totalValue,
+    hasQuorum,
+    liquidationOpen,
+    settlementAsset,
+    protocolConfig,
+    voterEscrows,
+    listedAssets,
+    walletGrai,
+    escrowEntry,
+  ] = await Promise.all([
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'decimals' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalVoted' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalSupply' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalValue' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'hasQuorum' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidation' }),
+    readBribeOrSettlementAsset(config, graiAddress),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'config' }),
+    client.readContract({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'getVoters',
+      args: [0n, 2n ** 256n - 1n],
+    }),
+    fetchEvmListedAssets(config),
+    owner
+      ? client.readContract({
+          address: graiAddress,
+          abi: graiAbi,
+          functionName: 'balanceOf',
+          args: [owner],
+        })
+      : Promise.resolve(0n),
+    owner
+      ? client.readContract({
+          address: graiAddress,
+          abi: graiAbi,
+          functionName: 'escrows',
+          args: [owner],
+        })
+      : Promise.resolve([
+          '0x0000000000000000000000000000000000000000',
+          0,
+          0n,
+          0n,
+          0,
+          0,
+          0,
+        ] as const),
+  ])
+
+  const settlementDecimals = await readAssetDecimals(config, settlementAsset)
+  const settlementMeta = resolveEvmGraiAsset(settlementAsset)
+  const voterEntries = voterEscrows.map((escrow) => ({
+    address: escrow.account,
+    escrowGrai: escrow.voted,
+  }))
+
+  return {
+    graiDecimals: Number(graiDecimalsRaw),
+    walletGrai,
+    lockedGrai: escrowEntry[2],
+    votedGrai: escrowEntry[3],
+    totalVoted,
+    totalSupply,
+    totalValue,
+    hasQuorum,
+    liquidationOpen,
+    settlementAsset,
+    settlementDecimals,
+    settlementSymbol: settlementMeta.symbol,
+    bribePremiumBps: Number(protocolConfig[3]),
+    liquidationQuorumBps: Number(protocolConfig[4]),
+    voters: voterEscrows.map((escrow) => escrow.account),
+    voterEntries,
+    listedAssets,
+  }
+}
+
+export async function fetchEvmVoterEscrow(
+  config: GraiEvmConfig,
+  voter: `0x${string}`,
+): Promise<bigint> {
+  const client = createGraiEvmPublicClient(config)
+  const graiAddress = resolveGraiContractAddress(config)
+  const entry = await client.readContract({
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'escrows',
+    args: [voter],
+  })
+  return entry[3]
+}
+
+export async function previewEvmBribe(
+  config: GraiEvmConfig,
+  voter: `0x${string}`,
+  graiAmount: bigint,
+): Promise<{ bribeAmount: bigint; premium: bigint; discount: bigint }> {
+  if (graiAmount <= 0n) return { bribeAmount: 0n, premium: 0n, discount: 0n }
+  const client = createGraiEvmPublicClient(config)
+  const graiAddress = resolveGraiContractAddress(config)
+  const [bribeAmount, premium, discount] = await client.readContract({
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'previewBribe',
+    args: [voter, graiAmount],
+  })
+  return { bribeAmount, premium, discount }
 }
 
 export { GRAI_DECIMALS_EVM }

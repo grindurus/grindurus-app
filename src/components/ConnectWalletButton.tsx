@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronRight, LogOut } from 'lucide-react'
 import baseNetworkIcon from '../assets/base-network.svg'
+import ethereumNetworkIcon from '../assets/ethereum-network.svg'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
@@ -13,14 +14,7 @@ import './HeaderSettingsPopover.css'
 
 function EvmChainIcon({ name }: { name: string }) {
   if (name === 'Ethereum') {
-    return (
-      <img
-        src="https://assets.coingecko.com/coins/images/279/small/ethereum.png"
-        alt=""
-        width={20}
-        height={20}
-      />
-    )
+    return <img src={ethereumNetworkIcon} alt="" width={20} height={20} />
   }
   if (name === 'Arbitrum') {
     return (
@@ -160,6 +154,15 @@ export function ConnectWalletButton() {
         return !open
       })
 
+    const toggleNetworkMenu = () => {
+      if (isMenuOpen && isNetworkOpen) {
+        closeMenu()
+        return
+      }
+      setIsMenuOpen(true)
+      setIsNetworkOpen(true)
+    }
+
     return (
       <div className="header-wallet-slot header-wallet-slot--connected" ref={rootRef}>
         <div className={`header-wallet-address-group${copied ? ' is-copied' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}>
@@ -167,11 +170,11 @@ export function ConnectWalletButton() {
             <button
               type="button"
               className="header-wallet-network-btn"
-              onClick={toggleMenu}
-              title={`${activeWallet.networkName} · Wallet menu`}
-              aria-label={`${isMenuOpen ? 'Close' : 'Open'} wallet menu for ${activeWallet.networkName}`}
+              onClick={toggleNetworkMenu}
+              title={`${activeWallet.networkName} · Switch network`}
+              aria-label={`${isMenuOpen && isNetworkOpen ? 'Close' : 'Open'} network menu for ${activeWallet.networkName}`}
               aria-haspopup="menu"
-              aria-expanded={isMenuOpen}
+              aria-expanded={isMenuOpen && isNetworkOpen}
             >
               <span className="header-wallet-network-icon" aria-hidden="true">
                 {currentNetworkIcon}

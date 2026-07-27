@@ -50,13 +50,6 @@ const edgeDefaults = {
 const FLOW_CANVAS_HEIGHT = 150
 const FLOW_FIT_PADDING = 0.34
 const FLOW_FIXED_ZOOM = 1.14
-const FLOW_NODE_W = 86
-const FLOW_NODE_H = 32
-const BURN_GAP_X = 72
-const BURN_GAP_Y = 20
-const BURN_RIGHT_X = FLOW_NODE_W + BURN_GAP_X
-const BURN_USER_Y = FLOW_NODE_H / 2 + BURN_GAP_Y / 2
-const BURN_SENIOR_Y = FLOW_NODE_H + BURN_GAP_Y
 
 function centerFlowInPane(
   instance: ReactFlowInstance<Node<GraiFlowNodeData>, Edge>,
@@ -75,16 +68,15 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'mint',
     title: 'Mint',
     description: [
-      'Deposit assets to mint GRAI.',
-      'Part of your capital becomes collateral backing GRAI.',
-      'The other part is allocated to autonomous grinder strategies to generate yield.',
+      'Deposit assets to mint GRAI at book value.',
+      'Deposited capital is held in Grinders custody.',
+      'Grinders run strategies to generate yield for the protocol.',
     ],
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
       { id: 'user', type: 'graiFlow', position: { x: 0, y: 50 }, data: { label: 'User', variant: 'user' } },
       { id: 'grai', type: 'graiFlow', position: { x: 122, y: 50 }, data: { label: 'GRAI', variant: 'grai' } },
-      { id: 'senior', type: 'graiFlow', position: { x: 262, y: 8 }, data: { label: 'Senior Vault', variant: 'senior' } },
-      { id: 'junior', type: 'graiFlow', position: { x: 262, y: 92 }, data: { label: 'Junior Vault', variant: 'junior' } },
+      { id: 'grinders', type: 'graiFlow', position: { x: 262, y: 50 }, data: { label: 'Grinders', variant: 'custody' } },
     ],
     edges: [
       {
@@ -98,21 +90,13 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
         ...edgeDefaults,
       },
       {
-        id: 'mint-split-senior',
+        id: 'mint-to-grinders',
         source: 'grai',
-        target: 'senior',
-        sourceHandle: 'right-top',
+        target: 'grinders',
+        sourceHandle: 'right',
         targetHandle: 'left',
-        label: '2. split',
-        data: { labelAtFork: true, labelOffsetX: 18, labelOffsetY: -8 },
-        ...edgeDefaults,
-      },
-      {
-        id: 'mint-split-junior',
-        source: 'grai',
-        target: 'junior',
-        sourceHandle: 'right-bottom',
-        targetHandle: 'left',
+        label: '2. transfer',
+        data: { straight: true, labelAlong: 0.5, labelAbove: true },
         ...edgeDefaults,
       },
       {
@@ -131,16 +115,16 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'allocate',
     title: 'Allocate',
     description:
-      'The protocol allocates from Junior Vault to independent grinder custodies.',
+      'The protocol allocates from Grinders to independent grinder custodies.',
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
-      { id: 'junior', type: 'graiFlow', position: { x: 0, y: 34 }, data: { label: 'Junior Vault', variant: 'junior' } },
-      { id: 'custody', type: 'graiFlow', position: { x: 210, y: 34 }, data: { label: 'Grinder Custody X', variant: 'custody' } },
+      { id: 'grinders', type: 'graiFlow', position: { x: 0, y: 34 }, data: { label: 'Grinders', variant: 'custody' } },
+      { id: 'custody', type: 'graiFlow', position: { x: 210, y: 34 }, data: { label: 'Grinder Custodian X', variant: 'custody' } },
     ],
     edges: [
       {
         id: 'allocate',
-        source: 'junior',
+        source: 'grinders',
         target: 'custody',
         sourceHandle: 'right',
         targetHandle: 'left',
@@ -160,7 +144,7 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     centerInPane: true,
     paneOffsetY: 14,
     nodes: [
-      { id: 'custody', type: 'graiFlow', position: { x: 100, y: 58 }, data: { label: 'Grinder Custody X', variant: 'custody' } },
+      { id: 'custody', type: 'graiFlow', position: { x: 100, y: 58 }, data: { label: 'Grinder Custodian X', variant: 'custody' } },
     ],
     edges: [
       {
@@ -179,12 +163,12 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'swap',
     title: 'Swap',
     description:
-      'Grinder Custody X submits a swap intent to Swap Aggregator; executed swaps are settled back into custody.',
+      'Grinder Custodian X submits a swap intent to Swap Aggregator; executed swaps are settled back into custody.',
     height: 190,
     fitPadding: 0.24,
     centerInPane: true,
     nodes: [
-      { id: 'custody', type: 'graiFlow', position: { x: 0, y: 58 }, data: { label: 'Grinder Custody X', variant: 'custody' } },
+      { id: 'custody', type: 'graiFlow', position: { x: 0, y: 58 }, data: { label: 'Grinder Custodian X', variant: 'custody' } },
       {
         id: 'aggregator',
         type: 'graiFlow',
@@ -219,20 +203,20 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'distribute',
     title: 'Distribute',
     description: [
-      'Generated yield is sent back to the Senior Vault.',
+      'Generated yield is sent back to GRAI.',
       'Treasury receives only protocol fees.',
     ],
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
-      { id: 'custody', type: 'graiFlow', position: { x: 0, y: 30 }, data: { label: 'Grinder Custody X', variant: 'custody' } },
-      { id: 'senior', type: 'graiFlow', position: { x: 228, y: 4 }, data: { label: 'Senior Vault', variant: 'senior' } },
+      { id: 'custody', type: 'graiFlow', position: { x: 0, y: 30 }, data: { label: 'Grinder Custodian X', variant: 'custody' } },
+      { id: 'grai', type: 'graiFlow', position: { x: 228, y: 4 }, data: { label: 'GRAI', variant: 'grai' } },
       { id: 'treasury', type: 'graiFlow', position: { x: 228, y: 64 }, data: { label: 'Treasury', variant: 'treasury' } },
     ],
     edges: [
       {
-        id: 'distribute-senior',
+        id: 'distribute-grai',
         source: 'custody',
-        target: 'senior',
+        target: 'grai',
         sourceHandle: 'right-top',
         targetHandle: 'left',
         label: 'YIELD',
@@ -252,42 +236,25 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     ],
   },
   {
-    id: 'burn',
-    title: 'Burn',
-    description:
-      'User burns GRAI. The senior vault returns collateral to the user in proportion to the burn.',
+    id: 'claim',
+    title: 'Claim',
+    description: [
+      'Users claim accrued yield dividends in listed assets from GRAI.',
+      'Claimable balances come from grinder yield distributed to lockers.',
+    ],
     height: FLOW_CANVAS_HEIGHT,
-    centerInPane: true,
     nodes: [
-      { id: 'user', type: 'graiFlow', position: { x: 0, y: BURN_USER_Y }, width: FLOW_NODE_W, height: FLOW_NODE_H, data: { label: 'User', variant: 'user' } },
-      { id: 'grai', type: 'graiFlow', position: { x: BURN_RIGHT_X, y: 0 }, width: FLOW_NODE_W, height: FLOW_NODE_H, data: { label: 'GRAI', variant: 'grai' } },
-      {
-        id: 'senior',
-        type: 'graiFlow',
-        position: { x: BURN_RIGHT_X, y: BURN_SENIOR_Y },
-        width: FLOW_NODE_W,
-        height: FLOW_NODE_H,
-        data: { label: 'Senior Vault', variant: 'senior' },
-      },
+      { id: 'user', type: 'graiFlow', position: { x: 0, y: 50 }, data: { label: 'User', variant: 'user' } },
+      { id: 'grai', type: 'graiFlow', position: { x: 210, y: 50 }, data: { label: 'GRAI', variant: 'grai' } },
     ],
     edges: [
       {
-        id: 'burn-grai',
-        source: 'user',
-        target: 'grai',
-        sourceHandle: 'right-top',
-        targetHandle: 'left',
-        label: 'burn',
-        data: { straight: true, labelAlong: 0.5, labelAbove: true },
-        ...edgeDefaults,
-      },
-      {
-        id: 'burn-redeem',
-        source: 'senior',
+        id: 'claim-yield',
+        source: 'grai',
         target: 'user',
         sourceHandle: 'left-out',
-        targetHandle: 'right-bottom',
-        label: 'redeem',
+        targetHandle: 'right-in',
+        label: 'dividend',
         data: { straight: true, labelAlong: 0.5, labelAbove: true },
         ...edgeDefaults,
       },

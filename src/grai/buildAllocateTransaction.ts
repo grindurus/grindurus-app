@@ -6,17 +6,19 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
-import { graiStatePda } from './deployments'
 import { fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
 import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  custodyAllocationPda,
+  resolveSolanaAllocateCustodyAccounts,
+  resolveSolanaGrindersProgramId,
+} from './solanaAllocateCustody'
+import {
+  allocationPda,
   getAssociatedTokenAddress,
-  juniorVaultAtaPda,
-  juniorVaultPda,
+  grindersStatePda,
   TOKEN_PROGRAM_ID,
 } from './pdas'
 
+/** grinders::allocate discriminator */
 const ALLOCATE_DISCRIMINATOR = Buffer.from([64, 38, 189, 129, 24, 157, 82, 136])
 
 function encodeAllocateInstructionData(amount: bigint): Buffer {
@@ -47,26 +49,24 @@ export async function buildAllocateTransaction({
     throw new Error('Amount must be greater than zero')
   }
 
-  const programId = config.programId
-  const graiState = graiStatePda(programId)
-  const juniorVault = juniorVaultPda(assetMint, programId)
-  const juniorVaultAta = juniorVaultAtaPda(assetMint, programId)
+  const grindersProgram = resolveSolanaGrindersProgramId(config.cluster)
+  const grindersState = grindersStatePda(grindersProgram)
+  const grindersAta = getAssociatedTokenAddress(assetMint, grindersState)
   const custodyAta = getAssociatedTokenAddress(assetMint, custodyWallet)
-  const custodyAllocation = custodyAllocationPda(custodyWallet, assetMint, programId)
+  const allocation = allocationPda(custodyWallet, assetMint, grindersProgram)
+  await resolveSolanaAllocateCustodyAccounts(connection, custodyWallet, grindersProgram)
 
   const allocateIx = new TransactionInstruction({
-    programId,
+    programId: grindersProgram,
     keys: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: assetMint, isSigner: false, isWritable: false },
-      { pubkey: graiState, isSigner: false, isWritable: false },
-      { pubkey: juniorVault, isSigner: false, isWritable: true },
-      { pubkey: juniorVaultAta, isSigner: false, isWritable: true },
+      { pubkey: grindersState, isSigner: false, isWritable: false },
       { pubkey: custodyWallet, isSigner: false, isWritable: false },
+      { pubkey: assetMint, isSigner: false, isWritable: false },
+      { pubkey: allocation, isSigner: false, isWritable: true },
+      { pubkey: grindersAta, isSigner: false, isWritable: true },
       { pubkey: custodyAta, isSigner: false, isWritable: true },
-      { pubkey: custodyAllocation, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: encodeAllocateInstructionData(amount),

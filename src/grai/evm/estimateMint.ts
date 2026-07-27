@@ -39,7 +39,7 @@ export async function estimateEvmGraiMintOutput(
   const graiAddress = resolveGraiContractAddress(config)
   const asset = assetAddress.toLowerCase() as `0x${string}`
 
-  const [totalValue, totalSupply, assetConfig, oracleAddress] = await Promise.all([
+  const [totalValue, totalSupply, assetConfig] = await Promise.all([
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
@@ -56,11 +56,6 @@ export async function estimateEvmGraiMintOutput(
       functionName: 'assets',
       args: [asset],
     }),
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'oracle',
-    }),
   ])
 
   if (!assetConfig[0]) {
@@ -68,7 +63,7 @@ export async function estimateEvmGraiMintOutput(
   }
 
   const [price, priceDecimals] = await client.readContract({
-    address: oracleAddress,
+    address: graiAddress,
     abi: priceOracleAbi,
     functionName: 'getPrice',
     args: [asset],

@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { ConnectWalletButton } from './ConnectWalletButton'
 import { HeaderSettingsPopover } from './HeaderSettingsPopover'
-import { BALANCE_COLUMN_ICONS, GRINDERS_COLUMN_ICONS } from './grai/graiPageIcons'
+import { BALANCE_COLUMN_ICONS } from './grai/graiPageIcons'
 import { GraiUiCaret } from './grai/GraiUiCaret'
 import { navigateToGraiSection, type GraiSection } from '../utils/graiNavigation'
 import { assetUrl } from '../utils/appPaths'
@@ -17,31 +17,53 @@ const MINT_NAV_ICON = (
   </svg>
 )
 
-const REDEEM_NAV_ICON = (
+const LOCK_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M8 12h8" />
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 )
 
-const DISTRIBUTE_NAV_ICON = (
+const UNLOCK_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="6" cy="12" r="2" />
-    <circle cx="18" cy="6" r="2" />
-    <circle cx="18" cy="18" r="2" />
-    <path d="M8 12h4" />
-    <path d="M12 12l5-5" />
-    <path d="M12 12l5 5" />
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </svg>
+)
+
+const LIQUIDATE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
+)
+
+const VOTE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m9 12 2 2 4-4" />
+    <path d="M5 7h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z" />
+    <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+  </svg>
+)
+
+const BRIBE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 12v10H4V12" />
+    <path d="M2 7h20v5H2z" />
+    <path d="M12 22V7" />
+    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
   </svg>
 )
 
 const GRAI_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[] = [
-  { section: 'mint', label: 'Mint', icon: MINT_NAV_ICON },
-  { section: 'burn', label: 'Redeem', icon: REDEEM_NAV_ICON },
+  { section: 'mint', label: 'Deposit', icon: MINT_NAV_ICON },
+  { section: 'lock', label: 'Lock', icon: LOCK_NAV_ICON },
+  { section: 'unlock', label: 'Unlock & Claim', icon: UNLOCK_NAV_ICON },
+  { section: 'vote', label: 'Vote', icon: VOTE_NAV_ICON },
+  { section: 'bribe', label: 'Bribe', icon: BRIBE_NAV_ICON },
   { section: 'assets', label: 'Assets', icon: BALANCE_COLUMN_ICONS.assets },
-  { section: 'grinders', label: 'Grinders', icon: GRINDERS_COLUMN_ICONS.network },
   { section: 'allocate', label: 'Allocate', icon: BALANCE_COLUMN_ICONS.allocated },
-  { section: 'distribute', label: 'Distribute', icon: DISTRIBUTE_NAV_ICON },
+  { section: 'burn', label: 'Redeem', icon: LIQUIDATE_NAV_ICON },
 ]
 
 function Header() {
@@ -174,6 +196,17 @@ function Header() {
                   ))}
                 </div>
               </li>
+              <li className="header-nav-item header-nav-item--grinders">
+                <NavLink
+                  to="/grinders"
+                  className={({ isActive }) =>
+                    `header-nav-link header-nav-link--grinders${isActive ? ' is-current' : ''}`
+                  }
+                >
+                  GRINDERS
+                  <GraiUiCaret className="header-nav-caret header-nav-caret--right" />
+                </NavLink>
+              </li>
             </ul>
           </nav>
         </div>
@@ -207,6 +240,18 @@ function Header() {
                 onClick={() => setIsMobileNavOpen(false)}
               >
                 GRAI
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/grinders"
+                className={({ isActive }) =>
+                  `header-nav-link header-nav-link--grinders${isActive ? ' is-current' : ''}`
+                }
+                onClick={() => setIsMobileNavOpen(false)}
+              >
+                GRINDERS
+                <GraiUiCaret className="header-nav-caret header-nav-caret--right" />
               </NavLink>
             </li>
             {isGraiActive
