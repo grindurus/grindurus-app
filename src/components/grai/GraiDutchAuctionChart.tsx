@@ -62,6 +62,13 @@ function formatAxisAsk(value: number): string {
   return value.toFixed(2)
 }
 
+function buildEvenTicks(min: number, max: number, count = 4): number[] {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [0]
+  if (count <= 1) return [max]
+  if (Math.abs(max - min) < 1e-12) return [max]
+  return Array.from({ length: count }, (_, i) => max - ((max - min) * i) / (count - 1))
+}
+
 function formatChartAskUsd(raw: bigint, decimals: number): string {
   const normalized = formatVaultBalanceDisplay(raw, decimals, 2)
   if (!normalized.includes('.')) return `$${normalized}.00`
@@ -104,7 +111,7 @@ export function GraiDutchAuctionChart({
     period > 0 ? Math.min(1, Math.max(0, elapsedSec / period)) : 1
   const currentAsk = dutchAskAt(maxPaymentGrai, minPaymentGrai, elapsedSec, period)
 
-  const { points, nowPoint, yDomain } = useMemo(() => {
+  const { points, nowPoint, yDomain, yTicks } = useMemo(() => {
     if (!hasLot) {
       const nextPoints: ChartPoint[] = []
       for (let i = 0; i <= SAMPLE_COUNT; i += 1) {
@@ -119,6 +126,7 @@ export function GraiDutchAuctionChart({
         points: nextPoints,
         nowPoint: { progress: progressNow, ask: 0 },
         yDomain: [0, 1] as [number, number],
+        yTicks: [0],
       }
     }
     const maxN = toGraiNumber(maxPaymentGrai, graiDecimals)
@@ -137,10 +145,12 @@ export function GraiDutchAuctionChart({
     }
     const nowAsk = toGraiNumber(currentAsk, graiDecimals)
     const pad = Math.max((maxN - minN) * 0.08, maxN * 0.02, 0.01)
+    const domain: [number, number] = [Math.max(0, minN - pad), maxN + pad]
     return {
       points: nextPoints,
       nowPoint: { progress: progressNow, ask: nowAsk },
-      yDomain: [Math.max(0, minN - pad), maxN + pad] as [number, number],
+      yDomain: domain,
+      yTicks: buildEvenTicks(domain[0], domain[1], 4),
     }
   }, [
     currentAsk,
@@ -239,6 +249,7 @@ export function GraiDutchAuctionChart({
             />
             <YAxis
               domain={yDomain}
+              ticks={yTicks}
               width={64}
               tickFormatter={(value: number) => formatAxisAsk(value)}
               tick={{ fill: '#fff', fontSize: 11 }}
@@ -253,7 +264,7 @@ export function GraiDutchAuctionChart({
                 return (
                   <text
                     x={tickX}
-                    y={Math.max(10, viewBox.y - 8)}
+                    y={Math.max(6, viewBox.y - 14)}
                     fill="#fff"
                     fontSize={11}
                     textAnchor="end"

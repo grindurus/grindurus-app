@@ -10934,6 +10934,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   margin-top: 0;
 }
 
+.grai-liquidation-buyback-screen {
+  display: contents;
+}
+
 .grai-liquidation-ops-row {
   display: grid;
   grid-template-columns: minmax(0, 25.3125rem);
@@ -11082,8 +11086,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   border-radius: 11px;
   cursor: default;
   pointer-events: none;
-  text-align: center;
-  justify-content: center;
+  text-align: left;
+  justify-content: flex-start;
+  padding-inline: 0.85rem;
   background: transparent;
   color: var(--text-primary);
 }
@@ -11091,6 +11096,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-action-switch--buybacks .grai-action-switch-btn.is-active {
   color: var(--text-primary);
   background: transparent;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 [data-theme='light'] .grai-action-switch--buybacks .grai-action-switch-btn.is-active {
@@ -11640,18 +11647,19 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   grid-template-columns: minmax(0, 25.3125rem) minmax(0, 25.3125rem);
   column-gap: 1.75rem;
   row-gap: 1.25rem;
-  align-items: stretch;
+  align-items: start;
   width: min(100%, 52.375rem);
   max-width: 100%;
   min-width: 0;
-  height: 15.6875rem;
-  min-height: 15.6875rem;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
   box-sizing: border-box;
 }
 
 .grai-liquidation-market-row:has(.grai-liquidation-market-aside.is-expanded) {
   height: auto;
-  min-height: 15.6875rem;
+  min-height: 0;
   align-items: start;
 }
 
@@ -11662,15 +11670,20 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
   width: 100%;
   max-width: 25.3125rem;
-  height: 100%;
+  height: auto;
   min-height: 0;
+  overflow: visible;
   justify-self: start;
   order: -1;
   transition: max-width 0.4s ease, gap 0.35s ease;
 }
 
+.grai-liquidation-market-aside:has(.grai-liquidation-open-panel.is-open) {
+  z-index: 3;
+}
+
 .grai-liquidation-quorum-slot {
-  overflow: hidden;
+  overflow: visible;
   flex: 0 0 auto;
   opacity: 1;
 }
@@ -12035,7 +12048,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0.35rem;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  height: auto;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -12043,15 +12056,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   width: 100%;
   max-width: 100%;
   justify-self: stretch;
+  align-self: start;
   container-type: inline-size;
-}
-
-.grai-liquidation-vote-block > .grai-action-switch--market {
-  margin-bottom: 0;
-  width: 100%;
-  max-width: 100%;
-  margin-inline: 0;
-  align-self: stretch;
 }
 
 .grai-liquidation-vote-block > .grai-liquidation-panel--vote,
@@ -12063,6 +12069,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0.4rem;
   width: 100%;
   max-width: 100%;
+  align-self: stretch;
+  flex: 0 0 auto;
+}
+
+.grai-liquidation-vote-block > .grai-action-switch--market {
+  margin-bottom: 0;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
   align-self: stretch;
 }
 
@@ -12090,17 +12105,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
 }
 
-.grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-ops-row,
-.grai-assets-split > .grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-ops-row,
-.grai-liquidation-actions > .grai-liquidation-ops-row + .grai-dutch-auction-chart,
-.grai-assets-split > .grai-liquidation-actions > .grai-liquidation-ops-row + .grai-dutch-auction-chart {
+.grai-liquidation-buyback-screen > .grai-dutch-auction-chart + .grai-liquidation-ops-row {
   margin-top: 0.25rem;
 }
 
-.grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-market-stack,
-.grai-assets-split > .grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-market-stack,
-.grai-liquidation-actions > .grai-liquidation-ops-row + .grai-liquidation-market-stack,
-.grai-assets-split > .grai-liquidation-actions > .grai-liquidation-ops-row + .grai-liquidation-market-stack {
+.grai-liquidation-actions > .grai-liquidation-buyback-screen + .grai-liquidation-market-stack,
+.grai-assets-split > .grai-liquidation-actions > .grai-liquidation-buyback-screen + .grai-liquidation-market-stack {
   margin-top: 1.75rem;
 }
 
@@ -12161,6 +12171,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   flex: 1 1 auto;
   height: 100%;
   min-width: 0;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 50%;
 }
 
 .grai-dutch-auction-chart-title-wrap .grai-liquidation-buyback-assets-carousel--chart-leading .grai-liquidation-buyback-assets-track {
@@ -12357,7 +12369,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-liquidation-market-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.65rem;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -12593,6 +12605,42 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 @media (max-width: 900px) {
+  .grai-liquidation-buyback-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: calc(100svh - 4.75rem);
+    min-height: calc(100dvh - 4.75rem);
+    justify-content: center;
+    padding-block: 0.35rem;
+    box-sizing: border-box;
+    scroll-snap-align: start;
+    scroll-margin-top: 4.75rem;
+  }
+
+  .grai-liquidation-market-stack {
+    min-height: 0;
+    padding-top: 0;
+    box-sizing: border-box;
+  }
+
+  .grai-liquidation-market-stack > .grai-bribe-curve-chart {
+    scroll-snap-align: start;
+    scroll-margin-top: 4.75rem;
+  }
+
+  .grai-assets-split > .grai-liquidation-actions {
+    width: 100%;
+  }
+
+  html:has(#grai-assets-section .grai-liquidation-buyback-screen) {
+    scroll-snap-type: y proximity;
+    scroll-padding-top: 4.75rem;
+  }
+
   .grai-liquidation-ops-row {
     grid-template-columns: 1fr;
     gap: 0.65rem;
@@ -12737,18 +12785,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     --grai-voter-peek: 1.75rem;
   }
 
-  .grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-ops-row,
-  .grai-assets-split > .grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-ops-row,
-  .grai-liquidation-actions > .grai-liquidation-ops-row + .grai-dutch-auction-chart,
-  .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-ops-row + .grai-dutch-auction-chart {
-    margin-top: 0.2rem;
+  .grai-liquidation-actions > .grai-liquidation-buyback-screen + .grai-liquidation-market-stack,
+  .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-buyback-screen + .grai-liquidation-market-stack {
+    margin-top: 0;
   }
 
-  .grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-market-stack,
-  .grai-assets-split > .grai-liquidation-actions > .grai-dutch-auction-chart + .grai-liquidation-market-stack,
-  .grai-liquidation-actions > .grai-liquidation-ops-row + .grai-liquidation-market-stack,
-  .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-ops-row + .grai-liquidation-market-stack {
-    margin-top: 0.75rem;
+  .grai-liquidation-buyback-screen > .grai-dutch-auction-chart + .grai-liquidation-ops-row {
+    margin-top: 0.2rem;
   }
 
   .grai-dutch-auction-chart {
@@ -12905,6 +12948,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     order: 3;
   }
 
+  .grai-liquidation-quorum-infographic > .grai-liquidation-open {
+    grid-column: 1;
+    grid-row: auto;
+    order: 4;
+    width: 100%;
+  }
+
   .grai-liquidation-quorum-body,
   .grai-liquidation-quorum-footer-stats {
     grid-column: 1;
@@ -12930,6 +12980,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-liquidation-quorum-footer-stats {
+    order: 5;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -13172,6 +13223,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-height: 0;
   height: auto;
   gap: 0.28rem;
+}
+
+.grai-liquidation-quorum-infographic > .grai-liquidation-open {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  width: 100%;
+  min-width: 0;
 }
 
 .grai-liquidation-quorum-infographic > .grai-liquidation-open-toggle-row .grai-liquidation-open-toggle {

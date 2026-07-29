@@ -1272,12 +1272,10 @@ export function GraiLiquidationActions() {
       // Force layout so spacer widths are included in scrollWidth before measuring.
       void scroller.scrollWidth
 
-      const scrollerRect = scroller.getBoundingClientRect()
-      const itemRect = item.getBoundingClientRect()
-      const delta =
-        itemRect.left + itemRect.width / 2 - (scrollerRect.left + scrollerRect.width / 2)
+      const itemCenter = item.offsetLeft + item.offsetWidth / 2
+      const targetScroll = itemCenter - scroller.clientWidth / 2
       const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
-      return Math.min(maxScroll, Math.max(0, scroller.scrollLeft + delta))
+      return Math.min(maxScroll, Math.max(0, targetScroll))
     },
     [applyBuybackEdgePad],
   )
@@ -1372,12 +1370,32 @@ export function GraiLiquidationActions() {
     buybackAuctionAssets.length > 1 && activeBuybackCarouselIndex < buybackAuctionAssets.length - 1
 
   useLayoutEffect(() => {
-    const index = buybackSelectedIndexRef.current
-    applyBuybackEdgePad()
-    setBuybackScrollTargetIndex(null)
-    setBuybackVisualIndex(index)
-    scrollBuybackAssetToIndex(index, 'auto')
-  }, [applyBuybackEdgePad, scrollBuybackAssetToIndex, buybackAuctionAssets.length])
+    const index = selectedBuybackAssetIndex
+    buybackSelectedIndexRef.current = index
+    let raf2 = 0
+
+    const centerSelected = () => {
+      applyBuybackEdgePad()
+      setBuybackScrollTargetIndex(null)
+      setBuybackVisualIndex(index)
+      scrollBuybackAssetToIndex(index, 'auto')
+    }
+
+    centerSelected()
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(centerSelected)
+    })
+
+    return () => {
+      cancelAnimationFrame(raf1)
+      if (raf2) cancelAnimationFrame(raf2)
+    }
+  }, [
+    applyBuybackEdgePad,
+    scrollBuybackAssetToIndex,
+    buybackAuctionAssets.length,
+    selectedBuybackAssetIndex,
+  ])
 
   useLayoutEffect(() => {
     const scroller = buybackAssetsScrollerRef.current
@@ -1635,7 +1653,7 @@ export function GraiLiquidationActions() {
           <span className="grai-liquidation-quorum-ring-pct">
             {isLoading ? '…' : `${Math.round(quorumProgress)}%`}
           </span>
-          <span className="grai-liquidation-quorum-ring-caption">of quorum</span>
+          <span className="grai-liquidation-quorum-ring-caption">quorum</span>
         </div>
       </div>
 
@@ -1691,6 +1709,67 @@ export function GraiLiquidationActions() {
         </span>
         <span className="grai-liquidation-open-toggle-label">Liquidate</span>
       </button>
+
+      <div className="grai-liquidation-open" id="grai-liquidation-open">
+        <div
+          id="grai-liquidation-open-panel"
+          className={`grai-liquidation-open-panel${isLiquidatePanelOpen ? ' is-open' : ''}`}
+          aria-hidden={!isLiquidatePanelOpen}
+        >
+          <div className="grai-liquidation-open-panel-inner">
+            <div className="grai-action-result-group grai-liquidation-yield-results">
+              <div className="grai-action-result" aria-live="polite">
+                <span className="grai-action-result-label-wrap">
+                  <span className="grai-action-result-label">Quorum</span>
+                </span>
+                <span className="grai-action-result-value">
+                  {isLoading ? '…' : liquidationHasQuorum ? 'Met' : 'Pending'}
+                </span>
+              </div>
+              <div className="grai-action-result" aria-live="polite">
+                <span className="grai-action-result-label-wrap">
+                  <span className="grai-action-result-label">Owner confirm</span>
+                </span>
+                <span className="grai-action-result-value">
+                  {isLoading ? '…' : liquidationConfirmed ? 'Confirmed' : 'Pending'}
+                </span>
+              </div>
+            </div>
+            {isWalletConnected ? (
+              <div className="grai-action-submit grai-liquidation-step-actions">
+                <div className="grai-liquidation-step-action">
+                  <button
+                    type="button"
+                    className="grai-mint-btn"
+                    disabled={liquidationBlocked || liquidationConfirmed}
+                    tabIndex={isLiquidatePanelOpen ? 0 : -1}
+                  >
+                    Confirm
+                  </button>
+                  <span className="grai-liquidation-step-meta">Transaction 1 of 2</span>
+                </div>
+                <div className="grai-liquidation-step-action">
+                  <button
+                    type="button"
+                    className="grai-mint-btn"
+                    disabled={
+                      liquidationBlocked ||
+                      !liquidationHasQuorum ||
+                      !liquidationConfirmed
+                    }
+                    tabIndex={isLiquidatePanelOpen ? 0 : -1}
+                  >
+                    Liquidate
+                  </button>
+                  <span className="grai-liquidation-step-meta">Transaction 2 of 2</span>
+                </div>
+              </div>
+            ) : (
+              <GraiActionConnectWalletButton onConnect={openChainSelector} />
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="grai-liquidation-quorum-footer-stats">
         <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--supply">
@@ -1829,25 +1908,26 @@ export function GraiLiquidationActions() {
         </p>
       ) : null}
 
-      {selectedYieldAsset ? (
-        <GraiDutchAuctionChart
-          symbol={selectedYieldAsset.symbol}
-          icon={selectedYieldAsset.icon}
-          available={selectedYieldAsset.available}
-          maxPaymentGrai={selectedYieldAsset.maxPaymentGrai}
-          minPaymentGrai={selectedYieldAsset.minPaymentGrai}
-          startTime={selectedYieldAsset.startTime}
-          period={selectedYieldAsset.period}
-          nowSec={buybackNowSec}
-          graiDecimals={18}
-          discountLabel={selectedBuybackMeta?.discountLabel}
-          remainingLabel={selectedBuybackMeta?.remainingLabel}
-          leading={buybackAssetsCarousel}
-        />
-      ) : null}
+      <div className="grai-liquidation-buyback-screen">
+        {selectedYieldAsset ? (
+          <GraiDutchAuctionChart
+            symbol={selectedYieldAsset.symbol}
+            icon={selectedYieldAsset.icon}
+            available={selectedYieldAsset.available}
+            maxPaymentGrai={selectedYieldAsset.maxPaymentGrai}
+            minPaymentGrai={selectedYieldAsset.minPaymentGrai}
+            startTime={selectedYieldAsset.startTime}
+            period={selectedYieldAsset.period}
+            nowSec={buybackNowSec}
+            graiDecimals={18}
+            discountLabel={selectedBuybackMeta?.discountLabel}
+            remainingLabel={selectedBuybackMeta?.remainingLabel}
+            leading={buybackAssetsCarousel}
+          />
+        ) : null}
 
-      <div className="grai-liquidation-ops-row">
-        <div className="grai-liquidation-yield-block">
+        <div className="grai-liquidation-ops-row">
+          <div className="grai-liquidation-yield-block">
           <div
             className="grai-action-switch grai-action-switch--buttons grai-action-switch--buybacks is-buybacks-active"
             role="heading"
@@ -1946,6 +2026,7 @@ export function GraiLiquidationActions() {
             )}
           </div>
         </div>
+      </div>
       </div>
 
       <GraiLiquidationVoterPicker
@@ -2158,69 +2239,7 @@ export function GraiLiquidationActions() {
                 {showAllBribes ? carousel ?? empty : null}
               </div>
               {!showAllBribes ? (
-                <div className="grai-liquidation-quorum-slot">
-                  {quorumInfographic}
-                  <div className="grai-liquidation-open" id="grai-liquidation-open">
-                    <div
-                      id="grai-liquidation-open-panel"
-                      className={`grai-liquidation-open-panel${isLiquidatePanelOpen ? ' is-open' : ''}`}
-                      aria-hidden={!isLiquidatePanelOpen}
-                    >
-                      <div className="grai-liquidation-open-panel-inner">
-                        <div className="grai-action-result-group grai-liquidation-yield-results">
-                          <div className="grai-action-result" aria-live="polite">
-                            <span className="grai-action-result-label-wrap">
-                              <span className="grai-action-result-label">Quorum</span>
-                            </span>
-                            <span className="grai-action-result-value">
-                              {isLoading ? '…' : liquidationHasQuorum ? 'Met' : 'Pending'}
-                            </span>
-                          </div>
-                          <div className="grai-action-result" aria-live="polite">
-                            <span className="grai-action-result-label-wrap">
-                              <span className="grai-action-result-label">Owner confirm</span>
-                            </span>
-                            <span className="grai-action-result-value">
-                              {isLoading ? '…' : liquidationConfirmed ? 'Confirmed' : 'Pending'}
-                            </span>
-                          </div>
-                        </div>
-                        {isWalletConnected ? (
-                          <div className="grai-action-submit grai-liquidation-step-actions">
-                            <div className="grai-liquidation-step-action">
-                              <button
-                                type="button"
-                                className="grai-mint-btn"
-                                disabled={liquidationBlocked || liquidationConfirmed}
-                                tabIndex={isLiquidatePanelOpen ? 0 : -1}
-                              >
-                                Confirm
-                              </button>
-                              <span className="grai-liquidation-step-meta">Transaction 1 of 2</span>
-                            </div>
-                            <div className="grai-liquidation-step-action">
-                              <button
-                                type="button"
-                                className="grai-mint-btn"
-                                disabled={
-                                  liquidationBlocked ||
-                                  !liquidationHasQuorum ||
-                                  !liquidationConfirmed
-                                }
-                                tabIndex={isLiquidatePanelOpen ? 0 : -1}
-                              >
-                                Liquidate
-                              </button>
-                              <span className="grai-liquidation-step-meta">Transaction 2 of 2</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <GraiActionConnectWalletButton onConnect={openChainSelector} />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <div className="grai-liquidation-quorum-slot">{quorumInfographic}</div>
               ) : null}
             </div>
           </div>
