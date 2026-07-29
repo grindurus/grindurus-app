@@ -4,6 +4,13 @@ import type { GraiAmountAsset } from './GraiAmountInput'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
 import { GraiUiCaret } from './GraiUiCaret'
 
+export type GraiAssetSelectMenuOption = {
+  id: string
+  label: string
+  detail?: string
+  icon?: string
+}
+
 type Props = {
   assets: GraiAmountAsset[]
   selected: GraiAmountAsset | undefined
@@ -14,6 +21,16 @@ type Props = {
   /** Accessible label for detail line when it differs from visible text. */
   detailAriaLabel?: string | null
   disabled?: boolean
+  /**
+   * When set, the dropdown lists these options instead of `assets`.
+   * The trigger still shows the selected asset + detailLabel.
+   */
+  menuOptions?: GraiAssetSelectMenuOption[]
+  selectedMenuId?: string | null
+  onSelectMenuOption?: (id: string) => void
+  menuAriaLabel?: string
+  /** First row in the custom menu (e.g. "See all"). */
+  menuLeadingAction?: { label: string; onClick: () => void } | null
 }
 
 export function GraiAssetSelect({
@@ -24,10 +41,20 @@ export function GraiAssetSelect({
   detailLabel,
   detailAriaLabel,
   disabled = false,
+  menuOptions,
+  selectedMenuId,
+  onSelectMenuOption,
+  menuAriaLabel,
+  menuLeadingAction = null,
 }: Props) {
   const { explorerTokenUrl } = useGraiDeployment()
   const [isOpen, setIsOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const useMenuOptions = Boolean(menuOptions && menuOptions.length > 0)
+  const hasChoices =
+    Boolean(menuLeadingAction) ||
+    (useMenuOptions ? menuOptions!.length > 1 : assets.length > 1)
+  const listAriaLabel = menuAriaLabel ?? ariaLabel
 
   useEffect(() => {
     if (!isOpen) return
@@ -44,7 +71,6 @@ export function GraiAssetSelect({
     if (disabled) setIsOpen(false)
   }, [disabled])
 
-  const hasChoices = assets.length > 1
   const showDetail = Boolean(detailLabel)
 
   return (
@@ -86,45 +112,112 @@ export function GraiAssetSelect({
         {hasChoices && !selected ? <GraiUiCaret className="grai-asset-select-caret" /> : null}
       </button>
       {isOpen && (
-        <div className="grai-asset-select-list" role="listbox" aria-label={ariaLabel}>
-          {assets.map((asset) => {
-            const explorerHref = asset.address ? explorerTokenUrl(asset.address) : null
-            const isActive = asset.symbol === selected?.symbol
-            return (
-              <div
-                key={asset.address || asset.symbol}
-                className={`grai-asset-select-option${isActive ? ' is-active' : ''}`}
-              >
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={isActive}
-                  className="grai-asset-select-option-btn"
-                  onClick={() => {
-                    onSelect(asset)
-                    setIsOpen(false)
-                  }}
-                >
-                  <span className="grai-asset-select-icon" aria-hidden="true">
-                    <img src={asset.icon} alt="" width={20} height={20} loading="lazy" decoding="async" />
-                  </span>
-                  <span className="grai-asset-select-symbol">{asset.symbol}</span>
-                </button>
-                {explorerHref ? (
-                  <a
-                    href={explorerHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="grai-mint-asset-value-solscan grai-asset-select-explorer"
-                    aria-label={`View ${asset.symbol} on block explorer`}
-                    title={`View ${asset.symbol} on block explorer`}
+        <div className="grai-asset-select-list" role="listbox" aria-label={listAriaLabel}>
+          {useMenuOptions ? (
+            <>
+              {menuLeadingAction ? (
+                <div className="grai-asset-select-option grai-asset-select-option--leading">
+                  <button
+                    type="button"
+                    className="grai-asset-select-option-btn grai-asset-select-option-btn--leading"
+                    onClick={() => {
+                      menuLeadingAction.onClick()
+                      setIsOpen(false)
+                    }}
                   >
-                    {MINT_ASSET_SOLSCAN_ICON}
-                  </a>
-                ) : null}
-              </div>
-            )
-          })}
+                    <span className="grai-asset-select-symbol">{menuLeadingAction.label}</span>
+                  </button>
+                </div>
+              ) : null}
+              {menuOptions!.map((option) => {
+                const isActive =
+                  selectedMenuId != null &&
+                  option.id.toLowerCase() === selectedMenuId.toLowerCase()
+                return (
+                  <div
+                    key={option.id}
+                    className={`grai-asset-select-option${isActive ? ' is-active' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isActive}
+                      className="grai-asset-select-option-btn grai-asset-select-option-btn--menu"
+                      onClick={() => {
+                        onSelectMenuOption?.(option.id)
+                        setIsOpen(false)
+                      }}
+                    >
+                      {option.icon ? (
+                        <span className="grai-asset-select-icon" aria-hidden="true">
+                          <img
+                            src={option.icon}
+                            alt=""
+                            width={20}
+                            height={20}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </span>
+                      ) : null}
+                      <span className="grai-asset-select-option-copy">
+                        <span className="grai-asset-select-symbol">{option.label}</span>
+                        {option.detail ? (
+                          <span className="grai-asset-select-option-detail">{option.detail}</span>
+                        ) : null}
+                      </span>
+                    </button>
+                  </div>
+                )
+              })}
+            </>
+          ) : (
+            assets.map((asset) => {
+                const explorerHref = asset.address ? explorerTokenUrl(asset.address) : null
+                const isActive = asset.symbol === selected?.symbol
+                return (
+                  <div
+                    key={asset.address || asset.symbol}
+                    className={`grai-asset-select-option${isActive ? ' is-active' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isActive}
+                      className="grai-asset-select-option-btn"
+                      onClick={() => {
+                        onSelect(asset)
+                        setIsOpen(false)
+                      }}
+                    >
+                      <span className="grai-asset-select-icon" aria-hidden="true">
+                        <img
+                          src={asset.icon}
+                          alt=""
+                          width={20}
+                          height={20}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </span>
+                      <span className="grai-asset-select-symbol">{asset.symbol}</span>
+                    </button>
+                    {explorerHref ? (
+                      <a
+                        href={explorerHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="grai-mint-asset-value-solscan grai-asset-select-explorer"
+                        aria-label={`View ${asset.symbol} on block explorer`}
+                        title={`View ${asset.symbol} on block explorer`}
+                      >
+                        {MINT_ASSET_SOLSCAN_ICON}
+                      </a>
+                    ) : null}
+                  </div>
+                )
+              })
+          )}
         </div>
       )}
     </div>

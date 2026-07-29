@@ -1,4 +1,4 @@
-import { useCallback, useState, type DragEvent, type MouseEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type DragEvent, type MouseEvent, type ReactNode } from 'react'
 import { normalizeBossEndpointUrl } from '../hooks/useCustomBossEndpoints'
 import { clearBossEndpointProbeCache, useBossEndpointProbes } from '../hooks/useBossEndpointProbes'
 import type { BossEndpointUrlsState } from '../hooks/useBossEndpointUrls'
@@ -15,6 +15,26 @@ const RESET_ENDPOINTS_HINT =
 
 const ENDPOINTS_LEAD_HINT =
   'Boss API URIs for grinder data. Defaults load from GRAI metadata; reorder, probe, edit, or add URIs locally.'
+
+const GRAI_STATUS_NOTICES_STORAGE_KEY = 'grai-show-status-notices'
+const GRAI_STATUS_NOTICES_HIDDEN_CLASS = 'grai-status-notices-hidden'
+
+function readShowStatusNotices(): boolean {
+  try {
+    return localStorage.getItem(GRAI_STATUS_NOTICES_STORAGE_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+function applyShowStatusNotices(show: boolean) {
+  document.documentElement.classList.toggle(GRAI_STATUS_NOTICES_HIDDEN_CLASS, !show)
+  try {
+    localStorage.setItem(GRAI_STATUS_NOTICES_STORAGE_KEY, show ? '1' : '0')
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
 
 function BossEndpointsColumnHead({ icon, label }: { icon: ReactNode; label: string }) {
   return (
@@ -81,6 +101,11 @@ export function BossEndpointsTable({ endpoints }: BossEndpointsTableProps) {
   const [editingUriCellWidth, setEditingUriCellWidth] = useState<number | null>(null)
   const [draggedUri, setDraggedUri] = useState<string | null>(null)
   const [dropTargetUri, setDropTargetUri] = useState<string | null>(null)
+  const [showStatusNotices, setShowStatusNotices] = useState(readShowStatusNotices)
+
+  useEffect(() => {
+    applyShowStatusNotices(showStatusNotices)
+  }, [showStatusNotices])
 
   const { rows, probeUri, abortProbeUri } = useBossEndpointProbes(allUrls, !isMetadataLoading)
 
@@ -533,6 +558,16 @@ export function BossEndpointsTable({ endpoints }: BossEndpointsTableProps) {
           </button>
         )}
       </div>
+      <button
+        type="button"
+        className={`grai-boss-endpoints-notices-toggle${showStatusNotices ? ' is-active' : ''}`}
+        aria-pressed={showStatusNotices}
+        aria-label={showStatusNotices ? 'Hide status notices' : 'Show status notices'}
+        title={showStatusNotices ? 'Hide status notices' : 'Show status notices'}
+        onClick={() => setShowStatusNotices((prev) => !prev)}
+      >
+        Notices
+      </button>
     </div>
   )
 }

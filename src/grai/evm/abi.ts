@@ -213,6 +213,13 @@ export const graiAbi = [
   },
   {
     type: 'function',
+    name: 'confirmed',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
     name: 'liquidation',
     stateMutability: 'view',
     inputs: [],

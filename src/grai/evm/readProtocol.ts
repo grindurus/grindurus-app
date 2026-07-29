@@ -240,6 +240,7 @@ export type EvmLiquidationVoteState = {
   totalSupply: bigint
   totalValue: bigint
   hasQuorum: boolean
+  confirmed: boolean
   liquidationOpen: boolean
   settlementAsset: `0x${string}`
   settlementDecimals: number
@@ -264,6 +265,7 @@ export async function fetchEvmLiquidationVoteState(
     totalSupply,
     totalValue,
     hasQuorum,
+    confirmed,
     liquidationOpen,
     settlementAsset,
     protocolConfig,
@@ -277,6 +279,7 @@ export async function fetchEvmLiquidationVoteState(
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalSupply' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalValue' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'hasQuorum' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'confirmed' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidation' }),
     readBribeOrSettlementAsset(config, graiAddress),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'config' }),
@@ -329,6 +332,7 @@ export async function fetchEvmLiquidationVoteState(
     totalSupply,
     totalValue,
     hasQuorum,
+    confirmed,
     liquidationOpen,
     settlementAsset,
     settlementDecimals,

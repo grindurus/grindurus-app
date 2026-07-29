@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { FloatingTokenBackground, STABLE_FLOATING_TOKENS } from '../components/FloatingTokenBackground'
@@ -15,6 +15,15 @@ function GraiPage() {
   const { clusterMismatch, evmChainMismatch, solanaCluster, chainKind, evm, hasStaticConfig, isConfigured, protocolError } = useGraiDeployment()
   const [actionView, setActionView] = useState<'mint' | 'burn'>('mint')
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
+
+  useLayoutEffect(() => {
+    try {
+      const show = localStorage.getItem('grai-show-status-notices') !== '0'
+      document.documentElement.classList.toggle('grai-status-notices-hidden', !show)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {

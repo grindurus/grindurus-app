@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { toast } from 'react-toastify'
 import { evmExplorerAccountUrl, listConfiguredEvmChains } from '../../grai/deployments'
 import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
@@ -21,8 +21,11 @@ import { assetUrl } from '../../utils/appPaths'
 import { readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
+import { GraiDutchAuctionChart } from './GraiDutchAuctionChart'
+import { GraiBribeCurveChart } from './GraiBribeCurveChart'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiTransactionToast } from './GraiTransactionToast'
+import { GraiUiCaret } from './GraiUiCaret'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
 
 const MOCK_VOTERS: EvmVoterEntry[] = [
@@ -148,7 +151,7 @@ function GraiLiquidationVoterCard({
   )
 }
 
-const VOTERS_GRID_PAGE_SIZE = 6
+const VOTERS_GRID_PAGE_SIZE = 4
 
 const BUYBACK_SCROLL_DURATION_MS = 320
 
@@ -199,6 +202,7 @@ function mockBuybackStartTime(symbol: string): number {
     SOL: 3 * 86_400 + 14 * 3600,
     ARB: 5 * 86_400,
     MATIC: 6 * 86_400 + 4 * 3600,
+    USDT: 4 * 86_400 + 2 * 3600,
   }
   const elapsed = elapsedBySymbol[symbol] ?? 2 * 86_400
   const start = Math.floor(Date.now() / 1000) - elapsed
@@ -263,7 +267,9 @@ function formatBuybackChipAmount(raw: bigint, decimals: number): string {
 /** Unit ask in GRAI wei (18 decimals) for one whole asset token. */
 function buybackUnitAskGrai(asset: BuybackAuctionAsset, lotAsk: bigint): bigint {
   const scale = 10n ** BigInt(asset.decimals)
-  if (asset.available <= 0n || scale <= 0n) return 0n
+  if (scale <= 0n) return 0n
+  // Empty lot: maxPayment is priced as one whole unit for display.
+  if (asset.available <= 0n) return lotAsk
   return (lotAsk * scale) / asset.available
 }
 
@@ -273,6 +279,7 @@ function mockBuybackAvailable(symbol: string): bigint {
   if (symbol === 'SOL') return 42_000_000_000_000_000_000n
   if (symbol === 'ARB') return 12_500_000_000_000_000_000n
   if (symbol === 'MATIC') return 95_000_000_000_000_000_000n
+  if (symbol === 'USDT') return 0n
   return 10_000_000_000_000_000_000n
 }
 
@@ -283,13 +290,16 @@ function mockGraiPerWholeUnit(symbol: string): bigint {
   if (symbol === 'SOL') return 145n * 10n ** 18n
   if (symbol === 'ARB') return 85n * 10n ** 16n // 0.85
   if (symbol === 'MATIC') return 55n * 10n ** 16n // 0.55
+  if (symbol === 'USDT') return 10n ** 18n // 1.00
   return 10n ** 18n
 }
 
 function mockBuybackMaxPaymentGrai(symbol: string, available: bigint, decimals: number): bigint {
   const scale = 10n ** BigInt(decimals)
-  if (available <= 0n || scale <= 0n) return 0n
-  return (mockGraiPerWholeUnit(symbol) * available) / scale
+  if (scale <= 0n) return 0n
+  // Empty auctions still need a unit price for carousel / chart labels.
+  const qty = available > 0n ? available : scale
+  return (mockGraiPerWholeUnit(symbol) * qty) / scale
 }
 
 function buildMockBuybackAuctionAsset(
@@ -348,6 +358,7 @@ type VoterPickerProps = {
   onBribe: (voter: EvmVoterEntry, amountInput: string) => void
   onConnect: () => void
   onSelectVoter?: (voter: EvmVoterEntry) => void
+  onSeeAllVoters?: () => void
   listLayout?: boolean
   children: (parts: VoterPickerParts) => ReactNode
 }
@@ -369,6 +380,7 @@ function GraiLiquidationVoterPicker({
   onBribe,
   onConnect,
   onSelectVoter,
+  onSeeAllVoters,
   listLayout = false,
   children,
 }: VoterPickerProps) {
@@ -377,9 +389,11 @@ function GraiLiquidationVoterPicker({
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null)
   const [bribeAmount, setBribeAmount] = useState('')
   const [gridPage, setGridPage] = useState(0)
-  const [gridViewportWidth, setGridViewportWidth] = useState(0)
+  const gridPointerStartX = useRef<number | null>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  const gridPageSize = VOTERS_GRID_PAGE_SIZE
 
   useEffect(() => {
     const updateCompact = () => {
@@ -392,31 +406,7 @@ function GraiLiquidationVoterPicker({
 
   useEffect(() => {
     setGridPage(0)
-  }, [voters, listLayout])
-
-  useEffect(() => {
-    if (!listLayout) {
-      setGridViewportWidth(0)
-      return
-    }
-
-    const viewport = scrollerRef.current
-    if (!viewport) return
-
-    const measure = () => {
-      const next = Math.round(viewport.clientWidth)
-      if (next > 0) setGridViewportWidth(next)
-    }
-
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(viewport)
-    window.addEventListener('resize', measure)
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [listLayout, voters.length])
+  }, [voters, listLayout, gridPageSize])
 
   useEffect(() => {
     if (!voters.length) {
@@ -574,26 +564,119 @@ function GraiLiquidationVoterPicker({
   const bribeDisabled =
     disabled || selectedVoter.escrowGrai <= 0n || amountRaw <= 0n || isBribingSelected
 
-  const gridPageCount = Math.max(1, Math.ceil(voters.length / VOTERS_GRID_PAGE_SIZE))
+  const gridPageCount = Math.max(1, Math.ceil(voters.length / gridPageSize))
   const safeGridPage = Math.min(gridPage, gridPageCount - 1)
-  const showGridPagination = listLayout && voters.length > VOTERS_GRID_PAGE_SIZE
+  const showGridPagination = listLayout && voters.length > gridPageSize
+
+  const goToGridPage = useCallback(
+    (nextPage: number) => {
+      setGridPage(Math.max(0, Math.min(gridPageCount - 1, nextPage)))
+    },
+    [gridPageCount],
+  )
+
+  const onGridPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!listLayout || gridPageCount <= 1) return
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      gridPointerStartX.current = event.clientX
+    },
+    [gridPageCount, listLayout],
+  )
+
+  const onGridPointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (gridPointerStartX.current == null) return
+      const deltaX = event.clientX - gridPointerStartX.current
+      gridPointerStartX.current = null
+      if (Math.abs(deltaX) < 48) return
+      if (deltaX < 0) goToGridPage(safeGridPage + 1)
+      else goToGridPage(safeGridPage - 1)
+    },
+    [goToGridPage, safeGridPage],
+  )
+
+  const onGridPointerCancel = useCallback(() => {
+    gridPointerStartX.current = null
+  }, [])
+
+  const gridPageRef = useRef(safeGridPage)
+  gridPageRef.current = safeGridPage
+  const gridPageCountRef = useRef(gridPageCount)
+  gridPageCountRef.current = gridPageCount
+  const gridWheelLockRef = useRef(0)
+
+  useEffect(() => {
+    if (!listLayout) return
+    const viewport = scrollerRef.current
+    if (!viewport) return
+
+    const onWheel = (event: WheelEvent) => {
+      if (gridPageCountRef.current <= 1) return
+      const dominant =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+      if (Math.abs(dominant) < 8) return
+
+      const now = Date.now()
+      if (now - gridWheelLockRef.current < 320) {
+        event.preventDefault()
+        return
+      }
+
+      const direction = dominant > 0 ? 1 : -1
+      const next = Math.max(
+        0,
+        Math.min(gridPageCountRef.current - 1, gridPageRef.current + direction),
+      )
+      if (next === gridPageRef.current) return
+
+      event.preventDefault()
+      gridWheelLockRef.current = now
+      goToGridPage(next)
+    }
+
+    viewport.addEventListener('wheel', onWheel, { passive: false })
+    return () => viewport.removeEventListener('wheel', onWheel)
+  }, [goToGridPage, listLayout, voters.length, gridPageSize])
 
   const gridPages = useMemo(() => {
     if (!listLayout) return []
     return Array.from({ length: gridPageCount }, (_, pageIndex) =>
-      Array.from({ length: VOTERS_GRID_PAGE_SIZE }, (_, slotIndex) => {
-        const sourceIndex = pageIndex * VOTERS_GRID_PAGE_SIZE + slotIndex
+      Array.from({ length: gridPageSize }, (_, slotIndex) => {
+        const sourceIndex = pageIndex * gridPageSize + slotIndex
         return voters[sourceIndex] ?? null
       }),
     )
-  }, [gridPageCount, listLayout, voters])
+  }, [gridPageCount, gridPageSize, listLayout, voters])
+
+  const selectedIndex = Math.max(
+    0,
+    voters.findIndex(
+      (voter) => voter.address.toLowerCase() === selectedVoter.address.toLowerCase(),
+    ),
+  )
+  const showSideNav = !listLayout && voters.length > 1
+  const canShiftPrev = selectedIndex > 0
+  const canShiftNext = selectedIndex < voters.length - 1
+
+  const shiftVoterCarousel = useCallback(
+    (delta: -1 | 1) => {
+      const nextIndex = selectedIndex + delta
+      const voter = voters[nextIndex]
+      if (!voter) return
+      setSelectedAddress(voter.address)
+      onSelectVoter?.(voter)
+      scrollToIndex(nextIndex)
+    },
+    [onSelectVoter, selectedIndex, voters],
+  )
 
   const renderGridVoterItem = (
     voter: EvmVoterEntry | null,
     pageIndex: number,
     slotIndex: number,
   ) => {
-    const sourceIndex = pageIndex * VOTERS_GRID_PAGE_SIZE + slotIndex
+    const sourceIndex = pageIndex * gridPageSize + slotIndex
     if (!voter) {
       return (
         <div
@@ -640,66 +723,122 @@ function GraiLiquidationVoterPicker({
     <div
       className={`grai-liquidation-voters-carousel${isCompact ? ' is-compact' : ''}${listLayout ? ' is-grid' : ''}`}
     >
-      <div className="grai-liquidation-voters-viewport" ref={scrollerRef} tabIndex={listLayout ? -1 : 0}>
-        {listLayout ? (
-          <div
-            className="grai-liquidation-voters-pages"
-            style={{
-              transform:
-                gridViewportWidth > 0
-                  ? `translate3d(-${safeGridPage * gridViewportWidth}px, 0, 0)`
-                  : `translate3d(-${safeGridPage * 100}%, 0, 0)`,
-            }}
+      <div className="grai-liquidation-voters-viewport">
+        {showSideNav ? (
+          <button
+            type="button"
+            className="grai-liquidation-voters-nav grai-liquidation-voters-nav--prev"
+            aria-label="Previous voter"
+            disabled={!canShiftPrev}
+            aria-disabled={!canShiftPrev}
+            tabIndex={canShiftPrev ? 0 : -1}
+            onClick={() => shiftVoterCarousel(-1)}
           >
-            {gridPages.map((pageVoters, pageIndex) => (
-              <div
-                key={`grid-page-${pageIndex}`}
-                className="grai-liquidation-voters-track"
-                role="list"
-                aria-hidden={pageIndex !== safeGridPage}
-              >
-                {pageVoters.map((voter, slotIndex) => renderGridVoterItem(voter, pageIndex, slotIndex))}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grai-liquidation-voters-track" role="list">
-            {voters.map((voter, index) => {
-              const isActive = activeIndexes.has(index)
-              const isSelected = selectedVoter.address.toLowerCase() === voter.address.toLowerCase()
-              return (
+            {VOTERS_PAGE_CHEVRON_LEFT}
+          </button>
+        ) : null}
+        <div
+          className="grai-liquidation-voters-scroller"
+          ref={scrollerRef}
+          tabIndex={0}
+          role={listLayout ? 'region' : undefined}
+          aria-roledescription={listLayout ? 'carousel' : undefined}
+          aria-label={listLayout ? 'Voters pages' : undefined}
+          onPointerDown={listLayout ? onGridPointerDown : undefined}
+          onPointerUp={listLayout ? onGridPointerUp : undefined}
+          onPointerCancel={listLayout ? onGridPointerCancel : undefined}
+          onKeyDown={
+            listLayout
+              ? (event) => {
+                  if (event.key === 'ArrowRight') {
+                    event.preventDefault()
+                    goToGridPage(safeGridPage + 1)
+                  } else if (event.key === 'ArrowLeft') {
+                    event.preventDefault()
+                    goToGridPage(safeGridPage - 1)
+                  }
+                }
+              : (event) => {
+                  if (event.key === 'ArrowRight') {
+                    event.preventDefault()
+                    shiftVoterCarousel(1)
+                  } else if (event.key === 'ArrowLeft') {
+                    event.preventDefault()
+                    shiftVoterCarousel(-1)
+                  }
+                }
+          }
+        >
+          {listLayout ? (
+            <div
+              className="grai-liquidation-voters-pages"
+              style={{
+                transform: `translate3d(-${safeGridPage * 100}%, 0, 0)`,
+              }}
+            >
+              {gridPages.map((pageVoters, pageIndex) => (
                 <div
-                  key={voter.address}
-                  ref={(node) => {
-                    itemRefs.current[index] = node
-                  }}
-                  className={`grai-liquidation-voters-item${isActive ? '' : ' is-peek'}${isSelected ? ' is-selected' : ''}`}
-                  role="listitem"
+                  key={`grid-page-${pageIndex}`}
+                  className="grai-liquidation-voters-track"
+                  role="list"
+                  aria-hidden={pageIndex !== safeGridPage}
                 >
-                  <button
-                    type="button"
-                    className="grai-liquidation-voters-item-select"
-                    aria-pressed={isSelected}
-                    aria-label={`Select voter ${shortAddress(voter.address)}`}
-                    onClick={() => {
-                      setSelectedAddress(voter.address)
-                      onSelectVoter?.(voter)
-                      scrollToIndex(index)
-                    }}
-                  >
-                    <GraiLiquidationVoterCard
-                      voter={voter}
-                      graiDecimals={graiDecimals}
-                      supplyShareLabel={totalVoted > 0n ? formatPct(voter.escrowGrai, totalVoted) : null}
-                      explorerHref={explorerAccountUrl?.(voter.address) ?? null}
-                      selected={isSelected}
-                    />
-                  </button>
+                  {pageVoters.map((voter, slotIndex) => renderGridVoterItem(voter, pageIndex, slotIndex))}
                 </div>
-              )
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="grai-liquidation-voters-track" role="list">
+              {voters.map((voter, index) => {
+                const isActive = activeIndexes.has(index)
+                const isSelected = selectedVoter.address.toLowerCase() === voter.address.toLowerCase()
+                return (
+                  <div
+                    key={voter.address}
+                    ref={(node) => {
+                      itemRefs.current[index] = node
+                    }}
+                    className={`grai-liquidation-voters-item${isActive ? '' : ' is-peek'}${isSelected ? ' is-selected' : ''}`}
+                    role="listitem"
+                  >
+                    <button
+                      type="button"
+                      className="grai-liquidation-voters-item-select"
+                      aria-pressed={isSelected}
+                      aria-label={`Select voter ${shortAddress(voter.address)}`}
+                      onClick={() => {
+                        setSelectedAddress(voter.address)
+                        onSelectVoter?.(voter)
+                        scrollToIndex(index)
+                      }}
+                    >
+                      <GraiLiquidationVoterCard
+                        voter={voter}
+                        graiDecimals={graiDecimals}
+                        supplyShareLabel={totalVoted > 0n ? formatPct(voter.escrowGrai, totalVoted) : null}
+                        explorerHref={explorerAccountUrl?.(voter.address) ?? null}
+                        selected={isSelected}
+                      />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        {showSideNav ? (
+          <button
+            type="button"
+            className="grai-liquidation-voters-nav grai-liquidation-voters-nav--next"
+            aria-label="Next voter"
+            disabled={!canShiftNext}
+            aria-disabled={!canShiftNext}
+            tabIndex={canShiftNext ? 0 : -1}
+            onClick={() => shiftVoterCarousel(1)}
+          >
+            {VOTERS_PAGE_CHEVRON_RIGHT}
+          </button>
+        ) : null}
       </div>
 
       {showGridPagination ? (
@@ -709,21 +848,21 @@ function GraiLiquidationVoterPicker({
             className="grai-liquidation-voters-pagination-btn"
             aria-label="Previous voters page"
             disabled={safeGridPage <= 0}
-            onClick={() => setGridPage((page) => Math.max(0, page - 1))}
+            onClick={() => goToGridPage(safeGridPage - 1)}
           >
             {VOTERS_PAGE_CHEVRON_LEFT}
           </button>
           <span className="grai-liquidation-voters-pagination-status">
-            {safeGridPage * VOTERS_GRID_PAGE_SIZE + 1}
+            {safeGridPage * gridPageSize + 1}
             –
-            {Math.min((safeGridPage + 1) * VOTERS_GRID_PAGE_SIZE, voters.length)} of {voters.length}
+            {Math.min((safeGridPage + 1) * gridPageSize, voters.length)} of {voters.length}
           </span>
           <button
             type="button"
             className="grai-liquidation-voters-pagination-btn"
             aria-label="Next voters page"
             disabled={safeGridPage >= gridPageCount - 1}
-            onClick={() => setGridPage((page) => Math.min(gridPageCount - 1, page + 1))}
+            onClick={() => goToGridPage(safeGridPage + 1)}
           >
             {VOTERS_PAGE_CHEVRON_RIGHT}
           </button>
@@ -747,15 +886,42 @@ function GraiLiquidationVoterPicker({
         decimals={graiDecimals}
         showPresets
         usdLabel="$0.00"
+        selectAriaLabel="Select voter"
+        selectMenuAriaLabel="Voters"
+        selectedMenuId={selectedVoter.address}
+        selectMenuOptions={voters.map((voter) => ({
+          id: voter.address,
+          label: formatTokenBalance(voter.escrowGrai, graiDecimals),
+          detail: shortAddress(voter.address),
+          icon: graiAsset.icon,
+        }))}
+        selectMenuLeadingAction={
+          onSeeAllVoters
+            ? {
+                label: 'See all',
+                onClick: onSeeAllVoters,
+              }
+            : null
+        }
+        onSelectMenuOption={(address) => {
+          const index = voters.findIndex(
+            (voter) => voter.address.toLowerCase() === address.toLowerCase(),
+          )
+          const voter = index >= 0 ? voters[index] : undefined
+          if (!voter) return
+          setSelectedAddress(voter.address)
+          onSelectVoter?.(voter)
+          if (!listLayout && index >= 0) scrollToIndex(index)
+        }}
       />
       <div className="grai-liquidation-bribe-amount-row">
-        <span className="grai-liquidation-bribe-amount-label">You bribe:</span>
+        <span className="grai-liquidation-bribe-amount-label">You bribe</span>
         <span className="grai-liquidation-bribe-amount-value">
           {amountRaw > 0n ? selectedCostLabel : '0'} {settlementSymbol}
         </span>
       </div>
       <div className="grai-liquidation-bribe-amount-row">
-        <span className="grai-liquidation-bribe-amount-label">You receive:</span>
+        <span className="grai-liquidation-bribe-amount-label">You receive</span>
         <span className="grai-liquidation-bribe-amount-value">
           {amountRaw > 0n ? formatTokenBalance(amountRaw, graiDecimals) : '0'} GRAI
         </span>
@@ -801,25 +967,18 @@ export function GraiLiquidationActions() {
     'escrow-desc',
   )
   const [showAllBribes, setShowAllBribes] = useState(false)
+  const [isLiquidatePanelOpen, setIsLiquidatePanelOpen] = useState(false)
   const [yieldAmount, setYieldAmount] = useState('')
   const [marketView, setMarketView] = useState<'vote' | 'bribe'>(() => {
     const section = readGraiSectionFromHash()
     if (section === 'bribe') return 'bribe'
     return 'vote'
   })
-  const [liquidationScreen, setLiquidationScreen] = useState<'buyback' | 'market'>(() => {
-    const section = readGraiSectionFromHash()
-    if (section === 'vote' || section === 'bribe' || section === 'auctions') return 'market'
-    return 'buyback'
-  })
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {
       if (section === 'bribe') setMarketView('bribe')
       else if (section === 'vote' || section === 'auctions') setMarketView('vote')
-      if (section === 'vote' || section === 'bribe' || section === 'auctions') {
-        setLiquidationScreen('market')
-      }
     }
 
     const onSectionNav = (event: Event) => {
@@ -843,18 +1002,9 @@ export function GraiLiquidationActions() {
 
   const handleMarketViewChange = useCallback((view: 'vote' | 'bribe') => {
     setMarketView(view)
-    setLiquidationScreen('market')
     const hash = `#${view}`
     if (window.location.hash !== hash) {
       window.history.replaceState({}, '', `${window.location.pathname}${hash}`)
-    }
-  }, [])
-
-  const handleLiquidationScreenChange = useCallback((screen: 'buyback' | 'market') => {
-    setLiquidationScreen(screen)
-    if (screen === 'market') return
-    if (window.location.hash === '#vote' || window.location.hash === '#bribe' || window.location.hash === '#auctions') {
-      window.history.replaceState({}, '', `${window.location.pathname}#assets`)
     }
   }, [])
 
@@ -974,26 +1124,30 @@ export function GraiLiquidationActions() {
   }, [])
   const buybackAuctionAssets = useMemo<BuybackAuctionAsset[]>(() => {
     const listed = state?.listedAssets ?? []
-    if (listed.length > 0) {
-      return listed.map((asset) => {
-        const available = mockBuybackAvailable(asset.symbol)
-        const maxPaymentGrai = mockBuybackMaxPaymentGrai(asset.symbol, available, asset.decimals)
-        return {
-          address: asset.address,
-          symbol: asset.symbol,
-          icon: asset.icon,
-          decimals: asset.decimals,
-          available,
-          maxPaymentGrai,
-          minPaymentGrai: mockBuybackMinPaymentGrai(maxPaymentGrai, bribePremiumBps),
-          startTime: mockBuybackStartTime(asset.symbol),
-          period: MOCK_BUYBACK_PERIOD_SEC,
-        }
-      })
-    }
-    return FALLBACK_GRAI_ASSETS.filter((asset) => !['USDC', 'USDT'].includes(asset.symbol)).map(
-      (asset) => buildMockBuybackAuctionAsset(asset, bribePremiumBps),
-    )
+    const fromListed =
+      listed.length > 0
+        ? listed.map((asset) => {
+            const available = mockBuybackAvailable(asset.symbol)
+            const maxPaymentGrai = mockBuybackMaxPaymentGrai(asset.symbol, available, asset.decimals)
+            return {
+              address: asset.address,
+              symbol: asset.symbol,
+              icon: asset.icon,
+              decimals: asset.decimals,
+              available,
+              maxPaymentGrai,
+              minPaymentGrai: mockBuybackMinPaymentGrai(maxPaymentGrai, bribePremiumBps),
+              startTime: mockBuybackStartTime(asset.symbol),
+              period: MOCK_BUYBACK_PERIOD_SEC,
+            }
+          })
+        : FALLBACK_GRAI_ASSETS.filter((asset) => asset.symbol !== 'USDC').map((asset) =>
+            buildMockBuybackAuctionAsset(asset, bribePremiumBps),
+          )
+    if (fromListed.some((asset) => asset.symbol === 'USDT')) return fromListed
+    const usdtFallback = FALLBACK_GRAI_ASSETS.find((asset) => asset.symbol === 'USDT')
+    if (!usdtFallback) return fromListed
+    return [...fromListed, buildMockBuybackAuctionAsset(usdtFallback, bribePremiumBps)]
   }, [bribePremiumBps, state?.listedAssets])
   const yieldAssetOptions = useMemo<GraiAmountAsset[]>(
     () =>
@@ -1010,8 +1164,10 @@ export function GraiLiquidationActions() {
   const buybackAssetsScrollerRef = useRef<HTMLDivElement>(null)
   const buybackAssetsTrackRef = useRef<HTMLDivElement>(null)
   const buybackAssetItemRefs = useRef<(HTMLDivElement | null)[]>([])
+  const buybackEdgeSpacerStartRef = useRef<HTMLDivElement>(null)
+  const buybackEdgeSpacerEndRef = useRef<HTMLDivElement>(null)
   const buybackSelectedIndexRef = useRef(0)
-  const buybackEdgePadPxRef = useRef(0)
+  const buybackEdgePadRef = useRef({ start: 0, end: 0 })
   const buybackScrollAnimRef = useRef<number | null>(null)
   const selectedYieldAsset = useMemo(() => {
     return (
@@ -1038,14 +1194,33 @@ export function GraiLiquidationActions() {
   const applyBuybackEdgePad = useCallback(() => {
     const scroller = buybackAssetsScrollerRef.current
     const track = buybackAssetsTrackRef.current
-    if (!scroller || !track) return { pad: buybackEdgePadPxRef.current, changed: false }
-    const nextPad = Math.max(0, Math.round(scroller.clientWidth / 2))
-    const changed = nextPad !== buybackEdgePadPxRef.current
-    if (changed) {
-      buybackEdgePadPxRef.current = nextPad
-      track.style.setProperty('--grai-buyback-edge-pad', `${nextPad}px`)
+    const startSpacer = buybackEdgeSpacerStartRef.current
+    const endSpacer = buybackEdgeSpacerEndRef.current
+    if (!scroller || !track || !startSpacer || !endSpacer) {
+      return { pad: buybackEdgePadRef.current, changed: false }
     }
-    return { pad: buybackEdgePadPxRef.current, changed }
+
+    const items = buybackAssetItemRefs.current.filter(Boolean) as HTMLDivElement[]
+    const first = items[0]
+    const last = items[items.length - 1] ?? first
+    const scrollerWidth = scroller.clientWidth
+    const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '0') || 0
+    const padStart = first
+      ? Math.max(0, Math.round((scrollerWidth - first.offsetWidth) / 2 - gap))
+      : Math.max(0, Math.round(scrollerWidth / 2))
+    const padEnd = last
+      ? Math.max(0, Math.round((scrollerWidth - last.offsetWidth) / 2 - gap))
+      : padStart
+    const prev = buybackEdgePadRef.current
+    const changed = prev.start !== padStart || prev.end !== padEnd
+    if (changed) {
+      buybackEdgePadRef.current = { start: padStart, end: padEnd }
+      startSpacer.style.width = `${padStart}px`
+      startSpacer.style.flexBasis = `${padStart}px`
+      endSpacer.style.width = `${padEnd}px`
+      endSpacer.style.flexBasis = `${padEnd}px`
+    }
+    return { pad: buybackEdgePadRef.current, changed }
   }, [])
 
   const cancelBuybackScrollAnimation = useCallback(() => {
@@ -1090,12 +1265,12 @@ export function GraiLiquidationActions() {
   const getBuybackScrollTargetForIndex = useCallback(
     (index: number) => {
       const scroller = buybackAssetsScrollerRef.current
-      const track = buybackAssetsTrackRef.current
       const item = buybackAssetItemRefs.current[index]
-      if (!scroller || !track || !item) return null
+      if (!scroller || !item) return null
 
       applyBuybackEdgePad()
-      void scroller.offsetHeight
+      // Force layout so spacer widths are included in scrollWidth before measuring.
+      void scroller.scrollWidth
 
       const scrollerRect = scroller.getBoundingClientRect()
       const itemRect = item.getBoundingClientRect()
@@ -1208,6 +1383,7 @@ export function GraiLiquidationActions() {
     const scroller = buybackAssetsScrollerRef.current
     if (!scroller || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(() => {
+      if (buybackScrollAnimRef.current != null) return
       const { changed } = applyBuybackEdgePad()
       if (!changed) return
       scrollBuybackAssetToIndex(buybackSelectedIndexRef.current, 'auto')
@@ -1289,17 +1465,14 @@ export function GraiLiquidationActions() {
     ? quorumProgressPct(state.totalVoted, state.totalSupply, state.liquidationQuorumBps)
     : 0
   const liquidationBlocked = state?.liquidationOpen ?? false
+  const liquidationConfirmed = state?.confirmed ?? false
+  const liquidationHasQuorum = state?.hasQuorum ?? false
   const quorumRing = useMemo(() => {
     const radius = 40
     const circumference = 2 * Math.PI * radius
     const offset = circumference * (1 - quorumProgress / 100)
     return { radius, circumference, offset }
   }, [quorumProgress])
-  const quorumStatusLabel = liquidationBlocked
-    ? 'Liquidation open'
-    : state?.hasQuorum
-      ? 'Quorum reached'
-      : 'Quorum not reached'
   const totalVotedForShare = useMemo(() => {
     if (state && state.totalVoted > 0n) return state.totalVoted
     return voterEntries.reduce((sum, voter) => sum + voter.escrowGrai, 0n)
@@ -1428,32 +1601,6 @@ export function GraiLiquidationActions() {
     </div>
   )
 
-  const liquidationScreenTabs = (
-    <div
-      className={`grai-liquidation-screen-switch grai-action-switch grai-action-switch--buttons grai-action-switch--liquidation-screens is-${liquidationScreen}-active`}
-      role="tablist"
-      aria-label="Buyback or Redemption"
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={liquidationScreen === 'buyback'}
-        className={`grai-action-switch-btn is-buyback ${liquidationScreen === 'buyback' ? 'is-active' : ''}`}
-        onClick={() => handleLiquidationScreenChange('buyback')}
-      >
-        Buyback
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={liquidationScreen === 'market'}
-        className={`grai-action-switch-btn is-vote ${liquidationScreen === 'market' ? 'is-active' : ''}`}
-        onClick={() => handleLiquidationScreenChange('market')}
-      >
-        Redemption
-      </button>
-    </div>
-  )
 
   const quorumInfographic = (
     <div
@@ -1461,14 +1608,6 @@ export function GraiLiquidationActions() {
       role="region"
       aria-label="Liquidation quorum progress"
     >
-      <div className="grai-liquidation-quorum-heading">
-        <span
-          className={`grai-liquidation-quorum-status${liquidationBlocked ? ' is-warning' : state?.hasQuorum ? ' is-active' : ''}`}
-        >
-          {quorumStatusLabel}
-        </span>
-      </div>
-
       <div className="grai-liquidation-quorum-ring" aria-hidden="true">
         <svg viewBox="0 0 96 96" className="grai-liquidation-quorum-ring-svg">
           <circle
@@ -1540,6 +1679,19 @@ export function GraiLiquidationActions() {
         </div>
       </div>
 
+      <button
+        type="button"
+        className={`grai-liquidation-open-toggle-row${isLiquidatePanelOpen ? ' is-open' : ''}`}
+        aria-expanded={isLiquidatePanelOpen}
+        aria-controls="grai-liquidation-open-panel"
+        onClick={() => setIsLiquidatePanelOpen((open) => !open)}
+      >
+        <span className="grai-liquidation-open-toggle" aria-hidden="true">
+          <GraiUiCaret className="grai-detailed-preview-chevron" />
+        </span>
+        <span className="grai-liquidation-open-toggle-label">Liquidate</span>
+      </button>
+
       <div className="grai-liquidation-quorum-footer-stats">
         <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--supply">
           <span className="grai-liquidation-quorum-stat-value">
@@ -1557,8 +1709,115 @@ export function GraiLiquidationActions() {
     </div>
   )
 
+  const buybackAssetsCarousel = (
+    <div className="grai-liquidation-buyback-assets-carousel grai-liquidation-buyback-assets-carousel--chart-leading">
+      <div className="grai-liquidation-buyback-assets-viewport">
+        {buybackAuctionAssets.length > 1 ? (
+          <button
+            type="button"
+            className="grai-liquidation-buyback-assets-nav grai-liquidation-buyback-assets-nav--prev"
+            aria-label="Previous auction asset"
+            disabled={!canShiftBuybackPrev}
+            aria-disabled={!canShiftBuybackPrev}
+            tabIndex={canShiftBuybackPrev ? 0 : -1}
+            onClick={() => shiftBuybackAsset(-1)}
+          >
+            {VOTERS_PAGE_CHEVRON_LEFT}
+          </button>
+        ) : null}
+        <div
+          className="grai-liquidation-buyback-assets-scroller"
+          ref={buybackAssetsScrollerRef}
+          tabIndex={buybackAuctionAssets.length > 0 ? 0 : -1}
+        >
+          {buybackAuctionAssets.length > 0 ? (
+            <div
+              className="grai-liquidation-buyback-assets-track"
+              role="list"
+              aria-label="Assets on auction"
+              ref={buybackAssetsTrackRef}
+            >
+              <div
+                className="grai-liquidation-buyback-assets-edge-spacer"
+                ref={buybackEdgeSpacerStartRef}
+                aria-hidden="true"
+              />
+              {buybackAuctionAssets.map((asset, index) => {
+                const isSelected = activeBuybackCarouselIndex === index
+                const availableLabel = formatTokenBalance(asset.available, asset.decimals)
+                const chipAmountLabel = formatBuybackChipAmount(asset.available, asset.decimals)
+                const unitAsk = buybackUnitAskGrai(asset, asset.maxPaymentGrai)
+                const unitPriceLabel = `1 ${asset.symbol} = $${formatVaultBalanceDisplay(unitAsk, 18, 4)}`
+                return (
+                  <div
+                    key={asset.address}
+                    ref={(node) => {
+                      buybackAssetItemRefs.current[index] = node
+                    }}
+                    className={`grai-liquidation-buyback-assets-item${isSelected ? ' is-selected' : ' is-peek'}`}
+                    role="listitem"
+                  >
+                    <button
+                      type="button"
+                      className={`grai-liquidation-buyback-asset${isSelected ? ' is-selected' : ''}`}
+                      aria-pressed={isSelected}
+                      aria-label={`${asset.symbol}, ${availableLabel} available, ${unitPriceLabel}`}
+                      title={`${availableLabel} ${asset.symbol} · ${unitPriceLabel}`}
+                      onClick={() => selectBuybackAsset(asset, index)}
+                    >
+                      <span className="grai-liquidation-buyback-asset-head">
+                        <span className="grai-liquidation-buyback-asset-head-col">
+                          <span className="grai-liquidation-buyback-asset-top">
+                            <span className="grai-liquidation-buyback-asset-available-amt">{chipAmountLabel}</span>
+                            <img
+                              className="grai-liquidation-buyback-asset-icon"
+                              src={asset.icon}
+                              alt=""
+                              width={27}
+                              height={27}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            <span className="grai-liquidation-buyback-asset-symbol">{asset.symbol}</span>
+                          </span>
+                          <span className="grai-liquidation-buyback-asset-unit-price">{unitPriceLabel}</span>
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                )
+              })}
+              <div
+                className="grai-liquidation-buyback-assets-edge-spacer"
+                ref={buybackEdgeSpacerEndRef}
+                aria-hidden="true"
+              />
+            </div>
+          ) : (
+            <p className="grai-liquidation-buyback-assets-empty" role="status">
+              No dutch auctions for buyback
+            </p>
+          )}
+        </div>
+        {buybackAuctionAssets.length > 1 ? (
+          <button
+            type="button"
+            className="grai-liquidation-buyback-assets-nav grai-liquidation-buyback-assets-nav--next"
+            aria-label="Next auction asset"
+            disabled={!canShiftBuybackNext}
+            aria-disabled={!canShiftBuybackNext}
+            tabIndex={canShiftBuybackNext ? 0 : -1}
+            onClick={() => shiftBuybackAsset(1)}
+          >
+            {VOTERS_PAGE_CHEVRON_RIGHT}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+
   return (
-    <div className="grai-liquidation-actions is-screen-tabs" aria-live="polite">
+    <div className="grai-liquidation-actions" aria-live="polite">
       {!evmProtocol ? (
         <p className="grai-liquidation-notice" role="status">
           EVM GRAI protocol is not configured. Set VITE_GRAI_*_PROTOCOL env vars to enable liquidation vote and bribe.
@@ -1570,141 +1829,33 @@ export function GraiLiquidationActions() {
         </p>
       ) : null}
 
-      {liquidationScreenTabs}
+      {selectedYieldAsset ? (
+        <GraiDutchAuctionChart
+          symbol={selectedYieldAsset.symbol}
+          icon={selectedYieldAsset.icon}
+          available={selectedYieldAsset.available}
+          maxPaymentGrai={selectedYieldAsset.maxPaymentGrai}
+          minPaymentGrai={selectedYieldAsset.minPaymentGrai}
+          startTime={selectedYieldAsset.startTime}
+          period={selectedYieldAsset.period}
+          nowSec={buybackNowSec}
+          graiDecimals={18}
+          discountLabel={selectedBuybackMeta?.discountLabel}
+          remainingLabel={selectedBuybackMeta?.remainingLabel}
+          leading={buybackAssetsCarousel}
+        />
+      ) : null}
 
-      <div
-        className={`grai-liquidation-ops-row${
-          liquidationScreen !== 'buyback' ? ' is-liquidation-screen-hidden' : ''
-        }`}
-      >
+      <div className="grai-liquidation-ops-row">
         <div className="grai-liquidation-yield-block">
+          <div
+            className="grai-action-switch grai-action-switch--buttons grai-action-switch--buybacks is-buybacks-active"
+            role="heading"
+            aria-level={3}
+          >
+            <span className="grai-action-switch-btn is-buybacks is-active">Buyback</span>
+          </div>
           <div className="grai-liquidation-escrow-body">
-            <div className="grai-liquidation-buyback-picker-row">
-            <div className="grai-liquidation-buyback-assets-carousel">
-              <div className="grai-liquidation-buyback-assets-viewport">
-                {canShiftBuybackPrev ? (
-                  <button
-                    type="button"
-                    className="grai-liquidation-buyback-assets-nav grai-liquidation-buyback-assets-nav--prev"
-                    aria-label="Previous auction asset"
-                    onClick={() => shiftBuybackAsset(-1)}
-                  >
-                    {VOTERS_PAGE_CHEVRON_LEFT}
-                  </button>
-                ) : null}
-                <div
-                  className="grai-liquidation-buyback-assets-scroller"
-                  ref={buybackAssetsScrollerRef}
-                  tabIndex={buybackAuctionAssets.length > 0 ? 0 : -1}
-                >
-                  {buybackAuctionAssets.length > 0 ? (
-                    <div
-                      className="grai-liquidation-buyback-assets-track"
-                      role="list"
-                      aria-label="Assets on auction"
-                      ref={buybackAssetsTrackRef}
-                    >
-                      {buybackAuctionAssets.map((asset, index) => {
-                        const isSelected = buybackVisualIndex === index
-                        const availableLabel = formatTokenBalance(asset.available, asset.decimals)
-                        const chipAmountLabel = formatBuybackChipAmount(asset.available, asset.decimals)
-                        const unitAsk = buybackUnitAskGrai(asset, asset.maxPaymentGrai)
-                        const unitPriceLabel = `1 ${asset.symbol} = $${formatVaultBalanceDisplay(unitAsk, 18, 4)}`
-                        return (
-                          <div
-                            key={asset.address}
-                            ref={(node) => {
-                              buybackAssetItemRefs.current[index] = node
-                            }}
-                            className={`grai-liquidation-buyback-assets-item${isSelected ? ' is-selected' : ' is-peek'}`}
-                            role="listitem"
-                          >
-                            <button
-                              type="button"
-                              className={`grai-liquidation-buyback-asset${isSelected ? ' is-selected' : ''}`}
-                              aria-pressed={isSelected}
-                              aria-label={`${asset.symbol}, ${availableLabel} available, ${unitPriceLabel}`}
-                              title={`${availableLabel} ${asset.symbol} · ${unitPriceLabel}`}
-                              onClick={() => selectBuybackAsset(asset, index)}
-                            >
-                              <span className="grai-liquidation-buyback-asset-head">
-                                <span className="grai-liquidation-buyback-asset-head-col">
-                                  <span className="grai-liquidation-buyback-asset-top">
-                                    <span className="grai-liquidation-buyback-asset-available-amt">{chipAmountLabel}</span>
-                                    <img
-                                      className="grai-liquidation-buyback-asset-icon"
-                                      src={asset.icon}
-                                      alt=""
-                                      width={27}
-                                      height={27}
-                                      loading="lazy"
-                                      decoding="async"
-                                    />
-                                    <span className="grai-liquidation-buyback-asset-symbol">{asset.symbol}</span>
-                                  </span>
-                                  <span className="grai-liquidation-buyback-asset-unit-price">{unitPriceLabel}</span>
-                                </span>
-                              </span>
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="grai-liquidation-buyback-assets-empty" role="status">
-                      No dutch auctions for buyback
-                    </p>
-                  )}
-                </div>
-                {canShiftBuybackNext ? (
-                  <button
-                    type="button"
-                    className="grai-liquidation-buyback-assets-nav grai-liquidation-buyback-assets-nav--next"
-                    aria-label="Next auction asset"
-                    onClick={() => shiftBuybackAsset(1)}
-                  >
-                    {VOTERS_PAGE_CHEVRON_RIGHT}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-            {selectedBuybackMeta ? (
-              <div className="grai-liquidation-buyback-selection-meta" aria-live="polite">
-                <span className="grai-liquidation-buyback-asset-meta">
-                  <span className="grai-liquidation-buyback-asset-meta-col">
-                    <span className="grai-liquidation-buyback-asset-meta-label">market value</span>
-                    <span className="grai-liquidation-buyback-asset-available-usd">
-                      {selectedBuybackMeta.marketValueLabel}
-                    </span>
-                  </span>
-                  <span className="grai-liquidation-buyback-asset-meta-col is-end">
-                    <span className="grai-liquidation-buyback-asset-meta-label">buyback value</span>
-                    <span className="grai-liquidation-buyback-asset-available-usd">
-                      {selectedBuybackMeta.buybackValueLabel}
-                    </span>
-                  </span>
-                </span>
-                <span className="grai-liquidation-buyback-asset-meta grai-liquidation-buyback-asset-meta--footer">
-                  <span className="grai-liquidation-buyback-asset-meta-col">
-                    <span className="grai-liquidation-buyback-asset-timer">
-                      {selectedBuybackMeta.remainingLabel}
-                    </span>
-                    <span className="grai-liquidation-buyback-asset-meta-label">duration</span>
-                  </span>
-                  <span className="grai-liquidation-buyback-asset-meta-col is-end">
-                    <span
-                      className={`grai-liquidation-buyback-asset-discount${
-                        selectedBuybackMeta.discountPct > 0 ? ' is-discounted' : ''
-                      }`}
-                    >
-                      {selectedBuybackMeta.discountLabel}
-                    </span>
-                    <span className="grai-liquidation-buyback-asset-meta-label">discount</span>
-                  </span>
-                </span>
-              </div>
-            ) : null}
-            </div>
             <GraiAmountInput
               key={selectedYieldAsset?.address ?? 'buyback-amount'}
               label="Buyback Amount"
@@ -1818,27 +1969,34 @@ export function GraiLiquidationActions() {
         onSelectVoter={() => {
           handleMarketViewChange('bribe')
         }}
+        onSeeAllVoters={() => {
+          setShowAllBribes((open) => {
+            if (!open) setIsLiquidatePanelOpen(false)
+            return true
+          })
+        }}
         listLayout={showAllBribes}
       >
         {({ carousel, amount, empty }) => (
-          <div
-            className={`grai-liquidation-market-row${
-              liquidationScreen !== 'market' ? ' is-liquidation-screen-hidden' : ''
-            }`}
-            id="grai-liquidation-market"
-          >
+          <div className="grai-liquidation-market-stack">
+            <GraiBribeCurveChart
+              quorumBps={state?.liquidationQuorumBps ?? 6667}
+              bribePremiumBps={bribePremiumBps}
+              totalVoted={state?.totalVoted ?? 0n}
+              totalSupply={state?.totalSupply ?? 0n}
+              totalValue={state?.totalValue ?? 0n}
+            />
+            <div
+              className="grai-liquidation-market-row"
+              id="grai-liquidation-market"
+            >
             <div className="grai-liquidation-vote-block">
               {marketTabs}
               {marketView === 'vote' ? (
-                <>
-                  <header className="grai-liquidation-market-heading">
-                    <h3 className="grai-liquidation-market-heading-title">Vote for Redemption</h3>
-                  </header>
-
-                  <section
-                    id="grai-vote-section"
-                    className="grai-liquidation-panel grai-liquidation-panel--vote"
-                  >
+                <section
+                  id="grai-vote-section"
+                  className="grai-liquidation-panel grai-liquidation-panel--vote"
+                >
                     <div
                       className={`grai-liquidation-vote-amount${liquidationBlocked ? ' is-disabled' : ''}`}
                     >
@@ -1894,31 +2052,16 @@ export function GraiLiquidationActions() {
                     ) : (
                       <GraiActionConnectWalletButton onConnect={openChainSelector} />
                     )}
-                  </section>
-                </>
+                </section>
               ) : (
-                <>
-                  <header className="grai-liquidation-market-heading">
-                    <GraiFieldInfoButton
-                      className="grai-liquidation-panel-title-info"
-                      ariaLabel="What bribe against liquidation means"
-                      hint="Buy out a voter's full escrowed GRAI. Cost includes the bribe premium in settlement asset."
-                    >
-                      <h3 className="grai-liquidation-market-heading-title">
-                        Bribe against Redemption
-                      </h3>
-                    </GraiFieldInfoButton>
-                  </header>
-
-                  <section
-                    id="grai-bribe-section"
-                    className="grai-liquidation-panel grai-liquidation-panel--bribe"
-                  >
+                <section
+                  id="grai-bribe-section"
+                  className="grai-liquidation-panel grai-liquidation-panel--bribe"
+                >
                     <div className="grai-liquidation-bribe-body">
                       <div className="grai-liquidation-field">{amount}</div>
                     </div>
-                  </section>
-                </>
+                </section>
               )}
             </div>
 
@@ -1926,85 +2069,161 @@ export function GraiLiquidationActions() {
               className={`grai-liquidation-market-aside${showAllBribes ? ' is-expanded' : ''}`}
             >
               <div
-                className={`grai-liquidation-quorum-slot${showAllBribes ? ' is-collapsed' : ''}`}
-                aria-hidden={showAllBribes}
+                className={`grai-liquidation-voters-block${showAllBribes ? ' is-expanded' : ''}`}
               >
-                {quorumInfographic}
-              </div>
-              <div className="grai-liquidation-panel-header">
-                <button
-                  type="button"
-                  className={`grai-liquidation-see-all-bribes${showAllBribes ? ' is-active' : ''}`}
-                  aria-pressed={showAllBribes}
-                  onClick={() => setShowAllBribes((open) => !open)}
+                <div
+                  className={`grai-liquidation-panel-header${showAllBribes ? ' is-expanded' : ''}`}
                 >
-                  {showAllBribes
-                    ? `Show less · ${filteredBribeVoters.length}`
-                    : `See all · ${filteredBribeVoters.length}`}
-                </button>
-                <div className="grai-liquidation-bribe-toolbar">
-                  <label className="grai-liquidation-bribe-search">
-                    <span className="visually-hidden">Search voters</span>
-                    <svg
-                      className="grai-liquidation-bribe-search-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="m20 20-3.5-3.5" />
-                    </svg>
-                    <input
-                      type="search"
-                      value={bribeSearch}
-                      onChange={(event) => setBribeSearch(event.target.value)}
-                      placeholder="Search"
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </label>
-                  <label className="grai-liquidation-bribe-filter">
-                    <span className="visually-hidden">Filter voters</span>
-                    <svg
-                      className="grai-liquidation-bribe-filter-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M4 5h16" />
-                      <path d="M7 12h10" />
-                      <path d="M10 19h4" />
-                    </svg>
-                    <select
-                      value={bribeSort}
-                      onChange={(event) =>
-                        setBribeSort(
-                          event.target.value as
-                            | 'escrow-desc'
-                            | 'escrow-asc'
-                            | 'bribe-desc'
-                            | 'bribe-asc',
-                        )
-                      }
-                    >
-                      <option value="escrow-desc">Escrow ↓</option>
-                      <option value="escrow-asc">Escrow ↑</option>
-                      <option value="bribe-desc">Bribe ↓</option>
-                      <option value="bribe-asc">Bribe ↑</option>
-                    </select>
-                  </label>
+                  <button
+                    type="button"
+                    className={`grai-liquidation-see-all-bribes${showAllBribes ? ' is-active' : ''}`}
+                    aria-pressed={showAllBribes}
+                    onClick={() => {
+                      setShowAllBribes((open) => {
+                        if (!open) setIsLiquidatePanelOpen(false)
+                        return !open
+                      })
+                    }}
+                  >
+                    {showAllBribes
+                      ? `Total · ${filteredBribeVoters.length}`
+                      : `See all voters · ${filteredBribeVoters.length}`}
+                  </button>
+                  <div
+                    className="grai-liquidation-bribe-toolbar"
+                    aria-hidden={!showAllBribes}
+                  >
+                    <label className="grai-liquidation-bribe-search">
+                      <span className="visually-hidden">Search voters</span>
+                      <svg
+                        className="grai-liquidation-bribe-search-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m20 20-3.5-3.5" />
+                      </svg>
+                      <input
+                        type="search"
+                        value={bribeSearch}
+                        onChange={(event) => setBribeSearch(event.target.value)}
+                        placeholder="Search"
+                        autoComplete="off"
+                        spellCheck={false}
+                        tabIndex={showAllBribes ? 0 : -1}
+                      />
+                    </label>
+                    <label className="grai-liquidation-bribe-filter">
+                      <span className="visually-hidden">Filter voters</span>
+                      <svg
+                        className="grai-liquidation-bribe-filter-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M4 5h16" />
+                        <path d="M7 12h10" />
+                        <path d="M10 19h4" />
+                      </svg>
+                      <select
+                        value={bribeSort}
+                        tabIndex={showAllBribes ? 0 : -1}
+                        onChange={(event) =>
+                          setBribeSort(
+                            event.target.value as
+                              | 'escrow-desc'
+                              | 'escrow-asc'
+                              | 'bribe-desc'
+                              | 'bribe-asc',
+                          )
+                        }
+                      >
+                        <option value="escrow-desc">Escrow ↓</option>
+                        <option value="escrow-asc">Escrow ↑</option>
+                        <option value="bribe-desc">Bribe ↓</option>
+                        <option value="bribe-asc">Bribe ↑</option>
+                      </select>
+                    </label>
+                  </div>
                 </div>
+                {showAllBribes ? carousel ?? empty : null}
               </div>
-              {carousel ?? empty}
+              {!showAllBribes ? (
+                <div className="grai-liquidation-quorum-slot">
+                  {quorumInfographic}
+                  <div className="grai-liquidation-open" id="grai-liquidation-open">
+                    <div
+                      id="grai-liquidation-open-panel"
+                      className={`grai-liquidation-open-panel${isLiquidatePanelOpen ? ' is-open' : ''}`}
+                      aria-hidden={!isLiquidatePanelOpen}
+                    >
+                      <div className="grai-liquidation-open-panel-inner">
+                        <div className="grai-action-result-group grai-liquidation-yield-results">
+                          <div className="grai-action-result" aria-live="polite">
+                            <span className="grai-action-result-label-wrap">
+                              <span className="grai-action-result-label">Quorum</span>
+                            </span>
+                            <span className="grai-action-result-value">
+                              {isLoading ? '…' : liquidationHasQuorum ? 'Met' : 'Pending'}
+                            </span>
+                          </div>
+                          <div className="grai-action-result" aria-live="polite">
+                            <span className="grai-action-result-label-wrap">
+                              <span className="grai-action-result-label">Owner confirm</span>
+                            </span>
+                            <span className="grai-action-result-value">
+                              {isLoading ? '…' : liquidationConfirmed ? 'Confirmed' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                        {isWalletConnected ? (
+                          <div className="grai-action-submit grai-liquidation-step-actions">
+                            <div className="grai-liquidation-step-action">
+                              <button
+                                type="button"
+                                className="grai-mint-btn"
+                                disabled={liquidationBlocked || liquidationConfirmed}
+                                tabIndex={isLiquidatePanelOpen ? 0 : -1}
+                              >
+                                Confirm
+                              </button>
+                              <span className="grai-liquidation-step-meta">Transaction 1 of 2</span>
+                            </div>
+                            <div className="grai-liquidation-step-action">
+                              <button
+                                type="button"
+                                className="grai-mint-btn"
+                                disabled={
+                                  liquidationBlocked ||
+                                  !liquidationHasQuorum ||
+                                  !liquidationConfirmed
+                                }
+                                tabIndex={isLiquidatePanelOpen ? 0 : -1}
+                              >
+                                Liquidate
+                              </button>
+                              <span className="grai-liquidation-step-meta">Transaction 2 of 2</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <GraiActionConnectWalletButton onConnect={openChainSelector} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
+          </div>
           </div>
         )}
       </GraiLiquidationVoterPicker>

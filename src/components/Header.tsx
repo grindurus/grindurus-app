@@ -58,7 +58,7 @@ const BRIBE_NAV_ICON = (
 const GRAI_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[] = [
   { section: 'mint', label: 'Deposit', icon: MINT_NAV_ICON },
   { section: 'lock', label: 'Lock', icon: LOCK_NAV_ICON },
-  { section: 'unlock', label: 'Unlock & Claim', icon: UNLOCK_NAV_ICON },
+  { section: 'unlock', label: 'Unlock', icon: UNLOCK_NAV_ICON },
   { section: 'vote', label: 'Vote', icon: VOTE_NAV_ICON },
   { section: 'bribe', label: 'Bribe', icon: BRIBE_NAV_ICON },
   { section: 'assets', label: 'Assets', icon: BALANCE_COLUMN_ICONS.assets },

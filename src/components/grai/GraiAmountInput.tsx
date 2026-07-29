@@ -4,7 +4,7 @@ import {
   lookupGraiAssetYieldMetrics,
 } from '../../grai/assetYieldMetrics'
 import { formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../../grai/onchain'
-import { GraiAssetSelect } from './GraiAssetSelect'
+import { GraiAssetSelect, type GraiAssetSelectMenuOption } from './GraiAssetSelect'
 
 export type GraiAmountAsset = {
   icon: string
@@ -39,6 +39,13 @@ type Props = {
   afterFooter?: ReactNode
   /** Greys out amount + asset select and blocks interaction. */
   disabled?: boolean
+  /** Custom dropdown options (e.g. bribe voters). Trigger still shows the selected asset. */
+  selectMenuOptions?: GraiAssetSelectMenuOption[]
+  selectedMenuId?: string | null
+  onSelectMenuOption?: (id: string) => void
+  selectMenuAriaLabel?: string
+  selectAriaLabel?: string
+  selectMenuLeadingAction?: { label: string; onClick: () => void } | null
 }
 
 export function GraiAmountInput({
@@ -60,6 +67,12 @@ export function GraiAmountInput({
   presetsUnderLabel = false,
   afterFooter,
   disabled = false,
+  selectMenuOptions,
+  selectedMenuId,
+  onSelectMenuOption,
+  selectMenuAriaLabel,
+  selectAriaLabel,
+  selectMenuLeadingAction = null,
 }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState<string | undefined>(defaultAsset)
 
@@ -213,6 +226,12 @@ export function GraiAmountInput({
               : `${balancePrefix} ${balanceText}`.replace(/\s+/g, ' ').trim()
           }
           disabled={disabled}
+          ariaLabel={selectAriaLabel}
+          menuOptions={selectMenuOptions}
+          selectedMenuId={selectedMenuId}
+          onSelectMenuOption={onSelectMenuOption}
+          menuAriaLabel={selectMenuAriaLabel}
+          menuLeadingAction={selectMenuLeadingAction}
         />
       </div>
       {showFooter ? (
