@@ -55,8 +55,16 @@ const BRIBE_NAV_ICON = (
   </svg>
 )
 
+const CLAIM_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 19V5" />
+    <path d="m5 12 7 7 7-7" />
+  </svg>
+)
+
 const GRAI_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[] = [
   { section: 'mint', label: 'Deposit', icon: MINT_NAV_ICON },
+  { section: 'claim', label: 'Claim', icon: CLAIM_NAV_ICON },
   { section: 'lock', label: 'Lock', icon: LOCK_NAV_ICON },
   { section: 'unlock', label: 'Unlock', icon: UNLOCK_NAV_ICON },
   { section: 'vote', label: 'Vote', icon: VOTE_NAV_ICON },

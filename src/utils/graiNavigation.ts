@@ -2,6 +2,7 @@ import { isAtAppPath, toAppPath } from './appPaths'
 
 export type GraiSection =
   | 'mint'
+  | 'claim'
   | 'lock'
   | 'unlock'
   | 'burn'
@@ -15,6 +16,7 @@ export type GraiSection =
 
 export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   mint: 'grai-actions-section',
+  claim: 'grai-actions-section',
   lock: 'grai-actions-section',
   unlock: 'grai-actions-section',
   burn: 'grai-actions-section',
@@ -29,6 +31,7 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
 
 export const GRAI_SECTION_HASHES: GraiSection[] = [
   'mint',
+  'claim',
   'lock',
   'unlock',
   'burn',

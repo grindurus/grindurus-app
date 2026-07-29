@@ -27,8 +27,9 @@ function GraiPage() {
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {
-      if (section === 'mint' || section === 'lock' || section === 'unlock') setActionView('mint')
-      else if (section === 'burn') setActionView('burn')
+      if (section === 'mint' || section === 'claim' || section === 'lock' || section === 'unlock') {
+        setActionView('mint')
+      } else if (section === 'burn') setActionView('burn')
     }
 
     const onSectionNav = (event: Event) => {
@@ -43,6 +44,7 @@ function GraiPage() {
       }
       if (
         hash === 'mint' ||
+        hash === 'claim' ||
         hash === 'lock' ||
         hash === 'unlock' ||
         hash === 'burn' ||

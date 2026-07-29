@@ -175,7 +175,7 @@ export function GraiBribeCurveChart({
 
       <div className="grai-bribe-curve-chart-plot">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={points} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
+          <ComposedChart data={points} margin={{ top: 22, right: 16, left: 4, bottom: 4 }}>
             <defs>
               <linearGradient id={`grai-bribe-premium-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#e85d5d" stopOpacity={0.85} />
@@ -219,7 +219,7 @@ export function GraiBribeCurveChart({
               tickLine={false}
             />
             <Tooltip
-              cursor={{ stroke: '#4da3ff', strokeWidth: 1, strokeDasharray: '4 4' }}
+              cursor={{ stroke: '#ff69b4', strokeWidth: 1, strokeDasharray: '4 4' }}
               content={({ active, payload }) => {
                 if (!active || !payload?.[0]) return null
                 const point = payload[0].payload as ChartPoint
@@ -265,11 +265,20 @@ export function GraiBribeCurveChart({
               y={mintPrice}
               stroke="color-mix(in srgb, var(--text-secondary) 75%, transparent)"
               strokeDasharray="5 5"
-              label={{
-                value: 'deposit price',
-                position: 'insideTopRight',
-                fill: '#fff',
-                fontSize: 11,
+              label={(props) => {
+                const viewBox = props.viewBox as { x?: number; y?: number; width?: number } | undefined
+                if (viewBox?.x == null || viewBox.y == null || viewBox.width == null) return null
+                return (
+                  <text
+                    x={viewBox.x + viewBox.width - 2}
+                    y={viewBox.y - 6}
+                    fill="#fff"
+                    fontSize={11}
+                    textAnchor="end"
+                  >
+                    deposit price
+                  </text>
+                )
               }}
             />
             <ReferenceLine
@@ -285,15 +294,15 @@ export function GraiBribeCurveChart({
             <Line
               type="linear"
               dataKey="ask"
-              stroke="#4da3ff"
+              stroke="#ff69b4"
               strokeWidth={2.25}
               dot={false}
               isAnimationActive={false}
-              activeDot={{ r: 4, fill: '#4da3ff', stroke: '#fff', strokeWidth: 1.5 }}
+              activeDot={{ r: 4, fill: '#ff69b4', stroke: '#fff', strokeWidth: 1.5 }}
             />
             <ReferenceLine
               x={nowPoint.voteShare}
-              stroke="#4da3ff"
+              stroke="#ff69b4"
               strokeDasharray="4 4"
               strokeOpacity={0.75}
             />
@@ -301,7 +310,7 @@ export function GraiBribeCurveChart({
               x={nowPoint.voteShare}
               y={nowPoint.ask}
               r={5}
-              fill="#4da3ff"
+              fill="#ff69b4"
               stroke="var(--bg-primary, #100c10)"
               strokeWidth={2}
             />

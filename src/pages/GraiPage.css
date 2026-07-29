@@ -12510,14 +12510,21 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-bribe-curve-chart-legend-item::before {
   content: '';
-  width: 0.7rem;
-  height: 0.28rem;
-  border-radius: 999px;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
   background: currentColor;
+  flex-shrink: 0;
+}
+
+.grai-bribe-curve-chart-legend-item.is-ask::before {
+  width: 0.75rem;
+  height: 0.2rem;
+  border-radius: 999px;
 }
 
 .grai-bribe-curve-chart-legend-item.is-ask {
-  color: #4da3ff;
+  color: #ff69b4;
 }
 
 .grai-bribe-curve-chart-legend-item.is-premium {
@@ -12819,6 +12826,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
   .grai-bribe-curve-chart-plot {
     height: 8.25rem;
+  }
+
+  .grai-bribe-curve-chart-legend {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
   }
 
   .grai-liquidation-market-stack,
@@ -13136,67 +13149,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   background: transparent;
   isolation: isolate;
   align-self: center;
-}
-
-.grai-liquidation-quorum-infographic::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 42% 78% at 22% 50%, color-mix(in srgb, #ff69b4 18%, transparent), transparent 72%),
-    radial-gradient(ellipse 62% 90% at 58% 50%, color-mix(in srgb, #ff69b4 7%, transparent), transparent 78%),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      color-mix(in srgb, #ff69b4 4%, transparent) 28%,
-      color-mix(in srgb, #ff69b4 5%, transparent) 50%,
-      color-mix(in srgb, #ff1493 3%, transparent) 72%,
-      transparent 100%
-    );
-  -webkit-mask-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    #000 10%,
-    #000 90%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    #000 10%,
-    #000 90%,
-    transparent 100%
-  );
-}
-
-.grai-liquidation-quorum-infographic.is-reached::before {
-  background:
-    radial-gradient(ellipse 42% 78% at 22% 50%, color-mix(in srgb, #ff69b4 22%, transparent), transparent 72%),
-    radial-gradient(ellipse 62% 90% at 58% 50%, color-mix(in srgb, #ff69b4 9%, transparent), transparent 78%),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      color-mix(in srgb, #ff69b4 5%, transparent) 28%,
-      color-mix(in srgb, #ff69b4 7%, transparent) 50%,
-      color-mix(in srgb, #7dffb2 4%, transparent) 72%,
-      transparent 100%
-    );
-}
-
-.grai-liquidation-quorum-infographic.is-open::before {
-  background:
-    radial-gradient(ellipse 42% 78% at 22% 50%, color-mix(in srgb, #ffb347 18%, transparent), transparent 72%),
-    radial-gradient(ellipse 62% 90% at 58% 50%, color-mix(in srgb, #ffb347 8%, transparent), transparent 78%),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      color-mix(in srgb, #ffb347 5%, transparent) 28%,
-      color-mix(in srgb, #ffb347 7%, transparent) 50%,
-      color-mix(in srgb, #ff69b4 4%, transparent) 72%,
-      transparent 100%
-    );
 }
 
 .grai-liquidation-quorum-ring {

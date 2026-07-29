@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Area,
   AreaChart,
@@ -83,7 +83,6 @@ export function GraiDutchAuctionChart({
   remainingLabel,
   leading,
 }: Props) {
-  const gradientId = useId().replace(/:/g, '')
   const hasLot = available > 0n
   const chartIdentity = `${symbol}:${hasLot ? 'lot' : 'empty'}`
   const [curveAnimating, setCurveAnimating] = useState(true)
@@ -217,13 +216,7 @@ export function GraiDutchAuctionChart({
         key={chartIdentity}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-            <defs>
-              <linearGradient id={`grai-dutch-fill-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ff69b4" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#ff69b4" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
+          <AreaChart data={points} margin={{ top: 22, right: 12, left: 10, bottom: 8 }}>
             <CartesianGrid
               stroke="color-mix(in srgb, var(--border-color) 70%, transparent)"
               strokeDasharray="3 6"
@@ -246,11 +239,29 @@ export function GraiDutchAuctionChart({
             />
             <YAxis
               domain={yDomain}
-              width={48}
-              tickFormatter={formatAxisAsk}
+              width={64}
+              tickFormatter={(value: number) => formatAxisAsk(value)}
               tick={{ fill: '#fff', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
+              label={(props) => {
+                const viewBox = props.viewBox as
+                  | { x?: number; y?: number; width?: number }
+                  | undefined
+                if (viewBox?.x == null || viewBox.y == null) return null
+                const tickX = viewBox.x + (viewBox.width ?? 64) - 4
+                return (
+                  <text
+                    x={tickX}
+                    y={Math.max(10, viewBox.y - 8)}
+                    fill="#fff"
+                    fontSize={11}
+                    textAnchor="end"
+                  >
+                    GRAI
+                  </text>
+                )
+              }}
             />
             <Tooltip
               cursor={{ stroke: '#ff69b4', strokeWidth: 1, strokeDasharray: '4 4' }}
@@ -276,7 +287,7 @@ export function GraiDutchAuctionChart({
               dataKey="ask"
               stroke="#ff69b4"
               strokeWidth={2.25}
-              fill={`url(#grai-dutch-fill-${gradientId})`}
+              fill="none"
               isAnimationActive={curveAnimating}
               animationDuration={480}
               animationEasing="ease-out"

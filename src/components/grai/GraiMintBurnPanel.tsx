@@ -230,7 +230,7 @@ export function GraiMintBurnPanel({
   const [claimAllDividends, setClaimAllDividends] = useState(false)
   const [assetFlowView, setAssetFlowView] = useState<'deposit' | 'claim'>(() => {
     const section = readGraiSectionFromHash()
-    return section === 'unlock' ? 'claim' : 'deposit'
+    return section === 'unlock' || section === 'claim' ? 'claim' : 'deposit'
   })
   const [forcedDefaultAsset, setForcedDefaultAsset] = useState<string | null>(() => {
     const section = readGraiSectionFromHash()
@@ -262,6 +262,16 @@ export function GraiMintBurnPanel({
       }
       if (section === 'mint') {
         setForcedDefaultAsset(null)
+        setAssetFlowView('deposit')
+        setAmount('')
+        setAssetSelectKey((key) => key + 1)
+        return
+      }
+      if (section === 'claim') {
+        setForcedDefaultAsset(null)
+        setAssetFlowView('claim')
+        setEarnDividends(false)
+        setAmount('')
         setAssetSelectKey((key) => key + 1)
       }
     }
