@@ -1715,6 +1715,7 @@ export function GraiLiquidationActions() {
         type="button"
         role="tab"
         aria-selected={opsView === 'market'}
+        aria-label="Vote and Bribe"
         className={`grai-action-switch-btn is-market ${opsView === 'market' ? 'is-active' : ''}`}
         onClick={() => handleOpsViewChange('market')}
       >
@@ -1725,7 +1726,10 @@ export function GraiLiquidationActions() {
             <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
           </svg>
         </span>
-        Vote and Bribe
+        <span className="grai-action-switch-label">
+          <span className="grai-action-switch-label-full">Vote and Bribe</span>
+          <span className="grai-action-switch-label-short">Vote</span>
+        </span>
       </button>
       <button
         type="button"

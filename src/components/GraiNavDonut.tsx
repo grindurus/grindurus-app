@@ -164,9 +164,10 @@ export function GraiNavDonut({
               innerRadius="58%"
               outerRadius={showSliceIcons ? '72%' : '88%'}
               paddingAngle={0}
-              cornerRadius={3}
+              // Equal/empty slices + cornerRadius leave visible gaps; skip both for a continuous ring.
+              cornerRadius={isEmptyDistribution ? 0 : 3}
               stroke="none"
-              isAnimationActive
+              isAnimationActive={!isEmptyDistribution}
               animationDuration={500}
               onMouseEnter={handleSectorEnter}
             >
