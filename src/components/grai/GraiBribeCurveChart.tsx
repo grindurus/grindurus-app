@@ -167,12 +167,12 @@ export function GraiBribeCurveChart({
             </span>
           </span>
           <span className="grai-bribe-curve-chart-meta-col is-end">
-            <span className="grai-bribe-curve-chart-meta-label">Voted</span>
-            <span className="grai-bribe-curve-chart-meta-value">{formatVotePct(voteShareNow)}</span>
-          </span>
-          <span className="grai-bribe-curve-chart-meta-col is-end">
             <span className="grai-bribe-curve-chart-meta-label">Deposit price</span>
             <span className="grai-bribe-curve-chart-meta-value">{formatPrice(mintPrice)}</span>
+          </span>
+          <span className="grai-bribe-curve-chart-meta-col is-end">
+            <span className="grai-bribe-curve-chart-meta-label">Total voted</span>
+            <span className="grai-bribe-curve-chart-meta-value">{formatVotePct(voteShareNow)}</span>
           </span>
           <span className="grai-bribe-curve-chart-meta-col is-end">
             <span className="grai-bribe-curve-chart-meta-label">Liquidation quorum</span>

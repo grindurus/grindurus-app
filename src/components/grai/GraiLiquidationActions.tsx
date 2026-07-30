@@ -76,14 +76,6 @@ function formatPct(numerator: bigint, denominator: bigint): string {
   return `${pct.toFixed(1)}%`
 }
 
-/** Progress toward liquidation quorum as 0–100 (capped). */
-function quorumProgressPct(totalVoted: bigint, totalSupply: bigint, quorumBps: number): number {
-  if (totalSupply <= 0n || quorumBps <= 0) return 0
-  const raw = Number((totalVoted * 1_000_000n) / (totalSupply * BigInt(quorumBps)))
-  if (!Number.isFinite(raw)) return 0
-  return Math.min(100, Math.max(0, raw))
-}
-
 function estimateMockBribeCost(
   escrowGrai: bigint,
   bribePremiumBps: number,
@@ -1091,17 +1083,10 @@ export function GraiLiquidationActions() {
   ])
 
   const walletGraiLabel = state ? formatTokenBalance(state.walletGrai, graiDecimals) : '—'
-  const totalVotedLabel = state ? formatTokenBalance(state.totalVoted, graiDecimals) : '—'
   const totalSupplyLabel = state ? formatTokenBalance(state.totalSupply, graiDecimals) : '—'
   const grindersNavLabel = state
     ? `$${formatTokenBalance(state.totalValue, graiDecimals)}`
     : '—'
-  const totalBribeRaw = useMemo(
-    () => Object.values(costByVoter).reduce((sum, cost) => sum + cost, 0n),
-    [costByVoter],
-  )
-  const totalBribeReady = voterEntries.length === 0 || Object.keys(costByVoter).length >= voterEntries.length
-  const totalBribeLabel = totalBribeReady ? formatTokenBalance(totalBribeRaw, settlementDecimals) : '…'
   const voteMaxAmount = state && state.walletGrai > 0n ? formatTokenBalance(state.walletGrai, graiDecimals) : ''
   const voteAssetOptions = useMemo<GraiAmountAsset[]>(
     () => [
@@ -1479,18 +1464,9 @@ export function GraiLiquidationActions() {
     }
   }, [buybackNowSec, selectedYieldAsset])
 
-  const quorumProgress = state
-    ? quorumProgressPct(state.totalVoted, state.totalSupply, state.liquidationQuorumBps)
-    : 0
   const liquidationBlocked = state?.liquidationOpen ?? false
   const liquidationConfirmed = state?.confirmed ?? false
   const liquidationHasQuorum = state?.hasQuorum ?? false
-  const quorumRing = useMemo(() => {
-    const radius = 40
-    const circumference = 2 * Math.PI * radius
-    const offset = circumference * (1 - quorumProgress / 100)
-    return { radius, circumference, offset }
-  }, [quorumProgress])
   const totalVotedForShare = useMemo(() => {
     if (state && state.totalVoted > 0n) return state.totalVoted
     return voterEntries.reduce((sum, voter) => sum + voter.escrowGrai, 0n)
@@ -1621,81 +1597,27 @@ export function GraiLiquidationActions() {
 
 
   const quorumInfographic = (
+    <>
     <div
       className={`grai-liquidation-quorum-infographic${state?.hasQuorum ? ' is-reached' : ''}${liquidationBlocked ? ' is-open' : ''}`}
       role="region"
       aria-label="Liquidation quorum progress"
     >
-      <div className="grai-liquidation-quorum-ring" aria-hidden="true">
-        <svg viewBox="0 0 96 96" className="grai-liquidation-quorum-ring-svg">
-          <circle
-            className="grai-liquidation-quorum-ring-track"
-            cx="48"
-            cy="48"
-            r={quorumRing.radius}
-            fill="none"
-            strokeWidth="7"
-          />
-          <circle
-            className="grai-liquidation-quorum-ring-progress"
-            cx="48"
-            cy="48"
-            r={quorumRing.radius}
-            fill="none"
-            strokeWidth="7"
-            strokeLinecap="round"
-            strokeDasharray={quorumRing.circumference}
-            strokeDashoffset={isLoading ? quorumRing.circumference : quorumRing.offset}
-            transform="rotate(-90 48 48)"
-          />
-        </svg>
-        <div className="grai-liquidation-quorum-ring-center">
-          <span className="grai-liquidation-quorum-ring-pct">
-            {isLoading ? '…' : `${Math.round(quorumProgress)}%`}
+      <div className="grai-liquidation-quorum-footer-stats">
+        <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--supply">
+          <span className="grai-liquidation-quorum-stat-value">
+            {isLoading ? '…' : totalSupplyLabel}
           </span>
-          <span className="grai-liquidation-quorum-ring-caption">quorum</span>
+          <span className="grai-liquidation-quorum-stat-label">Your vote</span>
+        </div>
+        <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--nav">
+          <span className="grai-liquidation-quorum-stat-value">
+            {isLoading ? '…' : grindersNavLabel}
+          </span>
+          <span className="grai-liquidation-quorum-stat-label">Your pending Bribe</span>
         </div>
       </div>
-
-      <div className="grai-liquidation-quorum-body">
-        <div className="grai-liquidation-quorum-header">
-          <div className="grai-liquidation-quorum-stats">
-            <div className="grai-liquidation-quorum-stat">
-              <span className="grai-liquidation-quorum-stat-label">Total Voted</span>
-              <span className="grai-liquidation-quorum-stat-value">
-                <span className="grai-liquidation-quorum-stat-amount">
-                  {isLoading ? '…' : totalVotedLabel}
-                </span>
-                <span className="grai-liquidation-quorum-stat-unit">GRAI</span>
-              </span>
-            </div>
-            <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--bribe">
-              <span className="grai-liquidation-quorum-stat-label">Pending Bribe</span>
-              <span className="grai-liquidation-quorum-stat-value">
-                <span className="grai-liquidation-quorum-stat-amount">
-                  {isLoading ? '…' : totalBribeLabel}
-                </span>
-                <span className="grai-liquidation-quorum-stat-unit">{settlementSymbol}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="grai-liquidation-quorum-track"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(quorumProgress)}
-          aria-label="Progress toward liquidation quorum"
-        >
-          <div
-            className="grai-liquidation-quorum-track-fill"
-            style={{ width: `${isLoading ? 0 : quorumProgress}%` }}
-          />
-          <span className="grai-liquidation-quorum-track-mark" aria-hidden="true" />
-        </div>
-      </div>
+    </div>
 
       <button
         type="button"
@@ -1770,22 +1692,7 @@ export function GraiLiquidationActions() {
           </div>
         </div>
       </div>
-
-      <div className="grai-liquidation-quorum-footer-stats">
-        <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--supply">
-          <span className="grai-liquidation-quorum-stat-value">
-            {isLoading ? '…' : totalSupplyLabel}
-          </span>
-          <span className="grai-liquidation-quorum-stat-label">Your vote</span>
-        </div>
-        <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--nav">
-          <span className="grai-liquidation-quorum-stat-value">
-            {isLoading ? '…' : grindersNavLabel}
-          </span>
-          <span className="grai-liquidation-quorum-stat-label">Your pending Bribe</span>
-        </div>
-      </div>
-    </div>
+    </>
   )
 
   const buybackAssetsCarousel = (
