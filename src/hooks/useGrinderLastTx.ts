@@ -20,7 +20,8 @@ export function useGrinderLastTx(rows: GrinderLastTxRow[], enabled: boolean): Re
 
     const next: Record<string, GrinderLastTxEntry> = {}
     for (const row of rows) {
-      const hash = row.lastTxHash?.trim()
+      const rawHash = row.lastTxHash?.trim()
+      const hash = rawHash && rawHash.toLowerCase() !== '0x' ? rawHash : undefined
       if (!hash) {
         next[row.id] = { status: 'empty' }
         continue

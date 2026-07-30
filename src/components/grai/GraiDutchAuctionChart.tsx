@@ -144,7 +144,9 @@ export function GraiDutchAuctionChart({
       })
     }
     const nowAsk = toGraiNumber(currentAsk, graiDecimals)
-    const pad = Math.max((maxN - minN) * 0.08, maxN * 0.02, 0.01)
+    const span = Math.max(maxN - minN, maxN * 0.002, 0.01)
+    // Tight pad so the dutch drop fills most of the plot height (steeper visual slope).
+    const pad = span * 0.06
     const domain: [number, number] = [Math.max(0, minN - pad), maxN + pad]
     return {
       points: nextPoints,
@@ -171,7 +173,7 @@ export function GraiDutchAuctionChart({
       className="grai-dutch-auction-chart"
       aria-label={`${symbol} dutch auction price curve`}
     >
-      <h3 className="grai-dutch-auction-chart-title">Buyback Dutch Action</h3>
+      <h3 className="grai-dutch-auction-chart-title">Buyback Dutch Auction</h3>
       <header className="grai-dutch-auction-chart-head">
         <div className="grai-dutch-auction-chart-title-wrap">
           {leading ?? (
@@ -226,7 +228,7 @@ export function GraiDutchAuctionChart({
         key={chartIdentity}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={points} margin={{ top: 22, right: 12, left: 10, bottom: 8 }}>
+          <AreaChart data={points} margin={{ top: 22, right: 8, left: 0, bottom: 8 }}>
             <CartesianGrid
               stroke="color-mix(in srgb, var(--border-color) 70%, transparent)"
               strokeDasharray="3 6"
@@ -250,7 +252,7 @@ export function GraiDutchAuctionChart({
             <YAxis
               domain={yDomain}
               ticks={yTicks}
-              width={64}
+              width={44}
               tickFormatter={(value: number) => formatAxisAsk(value)}
               tick={{ fill: '#fff', fontSize: 11 }}
               axisLine={false}
@@ -260,7 +262,7 @@ export function GraiDutchAuctionChart({
                   | { x?: number; y?: number; width?: number }
                   | undefined
                 if (viewBox?.x == null || viewBox.y == null) return null
-                const tickX = viewBox.x + (viewBox.width ?? 64) - 4
+                const tickX = viewBox.x + (viewBox.width ?? 44) - 2
                 return (
                   <text
                     x={tickX}

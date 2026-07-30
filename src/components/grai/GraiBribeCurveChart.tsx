@@ -109,7 +109,7 @@ export function GraiBribeCurveChart({
   const regime =
     nowIndex.premiumIndex > 0 ? 'Premium' : nowIndex.discountIndex > 0 ? 'Discount' : 'Par'
 
-  const { points, yDomain, nowPoint } = useMemo(() => {
+  const { points, yDomain, yTicks, nowPoint } = useMemo(() => {
     const next: ChartPoint[] = []
     for (let i = 0; i <= SAMPLE_COUNT; i += 1) {
       const voteShare = i / SAMPLE_COUNT
@@ -127,10 +127,18 @@ export function GraiBribeCurveChart({
     const asks = next.map((p) => p.ask)
     const minAsk = Math.min(...asks, mintPrice)
     const maxAsk = Math.max(...asks, mintPrice)
-    const pad = Math.max((maxAsk - minAsk) * 0.2, mintPrice * 0.004, 0.01)
+    const span = Math.max(maxAsk - minAsk, mintPrice * 0.002, 0.01)
+    // Tight pad so premium/discount swing fills most of the plot (steeper visual slope).
+    const pad = span * 0.06
+    // Always label max premium, deposit, and max-discount (min ask) levels.
+    const tickSet = [maxAsk, mintPrice, minAsk]
+    if (maxAsk - mintPrice > span * 0.2) tickSet.push((maxAsk + mintPrice) / 2)
+    if (mintPrice - minAsk > span * 0.2) tickSet.push((mintPrice + minAsk) / 2)
+    const ticks = [...new Set(tickSet.map((v) => Number(v.toPrecision(6))))].sort((a, b) => b - a)
     return {
       points: next,
-      yDomain: [minAsk - pad, maxAsk + pad] as [number, number],
+      yDomain: [Math.max(0, minAsk - pad), maxAsk + pad] as [number, number],
+      yTicks: ticks,
       nowPoint: {
         voteShare: clamp(voteShareNow, 0, 1),
         ask: nowAsk,
@@ -143,8 +151,8 @@ export function GraiBribeCurveChart({
       className="grai-bribe-curve-chart"
       aria-label="Bribe ask versus voted share of supply"
     >
+      <h3 className="grai-bribe-curve-chart-title">Vote and Bribe</h3>
       <header className="grai-bribe-curve-chart-head">
-        <h3 className="grai-bribe-curve-chart-title">Vote vs Bribe</h3>
         <div className="grai-bribe-curve-chart-meta">
           <span className="grai-bribe-curve-chart-meta-col">
             <span className="grai-bribe-curve-chart-meta-label">Now</span>
@@ -167,7 +175,7 @@ export function GraiBribeCurveChart({
             <span className="grai-bribe-curve-chart-meta-value">{formatPrice(mintPrice)}</span>
           </span>
           <span className="grai-bribe-curve-chart-meta-col is-end">
-            <span className="grai-bribe-curve-chart-meta-label">Quorum</span>
+            <span className="grai-bribe-curve-chart-meta-label">Liquidation quorum</span>
             <span className="grai-bribe-curve-chart-meta-value">{formatVotePct(quorumShare)}</span>
           </span>
         </div>
@@ -211,8 +219,8 @@ export function GraiBribeCurveChart({
             />
             <YAxis
               domain={yDomain}
+              ticks={yTicks}
               width={58}
-              tickCount={5}
               tickFormatter={(value: number) => formatPrice(value)}
               tick={{ fill: '#fff', fontSize: 11 }}
               axisLine={false}
@@ -263,8 +271,9 @@ export function GraiBribeCurveChart({
             />
             <ReferenceLine
               y={mintPrice}
-              stroke="color-mix(in srgb, var(--text-secondary) 75%, transparent)"
+              stroke="#ff69b4"
               strokeDasharray="5 5"
+              strokeOpacity={0.9}
               label={(props) => {
                 const viewBox = props.viewBox as { x?: number; y?: number; width?: number } | undefined
                 if (viewBox?.x == null || viewBox.y == null || viewBox.width == null) return null
@@ -272,7 +281,7 @@ export function GraiBribeCurveChart({
                   <text
                     x={viewBox.x + viewBox.width - 2}
                     y={viewBox.y - 6}
-                    fill="#fff"
+                    fill="#ff69b4"
                     fontSize={11}
                     textAnchor="end"
                   >
@@ -283,13 +292,15 @@ export function GraiBribeCurveChart({
             />
             <ReferenceLine
               x={halfShare}
-              stroke="color-mix(in srgb, var(--border-color) 90%, transparent)"
+              stroke="#ff69b4"
               strokeDasharray="3 4"
+              strokeOpacity={0.85}
             />
             <ReferenceLine
               x={quorumShare}
-              stroke="color-mix(in srgb, var(--border-color) 90%, transparent)"
+              stroke="#ff69b4"
               strokeDasharray="3 4"
+              strokeOpacity={0.85}
             />
             <Line
               type="linear"

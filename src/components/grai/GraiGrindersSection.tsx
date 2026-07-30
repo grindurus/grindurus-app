@@ -8,8 +8,6 @@ import { useGrinderLastTx } from '../../hooks/useGrinderLastTx'
 import { useWalletContext } from '../../providers/AppWalletProvider'
 import { summarizeGrinderTableRows } from '../../boss/grinderTable'
 import { grinderRowMatchesCaip2Network } from '../../wallet/caip2Network'
-import { toAppPath } from '../../utils/appPaths'
-import { navigateToGraiSection } from '../../utils/graiNavigation'
 import {
   GraiGrinderCountValue,
   GraiGrinderLastTxCell,
@@ -47,6 +45,8 @@ export function GraiGrindersSection() {
     isLive: isBossGrinderLive,
     isBootstrapped: isBossGrinderBootstrapped,
     isBossUnavailable,
+    isRefreshing: isBossGrinderRefreshing,
+    refresh: refreshBossGrinders,
   } = useBossGrinderTable(bossEndpoints.activeUrls, bossEndpoints.isMetadataReady)
   const walletNetworkCaip2 = activeWallet.networkCaip2
   const isGrindersNetworkFilterActive =
@@ -155,23 +155,26 @@ export function GraiGrindersSection() {
 
   const compactToolbarNetworkAction = isGrinderNetworkConnected ? (
     <WalletNetworkSelect variant="compact" ariaLabel="Select wallet network" />
-  ) : null
-  const grindersSummaryFilterRow = isCompactGrindersLayout ? (
-    <div className="grai-grinders-summary-filter-wrap grai-grinders-summary-filter-wrap--compact-row">
+  ) : (
+    <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
+  )
+  const grindersSummaryFilterRow = (
+    <div
+      className={`grai-grinders-summary-filter-wrap${
+        isCompactGrindersLayout ? ' grai-grinders-summary-filter-wrap--compact-row' : ''
+      }`}
+    >
       {grindersNetworkFilterToggle}
-      {compactToolbarNetworkAction ? (
+      {isCompactGrindersLayout ? (
         <span className="grai-grinders-summary-toolbar-network">
           <span className="grai-grinders-network-action">{compactToolbarNetworkAction}</span>
         </span>
       ) : null}
     </div>
-  ) : null
+  )
 
   const desktopNetworkAction = isGrinderNetworkConnected ? (
-    <>
-      {grindersNetworkFilterToggle}
-      <WalletNetworkSelect variant="compact" ariaLabel="Selected wallet network" />
-    </>
+    <WalletNetworkSelect variant="compact" ariaLabel="Selected wallet network" />
   ) : (
     <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
   )
@@ -328,17 +331,18 @@ export function GraiGrindersSection() {
                     </span>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-grinder" aria-label="Grinders">
-                    <a
-                      href={`${toAppPath('/grinders')}#allocate`}
+                    <button
+                      type="button"
                       className="grai-grinders-col-grinder-link"
-                      title="Grinder management"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        navigateToGraiSection('allocate')
-                      }}
+                      title="Re-fetch /grinders"
+                      aria-label="Update grinders table from Boss"
+                      disabled={!bossEndpoints.isMetadataReady || isBossGrinderRefreshing}
+                      onClick={() => void refreshBossGrinders()}
                     >
-                      <span className="grai-grinders-col-head-label">GRINDERS</span>
-                    </a>
+                      <span className="grai-grinders-col-head-label">
+                        {isBossGrinderRefreshing ? '…' : 'GRINDERS'}
+                      </span>
+                    </button>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-head is-last-action">
                     <span className="grai-grinders-col-head-inner">
@@ -382,6 +386,7 @@ export function GraiGrindersSection() {
                     <div className="grai-grinders-row" role="row" key={row.id}>
                       <GraiGrinderLastTxCell
                         lastActionLabel={row.lastActionLabel}
+                        terminal={row.terminal}
                         txState={grinderLastTx[row.id]}
                       />
                       <GraiGrinderTableName

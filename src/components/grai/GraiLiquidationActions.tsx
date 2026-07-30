@@ -1776,13 +1776,13 @@ export function GraiLiquidationActions() {
           <span className="grai-liquidation-quorum-stat-value">
             {isLoading ? '…' : totalSupplyLabel}
           </span>
-          <span className="grai-liquidation-quorum-stat-label">Total Supply</span>
+          <span className="grai-liquidation-quorum-stat-label">Your vote</span>
         </div>
         <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--nav">
           <span className="grai-liquidation-quorum-stat-value">
             {isLoading ? '…' : grindersNavLabel}
           </span>
-          <span className="grai-liquidation-quorum-stat-label">Total Value</span>
+          <span className="grai-liquidation-quorum-stat-label">Your pending Bribe</span>
         </div>
       </div>
     </div>
@@ -1928,13 +1928,6 @@ export function GraiLiquidationActions() {
 
         <div className="grai-liquidation-ops-row">
           <div className="grai-liquidation-yield-block">
-          <div
-            className="grai-action-switch grai-action-switch--buttons grai-action-switch--buybacks is-buybacks-active"
-            role="heading"
-            aria-level={3}
-          >
-            <span className="grai-action-switch-btn is-buybacks is-active">Buyback</span>
-          </div>
           <div className="grai-liquidation-escrow-body">
             <GraiAmountInput
               key={selectedYieldAsset?.address ?? 'buyback-amount'}
@@ -2024,6 +2017,10 @@ export function GraiLiquidationActions() {
             ) : (
               <GraiActionConnectWalletButton onConnect={openChainSelector} />
             )}
+            <p className="grai-liquidation-buyback-vote-note">
+              GRAI paid for buyback is cast as a liquidation vote. You become a voter and can receive
+               a bribe or unlock on your own.
+            </p>
           </div>
         </div>
       </div>
