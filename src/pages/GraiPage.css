@@ -12439,9 +12439,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-dutch-auction-chart-plot {
+  position: relative;
   width: 100%;
   height: 15rem;
   min-width: 0;
+  cursor: crosshair;
+  touch-action: none;
 }
 
 .grai-dutch-auction-chart-plot.is-enter {
@@ -12483,6 +12486,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: var(--text-secondary);
   font-size: 0.78rem;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.grai-dutch-auction-chart-tooltip.is-follow {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .grai-dutch-auction-chart-tooltip strong {
@@ -12572,7 +12583,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-bribe-curve-chart-meta {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
   justify-items: center;
   column-gap: 0.75rem;
@@ -12630,9 +12641,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-bribe-curve-chart-plot {
+  position: relative;
   width: 100%;
-  height: 9.5rem;
+  height: 15rem;
   min-width: 0;
+  cursor: crosshair;
+  touch-action: none;
 }
 
 .grai-bribe-curve-chart-tooltip {
@@ -12646,6 +12660,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: var(--text-secondary);
   font-size: 0.78rem;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.grai-bribe-curve-chart-tooltip.is-follow {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .grai-bribe-curve-chart-tooltip strong {
@@ -13022,7 +13044,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-dutch-auction-chart-plot {
-    height: 11.5rem;
+    height: 12rem;
   }
 
   .grai-bribe-curve-chart-head {
@@ -13031,11 +13053,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-bribe-curve-chart-meta {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: flex-start;
-    justify-content: flex-start;
-    column-gap: 1rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: start;
+    justify-items: center;
+    column-gap: 0.5rem;
     width: 100%;
     max-width: 100%;
     flex: 1 1 auto;
@@ -13050,13 +13072,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-bribe-curve-chart-meta-col {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: max-content;
+    flex: unset;
+    width: 100%;
+    min-width: 0;
   }
 
   .grai-bribe-curve-chart-plot {
-    height: 9.5rem;
+    height: 12rem;
   }
 
   .grai-bribe-curve-chart-legend {

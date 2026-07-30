@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Area,
   AreaChart,
@@ -6,23 +6,29 @@ import {
   ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 
-const SAMPLE_COUNT = 48
+const SAMPLE_COUNT = 120
 /** Hide the "now" axis stamp when it's within this fraction of start/end. */
 const X_TICK_MIN_GAP = 0.12
 /** Day marks only hide when nearly on top of an edge / now stamp. */
 const DAY_TICK_EDGE_GAP = 0.02
 const DAY_TICK_NOW_GAP = 0.035
+const CHART_MARGIN = { top: 22, right: 8, left: 0, bottom: 40 }
+const Y_AXIS_WIDTH = 44
 
 type ChartPoint = {
   progress: number
   ask: number
   label: string
+}
+
+type HoverPoint = {
+  progress: number
+  ask: number
 }
 
 type Props = {
@@ -41,6 +47,10 @@ type Props = {
   leading?: ReactNode
 }
 
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, n))
+}
+
 function toGraiNumber(raw: bigint, decimals: number): number {
   const scale = 10 ** Math.min(decimals, 8)
   const truncated = raw / 10n ** BigInt(Math.max(0, decimals - 8))
@@ -56,6 +66,50 @@ function dutchAskAt(
   if (periodSec <= 0 || elapsedSec >= periodSec) return minPayment
   if (elapsedSec <= 0) return maxPayment
   return maxPayment - ((maxPayment - minPayment) * BigInt(elapsedSec)) / BigInt(periodSec)
+}
+
+function askAtProgress(
+  progress: number,
+  maxPaymentGrai: bigint,
+  minPaymentGrai: bigint,
+  period: number,
+  graiDecimals: number,
+  hasLot: boolean,
+): number {
+  if (!hasLot) return 0
+  const elapsed = Math.max(0, Math.min(period, Math.round(period * clamp(progress, 0, 1))))
+  return toGraiNumber(dutchAskAt(maxPaymentGrai, minPaymentGrai, elapsed, period), graiDecimals)
+}
+
+function askRawAtProgress(
+  progress: number,
+  maxPaymentGrai: bigint,
+  minPaymentGrai: bigint,
+  period: number,
+): bigint {
+  const elapsed = Math.max(0, Math.min(period, Math.round(period * clamp(progress, 0, 1))))
+  return dutchAskAt(maxPaymentGrai, minPaymentGrai, elapsed, period)
+}
+
+function discountPctAtAsk(maxPayment: bigint, ask: bigint): number {
+  if (maxPayment <= 0n || ask >= maxPayment) return 0
+  const bps = Number(((maxPayment - ask) * 10_000n) / maxPayment)
+  return Math.round(bps) / 100
+}
+
+function formatDiscountPct(pct: number): string {
+  if (pct <= 0) return '0%'
+  return `−${pct.toFixed(pct >= 10 || Number.isInteger(pct) ? 0 : 1)}%`
+}
+
+function progressFromPointer(clientX: number, plotEl: HTMLElement): number | null {
+  const rect = plotEl.getBoundingClientRect()
+  if (rect.width <= 0) return null
+  const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH
+  const plotRight = rect.width - CHART_MARGIN.right
+  const plotWidth = plotRight - plotLeft
+  if (plotWidth <= 0) return null
+  return clamp((clientX - rect.left - plotLeft) / plotWidth, 0, 1)
 }
 
 function formatAxisAsk(value: number): string {
@@ -143,12 +197,15 @@ export function GraiDutchAuctionChart({
 }: Props) {
   const hasLot = available > 0n
   const chartIdentity = `${symbol}:${hasLot ? 'lot' : 'empty'}`
+  const plotRef = useRef<HTMLDivElement>(null)
   const [curveAnimating, setCurveAnimating] = useState(true)
   const [plotEnter, setPlotEnter] = useState(true)
+  const [hoverPoint, setHoverPoint] = useState<HoverPoint | null>(null)
 
   useEffect(() => {
     setCurveAnimating(true)
     setPlotEnter(false)
+    setHoverPoint(null)
     const raf = window.requestAnimationFrame(() => setPlotEnter(true))
     const done = window.setTimeout(() => setCurveAnimating(false), 520)
     return () => {
@@ -161,6 +218,30 @@ export function GraiDutchAuctionChart({
   const progressNow =
     period > 0 ? Math.min(1, Math.max(0, elapsedSec / period)) : 1
   const currentAsk = dutchAskAt(maxPaymentGrai, minPaymentGrai, elapsedSec, period)
+
+  const updateHoverFromClientX = useCallback(
+    (clientX: number) => {
+      const plotEl = plotRef.current
+      if (!plotEl) return
+      const progress = progressFromPointer(clientX, plotEl)
+      if (progress == null) {
+        setHoverPoint(null)
+        return
+      }
+      setHoverPoint({
+        progress,
+        ask: askAtProgress(
+          progress,
+          maxPaymentGrai,
+          minPaymentGrai,
+          period,
+          graiDecimals,
+          hasLot,
+        ),
+      })
+    },
+    [graiDecimals, hasLot, maxPaymentGrai, minPaymentGrai, period],
+  )
 
   const { points, nowPoint, yDomain, yTicks } = useMemo(() => {
     if (!hasLot) {
@@ -244,6 +325,29 @@ export function GraiDutchAuctionChart({
   }, [dayMarks, progressNow, showNowTick])
   const startCaption = nowNearStart ? 'start · now' : 'start time'
   const endCaption = nowNearEnd ? 'end · now' : 'end time'
+  const scrubPoint = hoverPoint
+  const scrubUnix =
+    scrubPoint && startTime > 0 && period > 0
+      ? Math.round(startTime + scrubPoint.progress * period)
+      : null
+  const scrubTimeLabel =
+    scrubUnix != null ? `${formatAuctionDate(scrubUnix)} ${formatAuctionClock(scrubUnix)}` : null
+  const scrubElapsedLabel = scrubPoint
+    ? scrubPoint.progress <= 0
+      ? 'Start'
+      : scrubPoint.progress >= 1
+        ? 'Floor'
+        : `${(scrubPoint.progress * 100).toFixed(scrubPoint.progress < 0.1 ? 2 : 1)}% elapsed`
+    : ''
+  const scrubDiscountLabel =
+    scrubPoint && hasLot
+      ? formatDiscountPct(
+          discountPctAtAsk(
+            maxPaymentGrai,
+            askRawAtProgress(scrubPoint.progress, maxPaymentGrai, minPaymentGrai, period),
+          ),
+        )
+      : null
 
   return (
     <section
@@ -274,7 +378,13 @@ export function GraiDutchAuctionChart({
         </div>
         <div className="grai-dutch-auction-chart-meta" key={chartIdentity}>
           <span className="grai-dutch-auction-chart-meta-col">
-            <span className="grai-dutch-auction-chart-meta-label">Now</span>
+            <span className="grai-dutch-auction-chart-meta-label">Left</span>
+            <span className="grai-dutch-auction-chart-meta-value">
+              {hasLot ? (remainingLabel ?? '—') : '—'}
+            </span>
+          </span>
+          <span className="grai-dutch-auction-chart-meta-col">
+            <span className="grai-dutch-auction-chart-meta-label">Buyback price</span>
             <span className="grai-dutch-auction-chart-meta-value">{currentAskLabel}</span>
           </span>
           <span className="grai-dutch-auction-chart-meta-col is-end">
@@ -284,28 +394,36 @@ export function GraiDutchAuctionChart({
             </span>
           </span>
           <span className="grai-dutch-auction-chart-meta-col is-end">
-            <span className="grai-dutch-auction-chart-meta-label">Left</span>
-            <span className="grai-dutch-auction-chart-meta-value">
-              {hasLot ? (remainingLabel ?? '—') : '—'}
-            </span>
-          </span>
-          <span className="grai-dutch-auction-chart-meta-col is-end">
-            <span className="grai-dutch-auction-chart-meta-label">Max</span>
+            <span className="grai-dutch-auction-chart-meta-label">Start price</span>
             <span className="grai-dutch-auction-chart-meta-value">{maxLabel}</span>
           </span>
           <span className="grai-dutch-auction-chart-meta-col is-end">
-            <span className="grai-dutch-auction-chart-meta-label">Floor</span>
+            <span className="grai-dutch-auction-chart-meta-label">Floor price</span>
             <span className="grai-dutch-auction-chart-meta-value">{minLabel}</span>
           </span>
         </div>
       </header>
 
       <div
+        ref={plotRef}
         className={`grai-dutch-auction-chart-plot${plotEnter ? ' is-enter' : ''}`}
         key={chartIdentity}
+        onPointerMove={(event) => {
+          updateHoverFromClientX(event.clientX)
+        }}
+        onPointerLeave={() => setHoverPoint(null)}
+        onPointerCancel={() => setHoverPoint(null)}
       >
+        {scrubPoint ? (
+          <div className="grai-dutch-auction-chart-tooltip is-follow" aria-live="polite">
+            {scrubTimeLabel ? <span>{scrubTimeLabel}</span> : null}
+            <span>{scrubElapsedLabel}</span>
+            {scrubDiscountLabel ? <span>Discount {scrubDiscountLabel}</span> : null}
+            <strong>${formatAxisAsk(scrubPoint.ask)}</strong>
+          </div>
+        ) : null}
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={points} margin={{ top: 22, right: 8, left: 0, bottom: 40 }}>
+          <AreaChart data={points} margin={CHART_MARGIN}>
             <CartesianGrid
               stroke="color-mix(in srgb, var(--border-color) 70%, transparent)"
               strokeDasharray="3 6"
@@ -334,16 +452,16 @@ export function GraiDutchAuctionChart({
                   anchor: 'start' | 'middle' | 'end',
                 ) => (
                   <g transform={`translate(${x},${y})`}>
-                    <text x={0} y={12} fill="#fff" fontSize={11} textAnchor={anchor}>
+                    <text x={0} y={12} fill="var(--text-primary)" fontSize={11} textAnchor={anchor}>
                       {date}
                     </text>
-                    <text x={0} y={25} fill="#fff" fontSize={11} textAnchor={anchor}>
+                    <text x={0} y={25} fill="var(--text-primary)" fontSize={11} textAnchor={anchor}>
                       {clock}
                     </text>
                     <text
                       x={0}
                       y={39}
-                      fill="rgba(255, 255, 255, 0.62)"
+                      fill="var(--text-secondary)"
                       fontSize={10}
                       textAnchor={anchor}
                     >
@@ -380,7 +498,7 @@ export function GraiDutchAuctionChart({
                       <text
                         x={0}
                         y={20}
-                        fill="rgba(255, 255, 255, 0.72)"
+                        fill="var(--text-secondary)"
                         fontSize={10}
                         textAnchor="middle"
                       >
@@ -398,9 +516,9 @@ export function GraiDutchAuctionChart({
             <YAxis
               domain={yDomain}
               ticks={yTicks}
-              width={44}
+              width={Y_AXIS_WIDTH}
               tickFormatter={(value: number) => formatAxisAsk(value)}
-              tick={{ fill: '#fff', fontSize: 11 }}
+              tick={{ fill: 'var(--text-primary)', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               label={(props) => {
@@ -408,36 +526,17 @@ export function GraiDutchAuctionChart({
                   | { x?: number; y?: number; width?: number }
                   | undefined
                 if (viewBox?.x == null || viewBox.y == null) return null
-                const tickX = viewBox.x + (viewBox.width ?? 44) - 2
+                const tickX = viewBox.x + (viewBox.width ?? Y_AXIS_WIDTH) - 2
                 return (
                   <text
                     x={tickX}
                     y={Math.max(6, viewBox.y - 14)}
-                    fill="#fff"
+                    fill="var(--text-primary)"
                     fontSize={11}
                     textAnchor="end"
                   >
                     GRAI
                   </text>
-                )
-              }}
-            />
-            <Tooltip
-              cursor={{ stroke: '#ff69b4', strokeWidth: 1, strokeDasharray: '4 4' }}
-              content={({ active, payload }) => {
-                if (!active || !payload?.[0]) return null
-                const point = payload[0].payload as ChartPoint
-                return (
-                  <div className="grai-dutch-auction-chart-tooltip">
-                    <span>
-                      {point.progress <= 0
-                        ? 'Start'
-                        : point.progress >= 1
-                          ? 'Floor'
-                          : `${Math.round(point.progress * 100)}% elapsed`}
-                    </span>
-                    <strong>${formatAxisAsk(point.ask)}</strong>
-                  </div>
                 )
               }}
             />
@@ -451,7 +550,7 @@ export function GraiDutchAuctionChart({
               animationDuration={480}
               animationEasing="ease-out"
               dot={false}
-              activeDot={{ r: 4, fill: '#ff69b4', stroke: '#fff', strokeWidth: 1.5 }}
+              activeDot={false}
             />
             <ReferenceLine
               x={progressNow}
@@ -467,6 +566,24 @@ export function GraiDutchAuctionChart({
               stroke="var(--bg-primary, #100c10)"
               strokeWidth={2}
             />
+            {scrubPoint ? (
+              <>
+                <ReferenceLine
+                  x={scrubPoint.progress}
+                  stroke="#ff69b4"
+                  strokeDasharray="2 3"
+                  strokeOpacity={0.95}
+                />
+                <ReferenceDot
+                  x={scrubPoint.progress}
+                  y={scrubPoint.ask}
+                  r={5}
+                  fill="#ff69b4"
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+              </>
+            ) : null}
           </AreaChart>
         </ResponsiveContainer>
       </div>
