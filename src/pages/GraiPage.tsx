@@ -49,6 +49,7 @@ function GraiPage() {
         hash === 'unlock' ||
         hash === 'burn' ||
         hash === 'assets' ||
+        hash === 'buyback' ||
         hash === 'grinders' ||
         hash === 'auctions' ||
         hash === 'vote' ||

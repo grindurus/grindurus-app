@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { ConnectWalletButton } from './ConnectWalletButton'
@@ -37,6 +37,13 @@ const LIQUIDATE_NAV_ICON = (
   </svg>
 )
 
+const REDEEM_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M8 12h8" />
+  </svg>
+)
+
 const VOTE_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="m9 12 2 2 4-4" />
@@ -62,16 +69,24 @@ const CLAIM_NAV_ICON = (
   </svg>
 )
 
+const BUYBACK_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+  </svg>
+)
+
 const GRAI_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[] = [
   { section: 'mint', label: 'Deposit', icon: MINT_NAV_ICON },
   { section: 'claim', label: 'Claim', icon: CLAIM_NAV_ICON },
   { section: 'lock', label: 'Lock', icon: LOCK_NAV_ICON },
   { section: 'unlock', label: 'Unlock', icon: UNLOCK_NAV_ICON },
+  { section: 'assets', label: 'Assets', icon: BALANCE_COLUMN_ICONS.assets },
+  { section: 'buyback', label: 'Buyback', icon: BUYBACK_NAV_ICON },
   { section: 'vote', label: 'Vote', icon: VOTE_NAV_ICON },
   { section: 'bribe', label: 'Bribe', icon: BRIBE_NAV_ICON },
-  { section: 'assets', label: 'Assets', icon: BALANCE_COLUMN_ICONS.assets },
-  { section: 'allocate', label: 'Allocate', icon: BALANCE_COLUMN_ICONS.allocated },
-  { section: 'burn', label: 'Redeem', icon: LIQUIDATE_NAV_ICON },
+  { section: 'auctions', label: 'Liquidate', icon: LIQUIDATE_NAV_ICON },
+  { section: 'burn', label: 'Redeem', icon: REDEEM_NAV_ICON },
 ]
 
 function Header() {
@@ -106,7 +121,10 @@ function Header() {
     }
   }, [isGraiMenuOpen])
 
-  useEffect(() => {
+  const headerRef = useRef<HTMLElement>(null)
+  const [navLockSpacerHeight, setNavLockSpacerHeight] = useState(0)
+
+  useLayoutEffect(() => {
     if (!isMobileNavOpen) return
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -114,12 +132,37 @@ function Header() {
     }
     window.addEventListener('keydown', onKeyDown)
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const scrollY = window.scrollY
+    const headerHeight = headerRef.current?.offsetHeight ?? 0
+    setNavLockSpacerHeight(headerHeight)
+
+    const { style } = document.body
+    const previous = {
+      overflow: style.overflow,
+      position: style.position,
+      top: style.top,
+      left: style.left,
+      right: style.right,
+      width: style.width,
+    }
+
+    style.overflow = 'hidden'
+    style.position = 'fixed'
+    style.top = `-${scrollY}px`
+    style.left = '0'
+    style.right = '0'
+    style.width = '100%'
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = previousOverflow
+      style.overflow = previous.overflow
+      style.position = previous.position
+      style.top = previous.top
+      style.left = previous.left
+      style.right = previous.right
+      style.width = previous.width
+      setNavLockSpacerHeight(0)
+      window.scrollTo(0, scrollY)
     }
   }, [isMobileNavOpen])
 
@@ -129,7 +172,11 @@ function Header() {
   }
 
   return (
-    <header className={`header${isMobileNavOpen ? ' is-nav-open' : ''}`}>
+    <>
+    <header
+      ref={headerRef}
+      className={`header${isMobileNavOpen ? ' is-nav-open' : ''}`}
+    >
       <div className="header-container">
         <div className="header-left">
           <div className="header-brand">
@@ -292,6 +339,14 @@ function Header() {
         />
       ) : null}
     </header>
+    {isMobileNavOpen ? (
+      <div
+        className="header-nav-lock-spacer"
+        style={{ height: navLockSpacerHeight }}
+        aria-hidden="true"
+      />
+    ) : null}
+    </>
   )
 }
 

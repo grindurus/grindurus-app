@@ -10117,6 +10117,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   z-index: 30;
 }
 
+.grai-liquidation-bribe-amount .grai-asset-select-list {
+  min-width: 15.5rem;
+  width: max(15.5rem, 100%);
+  max-width: min(22rem, 92vw);
+}
+
 .grai-asset-select-option {
   display: flex;
   align-items: center;
@@ -10145,6 +10151,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-asset-select-option-btn--menu {
   align-items: flex-start;
+  min-width: 12.5rem;
 }
 
 .grai-asset-select-option--leading {
@@ -11688,24 +11695,24 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-market-row {
-  display: grid;
-  grid-template-columns: minmax(0, 25.3125rem) minmax(0, 25.3125rem);
-  column-gap: 1.75rem;
-  row-gap: 1.25rem;
-  align-items: start;
-  width: min(100%, 52.375rem);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.25rem;
+  width: min(100%, 25.3125rem);
   max-width: 100%;
   min-width: 0;
   height: auto;
   min-height: 0;
   overflow: visible;
   box-sizing: border-box;
+  margin-inline: auto;
 }
 
 .grai-liquidation-market-row:has(.grai-liquidation-market-aside.is-expanded) {
   height: auto;
   min-height: 0;
-  align-items: start;
+  align-items: stretch;
 }
 
 .grai-liquidation-market-aside {
@@ -11714,12 +11721,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0.4375rem;
   min-width: 0;
   width: 100%;
-  max-width: 25.3125rem;
+  max-width: 100%;
   height: auto;
   min-height: 0;
   overflow: visible;
-  justify-self: start;
-  order: -1;
+  order: 0;
+  flex: 0 0 auto;
   transition: max-width 0.4s ease, gap 0.35s ease;
 }
 
@@ -11737,6 +11744,60 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0;
   width: 100%;
   min-width: 0;
+}
+
+.grai-liquidation-aside-panels {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  isolation: isolate;
+}
+
+.grai-liquidation-aside-panel {
+  grid-area: 1 / 1;
+  width: 100%;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(0.75rem, 0, 0);
+  transition:
+    opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.32s;
+  z-index: 0;
+}
+
+.grai-liquidation-aside-panel.is-active {
+  position: relative;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
+}
+
+.grai-liquidation-aside-panel:not(.is-active) {
+  position: absolute;
+  inset: 0 auto auto 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.grai-liquidation-market-aside.is-position .grai-liquidation-aside-panel[data-panel='liquidate'] {
+  transform: translate3d(0.75rem, 0, 0);
+}
+
+.grai-liquidation-market-aside.is-liquidate .grai-liquidation-aside-panel[data-panel='position'] {
+  transform: translate3d(-0.75rem, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-liquidation-aside-panel {
+    transition: none;
+    transform: none !important;
+  }
 }
 
 .grai-liquidation-market-aside .grai-liquidation-quorum-infographic {
@@ -11835,7 +11896,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  padding-top: 0;
+  padding: 0 0.25rem;
+  box-sizing: border-box;
   opacity: 1;
 }
 
@@ -11924,7 +11986,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   flex: 0 0 auto;
   min-height: 0;
   overflow: visible;
-  animation: grai-voters-panel-in 0.28s ease both;
+  animation: none;
 }
 
 @keyframes grai-voters-panel-in {
@@ -12125,6 +12187,37 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   align-self: stretch;
 }
 
+.grai-liquidation-market-aside > .grai-action-switch--liquidate-heading {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  flex: 0 0 auto;
+  align-self: stretch;
+  box-sizing: border-box;
+  min-height: 2.625rem;
+  height: 2.625rem;
+}
+
+.grai-action-switch--liquidate-heading::after {
+  width: 100%;
+  transform: translateX(0);
+  border-radius: 0 0 11px 11px;
+}
+
+.grai-action-switch--liquidate-heading .grai-action-switch-btn {
+  border-radius: 11px;
+  cursor: default;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .grai-liquidation-vote-block > .grai-liquidation-market-heading {
   width: 100%;
   max-width: 100%;
@@ -12144,7 +12237,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-market-row {
-  width: min(100%, 52.375rem);
+  width: min(100%, 25.3125rem);
   max-width: 100%;
   min-width: 0;
 }
@@ -12426,7 +12519,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-market-stack > .grai-liquidation-market-row {
-  width: min(100%, 52.375rem);
+  width: min(100%, 25.3125rem);
   max-width: 100%;
   margin-inline: auto;
 }
@@ -12779,11 +12872,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-liquidation-market-row {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 0.55rem;
     height: auto;
     min-height: 0;
-    align-items: start;
+    align-items: stretch;
   }
 
   .grai-liquidation-market-row:has(.grai-liquidation-market-aside.is-expanded) {
@@ -12796,7 +12890,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     max-width: 100%;
     width: 100%;
     height: auto;
-    order: -1;
+    order: 0;
   }
 
   .grai-liquidation-market-aside.is-expanded {
@@ -12817,11 +12911,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-liquidation-market-row > .grai-liquidation-vote-block {
-    order: 1;
+    order: 0;
   }
 
   .grai-liquidation-market-row > .grai-liquidation-market-aside {
-    order: 0;
+    order: 1;
   }
 
   .grai-liquidation-vote-block > .grai-liquidation-panel--vote .connect-wallet-btn,
@@ -13119,6 +13213,21 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     width: 100%;
     max-width: 100%;
     min-width: 0;
+  }
+
+  .grai-liquidation-aside-panel {
+    transition:
+      opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0.38s;
+  }
+
+  .grai-liquidation-market-aside.is-position .grai-liquidation-aside-panel[data-panel='liquidate'] {
+    transform: translate3d(1rem, 0, 0);
+  }
+
+  .grai-liquidation-market-aside.is-liquidate .grai-liquidation-aside-panel[data-panel='position'] {
+    transform: translate3d(-1rem, 0, 0);
   }
 
   .grai-liquidation-bribe-search {
@@ -13615,7 +13724,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-action-switch--aside::after {
-  width: calc(100% / 3);
+  width: 50%;
 }
 
 .grai-action-switch--aside.is-position-active::after {
@@ -13625,11 +13734,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-action-switch--aside.is-liquidate-active::after {
   transform: translateX(100%);
-  border-radius: 0;
-}
-
-.grai-action-switch--aside.is-voters-active::after {
-  transform: translateX(200%);
   border-radius: 0 0 11px 0;
 }
 
@@ -13638,12 +13742,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-action-switch--buttons .grai-action-switch-btn.is-liquidate {
-  border-radius: 0;
-}
-
-.grai-action-switch--buttons .grai-action-switch-btn.is-voters {
   border-radius: 0 11px 11px 0;
-  font-variant-numeric: tabular-nums;
 }
 
 .grai-liquidation-bribe-toolbar {
@@ -13672,6 +13771,69 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+}
+
+.grai-liquidation-bribe-toolbar.is-inline {
+  flex: 0 0 auto;
+  width: 100%;
+  max-height: none;
+  max-width: 100%;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  margin-bottom: 0.45rem;
+}
+
+.grai-liquidation-bribe-voters-picker .grai-liquidation-voters-carousel {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+.grai-liquidation-bribe-voters-picker .grai-liquidation-voters-carousel.is-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.grai-liquidation-bribe-voters-picker .grai-liquidation-voters-pagination {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.grai-liquidation-bribe-voters-picker .grai-liquidation-voter {
+  padding: 0.4rem 0.55rem 0.4rem 0.45rem;
+}
+
+.grai-liquidation-bribe-voters-picker .grai-liquidation-voter-rows {
+  width: 100%;
+  gap: 0.28rem;
+}
+
+.grai-liquidation-bribe-voters-picker .grai-liquidation-voter-row {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.grai-liquidation-bribe-voters-picker .grai-liquidation-voter-row-label {
+  flex: 0 0 auto;
+  max-width: none;
+  text-align: left;
+  margin: 0;
+  margin-right: auto;
+  padding: 0;
+}
+
+@keyframes grai-aside-panel-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.4rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .grai-liquidation-bribe-search,

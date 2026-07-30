@@ -395,6 +395,19 @@
     --header-control-size: 40px;
   }
 
+  .header.is-nav-open {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+  }
+
+  .header-nav-lock-spacer {
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
   .header-container {
     display: flex;
     justify-content: space-between;
@@ -455,6 +468,9 @@
     visibility: hidden;
     pointer-events: none;
     transform: translateY(-6px);
+    max-height: min(70vh, calc(100dvh - 4.5rem));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     transition:
       opacity 0.2s ease,
       transform 0.2s ease,

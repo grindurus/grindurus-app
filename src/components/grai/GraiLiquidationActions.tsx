@@ -957,19 +957,29 @@ export function GraiLiquidationActions() {
   const [bribeSort, setBribeSort] = useState<'escrow-desc' | 'escrow-asc' | 'bribe-desc' | 'bribe-asc'>(
     'escrow-desc',
   )
-  const [asideView, setAsideView] = useState<'position' | 'liquidate' | 'voters'>('position')
-  const showAllBribes = asideView === 'voters'
+  const [bribeVotersOpen, setBribeVotersOpen] = useState(false)
+  const votersListLayout = bribeVotersOpen
   const [yieldAmount, setYieldAmount] = useState('')
   const [marketView, setMarketView] = useState<'vote' | 'bribe'>(() => {
     const section = readGraiSectionFromHash()
     if (section === 'bribe') return 'bribe'
     return 'vote'
   })
+  const [liquidateAsideOpen, setLiquidateAsideOpen] = useState(
+    () => readGraiSectionFromHash() === 'auctions',
+  )
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {
-      if (section === 'bribe') setMarketView('bribe')
-      else if (section === 'vote' || section === 'auctions') setMarketView('vote')
+      if (section === 'bribe') {
+        setMarketView('bribe')
+        setLiquidateAsideOpen(false)
+      } else if (section === 'vote') {
+        setMarketView('vote')
+        setLiquidateAsideOpen(false)
+      } else if (section === 'auctions') {
+        setLiquidateAsideOpen(true)
+      }
     }
 
     const onSectionNav = (event: Event) => {
@@ -978,7 +988,9 @@ export function GraiLiquidationActions() {
 
     const onHashChange = () => {
       const section = readGraiSectionFromHash()
-      if (section === 'vote' || section === 'bribe') applySection(section)
+      if (section === 'vote' || section === 'bribe' || section === 'auctions') {
+        applySection(section)
+      }
     }
 
     window.addEventListener('grai-section-nav', onSectionNav)
@@ -993,6 +1005,8 @@ export function GraiLiquidationActions() {
 
   const handleMarketViewChange = useCallback((view: 'vote' | 'bribe') => {
     setMarketView(view)
+    setLiquidateAsideOpen(false)
+    if (view !== 'bribe') setBribeVotersOpen(false)
     const hash = `#${view}`
     if (window.location.hash !== hash) {
       window.history.replaceState({}, '', `${window.location.pathname}${hash}`)
@@ -1082,10 +1096,6 @@ export function GraiLiquidationActions() {
   ])
 
   const walletGraiLabel = state ? formatTokenBalance(state.walletGrai, graiDecimals) : '—'
-  const totalSupplyLabel = state ? formatTokenBalance(state.totalSupply, graiDecimals) : '—'
-  const grindersNavLabel = state
-    ? `$${formatTokenBalance(state.totalValue, graiDecimals)}`
-    : '—'
   const voteMaxAmount = state && state.walletGrai > 0n ? formatTokenBalance(state.walletGrai, graiDecimals) : ''
   const voteAssetOptions = useMemo<GraiAmountAsset[]>(
     () => [
@@ -1595,29 +1605,6 @@ export function GraiLiquidationActions() {
   )
 
 
-  const positionStats = (
-    <div
-      className={`grai-liquidation-quorum-infographic${state?.hasQuorum ? ' is-reached' : ''}${liquidationBlocked ? ' is-open' : ''}`}
-      role="region"
-      aria-label="Your liquidation position"
-    >
-      <div className="grai-liquidation-quorum-footer-stats">
-        <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--supply">
-          <span className="grai-liquidation-quorum-stat-label">Your vote</span>
-          <span className="grai-liquidation-quorum-stat-value">
-            {isLoading ? '…' : totalSupplyLabel}
-          </span>
-        </div>
-        <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--nav">
-          <span className="grai-liquidation-quorum-stat-label">Your pending Bribe</span>
-          <span className="grai-liquidation-quorum-stat-value">
-            {isLoading ? '…' : grindersNavLabel}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-
   const liquidatePanel = (
     <div className="grai-liquidation-open" id="grai-liquidation-open">
       <div id="grai-liquidation-open-panel" className="grai-liquidation-open-panel is-open">
@@ -1625,18 +1612,18 @@ export function GraiLiquidationActions() {
           <div className="grai-action-result-group grai-liquidation-yield-results">
             <div className="grai-action-result" aria-live="polite">
               <span className="grai-action-result-label-wrap">
-                <span className="grai-action-result-label">Liquidation quorum</span>
+                <span className="grai-action-result-label">Quorum reached:</span>
               </span>
               <span className="grai-action-result-value">
-                {isLoading ? '…' : liquidationHasQuorum ? 'Met' : 'Pending'}
+                {isLoading ? '…' : liquidationHasQuorum ? 'Yes' : 'No'}
               </span>
             </div>
             <div className="grai-action-result" aria-live="polite">
               <span className="grai-action-result-label-wrap">
-                <span className="grai-action-result-label">Owner confirm</span>
+                <span className="grai-action-result-label">Owner confirmed:</span>
               </span>
               <span className="grai-action-result-value">
-                {isLoading ? '…' : liquidationConfirmed ? 'Confirmed' : 'Pending'}
+                {isLoading ? '…' : liquidationConfirmed ? 'Yes' : 'No'}
               </span>
             </div>
           </div>
@@ -1802,7 +1789,7 @@ export function GraiLiquidationActions() {
         </p>
       ) : null}
 
-      <div className="grai-liquidation-buyback-screen">
+      <div className="grai-liquidation-buyback-screen" id="grai-buyback-section">
         {selectedYieldAsset ? (
           <GraiDutchAuctionChart
             symbol={selectedYieldAsset.symbol}
@@ -1940,13 +1927,82 @@ export function GraiLiquidationActions() {
         onConnect={openChainSelector}
         onSelectVoter={() => {
           handleMarketViewChange('bribe')
+          setBribeVotersOpen(false)
         }}
         onSeeAllVoters={() => {
-          setAsideView('voters')
+          handleMarketViewChange('bribe')
+          setBribeVotersOpen(true)
         }}
-        listLayout={showAllBribes}
+        listLayout={votersListLayout}
       >
-        {({ carousel, amount, empty }) => (
+        {({ carousel, amount, empty }) => {
+          const bribeVotersToolbar = (
+            <div
+              className="grai-liquidation-bribe-toolbar is-inline"
+              aria-hidden={false}
+            >
+              <label className="grai-liquidation-bribe-search">
+                <span className="visually-hidden">Search voters</span>
+                <svg
+                  className="grai-liquidation-bribe-search-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <input
+                  type="search"
+                  value={bribeSearch}
+                  onChange={(event) => setBribeSearch(event.target.value)}
+                  placeholder="Search"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </label>
+              <label className="grai-liquidation-bribe-filter">
+                <span className="visually-hidden">Filter voters</span>
+                <svg
+                  className="grai-liquidation-bribe-filter-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 5h16" />
+                  <path d="M7 12h10" />
+                  <path d="M10 19h4" />
+                </svg>
+                <select
+                  value={bribeSort}
+                  onChange={(event) =>
+                    setBribeSort(
+                      event.target.value as
+                        | 'escrow-desc'
+                        | 'escrow-asc'
+                        | 'bribe-desc'
+                        | 'bribe-asc',
+                    )
+                  }
+                >
+                  <option value="escrow-desc">Escrow ↓</option>
+                  <option value="escrow-asc">Escrow ↑</option>
+                  <option value="bribe-desc">Bribe ↓</option>
+                  <option value="bribe-asc">Bribe ↑</option>
+                </select>
+              </label>
+            </div>
+          )
+
+          return (
           <div className="grai-liquidation-market-stack">
             <GraiBribeCurveChart
               quorumBps={state?.liquidationQuorumBps ?? 6667}
@@ -2028,138 +2084,43 @@ export function GraiLiquidationActions() {
                   className="grai-liquidation-panel grai-liquidation-panel--bribe"
                 >
                     <div className="grai-liquidation-bribe-body">
-                      <div className="grai-liquidation-field">{amount}</div>
+                      {bribeVotersOpen ? (
+                        <div className="grai-liquidation-bribe-voters-picker">
+                          {bribeVotersToolbar}
+                          {carousel ?? empty}
+                        </div>
+                      ) : (
+                        <div className="grai-liquidation-field">{amount}</div>
+                      )}
                     </div>
                 </section>
               )}
             </div>
 
-            <div
-              className={`grai-liquidation-market-aside${showAllBribes ? ' is-expanded' : ''}`}
-            >
-              <div
-                className={`grai-liquidation-voters-block${showAllBribes ? ' is-expanded' : ''}`}
-              >
+            {liquidateAsideOpen ? (
+              <div className="grai-liquidation-market-aside">
                 <div
-                  className={`grai-liquidation-panel-header${showAllBribes ? ' is-expanded' : ''}`}
+                  className="grai-action-switch grai-action-switch--buttons grai-action-switch--market grai-action-switch--liquidate-heading is-liquidate-active"
+                  role="tablist"
+                  aria-label="Liquidate"
                 >
-                  <div
-                    className={`grai-action-switch grai-action-switch--buttons grai-action-switch--market grai-action-switch--aside is-${asideView}-active`}
-                    role="tablist"
-                    aria-label="Position, Liquidate, or Voters"
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={true}
+                    className="grai-action-switch-btn is-liquidate is-active"
+                    tabIndex={-1}
                   >
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={asideView === 'position'}
-                      className={`grai-action-switch-btn is-position${asideView === 'position' ? ' is-active' : ''}`}
-                      onClick={() => {
-                        setAsideView('position')
-                      }}
-                    >
-                      Position
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={asideView === 'liquidate'}
-                      className={`grai-action-switch-btn is-liquidate${asideView === 'liquidate' ? ' is-active' : ''}`}
-                      onClick={() => {
-                        setAsideView('liquidate')
-                      }}
-                    >
-                      Liquidate
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={asideView === 'voters'}
-                      className={`grai-action-switch-btn is-voters${asideView === 'voters' ? ' is-active' : ''}`}
-                      onClick={() => {
-                        setAsideView('voters')
-                      }}
-                    >
-                      {`Voters · ${filteredBribeVoters.length}`}
-                    </button>
-                  </div>
-                  <div
-                    className="grai-liquidation-bribe-toolbar"
-                    aria-hidden={!showAllBribes}
-                  >
-                    <label className="grai-liquidation-bribe-search">
-                      <span className="visually-hidden">Search voters</span>
-                      <svg
-                        className="grai-liquidation-bribe-search-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <circle cx="11" cy="11" r="7" />
-                        <path d="m20 20-3.5-3.5" />
-                      </svg>
-                      <input
-                        type="search"
-                        value={bribeSearch}
-                        onChange={(event) => setBribeSearch(event.target.value)}
-                        placeholder="Search"
-                        autoComplete="off"
-                        spellCheck={false}
-                        tabIndex={showAllBribes ? 0 : -1}
-                      />
-                    </label>
-                    <label className="grai-liquidation-bribe-filter">
-                      <span className="visually-hidden">Filter voters</span>
-                      <svg
-                        className="grai-liquidation-bribe-filter-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M4 5h16" />
-                        <path d="M7 12h10" />
-                        <path d="M10 19h4" />
-                      </svg>
-                      <select
-                        value={bribeSort}
-                        tabIndex={showAllBribes ? 0 : -1}
-                        onChange={(event) =>
-                          setBribeSort(
-                            event.target.value as
-                              | 'escrow-desc'
-                              | 'escrow-asc'
-                              | 'bribe-desc'
-                              | 'bribe-asc',
-                          )
-                        }
-                      >
-                        <option value="escrow-desc">Escrow ↓</option>
-                        <option value="escrow-asc">Escrow ↑</option>
-                        <option value="bribe-desc">Bribe ↓</option>
-                        <option value="bribe-asc">Bribe ↑</option>
-                      </select>
-                    </label>
-                  </div>
+                    Liquidate
+                  </button>
                 </div>
-                {showAllBribes ? carousel ?? empty : null}
-              </div>
-              {asideView === 'position' ? (
-                <div className="grai-liquidation-quorum-slot">{positionStats}</div>
-              ) : null}
-              {asideView === 'liquidate' ? (
                 <div className="grai-liquidation-quorum-slot">{liquidatePanel}</div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
           </div>
-        )}
+          )
+        }}
       </GraiLiquidationVoterPicker>
     </div>
   )

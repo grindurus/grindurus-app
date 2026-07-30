@@ -155,7 +155,7 @@ export function GraiBribeCurveChart({
       <header className="grai-bribe-curve-chart-head">
         <div className="grai-bribe-curve-chart-meta">
           <span className="grai-bribe-curve-chart-meta-col">
-            <span className="grai-bribe-curve-chart-meta-label">Now</span>
+            <span className="grai-bribe-curve-chart-meta-label">Current bribe price</span>
             <span className="grai-bribe-curve-chart-meta-value">{formatPrice(nowAsk)}</span>
           </span>
           <span className="grai-bribe-curve-chart-meta-col is-end">

@@ -7,6 +7,7 @@ export type GraiSection =
   | 'unlock'
   | 'burn'
   | 'assets'
+  | 'buyback'
   | 'grinders'
   | 'allocate'
   | 'distribute'
@@ -21,6 +22,7 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   unlock: 'grai-actions-section',
   burn: 'grai-actions-section',
   assets: 'grai-assets-section',
+  buyback: 'grai-buyback-section',
   grinders: 'grai-grinders-summary',
   allocate: 'grai-manage-section',
   distribute: 'grai-manage-section',
@@ -36,6 +38,7 @@ export const GRAI_SECTION_HASHES: GraiSection[] = [
   'unlock',
   'burn',
   'assets',
+  'buyback',
   'grinders',
   'allocate',
   'distribute',
@@ -53,7 +56,6 @@ export function isManageSectionHash(hash: string): boolean {
 export function readGraiSectionFromHash(): GraiSection | null {
   const hash = window.location.hash.slice(1)
   if (hash === 'manage') return 'allocate'
-  if (hash === 'auctions') return 'vote'
   if (GRAI_SECTION_HASHES.includes(hash as GraiSection)) {
     return hash as GraiSection
   }
