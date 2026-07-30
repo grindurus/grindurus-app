@@ -174,6 +174,115 @@ export async function fetchEvmGraiVaultBalances(
   return Object.fromEntries(entries)
 }
 
+export class GraiLiquidationRequiredError extends Error {
+  constructor(message = 'liquidation event should be reached') {
+    super(message)
+    this.name = 'GraiLiquidationRequiredError'
+  }
+}
+
+function isLikelyLiquidationClosedRevert(error: unknown): boolean {
+  const text =
+    error instanceof Error
+      ? `${error.name} ${error.message}`
+      : typeof error === 'string'
+        ? error
+        : String(error ?? '')
+  const lower = text.toLowerCase()
+  return (
+    lower.includes('liquidationclosed') ||
+    lower.includes('liquidation closed') ||
+    lower.includes('execution reverted') ||
+    lower.includes('reverted')
+  )
+}
+
+/** Basket snapshot from `getRedeemables` — reverts while liquidation is closed. */
+export async function fetchEvmGraiRedeemables(
+  config: GraiEvmConfig,
+): Promise<Record<string, GraiAssetVaultBalances>> {
+  const client = createGraiEvmPublicClient(config)
+  const graiAddress = resolveGraiContractAddress(config)
+
+  let assetOuts: readonly `0x${string}`[]
+  let amounts: readonly bigint[]
+  try {
+    ;[assetOuts, amounts] = await client.readContract({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'getRedeemables',
+    })
+  } catch (error) {
+    if (isLikelyLiquidationClosedRevert(error)) {
+      throw new GraiLiquidationRequiredError()
+    }
+    throw error
+  }
+
+  const entries = await Promise.all(
+    assetOuts.map(async (assetAddress, index) => {
+      const asset = assetAddress.toLowerCase()
+      const amount = amounts[index] ?? 0n
+      const decimals = await readAssetDecimals(config, assetAddress)
+      let seniorUsdRaw = 0n
+      try {
+        const oracle = await readAssetPrice(config, assetAddress)
+        seniorUsdRaw = depositValue(amount, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
+      } catch {
+        // Price feed unavailable — USD stays zero.
+      }
+
+      return [
+        asset,
+        {
+          seniorRaw: amount,
+          juniorRaw: 0n,
+          allocatedRaw: 0n,
+          decimals,
+          navUsdRaw: seniorUsdRaw,
+          seniorUsdRaw,
+          juniorUsdRaw: 0n,
+          allocatedUsdRaw: 0n,
+        },
+      ] as const
+    }),
+  )
+
+  return Object.fromEntries(entries)
+}
+
+export type EvmRedeemUnlockTiming = {
+  liquidationOpen: boolean
+  liquidationAt: number
+  liquidationPeriodSec: number
+  /** Unix seconds when redeem becomes allowed; null while liquidation is closed. */
+  redeemUnlockAt: number | null
+}
+
+export async function fetchEvmRedeemUnlockTiming(
+  config: GraiEvmConfig,
+): Promise<EvmRedeemUnlockTiming> {
+  const client = createGraiEvmPublicClient(config)
+  const graiAddress = resolveGraiContractAddress(config)
+  const [liquidationOpen, liquidationAtRaw, protocolConfig] = await Promise.all([
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidation' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidationAt' }),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'config' }),
+  ])
+
+  const liquidationAt = Number(liquidationAtRaw)
+  const liquidationPeriodSec = Number(protocolConfig[7])
+  const redeemUnlockAt =
+    liquidationOpen && liquidationAt > 0 ? liquidationAt + liquidationPeriodSec : null
+
+  return {
+    liquidationOpen,
+    liquidationAt,
+    liquidationPeriodSec,
+    redeemUnlockAt,
+  }
+}
+
 export async function fetchEvmWalletAssetBalance(
   config: GraiEvmConfig,
   owner: `0x${string}`,

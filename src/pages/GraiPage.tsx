@@ -7,13 +7,11 @@ import { GraiMintBurnPanel } from '../components/grai/GraiMintBurnPanel'
 import { GraiMintSubtitleText } from '../components/grai/GraiMintSubtitleRotatingAsset'
 import { GraiGrindersSection } from '../components/grai/GraiGrindersSection'
 import { GraiAssetsSection } from '../components/grai/GraiAssetsSection'
-import { type GraiSection } from '../utils/graiNavigation'
 import './GraiPage.css'
 
 function GraiPage() {
   const navigate = useNavigate()
   const { clusterMismatch, evmChainMismatch, solanaCluster, chainKind, evm, hasStaticConfig, isConfigured, protocolError } = useGraiDeployment()
-  const [actionView, setActionView] = useState<'mint' | 'burn'>('mint')
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
 
   useLayoutEffect(() => {
@@ -26,45 +24,17 @@ function GraiPage() {
   }, [])
 
   useEffect(() => {
-    const applySection = (section: GraiSection) => {
-      if (section === 'mint' || section === 'claim' || section === 'lock' || section === 'unlock') {
-        setActionView('mint')
-      } else if (section === 'burn') setActionView('burn')
-    }
-
-    const onSectionNav = (event: Event) => {
-      applySection((event as CustomEvent<GraiSection>).detail)
-    }
-
     const onHashChange = () => {
       const hash = window.location.hash.slice(1)
       if (hash === 'allocate' || hash === 'distribute' || hash === 'manage') {
         navigate(`/grinders#${hash === 'manage' ? 'allocate' : hash}`, { replace: true })
-        return
-      }
-      if (
-        hash === 'mint' ||
-        hash === 'claim' ||
-        hash === 'lock' ||
-        hash === 'unlock' ||
-        hash === 'burn' ||
-        hash === 'assets' ||
-        hash === 'buyback' ||
-        hash === 'grinders' ||
-        hash === 'auctions' ||
-        hash === 'vote' ||
-        hash === 'bribe'
-      ) {
-        applySection(hash)
       }
     }
 
-    window.addEventListener('grai-section-nav', onSectionNav)
     window.addEventListener('hashchange', onHashChange)
     onHashChange()
 
     return () => {
-      window.removeEventListener('grai-section-nav', onSectionNav)
       window.removeEventListener('hashchange', onHashChange)
     }
   }, [navigate])
@@ -108,8 +78,8 @@ function GraiPage() {
         )}
         <div className="grai-actions-block" id="grai-actions-section">
           <GraiMintBurnPanel
-            actionView={actionView}
-            actionSubtitle={actionView === 'mint' ? <GraiMintSubtitleText /> : null}
+            actionView="mint"
+            actionSubtitle={<GraiMintSubtitleText />}
             onOpenHowItWorks={() => setIsHowItWorksOpen(true)}
           />
         </div>

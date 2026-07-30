@@ -99,6 +99,16 @@ export const graiAbi = [
   },
   {
     type: 'function',
+    name: 'getRedeemables',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [
+      { name: 'assetOuts', type: 'address[]' },
+      { name: 'amounts', type: 'uint256[]' },
+    ],
+  },
+  {
+    type: 'function',
     name: 'assets',
     stateMutability: 'view',
     inputs: [{ name: 'asset', type: 'address' }],
@@ -224,6 +234,13 @@ export const graiAbi = [
     stateMutability: 'view',
     inputs: [],
     outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'liquidationAt',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint48' }],
   },
   {
     type: 'function',

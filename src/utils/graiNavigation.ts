@@ -20,7 +20,7 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   claim: 'grai-actions-section',
   lock: 'grai-actions-section',
   unlock: 'grai-actions-section',
-  burn: 'grai-actions-section',
+  burn: 'grai-redeem-section',
   assets: 'grai-assets-section',
   buyback: 'grai-buyback-section',
   grinders: 'grai-grinders-summary',

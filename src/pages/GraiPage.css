@@ -3751,6 +3751,47 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   pointer-events: none;
 }
 
+.grai-donut-slice-icons {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.grai-donut-slice-icon {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.grai-donut-slice-icon img {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  background: var(--bg-primary);
+}
+
+.grai-donut-slice-symbol {
+  font-size: 0.52rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  text-shadow: 0 0 4px color-mix(in srgb, var(--bg-primary) 90%, transparent);
+}
+
+.grai-donut-wrap.has-slice-icons .grai-donut-slice-icon.is-active {
+  transform: translate(-50%, -50%) scale(1.12);
+  z-index: 3;
+}
+
 .grai-donut-markers {
   position: absolute;
   inset: 0;
@@ -10955,7 +10996,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -10963,6 +11004,155 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   padding-top: 0;
   border-top: 0;
   overflow-x: clip;
+}
+
+.grai-liquidation-ops-layout {
+  display: grid;
+  grid-template-columns: minmax(9.5rem, 12.5rem) minmax(0, 1fr);
+  column-gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-ops-tabs {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  position: sticky;
+  top: 5.5rem;
+  padding-right: 1.25rem;
+  border-right: 1px solid var(--border-color);
+}
+
+.grai-liquidation-ops-heading {
+  margin: 0 0 0.85rem;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops {
+  margin-bottom: 0;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops::after {
+  display: none;
+}
+
+.grai-action-switch--ops .grai-action-switch-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.72rem 0.5rem 0.72rem 0;
+  border-radius: 0;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.grai-action-switch--ops .grai-action-switch-btn.is-active {
+  justify-content: flex-start;
+}
+
+.grai-action-switch--ops .grai-action-switch-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon {
+  opacity: 1;
+  color: #ff69b4;
+}
+
+.grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon svg {
+  color: #ff69b4;
+  stroke: #ff69b4;
+}
+
+[data-theme='light'] .grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon,
+[data-theme='light'] .grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon svg {
+  color: #e91e8c;
+  stroke: #e91e8c;
+}
+
+.grai-liquidation-ops-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-ops-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-ops-panel.is-hidden {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .grai-liquidation-ops-layout {
+    grid-template-columns: 1fr;
+    row-gap: 0.85rem;
+  }
+
+  .grai-liquidation-ops-tabs {
+    position: static;
+    width: min(100%, 25.3125rem);
+    margin-inline: auto;
+    padding-right: 0;
+    border-right: 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops {
+    flex-direction: row;
+    border: 0;
+  }
+
+  .grai-action-switch--ops::after {
+    display: none;
+  }
+
+  .grai-action-switch--ops .grai-action-switch-btn,
+  .grai-action-switch--ops .grai-action-switch-btn.is-active {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+    padding: 0.62rem 0.45rem;
+    border-radius: 0;
+  }
+
+  .grai-action-switch--ops .grai-action-switch-btn.is-distribute,
+  .grai-action-switch--ops .grai-action-switch-btn.is-market {
+    border-radius: 0;
+  }
 }
 
 .grai-liquidation-actions > .grai-liquidation-notice {
@@ -10974,7 +11164,377 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-buyback-screen {
-  display: contents;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-inline: 0;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-buyback-screen > .grai-dutch-auction-chart {
+  width: min(100%, 52.375rem);
+  max-width: 100%;
+  align-self: center;
+}
+
+.grai-liquidation-buyback-screen > .grai-liquidation-ops-row {
+  width: min(100%, 25.3125rem);
+}
+
+.grai-liquidation-distribute-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 0 1.25rem;
+  padding-top: 0.85rem;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-distribute-title {
+  margin: 0;
+  align-self: center;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.grai-liquidation-liquidate-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 0.85rem;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-liquidate-screen > .grai-liquidation-quorum-infographic {
+  width: min(100%, 25.3125rem);
+  max-width: 100%;
+  align-self: center;
+  margin-inline: auto;
+}
+
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row {
+  width: min(100%, 25.3125rem);
+}
+
+.grai-liquidation-redeem-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 0.85rem;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-redeem-screen > .grai-liquidation-ops-row {
+  width: min(100%, 25.3125rem);
+}
+
+.grai-liquidation-redeem-screen .grai-action-card.grai-mint {
+  width: 100%;
+}
+
+.grai-redeemable-balances {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0 0 0.15rem;
+}
+
+.grai-redeemable-balances-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.55rem;
+  min-width: 0;
+  position: relative;
+}
+
+.grai-redeemable-balances-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.grai-redeemable-balances-countdown {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.grai-redeemable-balances-countdown.is-ready {
+  color: #39d98a;
+}
+
+.grai-redeemable-balances-countdown.is-blocked {
+  color: color-mix(in srgb, #ff6b6b 88%, #fff);
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.grai-redeemable-balances-blocked {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.grai-redeemable-balances-blocked .grai-redeemable-balances-countdown {
+  margin-left: 0;
+}
+
+.grai-redeemable-balances-blocked-info .grai-field-info-btn {
+  width: 1rem;
+  height: 1rem;
+  color: color-mix(in srgb, #ff6b6b 88%, #fff);
+}
+
+.grai-redeemable-balances-blocked-info .grai-field-info-btn svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.grai-redeemable-balances-blocked-info .grai-field-info-tooltip {
+  width: min(16rem, 70vw);
+  white-space: normal;
+}
+
+[data-theme='light'] .grai-redeemable-balances-countdown.is-ready {
+  color: #059669;
+}
+
+[data-theme='light'] .grai-redeemable-balances-countdown.is-blocked,
+[data-theme='light'] .grai-redeemable-balances-blocked-info .grai-field-info-btn {
+  color: #c62828;
+}
+
+.grai-redeemable-balances-hint {
+  position: absolute;
+  top: -1.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.grai-redeemable-balances:hover .grai-redeemable-balances-hint,
+.grai-redeemable-balances:focus-within .grai-redeemable-balances-hint {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.grai-redeemable-balances-body {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 10.5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem 0.85rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-redeemable-balances-donut.grai-donut-slot {
+  width: 100%;
+  max-width: 10.5rem;
+  margin: 0;
+  justify-self: start;
+  overflow: visible;
+}
+
+.grai-redeemable-balances-donut .grai-donut-wrap {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1;
+  overflow: visible;
+}
+
+.grai-redeemable-balances-donut .grai-donut-total-label {
+  font-size: 0.58rem;
+}
+
+.grai-redeemable-balances-donut .grai-donut-total-value {
+  font-size: 0.78rem;
+  letter-spacing: -0.02em;
+}
+
+.grai-redeemable-balances-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: 10.5rem;
+  align-self: stretch;
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.grai-redeemable-balances-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.grai-redeemable-balances-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
+}
+
+.grai-redeemable-balances-item {
+  display: grid;
+  grid-template-columns: 0.45rem minmax(0, 1fr) 1rem auto;
+  align-items: center;
+  column-gap: 0.4rem;
+  min-width: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.grai-redeemable-balances-swatch {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.grai-redeemable-balances-amount {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-redeemable-balances-icon {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.grai-redeemable-balances-symbol {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.grai-redeemable-balances-empty {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+[data-theme='light'] .grai-liquidation-distribute-title {
+  color: var(--text-primary);
+}
+
+.grai-distribute-money-flow-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: min(100%, 52.375rem);
+  max-width: 100%;
+  min-width: 0;
+  align-self: center;
+  margin-inline: auto;
+  padding: 0.85rem 0.45rem 0.25rem 0.25rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.grai-distribute-money-flow {
+  width: 100%;
+  max-width: 100%;
+  height: 15rem;
+  margin-inline: 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.grai-distribute-sankey-node-amount-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-distribute-sankey-node-amount {
+  fill: #fff;
+}
+
+.grai-distribute-sankey-node-caption {
+  fill: #fff;
+}
+
+[data-theme='light'] .grai-distribute-sankey-node-amount,
+[data-theme='light'] .grai-distribute-sankey-node-caption {
+  fill: var(--text-primary);
+}
+
+.grai-distribute-sankey-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.grai-distribute-sankey-tooltip strong {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .grai-distribute-money-flow {
+    max-width: 100%;
+    height: 12rem;
+  }
 }
 
 .grai-liquidation-ops-row {
@@ -12243,7 +12803,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-buyback-screen > .grai-dutch-auction-chart + .grai-liquidation-ops-row {
-  margin-top: 0.25rem;
+  margin-top: 0;
 }
 
 .grai-liquidation-actions > .grai-liquidation-buyback-screen + .grai-liquidation-market-stack,
@@ -12786,10 +13346,26 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 @media (max-width: 900px) {
+  .grai-liquidation-distribute-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: calc(100svh - 4.75rem);
+    min-height: calc(100dvh - 4.75rem);
+    justify-content: center;
+    margin: 0;
+    padding-block: 0.35rem;
+    box-sizing: border-box;
+  }
+
   .grai-liquidation-buyback-screen {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    align-items: center;
+    gap: 0.85rem;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -12888,7 +13464,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-market-row,
   .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-market-stack,
   .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-ops-row,
-  .grai-assets-split > .grai-liquidation-actions > .grai-dutch-auction-chart {
+  .grai-assets-split > .grai-liquidation-actions > .grai-dutch-auction-chart,
+  .grai-assets-split > .grai-liquidation-actions > .grai-liquidation-buyback-screen {
     width: 100%;
     max-width: 100%;
   }
@@ -13001,10 +13578,16 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-liquidation-buyback-screen > .grai-dutch-auction-chart + .grai-liquidation-ops-row {
-    margin-top: 0.2rem;
+    margin-top: 0;
   }
 
   .grai-dutch-auction-chart {
+    padding: 0.75rem 0.55rem 0.2rem 0.2rem;
+  }
+
+  .grai-distribute-money-flow-block {
+    width: 100%;
+    max-width: 100%;
     padding: 0.75rem 0.55rem 0.2rem 0.2rem;
   }
 
@@ -13610,8 +14193,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-liquidation-quorum-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem 1.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
 }
 
 .grai-liquidation-quorum-stat {
@@ -13619,6 +14202,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   flex-direction: column;
   gap: 0.2rem;
   min-width: 0;
+}
+
+.grai-liquidation-quorum-stat--center {
+  text-align: center;
+  align-items: center;
+}
+
+.grai-liquidation-quorum-stat--center .grai-liquidation-quorum-stat-value {
+  align-items: center;
 }
 
 .grai-liquidation-quorum-stat--bribe {
@@ -14527,6 +15119,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.grai-liquidation-bribe-amount-address {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
 }
 
 .grai-liquidation-bribe-amount-value {
