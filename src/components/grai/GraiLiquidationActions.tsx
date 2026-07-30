@@ -25,7 +25,6 @@ import { GraiDutchAuctionChart } from './GraiDutchAuctionChart'
 import { GraiBribeCurveChart } from './GraiBribeCurveChart'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiTransactionToast } from './GraiTransactionToast'
-import { GraiUiCaret } from './GraiUiCaret'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
 
 const MOCK_VOTERS: EvmVoterEntry[] = [
@@ -958,8 +957,8 @@ export function GraiLiquidationActions() {
   const [bribeSort, setBribeSort] = useState<'escrow-desc' | 'escrow-asc' | 'bribe-desc' | 'bribe-asc'>(
     'escrow-desc',
   )
-  const [showAllBribes, setShowAllBribes] = useState(false)
-  const [isLiquidatePanelOpen, setIsLiquidatePanelOpen] = useState(false)
+  const [asideView, setAsideView] = useState<'position' | 'liquidate' | 'voters'>('position')
+  const showAllBribes = asideView === 'voters'
   const [yieldAmount, setYieldAmount] = useState('')
   const [marketView, setMarketView] = useState<'vote' | 'bribe'>(() => {
     const section = readGraiSectionFromHash()
@@ -1596,103 +1595,91 @@ export function GraiLiquidationActions() {
   )
 
 
-  const quorumInfographic = (
-    <>
+  const positionStats = (
     <div
       className={`grai-liquidation-quorum-infographic${state?.hasQuorum ? ' is-reached' : ''}${liquidationBlocked ? ' is-open' : ''}`}
       role="region"
-      aria-label="Liquidation quorum progress"
+      aria-label="Your liquidation position"
     >
       <div className="grai-liquidation-quorum-footer-stats">
         <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--supply">
+          <span className="grai-liquidation-quorum-stat-label">Your vote</span>
           <span className="grai-liquidation-quorum-stat-value">
             {isLoading ? '…' : totalSupplyLabel}
           </span>
-          <span className="grai-liquidation-quorum-stat-label">Your vote</span>
         </div>
         <div className="grai-liquidation-quorum-stat grai-liquidation-quorum-stat--nav">
+          <span className="grai-liquidation-quorum-stat-label">Your pending Bribe</span>
           <span className="grai-liquidation-quorum-stat-value">
             {isLoading ? '…' : grindersNavLabel}
           </span>
-          <span className="grai-liquidation-quorum-stat-label">Your pending Bribe</span>
         </div>
       </div>
     </div>
+  )
 
-      <button
-        type="button"
-        className={`grai-liquidation-open-toggle-row${isLiquidatePanelOpen ? ' is-open' : ''}`}
-        aria-expanded={isLiquidatePanelOpen}
-        aria-controls="grai-liquidation-open-panel"
-        onClick={() => setIsLiquidatePanelOpen((open) => !open)}
-      >
-        <span className="grai-liquidation-open-toggle" aria-hidden="true">
-          <GraiUiCaret className="grai-detailed-preview-chevron" />
-        </span>
-        <span className="grai-liquidation-open-toggle-label">Liquidate</span>
-      </button>
-
-      <div className="grai-liquidation-open" id="grai-liquidation-open">
-        <div
-          id="grai-liquidation-open-panel"
-          className={`grai-liquidation-open-panel${isLiquidatePanelOpen ? ' is-open' : ''}`}
-          aria-hidden={!isLiquidatePanelOpen}
-        >
-          <div className="grai-liquidation-open-panel-inner">
-            <div className="grai-action-result-group grai-liquidation-yield-results">
-              <div className="grai-action-result" aria-live="polite">
-                <span className="grai-action-result-label-wrap">
-                  <span className="grai-action-result-label">Quorum</span>
-                </span>
-                <span className="grai-action-result-value">
-                  {isLoading ? '…' : liquidationHasQuorum ? 'Met' : 'Pending'}
-                </span>
-              </div>
-              <div className="grai-action-result" aria-live="polite">
-                <span className="grai-action-result-label-wrap">
-                  <span className="grai-action-result-label">Owner confirm</span>
-                </span>
-                <span className="grai-action-result-value">
-                  {isLoading ? '…' : liquidationConfirmed ? 'Confirmed' : 'Pending'}
-                </span>
-              </div>
+  const liquidatePanel = (
+    <div className="grai-liquidation-open" id="grai-liquidation-open">
+      <div id="grai-liquidation-open-panel" className="grai-liquidation-open-panel is-open">
+        <div className="grai-liquidation-open-panel-inner">
+          <div className="grai-action-result-group grai-liquidation-yield-results">
+            <div className="grai-action-result" aria-live="polite">
+              <span className="grai-action-result-label-wrap">
+                <span className="grai-action-result-label">Liquidation quorum</span>
+              </span>
+              <span className="grai-action-result-value">
+                {isLoading ? '…' : liquidationHasQuorum ? 'Met' : 'Pending'}
+              </span>
             </div>
-            {isWalletConnected ? (
-              <div className="grai-action-submit grai-liquidation-step-actions">
-                <div className="grai-liquidation-step-action">
-                  <button
-                    type="button"
-                    className="grai-mint-btn"
-                    disabled={liquidationBlocked || liquidationConfirmed}
-                    tabIndex={isLiquidatePanelOpen ? 0 : -1}
-                  >
-                    Confirm
-                  </button>
-                  <span className="grai-liquidation-step-meta">Transaction 1 of 2</span>
-                </div>
-                <div className="grai-liquidation-step-action">
-                  <button
-                    type="button"
-                    className="grai-mint-btn"
-                    disabled={
-                      liquidationBlocked ||
+            <div className="grai-action-result" aria-live="polite">
+              <span className="grai-action-result-label-wrap">
+                <span className="grai-action-result-label">Owner confirm</span>
+              </span>
+              <span className="grai-action-result-value">
+                {isLoading ? '…' : liquidationConfirmed ? 'Confirmed' : 'Pending'}
+              </span>
+            </div>
+          </div>
+          <div className="grai-action-submit grai-liquidation-step-actions">
+            <div className="grai-liquidation-step-action">
+              <span className="grai-liquidation-step-meta">Transaction 1 of 2</span>
+              <button
+                type="button"
+                className="grai-mint-btn"
+                disabled={
+                  isWalletConnected
+                    ? liquidationBlocked || liquidationConfirmed
+                    : false
+                }
+                onClick={isWalletConnected ? undefined : openChainSelector}
+              >
+                Confirm
+              </button>
+            </div>
+            <div className="grai-liquidation-step-action">
+              <span className="grai-liquidation-step-meta">Transaction 2 of 2</span>
+              <button
+                type="button"
+                className="grai-mint-btn"
+                disabled={
+                  isWalletConnected
+                    ? liquidationBlocked ||
                       !liquidationHasQuorum ||
                       !liquidationConfirmed
-                    }
-                    tabIndex={isLiquidatePanelOpen ? 0 : -1}
-                  >
-                    Liquidate
-                  </button>
-                  <span className="grai-liquidation-step-meta">Transaction 2 of 2</span>
-                </div>
-              </div>
-            ) : (
-              <GraiActionConnectWalletButton onConnect={openChainSelector} />
-            )}
+                    : false
+                }
+                onClick={isWalletConnected ? undefined : openChainSelector}
+              >
+                Liquidate
+              </button>
+            </div>
+            <span className="grai-liquidation-step-hint">
+              Anyone can activate GRAI liquidation once quorum is met and the owner has confirmed.
+            </span>
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 
   const buybackAssetsCarousel = (
@@ -1955,10 +1942,7 @@ export function GraiLiquidationActions() {
           handleMarketViewChange('bribe')
         }}
         onSeeAllVoters={() => {
-          setShowAllBribes((open) => {
-            if (!open) setIsLiquidatePanelOpen(false)
-            return true
-          })
+          setAsideView('voters')
         }}
         listLayout={showAllBribes}
       >
@@ -2059,21 +2043,45 @@ export function GraiLiquidationActions() {
                 <div
                   className={`grai-liquidation-panel-header${showAllBribes ? ' is-expanded' : ''}`}
                 >
-                  <button
-                    type="button"
-                    className={`grai-liquidation-see-all-bribes${showAllBribes ? ' is-active' : ''}`}
-                    aria-pressed={showAllBribes}
-                    onClick={() => {
-                      setShowAllBribes((open) => {
-                        if (!open) setIsLiquidatePanelOpen(false)
-                        return !open
-                      })
-                    }}
+                  <div
+                    className={`grai-action-switch grai-action-switch--buttons grai-action-switch--market grai-action-switch--aside is-${asideView}-active`}
+                    role="tablist"
+                    aria-label="Position, Liquidate, or Voters"
                   >
-                    {showAllBribes
-                      ? `Total · ${filteredBribeVoters.length}`
-                      : `See all voters · ${filteredBribeVoters.length}`}
-                  </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={asideView === 'position'}
+                      className={`grai-action-switch-btn is-position${asideView === 'position' ? ' is-active' : ''}`}
+                      onClick={() => {
+                        setAsideView('position')
+                      }}
+                    >
+                      Position
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={asideView === 'liquidate'}
+                      className={`grai-action-switch-btn is-liquidate${asideView === 'liquidate' ? ' is-active' : ''}`}
+                      onClick={() => {
+                        setAsideView('liquidate')
+                      }}
+                    >
+                      Liquidate
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={asideView === 'voters'}
+                      className={`grai-action-switch-btn is-voters${asideView === 'voters' ? ' is-active' : ''}`}
+                      onClick={() => {
+                        setAsideView('voters')
+                      }}
+                    >
+                      {`Voters · ${filteredBribeVoters.length}`}
+                    </button>
+                  </div>
                   <div
                     className="grai-liquidation-bribe-toolbar"
                     aria-hidden={!showAllBribes}
@@ -2142,8 +2150,11 @@ export function GraiLiquidationActions() {
                 </div>
                 {showAllBribes ? carousel ?? empty : null}
               </div>
-              {!showAllBribes ? (
-                <div className="grai-liquidation-quorum-slot">{quorumInfographic}</div>
+              {asideView === 'position' ? (
+                <div className="grai-liquidation-quorum-slot">{positionStats}</div>
+              ) : null}
+              {asideView === 'liquidate' ? (
+                <div className="grai-liquidation-quorum-slot">{liquidatePanel}</div>
               ) : null}
             </div>
           </div>

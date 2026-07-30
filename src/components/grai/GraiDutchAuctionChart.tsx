@@ -13,6 +13,11 @@ import {
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 
 const SAMPLE_COUNT = 48
+/** Hide the "now" axis stamp when it's within this fraction of start/end. */
+const X_TICK_MIN_GAP = 0.12
+/** Day marks only hide when nearly on top of an edge / now stamp. */
+const DAY_TICK_EDGE_GAP = 0.02
+const DAY_TICK_NOW_GAP = 0.035
 
 type ChartPoint = {
   progress: number
@@ -60,6 +65,52 @@ function formatAxisAsk(value: number): string {
   }
   if (value >= 10) return value.toFixed(1)
   return value.toFixed(2)
+}
+
+function formatAuctionClock(unixSec: number): string {
+  if (!Number.isFinite(unixSec) || unixSec <= 0) return '—'
+  return new Date(unixSec * 1000).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
+
+function formatAuctionDate(unixSec: number): string {
+  if (!Number.isFinite(unixSec) || unixSec <= 0) return '—'
+  return new Date(unixSec * 1000).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+/** Local-midnight progress marks between auction start and end (every calendar day). */
+function buildDayBoundaryMarks(
+  startUnix: number,
+  periodSec: number,
+): Array<{ progress: number; unix: number }> {
+  if (!(startUnix > 0) || !(periodSec > 0)) return []
+  const endUnix = startUnix + periodSec
+  const startDate = new Date(startUnix * 1000)
+  const cursor = new Date(
+    startDate.getFullYear(),
+    startDate.getMonth(),
+    startDate.getDate() + 1,
+    0,
+    0,
+    0,
+    0,
+  )
+  const marks: Array<{ progress: number; unix: number }> = []
+  while (cursor.getTime() / 1000 < endUnix - 1) {
+    const unix = Math.floor(cursor.getTime() / 1000)
+    const progress = (unix - startUnix) / periodSec
+    if (progress > DAY_TICK_EDGE_GAP && progress < 1 - DAY_TICK_EDGE_GAP) {
+      marks.push({ progress, unix })
+    }
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return marks
 }
 
 function buildEvenTicks(min: number, max: number, count = 4): number[] {
@@ -167,6 +218,32 @@ export function GraiDutchAuctionChart({
   const currentAskLabel = hasLot ? formatChartAskUsd(currentAsk, graiDecimals) : '$0.00'
   const maxLabel = hasLot ? formatChartAskUsd(maxPaymentGrai, graiDecimals) : '$0.00'
   const minLabel = hasLot ? formatChartAskUsd(minPaymentGrai, graiDecimals) : '$0.00'
+  const endTime = startTime > 0 && period > 0 ? startTime + period : 0
+  const startDate = formatAuctionDate(startTime)
+  const endDate = formatAuctionDate(endTime)
+  const nowDate = formatAuctionDate(nowSec)
+  const startClock = formatAuctionClock(startTime)
+  const endClock = formatAuctionClock(endTime)
+  const nowClock = formatAuctionClock(nowSec)
+  const nowNearStart = progressNow <= X_TICK_MIN_GAP
+  const nowNearEnd = progressNow >= 1 - X_TICK_MIN_GAP
+  const showNowTick = !nowNearStart && !nowNearEnd
+  const dayMarks = useMemo(
+    () => buildDayBoundaryMarks(startTime, period),
+    [period, startTime],
+  )
+  const xTicks = useMemo(() => {
+    const ticks = [0]
+    for (const mark of dayMarks) {
+      if (showNowTick && Math.abs(mark.progress - progressNow) < DAY_TICK_NOW_GAP) continue
+      ticks.push(mark.progress)
+    }
+    if (showNowTick) ticks.push(progressNow)
+    ticks.push(1)
+    return ticks
+  }, [dayMarks, progressNow, showNowTick])
+  const startCaption = nowNearStart ? 'start · now' : 'start time'
+  const endCaption = nowNearEnd ? 'end · now' : 'end time'
 
   return (
     <section
@@ -228,7 +305,7 @@ export function GraiDutchAuctionChart({
         key={chartIdentity}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={points} margin={{ top: 22, right: 8, left: 0, bottom: 8 }}>
+          <AreaChart data={points} margin={{ top: 22, right: 8, left: 0, bottom: 40 }}>
             <CartesianGrid
               stroke="color-mix(in srgb, var(--border-color) 70%, transparent)"
               strokeDasharray="3 6"
@@ -238,14 +315,83 @@ export function GraiDutchAuctionChart({
               dataKey="progress"
               type="number"
               domain={[0, 1]}
-              ticks={[0, progressNow, 1]}
-              tickFormatter={(value: number) => {
-                if (Math.abs(value - progressNow) < 0.001) return 'Now'
-                if (value <= 0) return 'Start'
-                if (value >= 1) return 'Floor'
-                return ''
+              ticks={xTicks}
+              interval={0}
+              tick={(props) => {
+                const { x, y, payload } = props as {
+                  x?: number
+                  y?: number
+                  payload?: { value?: number }
+                }
+                if (x == null || y == null) return null
+                const value = Number(payload?.value)
+                if (!Number.isFinite(value)) return null
+
+                const renderStamp = (
+                  date: string,
+                  clock: string,
+                  caption: string,
+                  anchor: 'start' | 'middle' | 'end',
+                ) => (
+                  <g transform={`translate(${x},${y})`}>
+                    <text x={0} y={12} fill="#fff" fontSize={11} textAnchor={anchor}>
+                      {date}
+                    </text>
+                    <text x={0} y={25} fill="#fff" fontSize={11} textAnchor={anchor}>
+                      {clock}
+                    </text>
+                    <text
+                      x={0}
+                      y={39}
+                      fill="rgba(255, 255, 255, 0.62)"
+                      fontSize={10}
+                      textAnchor={anchor}
+                    >
+                      {caption}
+                    </text>
+                  </g>
+                )
+
+                if (showNowTick && Math.abs(value - progressNow) < 0.001) {
+                  return renderStamp(nowDate, nowClock, 'now time', 'middle')
+                }
+
+                if (value <= 0) {
+                  return renderStamp(startDate, startClock, startCaption, 'start')
+                }
+
+                if (value >= 1) {
+                  return renderStamp(endDate, endClock, endCaption, 'end')
+                }
+
+                const dayUnix =
+                  dayMarks.find((mark) => Math.abs(mark.progress - value) < 0.001)?.unix ?? null
+                if (dayUnix != null) {
+                  return (
+                    <g transform={`translate(${x},${y})`}>
+                      <line
+                        x1={0}
+                        y1={0}
+                        x2={0}
+                        y2={6}
+                        stroke="var(--border-color)"
+                        strokeWidth={1}
+                      />
+                      <text
+                        x={0}
+                        y={20}
+                        fill="rgba(255, 255, 255, 0.72)"
+                        fontSize={10}
+                        textAnchor="middle"
+                      >
+                        {formatAuctionDate(dayUnix)}
+                      </text>
+                    </g>
+                  )
+                }
+
+                return null
               }}
-              tick={{ fill: '#fff', fontSize: 11 }}
               axisLine={{ stroke: 'var(--border-color)' }}
               tickLine={false}
             />
