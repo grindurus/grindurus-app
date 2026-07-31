@@ -40,8 +40,7 @@ const EMPTY_AUCTION = {
 /**
  * AssetConfig body (after 8-byte discriminator):
  * mint(32) feed(32) paused(1) id(4) acc_share(16) total_claimable(8)
- * remaining(8) initial(8) max(8) min(8) start(8) duration(4)
- * listing_price(16) listing_decimals(1) bump(1)  — legacy fields ignored
+ * remaining(8) initial(8) max(8) min(8) start(8) duration(4) bump(1)
  */
 export function decodeAssetConfigAuction(data: Buffer): {
   startTime: number
@@ -51,7 +50,7 @@ export function decodeAssetConfigAuction(data: Buffer): {
   maxPayment: bigint
   minPayment: bigint
 } | null {
-  if (data.length < ACCOUNT_DISCRIMINATOR_LEN + 155) return null
+  if (data.length < ACCOUNT_DISCRIMINATOR_LEN + 138) return null
   const body = data.subarray(ACCOUNT_DISCRIMINATOR_LEN)
   const startTime = Number(body.readBigInt64LE(125))
   return {
