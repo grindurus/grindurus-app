@@ -36,7 +36,6 @@ import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
 import { useSolanaWallet } from '../../hooks/useSolanaWallet'
 import { useEvmWallet } from '../../hooks/useEvmWallet'
-import { useWalletContext } from '../../providers/AppWalletProvider'
 import { assetUrl } from '../../utils/appPaths'
 import { readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
@@ -242,7 +241,6 @@ export function GraiMintBurnPanel({
   actionSubtitle,
   onOpenHowItWorks,
 }: Props) {
-  const { openChainSelector } = useWalletContext()
   const { chainKind, solana, staticSolana, evm, connection, explorerTxUrl } = useGraiDeployment()
   const activeWallet = useActiveWallet()
   const solanaWallet = useSolanaWallet()
@@ -1561,7 +1559,7 @@ export function GraiMintBurnPanel({
               </button>
             </div>
           ) : (
-            <GraiActionConnectWalletButton onConnect={openChainSelector} />
+            <GraiActionConnectWalletButton />
           )}
           {actionView === 'mint' ? (
             <div className="grai-action-deposit-notes">

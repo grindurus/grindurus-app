@@ -4,7 +4,6 @@ import { FALLBACK_GRAI_ASSETS, type GraiAssetIcon } from '../../grai/knownMints'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import { formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../../grai/onchain'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
-import { useWalletContext } from '../../providers/AppWalletProvider'
 import { GraiAssetSelect } from './GraiAssetSelect'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 
@@ -180,7 +179,6 @@ function AuctionFillPanel({
   onSelectLot: (lotId: string) => void
 }) {
   const activeWallet = useActiveWallet()
-  const { openChainSelector } = useWalletContext()
   const canTransact = activeWallet.isConnected
   const [fillAmount, setFillAmount] = useState('')
   const [slippagePct, setSlippagePct] = useState('0.5')
@@ -253,7 +251,7 @@ function AuctionFillPanel({
   if (!canTransact) {
     return (
       <div className="grai-yield-auction-fill grai-yield-auction-fill--section">
-        <GraiActionConnectWalletButton onConnect={openChainSelector} />
+        <GraiActionConnectWalletButton />
       </div>
     )
   }

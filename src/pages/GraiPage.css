@@ -6713,26 +6713,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .connect-wallet-btn.grai-action-connect-wallet-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
   width: 100%;
-  min-height: auto;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  font-size: 1.12rem;
-  font-weight: 600;
-  font-family: inherit;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
-  box-sizing: border-box;
 }
 
-.connect-wallet-btn.grai-action-connect-wallet-btn svg {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
+.connect-wallet-btn.grai-action-connect-wallet-btn .connect-wallet-btn-label {
+  min-width: 0;
 }
 
 .grai-mint-feedback-slot .grai-estimated-amount-label {
@@ -8680,7 +8665,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   .grai-burn-btn,
   .connect-wallet-btn.grai-action-connect-wallet-btn {
     width: 100%;
-    font-size: 1rem;
   }
 }
 
@@ -11174,9 +11158,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-liquidation-ops-layout {
   display: grid;
-  grid-template-columns: minmax(9.5rem, 12.5rem) minmax(0, 1fr);
+  grid-template-columns: 12.5rem minmax(0, 1fr);
   column-gap: 1.25rem;
   align-items: start;
+  justify-content: start;
+  justify-items: stretch;
   align-self: stretch;
   width: 100%;
   max-width: 100%;
@@ -11190,12 +11176,16 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   height: auto;
   min-height: 0;
   margin: 0;
+  margin-inline: 0;
+  padding-left: 0;
   box-sizing: border-box;
   position: relative;
   top: auto;
   align-self: start;
+  justify-self: start;
   padding-right: 1.25rem;
   border-right: 1px solid var(--border-color);
+  overflow-anchor: none;
 }
 
 .grai-liquidation-ops-heading {
@@ -11212,8 +11202,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops {
   margin-bottom: 0;
+  margin-inline: 0;
   flex-direction: column;
   align-items: stretch;
+  justify-content: flex-start;
   width: 100%;
   border: 0;
   border-radius: 0;
@@ -11225,13 +11217,17 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: none;
 }
 
-.grai-action-switch--ops .grai-action-switch-btn {
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn,
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
   flex: 0 0 auto;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: flex-start;
   gap: 0.55rem;
   width: 100%;
+  max-width: 100%;
+  margin: 0;
   text-align: left;
   padding: 0.72rem 0.5rem 0.72rem 0;
   border-radius: 0;
@@ -11240,11 +11236,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-sizing: border-box;
 }
 
-.grai-action-switch--ops .grai-action-switch-btn.is-active {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.55rem;
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn .grai-action-switch-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: left;
 }
 
 .grai-action-switch--ops .grai-action-switch-icon {
@@ -11273,9 +11268,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-liquidation-ops-main {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+  overflow-x: clip;
+  overflow-anchor: none;
 }
 
 .grai-liquidation-ops-panel {
@@ -11302,6 +11300,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
   .grai-liquidation-ops-tabs {
     position: static;
+    top: auto;
     width: 100%;
     max-width: 100%;
     margin-inline: 0;
@@ -11326,8 +11325,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     display: none;
   }
 
-  .grai-action-switch--ops .grai-action-switch-btn,
-  .grai-action-switch--ops .grai-action-switch-btn.is-active {
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
     display: flex;
     flex-direction: column;
     align-items: center;

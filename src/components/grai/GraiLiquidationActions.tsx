@@ -24,7 +24,6 @@ import { useSolanaWallet } from '../../hooks/useSolanaWallet'
 import { useEvmWallet } from '../../hooks/useEvmWallet'
 import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useGraiAssetUsdLabel } from '../../hooks/useGraiAssetUsdLabel'
-import { useWalletContext } from '../../providers/AppWalletProvider'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import type { GraiBuybackAuction } from '../../grai/fetchBuybackAuctions'
@@ -740,12 +739,7 @@ function GraiLiquidationVoterPicker({
           </button>
         </div>
       ) : (
-        <GraiActionConnectWalletButton
-          onConnect={() => {
-            if (!selectedVoter) return
-            onBribe(selectedVoter, formatTokenBalance(amountRaw, graiDecimals))
-          }}
-        />
+        <GraiActionConnectWalletButton />
       )}
       <p className="grai-liquidation-buyback-vote-note">
         Pay the bribe asset to buy out a voter&apos;s GRAI. You receive their voted GRAI and take
@@ -978,7 +972,6 @@ export function GraiLiquidationActions() {
       : chainKind === 'evm'
         ? evmWallet.isConnected
         : activeWallet.isConnected
-  const { openChainSelector } = useWalletContext()
   const { vote, isVoting } = useGraiVote()
   const { bribe, isBribing } = useGraiBribe()
   const { liquidate, isLiquidating } = useGraiLiquidate()
@@ -1932,7 +1925,7 @@ export function GraiLiquidationActions() {
             <path d="m17 7.5-3.5 7.5" />
           </svg>
         </span>
-        Distribute
+        <span className="grai-action-switch-label">Distribute</span>
       </button>
       <button
         type="button"
@@ -1947,7 +1940,7 @@ export function GraiLiquidationActions() {
             <path d="M3 3v5h5" />
           </svg>
         </span>
-        Buyback
+        <span className="grai-action-switch-label">Buyback</span>
       </button>
       <button
         type="button"
@@ -1981,7 +1974,7 @@ export function GraiLiquidationActions() {
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
           </svg>
         </span>
-        Liquidate
+        <span className="grai-action-switch-label">Liquidate</span>
       </button>
       <button
         type="button"
@@ -1996,7 +1989,7 @@ export function GraiLiquidationActions() {
             <path d="M8 12h8" />
           </svg>
         </span>
-        Redeem
+        <span className="grai-action-switch-label">Redeem</span>
       </button>
     </div>
   )
@@ -2113,15 +2106,7 @@ export function GraiLiquidationActions() {
                 </div>
               </>
             ) : (
-              <GraiActionConnectWalletButton
-                onConnect={() => {
-                  if (chainKind === 'solana') {
-                    solanaWallet.connect()
-                    return
-                  }
-                  openChainSelector()
-                }}
-              />
+              <GraiActionConnectWalletButton />
             )}
             <span className="grai-liquidation-step-hint">
               Liquidate needs 2 of 2: quorum reached and owner confirmed.
@@ -2370,7 +2355,7 @@ export function GraiLiquidationActions() {
                   </button>
                 </div>
               ) : (
-                <GraiActionConnectWalletButton onConnect={openChainSelector} />
+                <GraiActionConnectWalletButton />
               )}
               <p className="grai-liquidation-buyback-vote-note">
                 Used by Grinder to distribute yield. Anyone can distribute listed asset to
@@ -2501,7 +2486,7 @@ export function GraiLiquidationActions() {
                 </button>
               </div>
             ) : (
-              <GraiActionConnectWalletButton onConnect={openChainSelector} />
+              <GraiActionConnectWalletButton />
             )}
             <p className="grai-liquidation-buyback-vote-note">
               GRAI paid for buyback is cast as a liquidation vote. You become a voter and can receive
@@ -2714,11 +2699,7 @@ export function GraiLiquidationActions() {
                         </button>
                       </div>
                     ) : (
-                      <GraiActionConnectWalletButton
-                        onConnect={() => {
-                          void handleVote()
-                        }}
-                      />
+                      <GraiActionConnectWalletButton />
                     )}
                     <p className="grai-liquidation-buyback-vote-note">
                       Commit GRAI toward liquidation quorum. Voted GRAI is locked and can be bought

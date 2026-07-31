@@ -1,4 +1,7 @@
+import { useCallback, useRef } from 'react'
 import { assetUrl } from '../../utils/appPaths'
+import { useActiveWallet } from '../../hooks/useActiveWallet'
+import { useWalletContext } from '../../providers/AppWalletProvider'
 import { WalletIcon } from '../WalletIcon'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
@@ -128,11 +131,54 @@ export function GraiWalletActorRow({
   )
 }
 
-export function GraiActionConnectWalletButton({ onConnect }: { onConnect: () => void }) {
+/** Opens the same ChainSelectorModal as the header Connect Wallet button. */
+export function GraiActionConnectWalletButton() {
+  const { isChainSelectorOpen, openChainSelector } = useWalletContext()
+  const activeWallet = useActiveWallet()
+  const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
+  const touchOpenedRef = useRef(false)
+
+  const handleOpen = useCallback(() => {
+    if (showConnecting) return
+    openChainSelector()
+  }, [openChainSelector, showConnecting])
+
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (event.pointerType !== 'touch' || showConnecting) return
+      touchOpenedRef.current = true
+      handleOpen()
+    },
+    [handleOpen, showConnecting],
+  )
+
+  const handleClick = useCallback(() => {
+    if (touchOpenedRef.current) {
+      touchOpenedRef.current = false
+      return
+    }
+    handleOpen()
+  }, [handleOpen])
+
   return (
-    <button type="button" className="connect-wallet-btn grai-action-connect-wallet-btn" onClick={onConnect}>
-      <WalletIcon />
-      Connect Wallet
+    <button
+      type="button"
+      className="connect-wallet-btn grai-action-connect-wallet-btn"
+      onPointerUp={handlePointerUp}
+      onClick={handleClick}
+      disabled={showConnecting}
+    >
+      {showConnecting ? (
+        <>
+          <span className="wallet-spinner" />
+          <span className="connect-wallet-btn-label">Connecting...</span>
+        </>
+      ) : (
+        <>
+          <WalletIcon />
+          <span className="connect-wallet-btn-label">Connect Wallet</span>
+        </>
+      )}
     </button>
   )
 }
