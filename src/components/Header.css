@@ -429,6 +429,7 @@
 
   .header-menu-btn {
     display: inline-flex;
+    border-color: var(--header-wallet-accent-border, #c06090);
   }
 
   .header-nav--desktop {
@@ -436,7 +437,9 @@
   }
 
   .header-logo-text {
-    display: none;
+    display: inline;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
   }
 
   .header-logo-img {
@@ -539,6 +542,10 @@
   .header-logo-img {
     width: 30px;
     height: 30px;
+  }
+
+  .header-logo-text {
+    font-size: 0.95rem;
   }
 
   .header-mobile-nav {

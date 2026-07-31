@@ -183,16 +183,6 @@ function Header() {
             <Link to="/" className="header-logo" onClick={() => setIsMobileNavOpen(false)}>
               <img src={assetUrl('logo.png')} alt="" className="header-logo-img" />
             </Link>
-            <button
-              type="button"
-              className="header-menu-btn"
-              aria-expanded={isMobileNavOpen}
-              aria-controls={mobileNavId}
-              aria-label={isMobileNavOpen ? 'Close menu' : 'Open menu'}
-              onClick={() => setIsMobileNavOpen((open) => !open)}
-            >
-              {isMobileNavOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-            </button>
             <Link
               to="/"
               className="header-logo-text"
@@ -269,6 +259,16 @@ function Header() {
           <div className="header-wallet-cluster">
             <ConnectWalletButton />
             <HeaderSettingsPopover />
+            <button
+              type="button"
+              className="header-menu-btn"
+              aria-expanded={isMobileNavOpen}
+              aria-controls={mobileNavId}
+              aria-label={isMobileNavOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setIsMobileNavOpen((open) => !open)}
+            >
+              {isMobileNavOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+            </button>
           </div>
         </div>
       </div>

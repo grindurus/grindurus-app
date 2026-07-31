@@ -354,7 +354,7 @@ export function GraiDutchAuctionChart({
       className="grai-dutch-auction-chart"
       aria-label={`${symbol} dutch auction price curve`}
     >
-      <h3 className="grai-dutch-auction-chart-title">Buyback Dutch Auction</h3>
+      <h3 className="grai-dutch-auction-chart-title">GRAI Buyback Dutch Auction</h3>
       <header className="grai-dutch-auction-chart-head">
         <div className="grai-dutch-auction-chart-title-wrap">
           {leading ?? (
