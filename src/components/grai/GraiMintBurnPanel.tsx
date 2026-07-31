@@ -6,7 +6,7 @@ import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
 import { GRAI_DECIMALS_EVM } from '../../grai/evm/constants'
 import { formatClaimUsdTotal } from '../../grai/evm/estimateClaim'
 import { parseTokenAmount } from '../../grai/onchain'
-import { USD_SCALE } from '../../grai/tokenomics'
+import { graiBurnValue, GRAI_DECIMALS, USD_SCALE } from '../../grai/tokenomics'
 import {
   formatProjectedYieldPct,
   formatVolatilityPct,
@@ -20,6 +20,8 @@ import {
   fetchEvmGraiRedeemables,
   fetchEvmRedeemUnlockTiming,
 } from '../../grai/evm/readProtocol'
+import { createGraiEvmPublicClient, resolveGraiContractAddress } from '../../grai/evm/client'
+import { graiAbi } from '../../grai/evm/abi'
 import { fetchGraiProtocol } from '../../grai/fetchGraiProtocol'
 import { useDocumentChartTheme } from '../../chart/useDocumentChartTheme'
 import { buildVaultCompositionRows, getAssetChartColors } from '../../grai/vaultComposition'
@@ -428,7 +430,9 @@ export function GraiMintBurnPanel({
     juniorShareUsdRaw,
     isLoading: isEstimateLoading,
   } = useGraiMintEstimate(
-    actionView === 'mint' && assetFlowView === 'deposit' ? selectedAsset?.address : undefined,
+    actionView === 'mint' && assetFlowView === 'deposit' && !isGraiSelected
+      ? selectedAsset?.address
+      : undefined,
     amount,
     decimals,
   )
@@ -439,6 +443,58 @@ export function GraiMintBurnPanel({
   )
 
   const usdScale = chainKind === 'evm' ? GRAI_DECIMALS_EVM : USD_SCALE
+  const [graiDepositBook, setGraiDepositBook] = useState<{
+    totalValue: bigint
+    totalSupply: bigint
+  } | null>(null)
+  const [isGraiBookLoading, setIsGraiBookLoading] = useState(false)
+
+  useEffect(() => {
+    if (actionView !== 'mint' || !isGraiSelected) {
+      setGraiDepositBook(null)
+      setIsGraiBookLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setIsGraiBookLoading(true)
+
+    void (async () => {
+      try {
+        if (chainKind === 'solana' && connection && solana) {
+          const protocol = await fetchGraiProtocol(connection, solana.graiMint)
+          if (cancelled) return
+          setGraiDepositBook({
+            totalValue: protocol.totalValue,
+            totalSupply: protocol.mintSupply.raw,
+          })
+          return
+        }
+
+        if (chainKind === 'evm' && evm) {
+          const client = createGraiEvmPublicClient(evm)
+          const graiAddress = resolveGraiContractAddress(evm)
+          const [totalValue, totalSupply] = await Promise.all([
+            client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalValue' }),
+            client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalSupply' }),
+          ])
+          if (cancelled) return
+          setGraiDepositBook({ totalValue, totalSupply })
+          return
+        }
+
+        if (!cancelled) setGraiDepositBook(null)
+      } catch {
+        if (!cancelled) setGraiDepositBook(null)
+      } finally {
+        if (!cancelled) setIsGraiBookLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [actionView, chainKind, connection, evm, isGraiSelected, solana])
 
   useEffect(() => {
     if (actionView !== 'burn') {
@@ -590,6 +646,25 @@ export function GraiMintBurnPanel({
         return claimUsdLabel
       }
     }
+    if (isGraiSelected) {
+      if (!amount.trim()) return '$0.00'
+      if (isGraiBookLoading) return '…'
+      if (!graiDepositBook || graiDepositBook.totalSupply <= 0n) return '$0.00'
+      try {
+        const graiDecimals = decimals ?? (chainKind === 'evm' ? GRAI_DECIMALS_EVM : GRAI_DECIMALS)
+        const amountRaw = parseTokenAmount(amount, graiDecimals)
+        if (amountRaw <= 0n) return '$0.00'
+        const usdRaw = graiBurnValue(
+          amountRaw,
+          graiDepositBook.totalSupply,
+          graiDepositBook.totalValue,
+        )
+        if (usdRaw <= 0n) return '$0.00'
+        return `$${formatVaultBalanceDisplay(usdRaw, usdScale, 2)}`
+      } catch {
+        return '$0.00'
+      }
+    }
     if (!amount.trim()) return '$0.00'
     if (isEstimateLoading) return '…'
     const totalUsd = seniorShareUsdRaw + juniorShareUsdRaw
@@ -600,9 +675,14 @@ export function GraiMintBurnPanel({
     assetClaim.amountRaw,
     assetClaim.decimals,
     assetClaim.usdRaw,
+    chainKind,
     claimUsdLabel,
+    decimals,
+    graiDepositBook,
     isAssetClaim,
     isEstimateLoading,
+    isGraiBookLoading,
+    isGraiSelected,
     juniorShareUsdRaw,
     seniorShareUsdRaw,
     usdScale,
@@ -1057,7 +1137,16 @@ export function GraiMintBurnPanel({
             maxAmount={maxAmount}
             decimals={decimals ?? (isAssetClaim ? assetClaim.decimals : null)}
             usdLabel={actionView === 'mint' ? mintUsdLabel : redeemUsdLabel}
-            showVolatility={!isAssetClaim}
+            usdTrailingLabel={
+              actionView === 'mint'
+                ? isAssetClaim
+                  ? 'claimable:'
+                  : isGraiUnlock
+                    ? 'escrow:'
+                    : 'balance:'
+                : undefined
+            }
+            showVolatility={false}
             disabled={isClaimAllAssetDividends}
           />
           {isAssetClaim ? (

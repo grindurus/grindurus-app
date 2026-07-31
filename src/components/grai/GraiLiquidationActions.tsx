@@ -2366,6 +2366,7 @@ export function GraiLiquidationActions() {
                 showPresets
                 showVolatility={false}
                 usdLabel={distributeUsdLabel}
+                usdTrailingLabel="balance:"
               />
               {isWalletConnected ? (
                 <div className="grai-action-submit">
@@ -2451,6 +2452,7 @@ export function GraiLiquidationActions() {
               showPresets
               showVolatility={false}
               usdLabel="$0.00"
+              usdTrailingLabel="balance:"
             />
             <div className="grai-action-result-group grai-liquidation-yield-results">
               <div className="grai-action-result" aria-live="polite">
