@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { bossLogsStream } from '../boss/bossLogsStream'
 import { buildGrinderTableFromBossLogs, type GrinderTableRow, type GrinderTableSummary } from '../boss/grinderTable'
 import type { BossGrinderAssetMeta } from '../boss/bossGrindersBootstrap'
@@ -13,7 +13,9 @@ type UseBossGrinderTableResult = {
   isBossReachable: boolean | null
   isLive: boolean
   isBossUnavailable: boolean
+  isRefreshing: boolean
   error: string | null
+  refresh: () => Promise<void>
 }
 
 export function useBossGrinderTable(bossUrls: string[], metadataReady: boolean): UseBossGrinderTableResult {
@@ -22,6 +24,7 @@ export function useBossGrinderTable(bossUrls: string[], metadataReady: boolean):
   const [isConnected, setIsConnected] = useState(false)
   const [isBootstrapped, setIsBootstrapped] = useState(false)
   const [isBossReachable, setIsBossReachable] = useState<boolean | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -65,6 +68,16 @@ export function useBossGrinderTable(bossUrls: string[], metadataReady: boolean):
   const isLive = isBootstrapped && Object.keys(snapshot).length > 0
   const isBossUnavailable = metadataReady && isBootstrapped && !isLive && isBossReachable === false
 
+  const refresh = useCallback(async () => {
+    if (!metadataReady || isRefreshing) return
+    setIsRefreshing(true)
+    try {
+      await bossLogsStream.refresh()
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [metadataReady, isRefreshing])
+
   return {
     rows,
     summary,
@@ -73,6 +86,8 @@ export function useBossGrinderTable(bossUrls: string[], metadataReady: boolean):
     isBossReachable,
     isLive,
     isBossUnavailable,
+    isRefreshing,
     error,
+    refresh,
   }
 }

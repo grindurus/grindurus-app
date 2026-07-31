@@ -28,7 +28,12 @@ export function useGraiMint() {
   } = useGraiEvmTransaction()
 
   const mintSolana = useCallback(
-    async (params: { assetMint: string; amountInput: string; assetDecimals?: number }) => {
+    async (params: {
+      assetMint: string
+      amountInput: string
+      assetDecimals?: number
+      lock?: boolean
+    }) => {
       const amountInput = params.amountInput.trim()
       const assetMint = new PublicKey(params.assetMint)
 
@@ -46,6 +51,7 @@ export function useGraiMint() {
             assetMint,
             amountInput,
             signTransaction,
+            lock: params.lock ?? false,
           }),
       })
 
@@ -55,7 +61,12 @@ export function useGraiMint() {
   )
 
   const mintEvm = useCallback(
-    async (params: { assetMint: string; amountInput: string; assetDecimals: number }) => {
+    async (params: {
+      assetMint: string
+      amountInput: string
+      assetDecimals: number
+      lock?: boolean
+    }) => {
       if (!evm) throw new Error('GRAI is not configured for this EVM network')
 
       const { hash } = await runEvmTx({
@@ -70,6 +81,7 @@ export function useGraiMint() {
             assetAddress: params.assetMint,
             amountInput: params.amountInput,
             assetDecimals: params.assetDecimals,
+            lock: params.lock ?? false,
           }),
       })
 
@@ -79,7 +91,12 @@ export function useGraiMint() {
   )
 
   const mint = useCallback(
-    async (params: { assetMint: string; amountInput: string; assetDecimals?: number }) => {
+    async (params: {
+      assetMint: string
+      amountInput: string
+      assetDecimals?: number
+      lock?: boolean
+    }) => {
       if (chainKind === 'evm') {
         if (params.assetDecimals === undefined) {
           throw new Error('Asset decimals are required for EVM mint')
@@ -88,6 +105,7 @@ export function useGraiMint() {
           assetMint: params.assetMint,
           amountInput: params.amountInput,
           assetDecimals: params.assetDecimals,
+          lock: params.lock,
         })
       }
       return mintSolana(params)

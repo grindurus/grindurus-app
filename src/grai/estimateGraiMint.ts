@@ -1,10 +1,14 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { fetchAccountsByKey, getAccountData } from './accountBatch'
 import type { GraiSolanaRuntime } from './deployments'
-import { decodeMintSupply, decodeSeniorVaultMintSplit, decodeSeniorVaultPriceFeed, parseTokenAmount } from './onchain'
+import {
+  decodeAssetConfigPriceFeed,
+  decodeMintSupply,
+  parseTokenAmount,
+} from './onchain'
 import { parseOraclePriceFeed } from './oraclePrice'
-import { seniorVaultPda } from './pdas'
-import { depositValue, graiMintAmount, mintSplit } from './tokenomics'
+import { assetConfigPda } from './pdas'
+import { depositValue, graiMintAmount } from './tokenomics'
 
 function readU128LE(buf: Buffer, offset: number): bigint {
   let value = 0n
@@ -15,7 +19,8 @@ function readU128LE(buf: Buffer, offset: number): bigint {
 }
 
 function decodeGraiStateTotalValue(data: Buffer): bigint {
-  return readU128LE(data, 40)
+  // After disc(8) + authority/treasury/grinders/bribe (128) → total_value at 136.
+  return readU128LE(data, 136)
 }
 
 function tryParseDepositAmount(amountInput: string, assetDecimals: number): bigint | null {
@@ -31,7 +36,9 @@ function tryParseDepositAmount(amountInput: string, assetDecimals: number): bigi
 
 export type GraiMintEstimate = {
   graiRaw: bigint
+  /** @deprecated Senior vault removed — always 0. */
   seniorRaw: bigint
+  /** Full deposit sent to Grinders (new GRAI model). */
   juniorRaw: bigint
   seniorUsdRaw: bigint
   juniorUsdRaw: bigint
@@ -48,18 +55,18 @@ export async function estimateGraiMintOutput(
   if (depositAmount === null) return null
 
   const graiState = config.graiState
-  const seniorVault = seniorVaultPda(assetMint, config.programId)
+  const assetConfig = assetConfigPda(assetMint, config.programId)
 
-  const accounts = await fetchAccountsByKey(connection, [graiState, config.graiMint, seniorVault])
+  const accounts = await fetchAccountsByKey(connection, [graiState, config.graiMint, assetConfig])
   const graiStateData = getAccountData(accounts, graiState)
   const graiMintData = getAccountData(accounts, config.graiMint)
-  const seniorVaultData = getAccountData(accounts, seniorVault)
+  const assetConfigData = getAccountData(accounts, assetConfig)
 
-  if (!graiStateData || !graiMintData || !seniorVaultData) {
+  if (!graiStateData || !graiMintData || !assetConfigData) {
     throw new Error('Unable to load GRAI mint estimate data')
   }
 
-  const priceFeedKey = decodeSeniorVaultPriceFeed(seniorVaultData)
+  const priceFeedKey = decodeAssetConfigPriceFeed(assetConfigData)
   const priceFeedAccounts = await fetchAccountsByKey(connection, [priceFeedKey])
   const priceFeedAccount = priceFeedAccounts.get(priceFeedKey.toBase58())
 
@@ -78,10 +85,14 @@ export async function estimateGraiMintOutput(
     oracle.decimals,
   )
   const graiRaw = graiMintAmount(depositValueUsd, totalSupply, totalValue)
-  const mintSplitBps = decodeSeniorVaultMintSplit(seniorVaultData)
-  const [seniorRaw, juniorRaw] = mintSplit(depositAmount, mintSplitBps)
-  const seniorUsdRaw = depositValue(seniorRaw, assetDecimals, oracle.price, oracle.decimals)
-  const juniorUsdRaw = depositValue(juniorRaw, assetDecimals, oracle.price, oracle.decimals)
+  // Entire deposit goes to Grinders (no senior mint split).
+  const juniorUsdRaw = depositValueUsd
 
-  return { graiRaw, seniorRaw, juniorRaw, seniorUsdRaw, juniorUsdRaw }
+  return {
+    graiRaw,
+    seniorRaw: 0n,
+    juniorRaw: depositAmount,
+    seniorUsdRaw: 0n,
+    juniorUsdRaw,
+  }
 }

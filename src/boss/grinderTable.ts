@@ -181,7 +181,11 @@ export function mapBossLogToGrinderRow(
     isActive: isActiveLog(log),
     lastActionLabel: lastActionLabelFromLog(log),
     lastAction: formatRelativeTime(log.time),
-    lastTxHash: log.last_tx_hash?.trim() || undefined,
+    lastTxHash: (() => {
+      const hash = log.last_tx_hash?.trim()
+      if (!hash || hash.toLowerCase() === '0x') return undefined
+      return hash
+    })(),
     base: formatTokenAmount(balanceBase, baseAsset),
     quote: formatTokenAmount(balanceQuote, quoteAsset),
     balanceQuote: balanceQuote ?? 0,

@@ -171,8 +171,10 @@
   justify-content: center;
   flex-shrink: 0;
   align-self: stretch;
-  padding: 0 0 0 0.85rem;
+  width: 2.5rem;
+  padding: 0;
   border: 0;
+  border-right: 1px solid var(--header-wallet-accent-border, rgba(192, 96, 144, 0.55));
   background: transparent;
   cursor: pointer;
 }
@@ -182,8 +184,18 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  line-height: 0;
+}
+
+.header-wallet-network-icon .header-settings-network-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
 }
 
 .header-wallet-network-icon .header-settings-network-icon,
@@ -202,7 +214,7 @@
   flex-shrink: 0;
   align-self: stretch;
   width: 1.65rem;
-  padding: 0 0.55rem 0 0;
+  padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -1574,21 +1586,22 @@ html:has(body[data-scroll-locked]) body {
 }
 
 .network-logo-img--ethereum {
-  border-radius: 8px;
-  overflow: hidden;
-  clip-path: inset(0 round 8px);
+  border-radius: 0;
+  overflow: visible;
+  clip-path: none;
+  object-fit: contain;
 }
 
 .network-icon-svg.ethereum {
-  background: linear-gradient(135deg, #627eea 0%, #3c4f9e 100%);
-  color: white;
-  border-radius: 8px;
-  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  overflow: visible;
 }
 
 .network-icon-svg.arbitrum {
-  background: linear-gradient(135deg, #28a0f0 0%, #1c6eb0 100%);
-  color: white;
+  background: transparent;
+  color: inherit;
 }
 
 .network-icon-svg.sepolia {
@@ -2038,17 +2051,18 @@ html:has(body[data-scroll-locked]) body {
   }
 
   .header-wallet-slot--connected .header-wallet-network-btn {
-    padding-left: 0.55rem;
+    width: 2.25rem;
+    padding: 0;
   }
 
   .header-wallet-slot--connected .header-wallet-network-icon {
-    width: 0.95rem;
-    height: 0.95rem;
+    width: 1.2rem;
+    height: 1.2rem;
   }
 
   .header-wallet-slot--connected .header-wallet-address-caret-btn {
     width: 1.45rem;
-    padding-right: 0.45rem;
+    padding: 0;
   }
 
   .header-wallet-slot--connected .header-wallet-address-text {

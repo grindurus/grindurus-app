@@ -1,5 +1,5 @@
-export const GRAI_DECIMALS = 9
-export const USD_SCALE = 9
+export const GRAI_DECIMALS = 6
+export const USD_SCALE = 6
 export const MINT_SPLIT_BPS_MAX = 10_000
 
 function pow10(decimals: number): bigint {

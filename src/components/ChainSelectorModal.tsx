@@ -254,10 +254,9 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
             className={`wallet-tab ${activeTab === 'movevm' ? 'active' : ''}`}
             onClick={() => setActiveTab('movevm')}
           >
-            <div className="wallet-tab-icon movevm-icon">
-              <svg width="16" height="16" viewBox="0 0 100 100" fill="currentColor">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8"/>
-                <path d="M30 50 L45 65 L70 35" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+            <div className="wallet-tab-icon movevm-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 400 400" fill="currentColor">
+                <path d="M383.813 319.691 265.927 36.004a31.518 31.518 0 0 0-56.731.016L91.197 319.679a31.514 31.514 0 0 0 15.5 40.587l63.66 31.667a31.517 31.517 0 0 0 15.566 1.17l36.124-5.137a1.89 1.89 0 0 1 1.935 1.229l17.83 53.559a15.751 15.751 0 0 0 14.877 10.975h47.98a15.749 15.749 0 0 0 14.862-10.995l17.837-53.543a1.893 1.893 0 0 1 1.939-1.229l36.125 5.137a31.515 31.515 0 0 0 15.563-1.171l63.67-31.667a31.513 31.513 0 0 0 15.491-40.574zm-53.737 9.889-48.152 23.941-30.483-4.334a31.518 31.518 0 0 0-32.302 20.468l-6.406 19.236h-25.508l-6.408-19.242a31.52 31.52 0 0 0-32.304-20.462l-30.459 4.334-48.177-23.941 98.63-236.992z" />
               </svg>
             </div>
             MoveVM

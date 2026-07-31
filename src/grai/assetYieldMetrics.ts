@@ -8,8 +8,8 @@ const METRICS_BY_SYMBOL: Record<string, GraiAssetYieldMetrics> = {
   ETH: { volatilityPct: 65.2, projectedAnnualYieldPct: 50 },
   BTC: { volatilityPct: 48.1, projectedAnnualYieldPct: 42 },
   ARB: { volatilityPct: 91.8, projectedAnnualYieldPct: 65 },
-  USDC: { volatilityPct: 0.2, projectedAnnualYieldPct: 5 },
-  USDT: { volatilityPct: 0.2, projectedAnnualYieldPct: 5 },
+  USDC: { volatilityPct: 0.2, projectedAnnualYieldPct: 51 },
+  USDT: { volatilityPct: 0.2, projectedAnnualYieldPct: 51 },
   MATIC: { volatilityPct: 72.5, projectedAnnualYieldPct: 48 },
 }
 

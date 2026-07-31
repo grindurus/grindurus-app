@@ -113,13 +113,35 @@ class BossLogsStreamHub {
     }
   }
 
-  private emitSnapshot(snapshot: BossGrinderLogsSnapshot): void {
-    if (Object.keys(snapshot).length === 0) return
-    this.snapshot = mergeBossLogsSnapshots(this.snapshot, snapshot)
-    this.snapshot = applyGrinderAssetMetaToSnapshot(this.snapshot, this.grinderAssetMeta)
+  private emitSnapshot(snapshot: BossGrinderLogsSnapshot, options?: { replace?: boolean }): void {
+    if (options?.replace) {
+      this.snapshot = applyGrinderAssetMetaToSnapshot(snapshot, this.grinderAssetMeta)
+    } else {
+      if (Object.keys(snapshot).length === 0) return
+      this.snapshot = mergeBossLogsSnapshots(this.snapshot, snapshot)
+      this.snapshot = applyGrinderAssetMetaToSnapshot(this.snapshot, this.grinderAssetMeta)
+    }
     for (const listener of this.listeners) {
       listener.onMessage(this.snapshot, this.grinderAssetMeta)
     }
+  }
+
+  /** Re-fetch Boss `/grinders` and replace the table snapshot (keeps SSE open). */
+  async refresh(): Promise<void> {
+    if (!this.started) {
+      this.start()
+      return
+    }
+    const result = await fetchBossGrindersSnapshot(this.bossUrls)
+    if (result.ok) {
+      this.grinderAssetMeta = mergeGrinderAssetMeta({}, result.assetMeta)
+      this.emitSnapshot(result.snapshot, { replace: true })
+      this.emitBootstrap(true)
+      this.emitError(null)
+      return
+    }
+    this.emitBootstrap(false)
+    this.emitError('Boss API is unreachable')
   }
 
   private clearReconnectTimer(baseUrl: string): void {

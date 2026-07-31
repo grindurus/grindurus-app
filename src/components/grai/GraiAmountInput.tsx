@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../../grai/onchain'
-import { GraiAssetSelect } from './GraiAssetSelect'
+import { GraiAssetSelect, type GraiAssetSelectMenuOption } from './GraiAssetSelect'
 
 export type GraiAmountAsset = {
   icon: string
   symbol: string
   address: string
+  /** Optional secondary line in the dropdown (e.g. claimable balance). */
+  detail?: string
 }
-
-const PRESET_FRACTIONS = [25, 50, 75] as const
 
 type Props = {
   label: string
@@ -18,9 +18,34 @@ type Props = {
   onValueChange: (value: string) => void
   onAssetChange?: (asset: GraiAmountAsset) => void
   balanceLabel: string
+  /** Prefix before the balance amount. Defaults to "Available:". */
+  balancePrefix?: string
+  balanceTopLabel?: string
   maxAmount: string
   decimals: number | null
-  usdLabel: string
+  usdLabel?: string
+  /** Right-aligned grey text on the USD row (e.g. `balance: 12.5` for deposit). */
+  usdTrailingLabel?: string
+  footerStartLabel?: string
+  showPresets?: boolean
+  /** @deprecated Detail under the asset select always shows wallet balance. */
+  showVolatility?: boolean
+  /**
+   * Fill-field layout (matches bribe/auction amount card):
+   * escrow/balance above the card; label + presets above input inside the card.
+   */
+  presetsUnderLabel?: boolean
+  /** Rendered under the footer row inside the amount card. */
+  afterFooter?: ReactNode
+  /** Greys out amount + asset select and blocks interaction. */
+  disabled?: boolean
+  /** Custom dropdown options (e.g. bribe voters). Trigger still shows the selected asset. */
+  selectMenuOptions?: GraiAssetSelectMenuOption[]
+  selectedMenuId?: string | null
+  onSelectMenuOption?: (id: string) => void
+  selectMenuAriaLabel?: string
+  selectAriaLabel?: string
+  selectMenuLeadingAction?: { label: string; onClick: () => void } | null
 }
 
 export function GraiAmountInput({
@@ -31,9 +56,24 @@ export function GraiAmountInput({
   onValueChange,
   onAssetChange,
   balanceLabel,
+  balancePrefix = 'Available:',
+  balanceTopLabel,
   maxAmount,
   decimals,
   usdLabel,
+  usdTrailingLabel,
+  footerStartLabel,
+  showPresets = true,
+  showVolatility: _showVolatility = true,
+  presetsUnderLabel = false,
+  afterFooter,
+  disabled = false,
+  selectMenuOptions,
+  selectedMenuId,
+  onSelectMenuOption,
+  selectMenuAriaLabel,
+  selectAriaLabel,
+  selectMenuLeadingAction = null,
 }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState<string | undefined>(defaultAsset)
 
@@ -72,56 +112,162 @@ export function GraiAmountInput({
     [decimals, maxAmount, onValueChange],
   )
 
-  return (
-    <div className="grai-amount-input">
-      <div className="grai-amount-input-header">
+  const useFillLayout = Boolean(presetsUnderLabel)
+  const showPresetsInHeader = showPresets && useFillLayout
+  const showPresetsInField = showPresets && !useFillLayout
+  const showFooter = Boolean(footerStartLabel)
+  const showMetaAboveField = useFillLayout && Boolean(balanceTopLabel || balanceLabel)
+  const isGraiAsset = selectedAsset?.symbol.toUpperCase() === 'GRAI'
+  const balanceText =
+    balanceLabel.replace(new RegExp(`\\s*${selectedAsset?.symbol ?? ''}$`), '').trim() || balanceLabel
+  const showUsdSlot = Boolean(usdLabel || usdTrailingLabel)
+  const usdCollapsed = Boolean(usdLabel) && !usdTrailingLabel && isGraiAsset
+  const assetSelectDetailLabel = balanceText
+  const presetButtons = showPresets ? (
+    <div className="grai-amount-preset-btns" aria-label="Amount presets">
+      <button
+        type="button"
+        className="grai-amount-preset-btn"
+        onClick={() => applyFraction(1)}
+        disabled={disabled || !maxAmount}
+      >
+        MAX
+      </button>
+    </div>
+  ) : null
+
+  const card = (
+    <div className={`grai-amount-input${useFillLayout ? ' is-fill-layout' : ''}${disabled ? ' is-disabled' : ''}`}>
+      <div
+        className={[
+          'grai-amount-input-header',
+          !useFillLayout && balanceTopLabel ? 'has-balance-top' : '',
+          useFillLayout ? 'is-fill-header' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {!useFillLayout && balanceTopLabel ? (
+          <span className="grai-amount-input-balance-top" aria-live="polite">
+            {balanceTopLabel}
+          </span>
+        ) : null}
         <span className="grai-amount-input-label">{label}</span>
-        <span className="grai-amount-input-balance" aria-label={`Balance of ${selectedAsset?.symbol ?? 'asset'}`}>
-          Balance: {balanceLabel.replace(new RegExp(`\\s*${selectedAsset?.symbol ?? ''}$`), '').trim() || balanceLabel}
-        </span>
+        {showPresetsInHeader ? (
+          <span className="grai-amount-input-tools">{presetButtons}</span>
+        ) : null}
       </div>
       <div className="grai-amount-input-field">
-        <input
-          type="text"
-          inputMode="decimal"
-          className="grai-amount-input-control"
-          placeholder="0.00"
-          value={value}
-          onChange={(e) => onValueChange(normalizeDecimalInput(e.target.value, decimals ?? 9))}
-          aria-label={label}
-        />
+        <div className="grai-amount-input-main">
+          <div
+            className={[
+              'grai-amount-input-value-col',
+              showUsdSlot ? 'has-usd' : '',
+              usdCollapsed ? 'is-usd-collapsed' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            <input
+              type="text"
+              inputMode="decimal"
+              className="grai-amount-input-control"
+              placeholder="0.00"
+              value={value}
+              onChange={(e) => onValueChange(normalizeDecimalInput(e.target.value, decimals ?? 9))}
+              aria-label={label}
+              disabled={disabled}
+              readOnly={disabled}
+            />
+          </div>
+          {showPresetsInField ? (
+            <div className="grai-amount-input-max" aria-label="Amount presets">
+              <button
+                type="button"
+                className="grai-amount-preset-btn grai-amount-preset-btn--field"
+                onClick={() => applyFraction(1)}
+                disabled={disabled || !maxAmount}
+              >
+                MAX
+              </button>
+            </div>
+          ) : null}
+          {showUsdSlot ? (
+            <span
+              className={[
+                'grai-amount-input-usd',
+                !value.trim() && !usdTrailingLabel ? 'is-placeholder' : '',
+                usdCollapsed ? 'is-collapsed' : '',
+                usdTrailingLabel ? 'has-trailing' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-live="polite"
+              aria-hidden={usdCollapsed}
+            >
+              {usdLabel ? (
+                <span className={`grai-amount-input-usd-start${value.trim() ? '' : ' is-placeholder'}`}>
+                  {usdLabel}
+                </span>
+              ) : (
+                <span />
+              )}
+              {usdTrailingLabel ? (
+                <span className="grai-amount-input-usd-trailing">{usdTrailingLabel}</span>
+              ) : null}
+            </span>
+          ) : null}
+        </div>
         <GraiAssetSelect
           assets={assets}
           selected={selectedAsset}
           onSelect={(asset) => setSelectedSymbol(asset.symbol)}
+          detailLabel={assetSelectDetailLabel}
+          detailAriaLabel={`${balancePrefix} ${balanceText}`.replace(/\s+/g, ' ').trim()}
+          disabled={disabled}
+          ariaLabel={selectAriaLabel}
+          menuOptions={selectMenuOptions}
+          selectedMenuId={selectedMenuId}
+          onSelectMenuOption={onSelectMenuOption}
+          menuAriaLabel={selectMenuAriaLabel}
+          menuLeadingAction={selectMenuLeadingAction}
         />
       </div>
-      <div className="grai-amount-input-footer">
-        <span className={`grai-amount-input-usd${value.trim() ? '' : ' is-placeholder'}`} aria-live="polite">
-          {usdLabel}
-        </span>
-        <div className="grai-amount-preset-btns" aria-label="Amount presets">
-          {PRESET_FRACTIONS.map((percent) => (
-            <button
-              key={percent}
-              type="button"
-              className="grai-amount-preset-btn"
-              onClick={() => applyFraction(percent / 100)}
-              disabled={!maxAmount}
+      {showFooter ? (
+        <div className="grai-amount-input-footer">
+          {footerStartLabel ? (
+            <span
+              className={`grai-amount-input-footer-start${value.trim() ? '' : ' is-placeholder'}`}
+              aria-live="polite"
             >
-              {percent}%
-            </button>
-          ))}
-          <button
-            type="button"
-            className="grai-amount-preset-btn"
-            onClick={() => applyFraction(1)}
-            disabled={!maxAmount}
-          >
-            MAX
-          </button>
+              {footerStartLabel}
+            </span>
+          ) : null}
         </div>
-      </div>
+      ) : null}
+      {afterFooter ? <div className="grai-amount-input-after-footer">{afterFooter}</div> : null}
+    </div>
+  )
+
+  if (!useFillLayout) return card
+
+  return (
+    <div className="grai-amount-input-fill-wrap">
+      {showMetaAboveField ? (
+        <div className="grai-amount-input-meta">
+          {balanceTopLabel ? (
+            <span className="grai-amount-input-balance-top" aria-live="polite">
+              {balanceTopLabel}
+            </span>
+          ) : (
+            <span />
+          )}
+          <span className="grai-amount-input-balance" aria-label={`Balance of ${selectedAsset?.symbol ?? 'asset'}`}>
+            {balancePrefix} {balanceText}
+          </span>
+        </div>
+      ) : null}
+      {card}
     </div>
   )
 }

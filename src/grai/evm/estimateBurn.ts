@@ -39,7 +39,7 @@ export async function estimateEvmGraiBurnOutputs(
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
 
-  const [totalSupply, vaults, oracleAddress] = await Promise.all([
+  const [totalSupply, vaults] = await Promise.all([
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
@@ -48,12 +48,7 @@ export async function estimateEvmGraiBurnOutputs(
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
-      functionName: 'getVaults',
-    }),
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'oracle',
+      functionName: 'getVaultsData',
     }),
   ])
 
@@ -85,7 +80,7 @@ export async function estimateEvmGraiBurnOutputs(
       if (redeemRaw > 0n) {
         try {
           const [price, priceDecimals] = await client.readContract({
-            address: oracleAddress,
+            address: graiAddress,
             abi: priceOracleAbi,
             functionName: 'getPrice',
             args: [vault.asset],

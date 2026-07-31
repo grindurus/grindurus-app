@@ -1,26 +1,32 @@
 import {
   Connection,
   PublicKey,
+  SystemProgram,
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
-import { fetchGraiStateFixedFields } from './graiStateCache'
-import { fetchMintDecimals, fetchSeniorVaultPriceFeed, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
+import { fetchGraiProtocol } from './fetchGraiProtocol'
+import { fetchAssetConfigPriceFeed, fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
 import {
-  custodyAllocationPda,
+  resolveSolanaAllocateCustodyAccounts,
+  resolveSolanaGrindersProgramId,
+} from './solanaAllocateCustody'
+import {
+  assetConfigPda,
   getAssociatedTokenAddress,
-  seniorVaultAtaPda,
-  seniorVaultPda,
   TOKEN_PROGRAM_ID,
+  vaultAtaPda,
+  positionPda,
 } from './pdas'
 
-const DISTRIBUTE_DISCRIMINATOR = Buffer.from([191, 44, 223, 207, 164, 236, 126, 61])
+/** grinders::custodian_distribute discriminator */
+const CUSTODIAN_DISTRIBUTE_DISCRIMINATOR = Buffer.from([181, 75, 97, 68, 255, 95, 111, 21])
 
 function encodeDistributeInstructionData(yieldAmount: bigint): Buffer {
   const data = Buffer.alloc(16)
-  DISTRIBUTE_DISCRIMINATOR.copy(data, 0)
+  CUSTODIAN_DISTRIBUTE_DISCRIMINATOR.copy(data, 0)
   data.writeBigUInt64LE(yieldAmount, 8)
   return data
 }
@@ -29,6 +35,10 @@ export type BuildDistributeTransactionParams = {
   custodyWallet: PublicKey
   assetMint: PublicKey
   yieldAmount: bigint
+  /** Signs as grinders custodian NFT owner; defaults to custodyWallet when omitted. */
+  owner?: PublicKey
+  /** Pays for Position init; defaults to owner. */
+  payer?: PublicKey
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -37,6 +47,8 @@ export async function buildDistributeTransaction({
   custodyWallet,
   assetMint,
   yieldAmount,
+  owner,
+  payer,
   connection,
   config,
 }: BuildDistributeTransactionParams): Promise<Transaction> {
@@ -46,34 +58,59 @@ export async function buildDistributeTransaction({
 
   const programId = config.programId
   const graiState = graiStatePda(programId)
-  const seniorVault = seniorVaultPda(assetMint, programId)
-  const seniorVaultAta = seniorVaultAtaPda(assetMint, programId)
+  const grindersProgram = resolveSolanaGrindersProgramId(config.cluster)
+  const { custodianRecord } = await resolveSolanaAllocateCustodyAccounts(
+    connection,
+    custodyWallet,
+    grindersProgram,
+  )
+
+  const protocol = await fetchGraiProtocol(connection, config.graiMint)
+  const settlementMint = protocol.settlementAsset
+  if (settlementMint.equals(PublicKey.default)) {
+    throw new Error('Settlement asset is not set on GRAI protocol')
+  }
+
+  const assetConfig = assetConfigPda(assetMint, programId)
+  const settlementAssetConfig = assetConfigPda(settlementMint, programId)
+  const priceFeed = await fetchAssetConfigPriceFeed(connection, assetConfig)
+  const settlementPriceFeed = await fetchAssetConfigPriceFeed(connection, settlementAssetConfig)
   const custodyAta = getAssociatedTokenAddress(assetMint, custodyWallet)
-  const custodyAllocation = custodyAllocationPda(custodyWallet, assetMint, programId)
-  const priceFeed = await fetchSeniorVaultPriceFeed(connection, seniorVault)
-  const { treasuryWallet } = await fetchGraiStateFixedFields(connection, config)
-  const treasuryAta = getAssociatedTokenAddress(assetMint, treasuryWallet)
+  const vaultAta = vaultAtaPda(assetMint, programId)
+  const treasuryAta = getAssociatedTokenAddress(assetMint, protocol.treasury)
+  const position = positionPda(custodyWallet, assetMint, programId)
+
+  const signer = owner ?? custodyWallet
+  const feePayer = payer ?? signer
 
   const distributeIx = new TransactionInstruction({
-    programId,
+    programId: grindersProgram,
     keys: [
-      { pubkey: custodyWallet, isSigner: true, isWritable: false },
+      { pubkey: signer, isSigner: true, isWritable: false },
+      { pubkey: feePayer, isSigner: true, isWritable: true },
+      { pubkey: custodyWallet, isSigner: false, isWritable: false },
+      { pubkey: custodianRecord, isSigner: false, isWritable: false },
+      { pubkey: programId, isSigner: false, isWritable: false },
       { pubkey: graiState, isSigner: false, isWritable: true },
       { pubkey: assetMint, isSigner: false, isWritable: false },
+      { pubkey: assetConfig, isSigner: false, isWritable: true },
       { pubkey: priceFeed, isSigner: false, isWritable: false },
-      { pubkey: seniorVault, isSigner: false, isWritable: true },
-      { pubkey: custodyAllocation, isSigner: false, isWritable: true },
+      { pubkey: settlementMint, isSigner: false, isWritable: false },
+      { pubkey: settlementAssetConfig, isSigner: false, isWritable: false },
+      { pubkey: settlementPriceFeed, isSigner: false, isWritable: false },
       { pubkey: custodyAta, isSigner: false, isWritable: true },
-      { pubkey: seniorVaultAta, isSigner: false, isWritable: true },
+      { pubkey: vaultAta, isSigner: false, isWritable: true },
       { pubkey: treasuryAta, isSigner: false, isWritable: true },
+      { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: encodeDistributeInstructionData(yieldAmount),
   })
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   const transaction = new Transaction({
-    feePayer: custodyWallet,
+    feePayer,
     blockhash,
     lastValidBlockHeight,
   })
@@ -86,6 +123,8 @@ export type ExecuteDistributeParams = {
   custodyWallet: PublicKey
   assetMint: PublicKey
   amountInput: string
+  owner?: PublicKey
+  payer?: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
   connection: Connection
   config: GraiSolanaRuntime
@@ -95,6 +134,8 @@ export async function executeDistribute({
   custodyWallet,
   assetMint,
   amountInput,
+  owner,
+  payer,
   signTransaction,
   connection,
   config,
@@ -105,6 +146,8 @@ export async function executeDistribute({
     custodyWallet,
     assetMint,
     yieldAmount,
+    owner,
+    payer,
     connection,
     config,
   })

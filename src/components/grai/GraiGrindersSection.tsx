@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { Settings } from 'lucide-react'
 import { WalletNetworkSelect } from '../WalletNetworkSelect'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
 import { useBossGrinderTable } from '../../hooks/useBossGrinderTable'
@@ -7,8 +8,6 @@ import { useGrinderLastTx } from '../../hooks/useGrinderLastTx'
 import { useWalletContext } from '../../providers/AppWalletProvider'
 import { summarizeGrinderTableRows } from '../../boss/grinderTable'
 import { grinderRowMatchesCaip2Network } from '../../wallet/caip2Network'
-import { toAppPath } from '../../utils/appPaths'
-import { navigateToGraiSection } from '../../utils/graiNavigation'
 import {
   GraiGrinderCountValue,
   GraiGrinderLastTxCell,
@@ -46,6 +45,8 @@ export function GraiGrindersSection() {
     isLive: isBossGrinderLive,
     isBootstrapped: isBossGrinderBootstrapped,
     isBossUnavailable,
+    isRefreshing: isBossGrinderRefreshing,
+    refresh: refreshBossGrinders,
   } = useBossGrinderTable(bossEndpoints.activeUrls, bossEndpoints.isMetadataReady)
   const walletNetworkCaip2 = activeWallet.networkCaip2
   const isGrindersNetworkFilterActive =
@@ -152,32 +153,37 @@ export function GraiGrindersSection() {
     </button>
   )
 
-  const grinderNetworkAction = isGrinderNetworkConnected ? (
+  const compactToolbarNetworkAction = isGrinderNetworkConnected ? (
     <WalletNetworkSelect variant="compact" ariaLabel="Select wallet network" />
   ) : (
     <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
   )
-  const compactToolbarNetworkAction = isGrinderNetworkConnected ? (
-    <WalletNetworkSelect variant="compact" ariaLabel="Select wallet network" />
-  ) : null
-  const grindersSummaryFilterRow = isCompactGrindersLayout ? (
-    <div className="grai-grinders-summary-filter-wrap grai-grinders-summary-filter-wrap--compact-row">
+  const grindersSummaryFilterRow = (
+    <div
+      className={`grai-grinders-summary-filter-wrap${
+        isCompactGrindersLayout ? ' grai-grinders-summary-filter-wrap--compact-row' : ''
+      }`}
+    >
       {grindersNetworkFilterToggle}
-      {compactToolbarNetworkAction ? (
+      {isCompactGrindersLayout ? (
         <span className="grai-grinders-summary-toolbar-network">
           <span className="grai-grinders-network-action">{compactToolbarNetworkAction}</span>
         </span>
       ) : null}
     </div>
+  )
+
+  const desktopNetworkAction = isGrinderNetworkConnected ? (
+    <WalletNetworkSelect variant="compact" ariaLabel="Selected wallet network" />
   ) : (
-    <div className="grai-grinders-summary-filter-wrap">{grindersNetworkFilterToggle}</div>
+    <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
   )
 
   const bossEndpointsToggle = (
     <div className="grai-grinders-summary-toggle grai-grinders-endpoints-toggle-wrap">
       <button
         type="button"
-        className={`grai-donut-legend-toggle grai-grinders-endpoints-toggle ${isBossEndpointsOpen ? '' : 'is-collapsed'}`}
+        className={`grai-donut-legend-toggle grai-grinders-endpoints-toggle is-icon${isBossEndpointsOpen ? '' : ' is-collapsed'}`}
         onClick={(event) => {
           event.stopPropagation()
           toggleBossEndpoints()
@@ -185,24 +191,14 @@ export function GraiGrindersSection() {
         aria-expanded={isBossEndpointsOpen}
         aria-controls="grai-boss-endpoints-panel"
         aria-label={isBossEndpointsOpen ? 'Hide endpoints' : 'View endpoints'}
+        title={isBossEndpointsOpen ? 'Hide endpoints' : 'View endpoints'}
       >
-        <span className="grai-grinders-section-toggle-inner">
-          <span className="grai-grinders-section-toggle-label" aria-hidden="true">
-            {isBossEndpointsOpen ? 'HIDE ENDPOINTS' : 'VIEW ENDPOINTS'}
-          </span>
-          <svg
-            className="grai-donut-legend-toggle-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </span>
+        <Settings
+          className="grai-grinders-endpoints-gear-icon"
+          size={16}
+          strokeWidth={2.2}
+          aria-hidden="true"
+        />
       </button>
     </div>
   )
@@ -218,7 +214,7 @@ export function GraiGrindersSection() {
             className="grai-grinders-group-title is-network is-stacked grai-grinders-network-slot--desktop"
           >
             <span className="grai-grinders-network-main">
-              <span className="grai-grinders-network-action">{grinderNetworkAction}</span>
+              <span className="grai-grinders-network-action">{desktopNetworkAction}</span>
             </span>
           </span>
           ) : null}
@@ -335,17 +331,18 @@ export function GraiGrindersSection() {
                     </span>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-grinder" aria-label="Grinders">
-                    <a
-                      href={`${toAppPath('/grai')}#allocate`}
+                    <button
+                      type="button"
                       className="grai-grinders-col-grinder-link"
-                      title="Grinder management"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        navigateToGraiSection('allocate')
-                      }}
+                      title="Re-fetch /grinders"
+                      aria-label="Update grinders table from Boss"
+                      disabled={!bossEndpoints.isMetadataReady || isBossGrinderRefreshing}
+                      onClick={() => void refreshBossGrinders()}
                     >
-                      <span className="grai-grinders-col-head-label">GRINDERS</span>
-                    </a>
+                      <span className="grai-grinders-col-head-label">
+                        {isBossGrinderRefreshing ? '…' : 'GRINDERS'}
+                      </span>
+                    </button>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-head is-last-action">
                     <span className="grai-grinders-col-head-inner">
@@ -389,6 +386,7 @@ export function GraiGrindersSection() {
                     <div className="grai-grinders-row" role="row" key={row.id}>
                       <GraiGrinderLastTxCell
                         lastActionLabel={row.lastActionLabel}
+                        terminal={row.terminal}
                         txState={grinderLastTx[row.id]}
                       />
                       <GraiGrinderTableName
@@ -484,8 +482,8 @@ export function GraiGrindersSection() {
                 </span>
               </span>
             </button>
+            {bossEndpointsToggle}
           </div>
-          {bossEndpointsToggle}
         </div>
         <div className="grai-grinders-summary-endpoints-panel-row">
           <div

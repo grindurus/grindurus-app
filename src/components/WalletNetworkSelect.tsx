@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import baseNetworkIcon from '../assets/base-network.svg'
+import ethereumNetworkIcon from '../assets/ethereum-network.svg'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
@@ -11,6 +12,23 @@ import './WalletStyles.css'
 type WalletNetworkSelectProps = {
   variant?: 'inline' | 'compact'
   ariaLabel?: string
+}
+
+function shortNetworkLabel(name: string, chainType: 'evm' | 'solana' | null): string {
+  const key = name.trim().toLowerCase()
+  if (chainType === 'evm') {
+    if (key === 'ethereum') return 'ETH'
+    if (key === 'arbitrum') return 'ARB'
+    if (key === 'sepolia') return 'SEP'
+    if (key === 'base') return 'BASE'
+    if (key === 'base sepolia') return 'BSEP'
+  }
+  if (chainType === 'solana') {
+    if (key === 'mainnet' || key === 'mainnet-beta') return 'SOL'
+    if (key === 'devnet') return 'DEV'
+    if (key === 'testnet') return 'TEST'
+  }
+  return name.length > 4 ? name.slice(0, 3).toUpperCase() : name.toUpperCase()
 }
 
 function chainIdToEvmChain(chainId: number): EvmChain | null {
@@ -24,7 +42,7 @@ function EvmChainListIcon({ name }: { name: string }) {
   if (name === 'Ethereum') {
     return (
       <img
-        src="https://assets.coingecko.com/coins/images/279/small/ethereum.png"
+        src={ethereumNetworkIcon}
         alt=""
         width={20}
         height={20}
@@ -234,7 +252,9 @@ export function WalletNetworkSelect({
           <span
             className={`wallet-network-select-value${isCompact ? ' grai-grinders-network-select-value' : ''}`}
           >
-            {activeWallet.networkName}
+            {isCompact
+              ? shortNetworkLabel(activeWallet.networkName, activeWallet.chainType)
+              : activeWallet.networkName}
           </span>
         </span>
         <svg

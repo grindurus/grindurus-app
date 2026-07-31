@@ -1,5 +1,5 @@
 import { useAccount, useDisconnect, useChainId, useSwitchChain, useConnect } from 'wagmi'
-import { mainnet, base, arbitrum, sepolia, baseSepolia } from 'wagmi/chains'
+import { mainnet, base, arbitrum, sepolia } from 'wagmi/chains'
 import { useMemo, useCallback, useState, useEffect } from 'react'
 import type { EvmWalletSnapshot } from '../providers/evmWalletTypes'
 
@@ -8,7 +8,6 @@ const chainNames: Record<number, string> = {
   [base.id]: 'Base',
   [arbitrum.id]: 'Arbitrum',
   [sepolia.id]: 'Sepolia',
-  [baseSepolia.id]: 'Base Sepolia',
 }
 
 export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
@@ -67,7 +66,6 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
       { id: base.id, name: 'Base', icon: '🔵' },
       { id: arbitrum.id, name: 'Arbitrum', icon: '🔷' },
       { id: sepolia.id, name: 'Sepolia', icon: '🧪' },
-      { id: baseSepolia.id, name: 'Base Sepolia', icon: '🔷' },
     ],
     [],
   )

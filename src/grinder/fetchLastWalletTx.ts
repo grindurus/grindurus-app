@@ -181,7 +181,13 @@ function readCaip2SolanaCluster(network?: string): 'mainnet-beta' | 'devnet' | u
 
 function isCowTerminal(terminal?: string): boolean {
   const normalized = terminal?.trim().toLowerCase() ?? ''
-  return normalized === 'cow' || normalized === 'evm_cow_protocol'
+  return (
+    normalized === 'cow' ||
+    normalized === 'evm_cow_protocol' ||
+    normalized === 'eip155:cow' ||
+    normalized.includes(':cow') ||
+    normalized.includes('cow')
+  )
 }
 
 export function resolveGrinderChainId(params: { terminal?: string; network?: string }): number {

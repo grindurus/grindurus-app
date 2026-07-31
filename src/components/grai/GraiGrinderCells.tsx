@@ -51,49 +51,94 @@ export function GraiGrinderTableName({
 
 export function GraiGrinderLastTxCell({
   lastActionLabel,
+  terminal,
   txState,
 }: {
   lastActionLabel: string
+  terminal?: string
   txState?: GrinderLastTxEntry
 }) {
-  if (txState?.status === 'ready') {
+  const terminalKind = resolveGrinderTerminalKind(terminal)
+  const hash =
+    txState?.status === 'ready' || txState?.status === 'hashOnly' ? txState.hash.trim() : ''
+  const hasHash = Boolean(hash) && hash.toLowerCase() !== '0x'
+  const hashLabel = hasHash ? formatTxHashShort(hash) : '—'
+  const title = hasHash
+    ? `${lastActionLabel} · ${hash}`
+    : txState?.status === 'empty'
+      ? `${lastActionLabel} · no last transaction from Boss logs`
+      : `${lastActionLabel} · no last transaction`
+
+  const icon =
+    terminalKind === 'binance' ? (
+      <img
+        className="grai-grinder-last-tx-terminal-icon"
+        src="https://assets.coingecko.com/markets/images/52/small/binance.jpg"
+        alt=""
+        width={16}
+        height={16}
+        loading="lazy"
+        decoding="async"
+      />
+    ) : terminalKind === 'cow' ? (
+      <img
+        className="grai-grinder-last-tx-terminal-icon"
+        src="https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/cow-token.svg"
+        alt=""
+        width={16}
+        height={16}
+        loading="lazy"
+        decoding="async"
+      />
+    ) : null
+
+  const content = (
+    <>
+      {icon}
+      <span className="grai-grinder-last-tx-hash">{hashLabel}</span>
+    </>
+  )
+
+  if (txState?.status === 'ready' && hasHash) {
     return (
-      <span role="cell" className="grai-grinder-last-tx">
+      <span role="cell" className="grai-grinder-last-tx" title={title}>
         <a
           href={txState.explorerUrl}
           target="_blank"
           rel="noreferrer"
           className="grai-grinder-last-tx-link"
-          title={`${lastActionLabel} · ${txState.hash}`}
         >
-          {formatTxHashShort(txState.hash)}
+          {content}
         </a>
       </span>
     )
   }
 
-  if (txState?.status === 'hashOnly') {
-    return (
-      <span role="cell" className="grai-grinder-last-tx" title={`${lastActionLabel} · ${txState.hash}`}>
-        {formatTxHashShort(txState.hash)}
-      </span>
-    )
-  }
-
-  const fallbackTitle =
-    txState?.status === 'empty'
-      ? `${lastActionLabel} · no last transaction from Boss logs`
-      : 'No last transaction'
-
   return (
     <span
       role="cell"
-      className="grai-grinder-last-tx is-fallback is-placeholder"
-      title={fallbackTitle}
+      className={`grai-grinder-last-tx${!hasHash ? ' is-fallback is-placeholder' : ''}`}
+      title={title}
     >
-      —
+      {content}
     </span>
   )
+}
+
+function resolveGrinderTerminalKind(terminal?: string): 'binance' | 'cow' | null {
+  const value = terminal?.trim().toLowerCase() ?? ''
+  if (!value) return null
+  if (value === 'ccxt:binance' || value.includes('binance')) return 'binance'
+  if (
+    value === 'eip155:cow' ||
+    value === 'cow' ||
+    value === 'evm_cow_protocol' ||
+    value.includes(':cow') ||
+    value.includes('cow')
+  ) {
+    return 'cow'
+  }
+  return null
 }
 
 function buildGrinderTvlValueHint(totalUsd: number, rows: GrinderTvlBreakdownRow[]): ReactNode {

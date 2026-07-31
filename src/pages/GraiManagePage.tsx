@@ -767,7 +767,7 @@ export function GraiManageSection() {
   } = useGraiAllocate()
 
   const {
-    distribute,
+    custodianDistribute: distribute,
     reset: resetDistribute,
     status: distributeStatus,
     error: distributeError,
