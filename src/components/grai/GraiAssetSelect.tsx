@@ -200,7 +200,12 @@ export function GraiAssetSelect({
                           decoding="async"
                         />
                       </span>
-                      <span className="grai-asset-select-symbol">{asset.symbol}</span>
+                      <span className="grai-asset-select-option-copy">
+                        <span className="grai-asset-select-symbol">{asset.symbol}</span>
+                        {asset.detail ? (
+                          <span className="grai-asset-select-option-detail">{asset.detail}</span>
+                        ) : null}
+                      </span>
                     </button>
                     {explorerHref ? (
                       <a

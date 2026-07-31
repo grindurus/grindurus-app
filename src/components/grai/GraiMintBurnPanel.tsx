@@ -386,11 +386,27 @@ export function GraiMintBurnPanel({
 
   const {
     claim: assetClaim,
+    claims: assetClaims,
     claimableLabel,
     claimableMaxAmount,
     usdLabel: claimUsdLabel,
     refresh: refreshClaimEstimate,
   } = useGraiClaimEstimate(isAssetClaim, selectedAsset?.address)
+
+  const mintAssetSelectOptions = useMemo(() => {
+    if (!isAssetClaim) return mintAssetOptions
+    const byMint = new Map(
+      assetClaims.map((row) => [row.assetAddress.toLowerCase(), row] as const),
+    )
+    return mintAssetOptions.map((asset) => {
+      if (asset.symbol.toUpperCase() === 'GRAI') return asset
+      const claim = byMint.get(asset.address.toLowerCase())
+      return {
+        ...asset,
+        detail: claim?.amountLabel ?? '0',
+      }
+    })
+  }, [assetClaims, isAssetClaim, mintAssetOptions])
 
   useEffect(() => {
     if (!claimAllDividends && isPreviewOpen && isAssetClaim) {
@@ -1021,7 +1037,7 @@ export function GraiMintBurnPanel({
                       : 'Deposit Amount'
                 : 'Amount'
             }
-            assets={actionView === 'mint' ? mintAssetOptions : redeemAssetOptions}
+            assets={actionView === 'mint' ? mintAssetSelectOptions : redeemAssetOptions}
             defaultAsset={
               actionView === 'mint' ? (forcedDefaultAsset ?? mintDefaultAsset) : 'GRAI'
             }
@@ -1032,9 +1048,11 @@ export function GraiMintBurnPanel({
             balancePrefix={
               isGraiUnlock
                 ? 'Your escrow balance:'
-                : isGraiSelected
-                  ? 'Your balance:'
-                  : 'Available:'
+                : isAssetClaim
+                  ? 'Claimable:'
+                  : isGraiSelected
+                    ? 'Your balance:'
+                    : 'Available:'
             }
             maxAmount={maxAmount}
             decimals={decimals ?? (isAssetClaim ? assetClaim.decimals : null)}

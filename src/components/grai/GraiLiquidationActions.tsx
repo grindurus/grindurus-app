@@ -1041,9 +1041,6 @@ export function GraiLiquidationActions() {
     if (section === 'vote' || section === 'bribe') return 'market'
     return 'distribute'
   })
-  const opsTabsRef = useRef<HTMLElement | null>(null)
-  const opsMainRef = useRef<HTMLDivElement | null>(null)
-  const opsSwitchAnchorRef = useRef<{ tabsTop: number; mainHeight: number } | null>(null)
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {
@@ -1095,17 +1092,6 @@ export function GraiLiquidationActions() {
 
   const handleOpsViewChange = useCallback(
     (view: 'distribute' | 'buyback' | 'market' | 'liquidate' | 'redeem') => {
-      const tabs = opsTabsRef.current
-      const main = opsMainRef.current
-      if (tabs && main && view !== opsView) {
-        opsSwitchAnchorRef.current = {
-          tabsTop: tabs.getBoundingClientRect().top,
-          mainHeight: main.getBoundingClientRect().height,
-        }
-      } else {
-        opsSwitchAnchorRef.current = null
-      }
-
       setOpsView(view)
       if (view === 'buyback') {
         void refreshBuybackAuctions()
@@ -1126,76 +1112,8 @@ export function GraiLiquidationActions() {
         window.history.replaceState({}, '', `${window.location.pathname}${hash}`)
       }
     },
-    [marketView, opsView, refreshBuybackAuctions],
+    [marketView, refreshBuybackAuctions],
   )
-
-  useLayoutEffect(() => {
-    const anchor = opsSwitchAnchorRef.current
-    const main = opsMainRef.current
-    const tabs = opsTabsRef.current
-    if (!anchor || !main) return
-    opsSwitchAnchorRef.current = null
-
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const from = anchor.mainHeight
-    const to = main.scrollHeight
-
-    const lockTabsInPlace = (behavior: ScrollBehavior) => {
-      if (!tabs) return
-      const delta = tabs.getBoundingClientRect().top - anchor.tabsTop
-      if (Math.abs(delta) < 0.5) return
-      window.scrollBy({ top: delta, behavior })
-    }
-
-    if (reduceMotion || Math.abs(to - from) < 1) {
-      lockTabsInPlace(reduceMotion ? 'auto' : 'smooth')
-      return
-    }
-
-    main.style.height = `${from}px`
-    main.style.overflow = 'hidden'
-    void main.offsetHeight
-    main.style.transition = 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-    main.style.height = `${to}px`
-
-    let raf = 0
-    const syncScroll = () => {
-      lockTabsInPlace('auto')
-      raf = requestAnimationFrame(syncScroll)
-    }
-    raf = requestAnimationFrame(syncScroll)
-
-    let finished = false
-    const finish = () => {
-      if (finished) return
-      finished = true
-      cancelAnimationFrame(raf)
-      main.style.height = ''
-      main.style.transition = ''
-      main.style.overflow = ''
-      lockTabsInPlace('auto')
-    }
-
-    const onEnd = (event: TransitionEvent) => {
-      if (event.target !== main || event.propertyName !== 'height') return
-      main.removeEventListener('transitionend', onEnd)
-      finish()
-    }
-    main.addEventListener('transitionend', onEnd)
-    const timeout = window.setTimeout(() => {
-      main.removeEventListener('transitionend', onEnd)
-      finish()
-    }, 500)
-
-    return () => {
-      window.clearTimeout(timeout)
-      cancelAnimationFrame(raf)
-      main.removeEventListener('transitionend', onEnd)
-      main.style.height = ''
-      main.style.transition = ''
-      main.style.overflow = ''
-    }
-  }, [opsView])
 
   const handleMarketViewChange = useCallback((view: 'vote' | 'bribe') => {
     setOpsView('market')
@@ -2412,12 +2330,12 @@ export function GraiLiquidationActions() {
       ) : null}
 
       <div className="grai-liquidation-ops-layout">
-      <aside ref={opsTabsRef} className="grai-liquidation-ops-tabs">
+      <aside className="grai-liquidation-ops-tabs">
         <h3 className="grai-liquidation-ops-heading">GRAI operations</h3>
         {opsTabs}
       </aside>
 
-      <div ref={opsMainRef} className="grai-liquidation-ops-main">
+      <div className="grai-liquidation-ops-main">
       {opsView === 'distribute' ? (
       <div className="grai-liquidation-distribute-screen" id="grai-distribute-section">
         <h3 className="grai-liquidation-distribute-title">Distribute</h3>

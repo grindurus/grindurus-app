@@ -7,7 +7,7 @@ import { createGraiEvmPublicClient, resolveGraiContractAddress } from './client'
 import { USD_SCALE_EVM } from './constants'
 import { isNativeEvmAsset, resolveEvmGraiAsset } from './knownAssets'
 
-const CLAIM_AMOUNT_MAX_FRACTION_DIGITS = 4
+const CLAIM_AMOUNT_MAX_FRACTION_DIGITS = 6
 const CLAIM_USD_MAX_FRACTION_DIGITS = 2
 
 export type EvmClaimEstimate = {

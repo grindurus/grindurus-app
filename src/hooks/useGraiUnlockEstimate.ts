@@ -8,6 +8,7 @@ import {
   type EvmClaimEstimate,
   type EvmUnlockPreview,
 } from '../grai/evm/estimateClaim'
+import { estimateSolanaClaimAll } from '../grai/estimateSolanaClaim'
 import { estimateSolanaUnlockPreview } from '../grai/estimateSolanaUnlock'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance } from '../grai/onchain'
@@ -80,13 +81,19 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
           )
           setUnlockPreview(preview)
           setNowSec(timestamp)
-          setClaims([])
         } catch {
           if (!cancelled) {
             setLockedLabel('—')
             setLockedMaxAmount('')
             setUnlockPreview(EMPTY_PREVIEW)
           }
+        }
+
+        try {
+          const nextClaims = await estimateSolanaClaimAll(connection, solana, solanaPublicKey)
+          if (!cancelled) setClaims(nextClaims.filter((row) => row.amountRaw > 0n))
+        } catch {
+          if (!cancelled) setClaims([])
         } finally {
           if (!cancelled) setIsLoading(false)
         }

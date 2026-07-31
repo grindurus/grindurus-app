@@ -10,6 +10,8 @@ export type GraiAmountAsset = {
   icon: string
   symbol: string
   address: string
+  /** Optional secondary line in the dropdown (e.g. claimable balance). */
+  detail?: string
 }
 
 type Props = {
