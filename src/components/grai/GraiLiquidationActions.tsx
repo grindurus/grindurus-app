@@ -1490,7 +1490,7 @@ export function GraiLiquidationActions() {
   )
 
   const selectBuybackAsset = useCallback(
-    (asset: BuybackAuctionAsset, index: number) => {
+    (_asset: BuybackAuctionAsset, index: number) => {
       navigateBuybackToIndex(index)
     },
     [navigateBuybackToIndex],
