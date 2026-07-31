@@ -24,8 +24,6 @@ export type GraiBuybackAuction = {
   /** Unix seconds; 0 means no open auction. */
   startTime: number
   period: number
-  listingPrice: bigint
-  listingPriceDecimals: number
 }
 
 const ACCOUNT_DISCRIMINATOR_LEN = 8
@@ -37,23 +35,13 @@ const EMPTY_AUCTION = {
   minPayment: 0n,
   startTime: 0,
   period: 0,
-  listingPrice: 0n,
-  listingPriceDecimals: 0,
 } as const
-
-function readU128LE(buf: Buffer, offset: number): bigint {
-  let value = 0n
-  for (let i = 0; i < 16; i += 1) {
-    value |= BigInt(buf[offset + i]!) << BigInt(i * 8)
-  }
-  return value
-}
 
 /**
  * AssetConfig body (after 8-byte discriminator):
  * mint(32) feed(32) paused(1) id(4) acc_share(16) total_claimable(8)
  * remaining(8) initial(8) max(8) min(8) start(8) duration(4)
- * listing_price(16) listing_decimals(1) bump(1)
+ * listing_price(16) listing_decimals(1) bump(1)  — legacy fields ignored
  */
 export function decodeAssetConfigAuction(data: Buffer): {
   startTime: number
@@ -62,8 +50,6 @@ export function decodeAssetConfigAuction(data: Buffer): {
   initial: bigint
   maxPayment: bigint
   minPayment: bigint
-  listingPrice: bigint
-  listingPriceDecimals: number
 } | null {
   if (data.length < ACCOUNT_DISCRIMINATOR_LEN + 155) return null
   const body = data.subarray(ACCOUNT_DISCRIMINATOR_LEN)
@@ -75,8 +61,6 @@ export function decodeAssetConfigAuction(data: Buffer): {
     minPayment: body.readBigUInt64LE(117),
     startTime,
     period: body.readUInt32LE(133),
-    listingPrice: readU128LE(body, 137),
-    listingPriceDecimals: body.readUInt8(153),
   }
 }
 
@@ -121,8 +105,6 @@ export async function fetchEvmBuybackAuctions(
         minPaymentGrai: BigInt(entry.minPayment),
         startTime: Number(entry.startTime),
         period: Number(entry.period),
-        listingPrice: BigInt(entry.listingPrice),
-        listingPriceDecimals: Number(entry.listingPriceDecimals),
       }
     }),
   )
@@ -162,8 +144,6 @@ export async function fetchSolanaBuybackAuctions(
       minPaymentGrai: auction.minPayment,
       startTime: auction.startTime,
       period: auction.period,
-      listingPrice: auction.listingPrice,
-      listingPriceDecimals: auction.listingPriceDecimals,
     })
   }
   return auctions

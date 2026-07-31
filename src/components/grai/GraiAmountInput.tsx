@@ -20,6 +20,8 @@ type Props = {
   balanceLabel: string
   /** Prefix before the balance amount. Defaults to "Available:". */
   balancePrefix?: string
+  /** Pulse the balance under the asset select while wallet / claim data loads. */
+  balanceLoading?: boolean
   balanceTopLabel?: string
   maxAmount: string
   decimals: number | null
@@ -57,6 +59,7 @@ export function GraiAmountInput({
   onAssetChange,
   balanceLabel,
   balancePrefix = 'Available:',
+  balanceLoading = false,
   balanceTopLabel,
   maxAmount,
   decimals,
@@ -120,9 +123,10 @@ export function GraiAmountInput({
   const isGraiAsset = selectedAsset?.symbol.toUpperCase() === 'GRAI'
   const balanceText =
     balanceLabel.replace(new RegExp(`\\s*${selectedAsset?.symbol ?? ''}$`), '').trim() || balanceLabel
+  const isBalanceLoading = balanceLoading || balanceText === '…' || balanceLabel.trim() === '…'
   const showUsdSlot = Boolean(usdLabel || usdTrailingLabel)
   const usdCollapsed = Boolean(usdLabel) && !usdTrailingLabel && isGraiAsset
-  const assetSelectDetailLabel = balanceText
+  const assetSelectDetailLabel = isBalanceLoading ? null : balanceText
   const presetButtons = showPresets ? (
     <div className="grai-amount-preset-btns" aria-label="Amount presets">
       <button
@@ -223,7 +227,12 @@ export function GraiAmountInput({
           selected={selectedAsset}
           onSelect={(asset) => setSelectedSymbol(asset.symbol)}
           detailLabel={assetSelectDetailLabel}
-          detailAriaLabel={`${balancePrefix} ${balanceText}`.replace(/\s+/g, ' ').trim()}
+          detailAriaLabel={
+            isBalanceLoading
+              ? 'Loading balance'
+              : `${balancePrefix} ${balanceText}`.replace(/\s+/g, ' ').trim()
+          }
+          detailLoading={isBalanceLoading}
           disabled={disabled}
           ariaLabel={selectAriaLabel}
           menuOptions={selectMenuOptions}

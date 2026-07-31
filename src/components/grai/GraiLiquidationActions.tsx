@@ -303,23 +303,7 @@ function buybackUnitAskGrai(asset: BuybackAuctionAsset, lotAsk: bigint): bigint 
 }
 
 function buybackUnitPriceLabel(asset: BuybackAuctionAsset, graiDecimals: number): string {
-  if (asset.listingPrice > 0n) {
-    const decimals = asset.listingPriceDecimals > 0 ? asset.listingPriceDecimals : 6
-    // Legacy put_auction stored USD per base unit (lamport/wei). Fixed formula stores
-    // USD per whole token. Prefer scaled value when unscaled looks like dust.
-    const unscaled = Number(asset.listingPrice) / 10 ** decimals
-    const scaledRaw = asset.listingPrice * 10n ** BigInt(asset.decimals)
-    const scaled = Number(scaledRaw) / 10 ** decimals
-    const useScaled =
-      Number.isFinite(unscaled) &&
-      Number.isFinite(scaled) &&
-      unscaled > 0 &&
-      unscaled < 1 &&
-      scaled >= 1 &&
-      scaled < 1_000_000
-    const raw = useScaled ? scaledRaw : asset.listingPrice
-    return `1 ${asset.symbol} = $${formatVaultBalanceDisplay(raw, decimals, 4)}`
-  }
+  // Unit GRAI ask at listing (maxPayment / initial); Dutch discount is live via minPayment clock.
   const unitAsk = buybackUnitAskGrai(asset, asset.maxPaymentGrai)
   return `1 ${asset.symbol} = $${formatVaultBalanceDisplay(unitAsk, graiDecimals, 4)}`
 }
@@ -1322,6 +1306,7 @@ export function GraiLiquidationActions() {
     balanceLabel: distributeWalletBalanceLabel,
     maxAmount: distributeWalletMaxAmount,
     decimals: distributeWalletDecimals,
+    isLoading: distributeWalletBalanceLoading,
   } = useWalletAssetBalance(
     selectedDistributeAsset?.address || undefined,
     selectedDistributeAsset?.symbol,
@@ -2360,6 +2345,7 @@ export function GraiLiquidationActions() {
                   setDistributeAmount('')
                 }}
                 balanceLabel={isWalletConnected ? distributeWalletBalanceLabel : '—'}
+                balanceLoading={isWalletConnected && distributeWalletBalanceLoading}
                 balancePrefix="Your balance:"
                 maxAmount={isWalletConnected ? distributeWalletMaxAmount : ''}
                 decimals={distributeDecimals}
@@ -2684,6 +2670,7 @@ export function GraiLiquidationActions() {
                         value={voteAmount}
                         onValueChange={setVoteAmount}
                         balanceLabel={walletGraiLabel}
+                        balanceLoading={isLoading && !state}
                         balancePrefix="Your balance:"
                         maxAmount={liquidationBlocked ? '' : voteMaxAmount}
                         decimals={graiDecimals}

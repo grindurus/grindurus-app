@@ -481,21 +481,29 @@ html:has(body[data-scroll-locked]) body {
 
 .wallet-tab-icon.ethereum-icon {
   padding: 0;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  border: none;
 }
 
 .wallet-tab-icon.ethereum-icon .wallet-tab-icon-img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 4px;
+  object-fit: contain;
+  border-radius: 0;
 }
 
 .wallet-tab-icon.solana-icon {
-  background: linear-gradient(135deg, #14f195 0%, #9945ff 100%);
-  color: white;
+  background: transparent;
+  padding: 0.15rem;
+  box-sizing: border-box;
+}
+
+.wallet-tab-icon.solana-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .wallet-tab-icon.movevm-icon {
@@ -597,8 +605,8 @@ html:has(body[data-scroll-locked]) body {
 }
 
 .chain-type-icon.solana-icon {
-  background: linear-gradient(135deg, #14f195 0%, #9945ff 100%);
-  color: white;
+  background: transparent;
+  color: inherit;
 }
 
 .chain-type-name {
@@ -691,6 +699,13 @@ html:has(body[data-scroll-locked]) body {
   object-fit: cover;
   background: #0b1021;
   border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.wallet-icon-badge--solana {
+  object-fit: contain;
+  padding: 1px;
+  box-sizing: border-box;
+  background: #0b1021;
 }
 
 .wallet-option-btn span {
@@ -1065,25 +1080,21 @@ html:has(body[data-scroll-locked]) body {
 .wallet-current-network-icon-solana {
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
   flex-shrink: 0;
+  background: transparent;
+  padding: 0.1rem;
+  box-sizing: border-box;
 }
 
-.wallet-current-network-icon-solana.solana-mainnet {
-  background: linear-gradient(135deg, #14f195 0%, #9945ff 100%);
-}
-
-.wallet-current-network-icon-solana.solana-devnet {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-}
-
+.wallet-current-network-icon-solana.solana-mainnet,
+.wallet-current-network-icon-solana.solana-devnet,
 .wallet-current-network-icon-solana.solana-testnet {
-  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
-  color: #1a1a1a;
+  background: transparent;
+  color: inherit;
 }
 
 /* Wallet Dropdown */
@@ -1609,19 +1620,23 @@ html:has(body[data-scroll-locked]) body {
   color: white;
 }
 
-.network-icon-svg.solana {
-  background: linear-gradient(135deg, #14f195 0%, #9945ff 100%);
-  color: white;
-}
-
-.network-icon-svg.solana-devnet {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-  color: white;
-}
-
+.network-icon-svg.solana,
+.network-icon-svg.solana-devnet,
 .network-icon-svg.solana-testnet {
-  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
-  color: #1a1a1a;
+  background: transparent;
+  color: inherit;
+  padding: 0.12rem;
+  box-sizing: border-box;
+}
+
+.network-icon-svg.solana img,
+.network-icon-svg.solana-devnet img,
+.network-icon-svg.solana-testnet img,
+.wallet-current-network-icon-solana img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .network-dropdown-item .network-name {

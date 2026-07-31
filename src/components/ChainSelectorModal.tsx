@@ -3,8 +3,19 @@ import { createPortal } from 'react-dom'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import metamaskFoxIcon from '../assets/metamask-fox.svg'
+import { SolanaLogomark } from './SolanaLogomark'
 import { WalletIcon } from './WalletIcon'
 import './WalletStyles.css'
+
+const RAINBOW_KIT_ICON =
+  'https://raw.githubusercontent.com/rainbow-me/rainbowkit/main/site/public/rainbow.svg'
+
+function isMetaMaskConnector(connector: { id: string; name: string }): boolean {
+  const id = connector.id.toLowerCase()
+  const name = connector.name.toLowerCase()
+  return id.includes('metamask') || name.includes('metamask')
+}
 
 type TabType = 'evm' | 'solana' | 'movevm' | 'ccxt'
 
@@ -96,6 +107,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   }, [onClose, requestRainbowKit])
 
   const isWalletConnectConnector = useCallback((connector: { id: string; name: string }) => {
+    if (isMetaMaskConnector(connector)) return false
     const id = connector.id.toLowerCase()
     const name = connector.name.toLowerCase()
     return id.includes('walletconnect') || name.includes('walletconnect')
@@ -103,6 +115,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
 
   const getConnectorDisplayName = useCallback(
     (connector: { id: string; name: string }) => {
+      if (isMetaMaskConnector(connector)) return 'MetaMask'
       if (isWalletConnectConnector(connector)) return 'Rainbow Kit (Wallet Connect)'
       return connector.name
     },
@@ -115,7 +128,9 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
       setSelectedChainType('evm')
 
       try {
-        if (isWalletConnectConnector(connector)) {
+        // MetaMask may use WalletConnect under the hood when the extension is absent —
+        // still connect that connector directly (deep link / QR for MetaMask).
+        if (isWalletConnectConnector(connector) && !isMetaMaskConnector(connector)) {
           if (!evmWallet.canOpenConnectModal) {
             setEvmConnectError('WalletConnect failed. Check WalletConnect Project ID and try again.')
             return
@@ -129,7 +144,11 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (!message.toLowerCase().includes('user rejected')) {
-          setEvmConnectError('WalletConnect failed. Check WalletConnect Project ID and try again.')
+          setEvmConnectError(
+            isMetaMaskConnector(connector)
+              ? 'MetaMask connection failed. Try again or install the extension.'
+              : 'WalletConnect failed. Check WalletConnect Project ID and try again.',
+          )
         }
       }
     },
@@ -152,19 +171,17 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   }, [evmWallet, openRainbowKit, setSelectedChainType])
 
   const getConnectorIcon = (connector: { id: string; name: string; icon?: string }) => {
-    if (isWalletConnectConnector(connector)) {
-      return 'https://raw.githubusercontent.com/rainbow-me/rainbowkit/main/site/public/rainbow.svg'
-    }
+    if (isMetaMaskConnector(connector)) return metamaskFoxIcon
+    if (isWalletConnectConnector(connector)) return RAINBOW_KIT_ICON
     if (connector.icon) return connector.icon
-    
+
     const iconMap: Record<string, string> = {
-      'metaMask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
-      'walletConnect': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
-      'walletConnectLegacy': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
-      'brave': 'https://brave.com/static-assets/images/brave-logo-sans-text.svg',
-      'rabby': 'https://rabby.io/assets/images/logo.svg',
+      walletConnect: RAINBOW_KIT_ICON,
+      walletConnectLegacy: RAINBOW_KIT_ICON,
+      brave: 'https://brave.com/static-assets/images/brave-logo-sans-text.svg',
+      rabby: 'https://rabby.io/assets/images/logo.svg',
     }
-    
+
     return iconMap[connector.id] || `https://api.dicebear.com/7.x/identicon/svg?seed=${connector.name}`
   }
 
@@ -241,11 +258,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
             onClick={() => setActiveTab('solana')}
           >
             <div className="wallet-tab-icon solana-icon">
-              <svg width="16" height="16" viewBox="0 0 397 311" fill="currentColor">
-                <path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1l62.7-62.7z"/>
-                <path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1L64.6 3.8z"/>
-                <path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1l-62.7-62.7z"/>
-              </svg>
+              <SolanaLogomark size={16} />
             </div>
             Solana
           </button>
@@ -316,19 +329,31 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
                     <p className="no-wallets-hint">
                       Install MetaMask or use Rainbow Kit to continue
                     </p>
+                    <a
+                      className="wallet-option-btn"
+                      href="https://metamask.io/download/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img src={metamaskFoxIcon} alt="MetaMask" className="wallet-icon" />
+                      <div className="wallet-option-info">
+                        <span className="wallet-option-name">MetaMask</span>
+                        <span className="wallet-option-desc">Install extension</span>
+                      </div>
+                    </a>
                     <button
                       type="button"
                       className="wallet-option-btn wallet-option-btn--walletconnect"
                       onClick={handleWalletConnectFallback}
                     >
                       <img
-                        src="https://raw.githubusercontent.com/rainbow-me/rainbowkit/main/site/public/rainbow.svg"
+                        src={RAINBOW_KIT_ICON}
                         alt="Rainbow Kit (Wallet Connect)"
                         className="wallet-icon"
                       />
                       <div className="wallet-option-info">
                         <span className="wallet-option-name">Rainbow Kit (Wallet Connect)</span>
-                        <span className="wallet-option-desc wallet-detected">Open QR modal</span>
+                        <span className="wallet-option-desc">Open QR modal</span>
                       </div>
                     </button>
                   </div>
@@ -357,9 +382,9 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
                           className="wallet-icon"
                         />
                         {isSolanaMetamask(w.adapter.name) && (
-                          <img
-                            src="https://upload.wikimedia.org/wikipedia/en/b/b9/Solana_logo.png"
-                            alt="Solana"
+                          <SolanaLogomark
+                            size={12}
+                            title="Solana"
                             className="wallet-icon-badge wallet-icon-badge--solana"
                           />
                         )}

@@ -363,6 +363,7 @@ export function GraiMintBurnPanel({
     balanceLabel: walletBalanceLabel,
     maxAmount: walletMaxAmount,
     decimals,
+    isLoading: walletBalanceLoading,
     refresh: refreshWalletBalance,
   } = useWalletAssetBalance(selectedAsset?.address || undefined, selectedAsset?.symbol)
 
@@ -380,6 +381,7 @@ export function GraiMintBurnPanel({
     penaltyLabel,
     penaltyDurationLabel,
     unlockPreview,
+    isLoading: unlockBalanceLoading,
     refresh: refreshUnlockEstimate,
   } = useGraiUnlockEstimate(
     actionView === 'mint' && (isGraiUnlock || (isAssetClaim && claimAllDividends)),
@@ -392,6 +394,7 @@ export function GraiMintBurnPanel({
     claimableLabel,
     claimableMaxAmount,
     usdLabel: claimUsdLabel,
+    isLoading: claimBalanceLoading,
     refresh: refreshClaimEstimate,
   } = useGraiClaimEstimate(isAssetClaim, selectedAsset?.address)
 
@@ -421,6 +424,13 @@ export function GraiMintBurnPanel({
     : isAssetClaim
       ? `${claimableLabel}${selectedAsset?.symbol ? ` ${selectedAsset.symbol}` : ''}`
       : walletBalanceLabel
+  const balanceLoading =
+    isWalletConnected &&
+    (isGraiUnlock
+      ? unlockBalanceLoading
+      : isAssetClaim
+        ? claimBalanceLoading
+        : walletBalanceLoading)
   const maxAmount = isGraiUnlock ? lockedMaxAmount : isAssetClaim ? claimableMaxAmount : walletMaxAmount
 
   const {
@@ -1125,6 +1135,7 @@ export function GraiMintBurnPanel({
             onValueChange={setAmount}
             onAssetChange={setSelectedAsset}
             balanceLabel={isWalletConnected ? balanceLabel : '—'}
+            balanceLoading={balanceLoading}
             balancePrefix={
               isGraiUnlock
                 ? 'Your escrow balance:'

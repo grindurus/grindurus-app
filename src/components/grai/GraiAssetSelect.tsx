@@ -20,6 +20,8 @@ type Props = {
   detailLabel?: string | null
   /** Accessible label for detail line when it differs from visible text. */
   detailAriaLabel?: string | null
+  /** Show a shimmer under the symbol while balance / detail data loads. */
+  detailLoading?: boolean
   disabled?: boolean
   /**
    * When set, the dropdown lists these options instead of `assets`.
@@ -40,6 +42,7 @@ export function GraiAssetSelect({
   ariaLabel = 'Select asset',
   detailLabel,
   detailAriaLabel,
+  detailLoading = false,
   disabled = false,
   menuOptions,
   selectedMenuId,
@@ -71,7 +74,7 @@ export function GraiAssetSelect({
     if (disabled) setIsOpen(false)
   }, [disabled])
 
-  const showDetail = Boolean(detailLabel)
+  const showDetail = Boolean(detailLabel) || detailLoading
 
   return (
     <div className={`grai-asset-select${disabled ? ' is-disabled' : ''}`} ref={rootRef}>
@@ -98,11 +101,24 @@ export function GraiAssetSelect({
             </span>
             <span className={`grai-asset-select-vol-slot${showDetail ? ' is-open' : ''}`}>
               <span
-                className="grai-asset-select-vol"
+                className={`grai-asset-select-vol${detailLoading ? ' is-loading' : ''}`}
                 aria-hidden={!showDetail}
-                aria-label={showDetail ? detailAriaLabel ?? detailLabel ?? undefined : undefined}
+                aria-busy={detailLoading || undefined}
+                aria-label={
+                  detailLoading
+                    ? 'Loading balance'
+                    : showDetail
+                      ? detailAriaLabel ?? detailLabel ?? undefined
+                      : undefined
+                }
               >
-                {showDetail ? detailLabel : '\u00a0'}
+                {detailLoading ? (
+                  <span className="grai-asset-select-vol-skeleton" aria-hidden="true" />
+                ) : showDetail ? (
+                  detailLabel
+                ) : (
+                  '\u00a0'
+                )}
               </span>
             </span>
           </span>

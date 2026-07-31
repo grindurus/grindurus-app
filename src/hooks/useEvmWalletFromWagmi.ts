@@ -18,20 +18,6 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
   const { connectors, connectAsync: wagmiConnectAsync } = useConnect()
   const [installedConnectors, setInstalledConnectors] = useState<string[]>([])
 
-  const hasInjectedMetaMask = useMemo(() => {
-    const eth = (
-      window as Window & {
-        ethereum?: {
-          isMetaMask?: boolean
-          providers?: Array<{ isMetaMask?: boolean }>
-        }
-      }
-    ).ethereum
-    if (!eth) return false
-    if (eth.isMetaMask) return true
-    return Array.isArray(eth.providers) && eth.providers.some((p: { isMetaMask?: boolean }) => p?.isMetaMask)
-  }, [])
-
   useEffect(() => {
     const checkConnectors = async () => {
       const installed: string[] = []
@@ -76,28 +62,53 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
     return id.includes('coinbase') || name.includes('coinbase')
   }, [])
 
+  const isMetaMaskConnector = useCallback((c: { id: string; name: string }) => {
+    const id = c.id.toLowerCase()
+    const name = c.name.toLowerCase()
+    return id.includes('metamask') || name.includes('metamask')
+  }, [])
+
+  const isWalletConnectConnector = useCallback((c: { id: string; name: string }) => {
+    if (isMetaMaskConnector(c)) return false
+    const id = c.id.toLowerCase()
+    const name = c.name.toLowerCase()
+    return id.includes('walletconnect') || name.includes('walletconnect')
+  }, [isMetaMaskConnector])
+
   const detectedConnectors = useMemo(() => {
     const filtered = connectors.filter((c) => {
       if (isCoinbaseConnector(c)) return false
+      // Always keep MetaMask (injected, SDK, or WalletConnect deep-link fallback).
+      if (isMetaMaskConnector(c)) return true
       if (c.type === 'injected') {
         if (c.name === 'Injected') return false
-        if (
-          hasInjectedMetaMask &&
-          (c.id.toLowerCase().includes('metamask') || c.name.toLowerCase().includes('metamask'))
-        ) {
-          return true
-        }
         return installedConnectors.includes(c.uid)
       }
       return true
     })
     const seen = new Set<string>()
-    return filtered.filter((c) => {
-      if (seen.has(c.name)) return false
-      seen.add(c.name)
+    const unique = filtered.filter((c) => {
+      const key = isMetaMaskConnector(c) ? 'metamask' : c.name.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
       return true
     })
-  }, [connectors, hasInjectedMetaMask, installedConnectors, isCoinbaseConnector])
+
+    return unique.sort((a, b) => {
+      const rank = (c: { id: string; name: string }) => {
+        if (isMetaMaskConnector(c)) return 0
+        if (isWalletConnectConnector(c)) return 2
+        return 1
+      }
+      return rank(a) - rank(b)
+    })
+  }, [
+    connectors,
+    installedConnectors,
+    isCoinbaseConnector,
+    isMetaMaskConnector,
+    isWalletConnectConnector,
+  ])
 
   const switchToChain = useCallback(
     (targetChainId: number) => {

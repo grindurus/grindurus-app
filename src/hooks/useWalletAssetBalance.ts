@@ -135,8 +135,30 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
   }, [assetMint, chainKind, connection, evm, evmAddress, publicKey])
 
   useEffect(() => {
+    if (!assetMint) {
+      setFormattedBalance(null)
+      setMaxAmount('')
+      setIsLoading(false)
+      return
+    }
+
+    if (chainKind === 'evm') {
+      if (!evmAddress || !evm) {
+        setFormattedBalance(null)
+        setMaxAmount('')
+        setIsLoading(false)
+        return
+      }
+    } else if (!publicKey || !connection) {
+      setFormattedBalance(null)
+      setMaxAmount('')
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
     void refresh()
-  }, [refresh])
+  }, [assetMint, chainKind, connection, evm, evmAddress, publicKey, refresh])
 
   const balanceLabel = isLoading
     ? '…'

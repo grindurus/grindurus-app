@@ -80,8 +80,6 @@ export const graiAbi = [
           { name: 'asset', type: 'address' },
           { name: 'startTime', type: 'uint48' },
           { name: 'period', type: 'uint32' },
-          { name: 'listingPriceDecimals', type: 'uint8' },
-          { name: 'listingPrice', type: 'uint256' },
           { name: 'remaining', type: 'uint256' },
           { name: 'initial', type: 'uint256' },
           { name: 'maxPayment', type: 'uint256' },

@@ -349,12 +349,10 @@
   display: block;
 }
 
-.header-settings-network-icon.solana-devnet {
-  color: #14f195;
-}
-
+.header-settings-network-icon.solana-devnet,
 .header-settings-network-icon.solana-mainnet {
-  color: #9945ff;
+  color: inherit;
+  background: transparent;
 }
 
 @media (max-width: 768px) {
