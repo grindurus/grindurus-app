@@ -10057,9 +10057,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   max-width: 100%;
   text-align: left;
   font-size: 0.8rem;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.15;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .grai-amount-input-usd.is-collapsed {
