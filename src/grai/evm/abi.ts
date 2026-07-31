@@ -32,6 +32,16 @@ export const graiAbi = [
   },
   {
     type: 'function',
+    name: 'distribute',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'yieldAmount', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
     name: 'totalSupply',
     stateMutability: 'view',
     inputs: [],
@@ -123,6 +133,16 @@ export const graiAbi = [
     name: 'vote',
     stateMutability: 'nonpayable',
     inputs: [{ name: 'graiAmount', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'buyback',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
     outputs: [],
   },
   {
@@ -339,6 +359,13 @@ export const graiAbi = [
     name: 'claimAll',
     stateMutability: 'nonpayable',
     inputs: [{ name: 'holder', type: 'address' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'liquidate',
+    stateMutability: 'nonpayable',
+    inputs: [],
     outputs: [],
   },
 ] as const

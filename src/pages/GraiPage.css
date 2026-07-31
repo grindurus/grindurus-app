@@ -6521,6 +6521,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   opacity: 0.55;
 }
 
+.grai-action-submit.grai-liquidation-step-actions:has(.grai-mint-btn:disabled) {
+  opacity: 1;
+}
+
 .grai-action-submit:has(.grai-mint-btn:disabled) .grai-mint-btn,
 .grai-action-submit:has(.grai-burn-btn:disabled) .grai-burn-btn {
   opacity: 1;
@@ -11010,7 +11014,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: grid;
   grid-template-columns: minmax(9.5rem, 12.5rem) minmax(0, 1fr);
   column-gap: 1.25rem;
-  align-items: start;
+  align-items: stretch;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -11019,10 +11023,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-liquidation-ops-tabs {
   width: 100%;
   max-width: 100%;
+  height: 100%;
+  min-height: 100%;
   margin: 0;
   box-sizing: border-box;
-  position: sticky;
-  top: 5.5rem;
+  position: relative;
+  top: auto;
   padding-right: 1.25rem;
   border-right: 1px solid var(--border-color);
 }
@@ -11309,6 +11315,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
   box-sizing: border-box;
   margin: 0 0 0.15rem;
+  overflow: visible;
 }
 
 .grai-redeemable-balances-head {
@@ -11346,7 +11353,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-redeemable-balances-countdown.is-blocked {
-  color: color-mix(in srgb, #ff6b6b 88%, #fff);
+  color: #e53935;
   font-size: 0.72rem;
   letter-spacing: 0.01em;
   text-transform: none;
@@ -11366,7 +11373,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-redeemable-balances-blocked-info .grai-field-info-btn {
   width: 1rem;
   height: 1rem;
-  color: color-mix(in srgb, #ff6b6b 88%, #fff);
+  color: #e53935;
 }
 
 .grai-redeemable-balances-blocked-info .grai-field-info-btn svg {
@@ -11385,7 +11392,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 [data-theme='light'] .grai-redeemable-balances-countdown.is-blocked,
 [data-theme='light'] .grai-redeemable-balances-blocked-info .grai-field-info-btn {
-  color: #c62828;
+  color: #e53935;
 }
 
 .grai-redeemable-balances-hint {
@@ -11410,6 +11417,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0.75rem 0.85rem;
   width: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
 .grai-redeemable-balances-donut.grai-donut-slot {
@@ -11425,6 +11433,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   max-width: 100%;
   aspect-ratio: 1;
   overflow: visible;
+}
+
+/* Slice tooltip sits to the left of the pie (not above). */
+.grai-redeemable-balances-donut .grai-donut-tooltip--pinned {
+  top: 50%;
+  left: 0;
+  right: auto;
+  transform: translate(-100%, -50%) translateX(-0.45rem) scale(0.96);
+}
+
+.grai-redeemable-balances-donut .grai-donut-tooltip--pinned.is-visible {
+  transform: translate(-100%, -50%) translateX(-0.45rem) scale(1);
 }
 
 .grai-redeemable-balances-donut .grai-donut-total-label {
@@ -13351,6 +13371,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   grid-template-columns: 1fr 1fr;
   gap: 0.55rem;
   width: 100%;
+  /* Don't dim the whole row when one of Confirm/Liquidate is disabled. */
+  opacity: 1;
+}
+
+.grai-liquidation-step-actions > .connect-wallet-btn.grai-action-connect-wallet-btn {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .grai-liquidation-step-action {
@@ -13362,6 +13389,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-liquidation-step-action .grai-mint-btn {
   width: 100%;
+}
+
+.grai-liquidation-step-action .grai-mint-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .grai-liquidation-step-meta {
@@ -13379,8 +13411,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-weight: 500;
   line-height: 1.3;
   text-align: center;
-  color: var(--text-secondary);
+  color: #e53935;
   text-wrap: balance;
+}
+
+.grai-liquidation-step-ready {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  text-align: center;
+  color: #e53935;
 }
 
 .grai-liquidation-market-actions .grai-liquidation-escrow-body .grai-action-submit,

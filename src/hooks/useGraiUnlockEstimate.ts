@@ -8,9 +8,11 @@ import {
   type EvmClaimEstimate,
   type EvmUnlockPreview,
 } from '../grai/evm/estimateClaim'
+import { estimateSolanaUnlockPreview } from '../grai/estimateSolanaUnlock'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance } from '../grai/onchain'
 import { useEvmWallet } from './useEvmWallet'
+import { useSolanaWallet } from './useSolanaWallet'
 
 const EMPTY_PREVIEW: EvmUnlockPreview = {
   unlockAmount: 0n,
@@ -25,8 +27,9 @@ const EMPTY_PREVIEW: EvmUnlockPreview = {
 }
 
 export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
-  const { chainKind, evm } = useGraiDeployment()
-  const { address: evmAddress, isConnected } = useEvmWallet()
+  const { chainKind, evm, connection, solana } = useGraiDeployment()
+  const { address: evmAddress, isConnected: isEvmConnected } = useEvmWallet()
+  const { publicKey: solanaPublicKey, isConnected: isSolanaConnected } = useSolanaWallet()
   const [claims, setClaims] = useState<EvmClaimEstimate[]>([])
   const [lockedLabel, setLockedLabel] = useState('—')
   const [lockedMaxAmount, setLockedMaxAmount] = useState('')
@@ -40,7 +43,7 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
   }, [])
 
   useEffect(() => {
-    if (!enabled || chainKind !== 'evm' || !evm || !isConnected || !evmAddress) {
+    if (!enabled) {
       setClaims([])
       setLockedLabel('—')
       setLockedMaxAmount('')
@@ -49,6 +52,59 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
     }
 
     let cancelled = false
+
+    if (chainKind === 'solana') {
+      if (!connection || !solana || !isSolanaConnected || !solanaPublicKey) {
+        setClaims([])
+        setLockedLabel('—')
+        setLockedMaxAmount('')
+        setUnlockPreview(EMPTY_PREVIEW)
+        return
+      }
+
+      setIsLoading(true)
+      const timestamp = Math.floor(Date.now() / 1000)
+      void (async () => {
+        try {
+          const preview = await estimateSolanaUnlockPreview(
+            connection,
+            solana.programId,
+            solanaPublicKey,
+            amountInput,
+            timestamp,
+          )
+          if (cancelled) return
+          setLockedLabel(formatTokenBalance(preview.locked, preview.decimals))
+          setLockedMaxAmount(
+            preview.locked > 0n ? formatTokenBalance(preview.locked, preview.decimals) : '',
+          )
+          setUnlockPreview(preview)
+          setNowSec(timestamp)
+          setClaims([])
+        } catch {
+          if (!cancelled) {
+            setLockedLabel('—')
+            setLockedMaxAmount('')
+            setUnlockPreview(EMPTY_PREVIEW)
+          }
+        } finally {
+          if (!cancelled) setIsLoading(false)
+        }
+      })()
+
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (chainKind !== 'evm' || !evm || !isEvmConnected || !evmAddress) {
+      setClaims([])
+      setLockedLabel('—')
+      setLockedMaxAmount('')
+      setUnlockPreview(EMPTY_PREVIEW)
+      return
+    }
+
     setIsLoading(true)
     const owner = evmAddress as `0x${string}`
     const timestamp = Math.floor(Date.now() / 1000)
@@ -90,7 +146,19 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
     return () => {
       cancelled = true
     }
-  }, [amountInput, chainKind, enabled, evm, evmAddress, isConnected, refreshNonce])
+  }, [
+    amountInput,
+    chainKind,
+    connection,
+    enabled,
+    evm,
+    evmAddress,
+    isEvmConnected,
+    isSolanaConnected,
+    refreshNonce,
+    solana,
+    solanaPublicKey,
+  ])
 
   const liveSecondsLeft = useMemo(() => {
     const { lockedAt, unlockPenaltyPeriod } = unlockPreview
@@ -107,12 +175,12 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
   }, [enabled])
 
   useEffect(() => {
-    if (!enabled || liveSecondsLeft <= 0 || chainKind !== 'evm') return
+    if (!enabled || liveSecondsLeft <= 0) return
     const id = window.setInterval(() => {
       setRefreshNonce((current) => current + 1)
     }, 15_000)
     return () => window.clearInterval(id)
-  }, [chainKind, enabled, liveSecondsLeft])
+  }, [enabled, liveSecondsLeft])
 
   const usdTotal = claims.reduce((sum, claim) => sum + claim.usdRaw, 0n)
   const usdLabel = isLoading ? '…' : formatClaimUsdTotal(usdTotal)

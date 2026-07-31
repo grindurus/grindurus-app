@@ -1,13 +1,13 @@
 import { useCallback } from 'react'
-import { executeVote } from '../grai/buildVoteTransaction'
-import { executeEvmVote } from '../grai/evm/executeTransactions'
+import { executeLiquidate } from '../grai/buildLiquidateTransaction'
+import { executeEvmLiquidate } from '../grai/evm/executeTransactions'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { useGraiEvmTransaction } from './useGraiEvmTransaction'
 import { useGraiTransaction, type GraiTransactionStatus } from './useGraiTransaction'
 
-export type GraiVoteStatus = GraiTransactionStatus
+export type GraiLiquidateStatus = GraiTransactionStatus
 
-export function useGraiVote() {
+export function useGraiLiquidate() {
   const { chainKind, evm } = useGraiDeployment()
   const {
     run: runSolana,
@@ -26,44 +26,38 @@ export function useGraiVote() {
     isPending: isEvmPending,
   } = useGraiEvmTransaction()
 
-  const vote = useCallback(
-    async (params: { amountInput: string; graiDecimals: number }) => {
+  const liquidate = useCallback(
+    async (params?: { connectMessage?: string; chainAction?: string; failureMessage?: string }) => {
+      const connectMessage =
+        params?.connectMessage ?? 'Connect a wallet to open liquidation'
+      const chainAction = params?.chainAction ?? 'open liquidation'
+      const failureMessage = params?.failureMessage ?? 'Liquidate transaction failed'
+
       if (chainKind === 'evm') {
         if (!evm) throw new Error('GRAI is not configured for this EVM network')
 
         const { hash } = await runEvm({
-          connectMessage: 'Connect an EVM wallet to vote for liquidation',
-          chainAction: 'vote for liquidation',
-          failureMessage: 'Vote transaction failed',
-          amountInput: params.amountInput,
-          emptyAmountMessage: 'Enter a GRAI amount to vote',
-          execute: () =>
-            executeEvmVote({
-              config: evm,
-              amountInput: params.amountInput,
-              graiDecimals: params.graiDecimals,
-            }),
+          connectMessage,
+          chainAction,
+          failureMessage,
+          execute: () => executeEvmLiquidate({ config: evm }),
         })
         return hash
       }
 
       if (chainKind !== 'solana') {
-        throw new Error('Voting is not available on this network')
+        throw new Error('Liquidate is not available on this network')
       }
 
       const { signature } = await runSolana({
-        connectMessage: 'Connect a Solana wallet to vote for liquidation',
-        clusterAction: 'vote for liquidation',
-        failureMessage: 'Vote transaction failed',
-        amountInput: params.amountInput,
-        emptyAmountMessage: 'Enter a GRAI amount to vote',
+        connectMessage,
+        clusterAction: chainAction,
+        failureMessage,
         execute: ({ connection, solana, publicKey, signTransaction }) =>
-          executeVote({
+          executeLiquidate({
             connection,
             config: solana,
-            voter: publicKey,
-            amountInput: params.amountInput.trim(),
-            graiDecimals: params.graiDecimals,
+            caller: publicKey,
             signTransaction,
           }),
       })
@@ -80,11 +74,11 @@ export function useGraiVote() {
   const isEvm = chainKind === 'evm'
 
   return {
-    vote,
+    liquidate,
     reset,
     status: isEvm ? evmStatus : solanaStatus,
     error: isEvm ? evmError : solanaError,
     lastSignature: isEvm ? evmLastHash : solanaLastSignature,
-    isVoting: isEvm ? isEvmPending : isSolanaPending,
+    isLiquidating: isEvm ? isEvmPending : isSolanaPending,
   }
 }

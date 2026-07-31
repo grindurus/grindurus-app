@@ -41,6 +41,13 @@ export function grindersStatePda(grindersProgramId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync([Buffer.from('grinders')], grindersProgramId)[0]
 }
 
+export function escrowPda(user: PublicKey, programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('escrow'), user.toBuffer()],
+    programId,
+  )[0]
+}
+
 /** Grinders Allocation PDA — lives on the grinders program. */
 export function allocationPda(
   custodianState: PublicKey,

@@ -175,10 +175,10 @@ function buildEvenTicks(min: number, max: number, count = 4): number[] {
 }
 
 function formatChartAskUsd(raw: bigint, decimals: number): string {
-  const normalized = formatVaultBalanceDisplay(raw, decimals, 2)
-  if (!normalized.includes('.')) return `$${normalized}.00`
+  const normalized = formatVaultBalanceDisplay(raw, decimals, 6)
+  if (!normalized.includes('.')) return `$${normalized}.000000`
   const [wholePart, fractionPart = ''] = normalized.split('.')
-  return `$${wholePart}.${fractionPart.padEnd(2, '0').slice(0, 2)}`
+  return `$${wholePart}.${fractionPart.padEnd(6, '0').slice(0, 6)}`
 }
 
 export function GraiDutchAuctionChart({

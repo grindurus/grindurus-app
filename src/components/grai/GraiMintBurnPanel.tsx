@@ -14,12 +14,13 @@ import {
   type GraiAssetYieldMetrics,
 } from '../../grai/assetYieldMetrics'
 import { useGraiAssets } from '../../hooks/useGraiAssets'
-import { FALLBACK_GRAI_ASSETS } from '../../grai/knownMints'
+import { useGraiVaultBalances } from '../../hooks/useGraiVaultBalances'
 import type { GraiAssetVaultBalances } from '../../grai/fetchVaultBalances'
 import {
   fetchEvmGraiRedeemables,
   fetchEvmRedeemUnlockTiming,
 } from '../../grai/evm/readProtocol'
+import { fetchGraiProtocol } from '../../grai/fetchGraiProtocol'
 import { useDocumentChartTheme } from '../../chart/useDocumentChartTheme'
 import { buildVaultCompositionRows, getAssetChartColors } from '../../grai/vaultComposition'
 import { useGraiBurn } from '../../hooks/useGraiBurn'
@@ -31,6 +32,8 @@ import { useGraiUnlockEstimate } from '../../hooks/useGraiUnlockEstimate'
 import { useGraiClaimEstimate } from '../../hooks/useGraiClaimEstimate'
 import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
+import { useSolanaWallet } from '../../hooks/useSolanaWallet'
+import { useEvmWallet } from '../../hooks/useEvmWallet'
 import { useWalletContext } from '../../providers/AppWalletProvider'
 import { assetUrl } from '../../utils/appPaths'
 import { readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
@@ -63,46 +66,6 @@ function formatRedeemCountdown(secondsLeft: number): string {
   if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
   if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`
   return `${s}s`
-}
-
-const MOCK_REDEEMABLE_SPECS: Array<{
-  mint: string
-  decimals: number
-  seniorRaw: bigint
-  usdDollars: number
-}> = [
-  { mint: FALLBACK_GRAI_ASSETS[0]!.mint, decimals: 6, seniorRaw: 42_500_000_000n, usdDollars: 42_500 },
-  { mint: FALLBACK_GRAI_ASSETS[1]!.mint, decimals: 9, seniorRaw: 200_000_000_000n, usdDollars: 28_400 },
-  { mint: FALLBACK_GRAI_ASSETS[2]!.mint, decimals: 6, seniorRaw: 18_200_000_000n, usdDollars: 18_200 },
-  { mint: FALLBACK_GRAI_ASSETS[3]!.mint, decimals: 18, seniorRaw: 12_000_000_000_000_000_000n, usdDollars: 31_500 },
-  { mint: FALLBACK_GRAI_ASSETS[4]!.mint, decimals: 8, seniorRaw: 72_000_000n, usdDollars: 48_000 },
-  { mint: FALLBACK_GRAI_ASSETS[5]!.mint, decimals: 18, seniorRaw: 12_000_000_000_000_000_000_000n, usdDollars: 4_200 },
-  { mint: FALLBACK_GRAI_ASSETS[6]!.mint, decimals: 18, seniorRaw: 5_500_000_000_000_000_000_000n, usdDollars: 2_100 },
-]
-
-function usdRawFromDollars(dollars: number, usdScale: number): bigint {
-  return (BigInt(Math.round(dollars * 100)) * 10n ** BigInt(usdScale)) / 100n
-}
-
-function buildMockRedeemableVaultBalances(usdScale: number): Record<string, GraiAssetVaultBalances> {
-  return Object.fromEntries(
-    MOCK_REDEEMABLE_SPECS.map((spec) => {
-      const seniorUsdRaw = usdRawFromDollars(spec.usdDollars, usdScale)
-      return [
-        spec.mint,
-        {
-          seniorRaw: spec.seniorRaw,
-          juniorRaw: 0n,
-          allocatedRaw: 0n,
-          decimals: spec.decimals,
-          navUsdRaw: seniorUsdRaw,
-          seniorUsdRaw,
-          juniorUsdRaw: 0n,
-          allocatedUsdRaw: 0n,
-        } satisfies GraiAssetVaultBalances,
-      ]
-    }),
-  )
 }
 
 function buildGrindersShareHint(assetSymbol?: string): ReactNode {
@@ -278,10 +241,18 @@ export function GraiMintBurnPanel({
   onOpenHowItWorks,
 }: Props) {
   const { openChainSelector } = useWalletContext()
-  const { chainKind, solana, staticSolana, evm, explorerTxUrl } = useGraiDeployment()
+  const { chainKind, solana, staticSolana, evm, connection, explorerTxUrl } = useGraiDeployment()
   const activeWallet = useActiveWallet()
-  const isWalletConnected = activeWallet.isConnected
+  const solanaWallet = useSolanaWallet()
+  const evmWallet = useEvmWallet()
+  const isWalletConnected =
+    chainKind === 'solana'
+      ? solanaWallet.isConnected
+      : chainKind === 'evm'
+        ? evmWallet.isConnected
+        : activeWallet.isConnected
   const { assets: graiAssets } = useGraiAssets()
+  const { vaultBalances, refresh: refreshVaultBalances } = useGraiVaultBalances()
   const chartTheme = useDocumentChartTheme()
   const { mint: mintGrai, isMinting } = useGraiMint()
   const { burn: burnGrai, isBurning } = useGraiBurn()
@@ -310,6 +281,9 @@ export function GraiMintBurnPanel({
   const [redeemCountdownNowSec, setRedeemCountdownNowSec] = useState(() =>
     Math.floor(Date.now() / 1000),
   )
+  const [evmRedeemableBalances, setEvmRedeemableBalances] = useState<
+    Record<string, GraiAssetVaultBalances>
+  >({})
 
   useEffect(() => {
     const focusGraiEscrow = (view: 'lock' | 'unlock') => {
@@ -374,17 +348,7 @@ export function GraiMintBurnPanel({
         symbol: asset.symbol,
         address: asset.mint,
       }))
-    const listedSymbols = new Set(listed.map((asset) => asset.symbol.toUpperCase()))
-    const mockExtras = FALLBACK_GRAI_ASSETS.filter((asset) =>
-      ['USDC', 'SOL'].includes(asset.symbol.toUpperCase()),
-    )
-      .filter((asset) => !listedSymbols.has(asset.symbol.toUpperCase()))
-      .map((asset) => ({
-        icon: asset.icon.src,
-        symbol: asset.symbol,
-        address: asset.mint,
-      }))
-    return [graiOption, ...listed, ...mockExtras]
+    return [graiOption, ...listed]
   }, [graiAssets, graiMintAddress])
   const redeemAssetOptions = useMemo<GraiAmountAsset[]>(
     () => [{ icon: assetUrl('logo.png'), symbol: 'GRAI', address: graiMintAddress }],
@@ -443,7 +407,7 @@ export function GraiMintBurnPanel({
 
   const {
     estimatedGrai,
-    seniorShareLabel,
+    juniorShareLabel,
     seniorShareUsdRaw,
     juniorShareUsdRaw,
     isLoading: isEstimateLoading,
@@ -459,25 +423,56 @@ export function GraiMintBurnPanel({
   )
 
   const usdScale = chainKind === 'evm' ? GRAI_DECIMALS_EVM : USD_SCALE
-  const mockRedeemableBalances = useMemo(
-    () => buildMockRedeemableVaultBalances(usdScale),
-    [usdScale],
-  )
 
   useEffect(() => {
     if (actionView !== 'burn') {
       setLiquidationOpen(false)
       setRedeemUnlockAtSec(null)
+      setEvmRedeemableBalances({})
       return
+    }
+
+    let cancelled = false
+
+    if (chainKind === 'solana') {
+      if (!connection || !solana) {
+        setLiquidationOpen(false)
+        setRedeemUnlockAtSec(null)
+        return
+      }
+
+      void (async () => {
+        try {
+          const protocol = await fetchGraiProtocol(connection, solana.graiMint)
+          if (cancelled) return
+          setLiquidationOpen(protocol.liquidation)
+          if (protocol.liquidation && protocol.liquidationAt > 0n) {
+            setRedeemUnlockAtSec(
+              Number(protocol.liquidationAt) + protocol.config.liquidationPeriod,
+            )
+          } else {
+            setRedeemUnlockAtSec(null)
+          }
+          void refreshVaultBalances()
+        } catch {
+          if (cancelled) return
+          setLiquidationOpen(false)
+          setRedeemUnlockAtSec(null)
+        }
+      })()
+
+      return () => {
+        cancelled = true
+      }
     }
 
     if (chainKind !== 'evm' || !evm) {
       setLiquidationOpen(false)
       setRedeemUnlockAtSec(null)
+      setEvmRedeemableBalances({})
       return
     }
 
-    let cancelled = false
     void (async () => {
       try {
         const timing = await fetchEvmRedeemUnlockTiming(evm)
@@ -491,18 +486,19 @@ export function GraiMintBurnPanel({
       }
 
       try {
-        await fetchEvmGraiRedeemables(evm)
+        const balances = await fetchEvmGraiRedeemables(evm)
+        if (cancelled) return
+        setEvmRedeemableBalances(balances)
       } catch {
         if (cancelled) return
-        setLiquidationOpen(false)
-        setRedeemUnlockAtSec(null)
+        setEvmRedeemableBalances({})
       }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [actionView, chainKind, evm])
+  }, [actionView, chainKind, connection, evm, refreshVaultBalances, solana])
 
   useEffect(() => {
     if (actionView !== 'burn' || !liquidationOpen || redeemUnlockAtSec == null) return
@@ -518,17 +514,20 @@ export function GraiMintBurnPanel({
     return formatRedeemCountdown(redeemUnlockAtSec - redeemCountdownNowSec)
   }, [liquidationOpen, redeemCountdownNowSec, redeemUnlockAtSec])
 
-  const displayRedeemableBalances = mockRedeemableBalances
+  const displayRedeemableBalances =
+    chainKind === 'evm' && Object.keys(evmRedeemableBalances).length > 0
+      ? evmRedeemableBalances
+      : vaultBalances
 
   const redeemableBalanceRows = useMemo(() => {
     const chartColors = getAssetChartColors(chartTheme)
     return buildVaultCompositionRows(
-      FALLBACK_GRAI_ASSETS,
+      graiAssets,
       displayRedeemableBalances,
       'seniorUsdRaw',
       chartColors,
     )
-  }, [chartTheme, displayRedeemableBalances])
+  }, [chartTheme, displayRedeemableBalances, graiAssets])
 
   const redeemableTotalUsdLabel = useMemo(() => {
     const totalUsd = redeemableBalanceRows.reduce((sum, row) => sum + row.seniorUsdRaw, 0n)
@@ -669,6 +668,7 @@ export function GraiMintBurnPanel({
                   assetMint: selectedAsset?.address ?? '',
                   amountInput: amount,
                   assetDecimals: decimals ?? undefined,
+                  lock: earnDividends,
                 })
         : await burnGrai({ amountInput: amount, graiDecimals: decimals ?? undefined })
       toast.update(toastId, {
@@ -1338,7 +1338,11 @@ export function GraiMintBurnPanel({
                             hint={buildGrindersShareHint(selectedAsset?.symbol)}
                           />
                           <span className="grai-detailed-preview-value">
-                            + {isEstimateLoading ? '…' : seniorShareLabel ?? '0.0'}
+                            +{' '}
+                            {isEstimateLoading
+                              ? '…'
+                              : juniorShareLabel ??
+                                (amount.trim() ? amount.trim() : '0.0')}
                             {selectedAsset ? (
                               <>
                                 <img src={selectedAsset.icon} alt="" width={16} height={16} loading="lazy" decoding="async" />

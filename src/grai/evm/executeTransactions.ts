@@ -12,6 +12,8 @@ export type ExecuteEvmMintParams = {
   assetAddress: string
   amountInput: string
   assetDecimals: number
+  /** Escrow minted GRAI in the same tx (`deposit(..., lock)`). */
+  lock?: boolean
 }
 
 export async function executeEvmMint({
@@ -19,6 +21,7 @@ export async function executeEvmMint({
   assetAddress,
   amountInput,
   assetDecimals,
+  lock = false,
 }: ExecuteEvmMintParams): Promise<{ hash: string; amount: bigint }> {
   const account = getAccount(wagmiConfig)
   if (!account.address) {
@@ -51,8 +54,8 @@ export async function executeEvmMint({
   const hash = await writeContract(wagmiConfig, {
     address: graiAddress,
     abi: graiAbi,
-    functionName: 'mint',
-    args: [asset, amount],
+    functionName: 'deposit',
+    args: [asset, amount, lock],
     value: isNativeEvmAsset(asset) ? amount : 0n,
   })
 
@@ -125,6 +128,40 @@ export async function executeEvmVote({
   return { hash, amount: graiAmount }
 }
 
+export type ExecuteEvmBuybackParams = {
+  config: GraiEvmConfig
+  assetAddress: string
+  amountInput: string
+  assetDecimals: number
+}
+
+export async function executeEvmBuyback({
+  config,
+  assetAddress,
+  amountInput,
+  assetDecimals,
+}: ExecuteEvmBuybackParams): Promise<{ hash: string; amount: bigint }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to buyback')
+  }
+
+  const graiAddress = resolveGraiContractAddress(config)
+  const amount = parseTokenAmount(amountInput, assetDecimals)
+  if (amount <= 0n) throw new Error('Amount must be greater than zero')
+  const asset = assetAddress.toLowerCase() as `0x${string}`
+
+  const hash = await writeContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'buyback',
+    args: [asset, amount],
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash, amount }
+}
+
 export type ExecuteEvmBribeParams = {
   config: GraiEvmConfig
   voter: `0x${string}`
@@ -193,6 +230,60 @@ export async function executeEvmBribe({
 
   await waitForTransactionReceipt(wagmiConfig, { hash })
   return { hash, amount: graiAmount, bribePaid }
+}
+
+export type ExecuteEvmDistributeParams = {
+  config: GraiEvmConfig
+  assetAddress: string
+  amountInput: string
+  assetDecimals: number
+}
+
+export async function executeEvmDistribute({
+  config,
+  assetAddress,
+  amountInput,
+  assetDecimals,
+}: ExecuteEvmDistributeParams): Promise<{ hash: string; amount: bigint }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to distribute yield')
+  }
+
+  const graiAddress = resolveGraiContractAddress(config)
+  const amount = parseTokenAmount(amountInput, assetDecimals)
+  if (amount <= 0n) throw new Error('Amount must be greater than zero')
+  const asset = assetAddress.toLowerCase() as `0x${string}`
+
+  if (!isNativeEvmAsset(asset)) {
+    const allowance = await readContract(wagmiConfig, {
+      address: asset,
+      abi: erc20Abi,
+      functionName: 'allowance',
+      args: [account.address, graiAddress],
+    })
+
+    if (allowance < amount) {
+      const approveHash = await writeContract(wagmiConfig, {
+        address: asset,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [graiAddress, maxUint256],
+      })
+      await waitForTransactionReceipt(wagmiConfig, { hash: approveHash })
+    }
+  }
+
+  const hash = await writeContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'distribute',
+    args: [asset, amount],
+    value: isNativeEvmAsset(asset) ? amount : 0n,
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash, amount }
 }
 
 export type ExecuteEvmLockParams = {
@@ -315,6 +406,29 @@ export async function executeEvmClaimAll({
     abi: graiAbi,
     functionName: 'claimAll',
     args: [claimHolder],
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash }
+}
+
+export type ExecuteEvmLiquidateParams = {
+  config: GraiEvmConfig
+}
+
+export async function executeEvmLiquidate({
+  config,
+}: ExecuteEvmLiquidateParams): Promise<{ hash: string }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to liquidate')
+  }
+
+  const graiAddress = resolveGraiContractAddress(config)
+  const hash = await writeContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'liquidate',
   })
 
   await waitForTransactionReceipt(wagmiConfig, { hash })

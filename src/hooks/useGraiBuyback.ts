@@ -1,14 +1,14 @@
 import { useCallback } from 'react'
 import { PublicKey } from '@solana/web3.js'
-import { executeBribe } from '../grai/buildBribeTransaction'
-import { executeEvmBribe } from '../grai/evm/executeTransactions'
+import { executeBuyback } from '../grai/buildBuybackTransaction'
+import { executeEvmBuyback } from '../grai/evm/executeTransactions'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { useGraiEvmTransaction } from './useGraiEvmTransaction'
 import { useGraiTransaction, type GraiTransactionStatus } from './useGraiTransaction'
 
-export type GraiBribeStatus = GraiTransactionStatus
+export type GraiBuybackStatus = GraiTransactionStatus
 
-export function useGraiBribe() {
+export function useGraiBuyback() {
   const { chainKind, evm } = useGraiDeployment()
   const {
     run: runSolana,
@@ -27,47 +27,62 @@ export function useGraiBribe() {
     isPending: isEvmPending,
   } = useGraiEvmTransaction()
 
-  const bribe = useCallback(
-    async (params: { voter: string; amountInput: string; graiDecimals: number }) => {
+  const buyback = useCallback(
+    async (params: {
+      assetMint: string
+      amountInput: string
+      assetDecimals?: number
+      /** Solana slippage ceiling in GRAI base units. */
+      paymentMaxGrai?: bigint
+    }) => {
       if (chainKind === 'evm') {
         if (!evm) throw new Error('GRAI is not configured for this EVM network')
+        if (params.assetDecimals === undefined) {
+          throw new Error('Asset decimals are required for EVM buyback')
+        }
 
         const { hash } = await runEvm({
-          connectMessage: 'Connect an EVM wallet to bribe against liquidation',
-          chainAction: 'bribe against liquidation',
-          failureMessage: 'Bribe transaction failed',
+          connectMessage: 'Connect an EVM wallet to buyback',
+          chainAction: 'buyback',
+          failureMessage: 'Buyback transaction failed',
           amountInput: params.amountInput,
-          emptyAmountMessage: 'Enter a GRAI amount to bribe',
+          emptyAmountMessage: 'Enter an amount to buyback',
           execute: () =>
-            executeEvmBribe({
+            executeEvmBuyback({
               config: evm,
-              voter: params.voter as `0x${string}`,
+              assetAddress: params.assetMint,
               amountInput: params.amountInput,
-              graiDecimals: params.graiDecimals,
+              assetDecimals: params.assetDecimals!,
             }),
         })
         return hash
       }
 
       if (chainKind !== 'solana') {
-        throw new Error('Bribing is not available on this network')
+        throw new Error('Buyback is not available on this network')
       }
 
-      const voter = new PublicKey(params.voter)
+      const paymentMaxGrai = params.paymentMaxGrai
+      if (paymentMaxGrai == null || paymentMaxGrai <= 0n) {
+        throw new Error('Buyback payment max is required')
+      }
+
+      const assetMint = new PublicKey(params.assetMint)
       const { signature } = await runSolana({
-        connectMessage: 'Connect a Solana wallet to bribe against liquidation',
-        clusterAction: 'bribe against liquidation',
-        failureMessage: 'Bribe transaction failed',
+        connectMessage: 'Connect a Solana wallet to buyback',
+        clusterAction: 'buyback',
+        failureMessage: 'Buyback transaction failed',
         amountInput: params.amountInput,
-        emptyAmountMessage: 'Enter a GRAI amount to bribe',
+        emptyAmountMessage: 'Enter an amount to buyback',
         execute: ({ connection, solana, publicKey, signTransaction }) =>
-          executeBribe({
+          executeBuyback({
             connection,
             config: solana,
-            briber: publicKey,
-            voter,
+            buyer: publicKey,
+            assetMint,
             amountInput: params.amountInput.trim(),
-            graiDecimals: params.graiDecimals,
+            assetDecimals: params.assetDecimals,
+            paymentMaxGrai,
             signTransaction,
           }),
       })
@@ -84,11 +99,11 @@ export function useGraiBribe() {
   const isEvm = chainKind === 'evm'
 
   return {
-    bribe,
+    buyback,
     reset,
     status: isEvm ? evmStatus : solanaStatus,
     error: isEvm ? evmError : solanaError,
     lastSignature: isEvm ? evmLastHash : solanaLastSignature,
-    isBribing: isEvm ? isEvmPending : isSolanaPending,
+    isBuyingBack: isEvm ? isEvmPending : isSolanaPending,
   }
 }
