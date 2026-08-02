@@ -175,6 +175,12 @@ export function decodeGraiStateVoters(data: Buffer): PublicKey[] {
   return decodePubkeyVecAt(data, lockers.nextOffset).keys
 }
 
+/** `lockers` vec after `asset_mints`. */
+export function decodeGraiStateLockers(data: Buffer): PublicKey[] {
+  const assets = decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET)
+  return decodePubkeyVecAt(data, assets.nextOffset).keys
+}
+
 const cacheByMint = new Map<string, GraiProtocolSnapshot>()
 const promiseByMint = new Map<string, Promise<GraiProtocolSnapshot>>()
 

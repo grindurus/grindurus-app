@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { PublicKey } from '@solana/web3.js'
 import {
   estimateEvmClaimAsset,
   formatClaimUsdTotal,
@@ -20,9 +21,13 @@ const EMPTY_CLAIM: EvmClaimEstimate = {
   decimals: 6,
 }
 
-export function useGraiClaimEstimate(enabled: boolean, assetAddress?: string) {
+export function useGraiClaimEstimate(
+  enabled: boolean,
+  assetAddress?: string,
+  holderAddress?: string | null,
+) {
   const { chainKind, evm, connection, solana } = useGraiDeployment()
-  const { address: evmAddress, isConnected: isEvmConnected } = useEvmWallet()
+  const { address: evmAddress } = useEvmWallet()
   const { publicKey: solanaPublicKey, isConnected: isSolanaConnected } = useSolanaWallet()
   const [claim, setClaim] = useState<EvmClaimEstimate>(EMPTY_CLAIM)
   const [claims, setClaims] = useState<EvmClaimEstimate[]>([])
@@ -48,7 +53,18 @@ export function useGraiClaimEstimate(enabled: boolean, assetAddress?: string) {
     setIsLoading(true)
 
     if (chainKind === 'solana') {
-      if (!connection || !solana || !isSolanaConnected || !solanaPublicKey) {
+      let holderKey: PublicKey | null = null
+      if (holderAddress && holderAddress.length > 0) {
+        try {
+          holderKey = new PublicKey(holderAddress)
+        } catch {
+          holderKey = null
+        }
+      } else if (isSolanaConnected && solanaPublicKey) {
+        holderKey = solanaPublicKey
+      }
+
+      if (!connection || !solana || !holderKey) {
         setClaim(EMPTY_CLAIM)
         setClaims([])
         setClaimableLabel('—')
@@ -59,7 +75,7 @@ export function useGraiClaimEstimate(enabled: boolean, assetAddress?: string) {
 
       void (async () => {
         try {
-          const all = await estimateSolanaClaimAll(connection, solana, solanaPublicKey)
+          const all = await estimateSolanaClaimAll(connection, solana, holderKey!)
           if (cancelled) return
           setClaims(all)
 
@@ -96,7 +112,12 @@ export function useGraiClaimEstimate(enabled: boolean, assetAddress?: string) {
       }
     }
 
-    if (chainKind !== 'evm' || !evm || !isEvmConnected || !evmAddress || !assetAddress) {
+    const owner = (
+      holderAddress && holderAddress.startsWith('0x') ? holderAddress : evmAddress
+    ) as `0x${string}` | undefined
+
+    // Public read: holder may be any locker; wallet connect is only required to submit claim.
+    if (chainKind !== 'evm' || !evm || !owner || !assetAddress) {
       setClaim(EMPTY_CLAIM)
       setClaims([])
       setClaimableLabel('—')
@@ -105,12 +126,11 @@ export function useGraiClaimEstimate(enabled: boolean, assetAddress?: string) {
       return
     }
 
-    const owner = evmAddress as `0x${string}`
     const asset = assetAddress.toLowerCase() as `0x${string}`
 
     void (async () => {
       try {
-        const next = await estimateEvmClaimAsset(evm, owner, asset)
+        const next = await estimateEvmClaimAsset(evm, owner.toLowerCase() as `0x${string}`, asset)
         if (cancelled) return
         setClaim(next)
         setClaims([next])
@@ -144,7 +164,7 @@ export function useGraiClaimEstimate(enabled: boolean, assetAddress?: string) {
     enabled,
     evm,
     evmAddress,
-    isEvmConnected,
+    holderAddress,
     isSolanaConnected,
     refreshNonce,
     solana,

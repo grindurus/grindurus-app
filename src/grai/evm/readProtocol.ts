@@ -271,7 +271,7 @@ export async function fetchEvmRedeemUnlockTiming(
   ])
 
   const liquidationAt = Number(liquidationAtRaw)
-  const liquidationPeriodSec = Number(protocolConfig[7])
+  const liquidationPeriodSec = Number(protocolConfig[8])
   const redeemUnlockAt =
     liquidationOpen && liquidationAt > 0 ? liquidationAt + liquidationPeriodSec : null
 
@@ -446,8 +446,8 @@ export async function fetchEvmLiquidationVoteState(
     settlementAsset,
     settlementDecimals,
     settlementSymbol: settlementMeta.symbol,
-    bribePremiumBps: Number(protocolConfig[3]),
-    liquidationQuorumBps: Number(protocolConfig[4]),
+    bribePremiumBps: Number(protocolConfig[4]),
+    liquidationQuorumBps: Number(protocolConfig[5]),
     voters: voterEscrows.map((escrow) => escrow.account),
     voterEntries,
     listedAssets,
@@ -467,6 +467,29 @@ export async function fetchEvmVoterEscrow(
     args: [voter],
   })
   return entry[3]
+}
+
+export type EvmLockerEntry = {
+  address: string
+  lockedGrai: bigint
+}
+
+/** Active GRAI lockers (`getLockers`) with non-zero escrow. */
+export async function fetchEvmLockers(config: GraiEvmConfig): Promise<EvmLockerEntry[]> {
+  const client = createGraiEvmPublicClient(config)
+  const graiAddress = resolveGraiContractAddress(config)
+  const escrows = await client.readContract({
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'getLockers',
+    args: [0n, 2n ** 256n - 1n],
+  })
+  return escrows
+    .filter((escrow) => escrow.amount > 0n && escrow.account !== '0x0000000000000000000000000000000000000000')
+    .map((escrow) => ({
+      address: escrow.account,
+      lockedGrai: escrow.amount,
+    }))
 }
 
 export async function previewEvmBribe(

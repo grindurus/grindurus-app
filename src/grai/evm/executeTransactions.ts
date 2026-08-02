@@ -3,7 +3,7 @@ import { erc20Abi, maxUint256, parseUnits } from 'viem'
 import { wagmiConfig } from '../../providers/evmConfig'
 import type { GraiEvmConfig } from '../deployments'
 import { formatTokenBalance, parseTokenAmount } from '../onchain'
-import { graiAbi } from './abi'
+import { graiAbi, grindersAbi } from './abi'
 import { resolveGraiContractAddress } from './client'
 import { isNativeEvmAsset } from './knownAssets'
 
@@ -429,6 +429,110 @@ export async function executeEvmLiquidate({
     address: graiAddress,
     abi: graiAbi,
     functionName: 'liquidate',
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash }
+}
+
+export type ExecuteEvmGrindersLiquidateParams = {
+  config: GraiEvmConfig
+  fromId: bigint
+  toId: bigint
+}
+
+async function resolveGrindersAddress(config: GraiEvmConfig): Promise<`0x${string}`> {
+  const graiAddress = resolveGraiContractAddress(config)
+  const grindersAddress = await readContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'grinders',
+  })
+  if (!grindersAddress || grindersAddress === '0x0000000000000000000000000000000000000000') {
+    throw new Error('Grinders is not set on this GRAI deployment')
+  }
+  return grindersAddress
+}
+
+/** Resolve Grinders proxy from GRAI and call `liquidate(fromId, toId)`. */
+export async function executeEvmGrindersLiquidate({
+  config,
+  fromId,
+  toId,
+}: ExecuteEvmGrindersLiquidateParams): Promise<{ hash: string }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to liquidate custodians')
+  }
+
+  const grindersAddress = await resolveGrindersAddress(config)
+  const hash = await writeContract(wagmiConfig, {
+    address: grindersAddress,
+    abi: grindersAbi,
+    functionName: 'liquidate',
+    args: [fromId, toId],
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash }
+}
+
+export type ExecuteEvmGrindersMintParams = {
+  config: GraiEvmConfig
+  custodianKind: `0x${string}`
+  owner: `0x${string}`
+  baseAsset: `0x${string}`
+  quoteAsset: `0x${string}`
+}
+
+/** Deploy a custodian proxy + mint Grinder NFT via `Grinders.mint`. */
+export async function executeEvmGrindersMint({
+  config,
+  custodianKind,
+  owner,
+  baseAsset,
+  quoteAsset,
+}: ExecuteEvmGrindersMintParams): Promise<{ hash: string }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to mint a custodian')
+  }
+
+  const grindersAddress = await resolveGrindersAddress(config)
+  const hash = await writeContract(wagmiConfig, {
+    address: grindersAddress,
+    abi: grindersAbi,
+    functionName: 'mint',
+    args: [custodianKind, owner, baseAsset, quoteAsset],
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash }
+}
+
+export type ExecuteEvmGrindersRegisterParams = {
+  config: GraiEvmConfig
+  custodian: `0x${string}`
+  owner: `0x${string}`
+}
+
+/** Register a pre-deployed custodian + mint Grinder NFT via `Grinders.register`. */
+export async function executeEvmGrindersRegister({
+  config,
+  custodian,
+  owner,
+}: ExecuteEvmGrindersRegisterParams): Promise<{ hash: string }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to register a custodian')
+  }
+
+  const grindersAddress = await resolveGrindersAddress(config)
+  const hash = await writeContract(wagmiConfig, {
+    address: grindersAddress,
+    abi: grindersAbi,
+    functionName: 'register',
+    args: [custodian, owner],
   })
 
   await waitForTransactionReceipt(wagmiConfig, { hash })

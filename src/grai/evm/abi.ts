@@ -220,6 +220,29 @@ export const graiAbi = [
   },
   {
     type: 'function',
+    name: 'getLockers',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'fromId', type: 'uint256' },
+      { name: 'toId', type: 'uint256' },
+    ],
+    outputs: [
+      {
+        type: 'tuple[]',
+        components: [
+          { name: 'account', type: 'address' },
+          { name: 'lockerId', type: 'uint32' },
+          { name: 'amount', type: 'uint256' },
+          { name: 'voted', type: 'uint256' },
+          { name: 'lockedAt', type: 'uint48' },
+          { name: 'votedAt', type: 'uint48' },
+          { name: 'voterId', type: 'uint32' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'function',
     name: 'totalVoted',
     stateMutability: 'view',
     inputs: [],
@@ -283,6 +306,7 @@ export const graiAbi = [
       { name: 'buybackCutBps', type: 'uint16' },
       { name: 'dividendCutBps', type: 'uint16' },
       { name: 'treasuryCutBps', type: 'uint16' },
+      { name: 'claimTipBps', type: 'uint16' },
       { name: 'bribePremiumBps', type: 'uint16' },
       { name: 'quorumBps', type: 'uint16' },
       { name: 'unlockFeeBps', type: 'uint16' },
@@ -365,6 +389,110 @@ export const graiAbi = [
     stateMutability: 'nonpayable',
     inputs: [],
     outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'grinders',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+] as const
+
+/** Minimal Grinders surface used by manage mint / liquidate / custody reads. */
+export const grindersAbi = [
+  {
+    type: 'function',
+    name: 'liquidate',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'fromId', type: 'uint256' },
+      { name: 'toId', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'mint',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'custodianKind', type: 'bytes32' },
+      { name: 'owner_', type: 'address' },
+      { name: 'baseAsset_', type: 'address' },
+      { name: 'quoteAsset_', type: 'address' },
+    ],
+    outputs: [{ name: 'custodian', type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'register',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'custodian', type: 'address' },
+      { name: 'owner_', type: 'address' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'isCustodian',
+    stateMutability: 'view',
+    inputs: [{ name: 'custodian', type: 'address' }],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'custodianImplementations',
+    stateMutability: 'view',
+    inputs: [{ name: 'custodianKind', type: 'bytes32' }],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'totalSupply',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'owner',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'grai',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'getCustodiansData',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'fromId', type: 'uint256' },
+      { name: 'toId', type: 'uint256' },
+    ],
+    outputs: [
+      {
+        name: 'list',
+        type: 'tuple[]',
+        components: [
+          { name: 'custodian', type: 'address' },
+          { name: 'id', type: 'uint256' },
+          { name: 'owner', type: 'address' },
+          { name: 'kind', type: 'bytes32' },
+          { name: 'baseAsset', type: 'address' },
+          { name: 'quoteAsset', type: 'address' },
+          { name: 'ethBalance', type: 'uint256' },
+          { name: 'baseBalance', type: 'uint256' },
+          { name: 'quoteBalance', type: 'uint256' },
+        ],
+      },
+    ],
   },
 ] as const
 

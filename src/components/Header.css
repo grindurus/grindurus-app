@@ -437,9 +437,7 @@
   }
 
   .header-logo-text {
-    display: inline;
-    font-size: 1.05rem;
-    letter-spacing: -0.02em;
+    display: none;
   }
 
   .header-logo-img {
@@ -542,10 +540,6 @@
   .header-logo-img {
     width: 30px;
     height: 30px;
-  }
-
-  .header-logo-text {
-    font-size: 0.95rem;
   }
 
   .header-mobile-nav {

@@ -123,7 +123,12 @@ export function useGraiLock() {
   )
 
   const claim = useCallback(
-    async (params: { assetAddress: string; amountInput: string; assetDecimals: number }) => {
+    async (params: {
+      assetAddress: string
+      amountInput: string
+      assetDecimals: number
+      holder?: string
+    }) => {
       if (chainKind === 'solana') {
         const { signature } = await runSolana({
           connectMessage: 'Connect a Solana wallet to claim dividends',
@@ -131,16 +136,18 @@ export function useGraiLock() {
           failureMessage: 'Claim transaction failed',
           amountInput: params.amountInput,
           emptyAmountMessage: 'Enter an amount to claim',
-          execute: ({ connection, solana: runtime, publicKey, signTransaction }) =>
-            executeClaim({
+          execute: ({ connection, solana: runtime, publicKey, signTransaction }) => {
+            const holder = params.holder ? new PublicKey(params.holder) : publicKey
+            return executeClaim({
               connection,
               config: runtime,
-              holder: publicKey,
+              holder,
               assetMint: new PublicKey(params.assetAddress),
               amountInput: params.amountInput,
               assetDecimals: params.assetDecimals,
               signTransaction,
-            }),
+            })
+          },
         })
         return signature
       }
@@ -161,6 +168,9 @@ export function useGraiLock() {
             assetAddress: params.assetAddress,
             amountInput: params.amountInput,
             assetDecimals: params.assetDecimals,
+            holder: params.holder?.startsWith('0x')
+              ? (params.holder.toLowerCase() as `0x${string}`)
+              : undefined,
           }),
       })
 
@@ -169,42 +179,52 @@ export function useGraiLock() {
     [chainKind, evm, runEvm, runSolana],
   )
 
-  const claimAll = useCallback(async () => {
-    if (chainKind === 'solana') {
-      const { signature } = await runSolana({
-        connectMessage: 'Connect a Solana wallet to claim dividends',
-        clusterAction: 'claim dividends',
+  const claimAll = useCallback(
+    async (params?: { holder?: string }) => {
+      if (chainKind === 'solana') {
+        const { signature } = await runSolana({
+          connectMessage: 'Connect a Solana wallet to claim dividends',
+          clusterAction: 'claim dividends',
+          failureMessage: 'Claim transaction failed',
+          execute: async ({ connection, solana: runtime, publicKey, signTransaction }) => {
+            const holder = params?.holder ? new PublicKey(params.holder) : publicKey
+            const pending = await estimateSolanaClaimAll(connection, runtime, holder)
+            const assetMints = pending
+              .filter((row) => row.amountRaw > 0n)
+              .map((row) => new PublicKey(row.assetAddress))
+            return executeClaimAll({
+              connection,
+              config: runtime,
+              holder,
+              assetMints,
+              signTransaction,
+            })
+          },
+        })
+        return signature
+      }
+
+      if (chainKind !== 'evm' || !evm) {
+        throw new Error('Claiming dividends is not available on this network')
+      }
+
+      const { hash } = await runEvm({
+        connectMessage: 'Connect an EVM wallet to claim dividends',
+        chainAction: 'claim dividends',
         failureMessage: 'Claim transaction failed',
-        execute: async ({ connection, solana: runtime, publicKey, signTransaction }) => {
-          const pending = await estimateSolanaClaimAll(connection, runtime, publicKey)
-          const assetMints = pending
-            .filter((row) => row.amountRaw > 0n)
-            .map((row) => new PublicKey(row.assetAddress))
-          return executeClaimAll({
-            connection,
-            config: runtime,
-            holder: publicKey,
-            assetMints,
-            signTransaction,
-          })
-        },
+        execute: () =>
+          executeEvmClaimAll({
+            config: evm,
+            holder: params?.holder?.startsWith('0x')
+              ? (params.holder.toLowerCase() as `0x${string}`)
+              : undefined,
+          }),
       })
-      return signature
-    }
 
-    if (chainKind !== 'evm' || !evm) {
-      throw new Error('Claiming dividends is not available on this network')
-    }
-
-    const { hash } = await runEvm({
-      connectMessage: 'Connect an EVM wallet to claim dividends',
-      chainAction: 'claim dividends',
-      failureMessage: 'Claim transaction failed',
-      execute: () => executeEvmClaimAll({ config: evm }),
-    })
-
-    return hash
-  }, [chainKind, evm, runEvm, runSolana])
+      return hash
+    },
+    [chainKind, evm, runEvm, runSolana],
+  )
 
   const reset = useCallback(() => {
     resetEvm()

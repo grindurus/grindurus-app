@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'react-toastify'
 import { evmExplorerAccountUrl, listConfiguredEvmChains } from '../../grai/deployments'
 import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
@@ -6,17 +7,22 @@ import { GRAI_DECIMALS_EVM } from '../../grai/evm/constants'
 import { GRAI_DECIMALS } from '../../grai/tokenomics'
 import {
   fetchEvmLiquidationVoteState,
+  fetchEvmLockers,
   previewEvmBribe,
   type EvmLiquidationVoteState,
+  type EvmLockerEntry,
   type EvmVoterEntry,
 } from '../../grai/evm/readProtocol'
 import { fetchSolanaLiquidationVoteState } from '../../grai/fetchSolanaLiquidationVoteState'
+import { fetchSolanaLockers } from '../../grai/fetchSolanaLockers'
 import { PublicKey } from '@solana/web3.js'
 import { useGraiBribe } from '../../hooks/useGraiBribe'
 import { useGraiVote } from '../../hooks/useGraiVote'
 import { useGraiLiquidate } from '../../hooks/useGraiLiquidate'
 import { useGraiDistribute } from '../../hooks/useGraiDistribute'
 import { useGraiBuyback } from '../../hooks/useGraiBuyback'
+import { useGraiLock } from '../../hooks/useGraiLock'
+import { useGraiClaimEstimate } from '../../hooks/useGraiClaimEstimate'
 import { useGraiAssets } from '../../hooks/useGraiAssets'
 import { useGraiBuybackAuctions } from '../../hooks/useGraiBuybackAuctions'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
@@ -24,6 +30,8 @@ import { useSolanaWallet } from '../../hooks/useSolanaWallet'
 import { useEvmWallet } from '../../hooks/useEvmWallet'
 import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useGraiAssetUsdLabel } from '../../hooks/useGraiAssetUsdLabel'
+import { estimateEvmClaimAll, formatClaimUsdTotal } from '../../grai/evm/estimateClaim'
+import { estimateSolanaClaimAll } from '../../grai/estimateSolanaClaim'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import type { GraiBuybackAuction } from '../../grai/fetchBuybackAuctions'
@@ -78,6 +86,163 @@ const MOCK_VOTERS: EvmVoterEntry[] = [
 const BPS = 10_000n
 /** On-chain / EVM `USD_DECIMALS` — `totalValue` book units. */
 const USD_DECIMALS = 6
+
+type ToolbarSortOption<T extends string> = { value: T; label: string }
+
+function GraiToolbarSortSelect<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T
+  options: readonly ToolbarSortOption<T>[]
+  onChange: (value: T) => void
+  label: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLUListElement>(null)
+  const selected = options.find((option) => option.value === value) ?? options[0]
+  const labelId = `${label.replace(/\s+/g, '-').toLowerCase()}-label`
+
+  const updateMenuPosition = useCallback(() => {
+    const trigger = triggerRef.current
+    if (!trigger) return
+    const rect = trigger.getBoundingClientRect()
+    setMenuRect({
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: Math.max(rect.width, 148),
+    })
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuRect(null)
+      return
+    }
+    updateMenuPosition()
+    const handleReposition = () => updateMenuPosition()
+    window.addEventListener('resize', handleReposition)
+    window.addEventListener('scroll', handleReposition, true)
+    return () => {
+      window.removeEventListener('resize', handleReposition)
+      window.removeEventListener('scroll', handleReposition, true)
+    }
+  }, [open, updateMenuPosition])
+
+  useEffect(() => {
+    if (!open) return
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    // Defer so the opening click does not immediately close the menu.
+    const timer = window.setTimeout(() => {
+      document.addEventListener('mousedown', handlePointerDown)
+      document.addEventListener('keydown', handleKeyDown)
+    }, 0)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  return (
+    <div
+      className={`grai-liquidation-bribe-filter grai-toolbar-sort${open ? ' is-open' : ''}`}
+      ref={rootRef}
+    >
+      <span className="visually-hidden" id={labelId}>
+        {label}
+      </span>
+      <svg
+        className="grai-liquidation-bribe-filter-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M4 5h16" />
+        <path d="M7 12h10" />
+        <path d="M10 19h4" />
+      </svg>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="grai-toolbar-sort-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-labelledby={labelId}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span className="grai-toolbar-sort-value">{selected?.label ?? 'Sort'}</span>
+        <span className="grai-toolbar-sort-caret" aria-hidden="true" />
+      </button>
+      {open && menuRect && typeof document !== 'undefined'
+        ? createPortal(
+            <ul
+              ref={menuRef}
+              className="grai-toolbar-sort-menu is-portal"
+              role="listbox"
+              aria-label={label}
+              style={{
+                top: menuRect.top,
+                left: menuRect.left,
+                width: menuRect.width,
+              }}
+            >
+              {options.map((option) => {
+                const isActive = option.value === value
+                return (
+                  <li key={option.value} role="presentation">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isActive}
+                      className={`grai-toolbar-sort-option${isActive ? ' is-active' : ''}`}
+                      onClick={() => {
+                        onChange(option.value)
+                        setOpen(false)
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>,
+            document.body,
+          )
+        : null}
+    </div>
+  )
+}
+
+const CLAIM_LOCKER_SORT_OPTIONS = [
+  { value: 'locked-desc', label: 'Locked ↓' },
+  { value: 'locked-asc', label: 'Locked ↑' },
+  { value: 'claimable-desc', label: 'Claimable ↓' },
+  { value: 'claimable-asc', label: 'Claimable ↑' },
+] as const
+
+const BRIBE_VOTER_SORT_OPTIONS = [
+  { value: 'escrow-desc', label: 'Escrow ↓' },
+  { value: 'escrow-asc', label: 'Escrow ↑' },
+  { value: 'bribe-desc', label: 'Bribe ↓' },
+  { value: 'bribe-asc', label: 'Bribe ↑' },
+] as const
 
 function shortAddress(address: string): string {
   if (address.length < 10) return address
@@ -980,6 +1145,7 @@ export function GraiLiquidationActions() {
     isDistributing,
     reset: resetDistribute,
   } = useGraiDistribute()
+  const { claim: claimDividends, claimAll: claimAllDividendsTx, isPending: isClaiming } = useGraiLock()
   const {
     buyback,
     isBuyingBack,
@@ -1003,15 +1169,31 @@ export function GraiLiquidationActions() {
   const [yieldAmount, setYieldAmount] = useState('')
   const [distributeAmount, setDistributeAmount] = useState('')
   const [distributeAssetAddress, setDistributeAssetAddress] = useState('')
+  const [claimAmount, setClaimAmount] = useState('')
+  const [claimAssetAddress, setClaimAssetAddress] = useState('')
+  const [claimAllDividends, setClaimAllDividends] = useState(false)
+  const [claimTipBps, setClaimTipBps] = useState(100)
+  const [claimLockers, setClaimLockers] = useState<EvmLockerEntry[]>([])
+  const [claimLockersLoading, setClaimLockersLoading] = useState(false)
+  const [selectedClaimLocker, setSelectedClaimLocker] = useState<string | null>(null)
+  const [claimableByLocker, setClaimableByLocker] = useState<Record<string, string>>({})
+  const [claimableRawByLocker, setClaimableRawByLocker] = useState<Record<string, bigint>>({})
+  const [claimableByLockerLoading, setClaimableByLockerLoading] = useState(false)
+  const [claimLockerSearch, setClaimLockerSearch] = useState('')
+  const [claimLockerSort, setClaimLockerSort] = useState<
+    'locked-desc' | 'locked-asc' | 'claimable-desc' | 'claimable-asc'
+  >('locked-desc')
+  const [claimLockerPage, setClaimLockerPage] = useState(0)
   const [marketView, setMarketView] = useState<'vote' | 'bribe'>(() => {
     const section = readGraiSectionFromHash()
     if (section === 'bribe') return 'bribe'
     return 'vote'
   })
   const [opsView, setOpsView] = useState<
-    'distribute' | 'buyback' | 'market' | 'liquidate' | 'redeem'
+    'claim' | 'distribute' | 'buyback' | 'market' | 'liquidate' | 'redeem'
   >(() => {
     const section = readGraiSectionFromHash()
+    if (section === 'claim') return 'claim'
     if (section === 'buyback') return 'buyback'
     if (section === 'auctions') return 'liquidate'
     if (section === 'burn') return 'redeem'
@@ -1021,7 +1203,9 @@ export function GraiLiquidationActions() {
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {
-      if (section === 'bribe') {
+      if (section === 'claim') {
+        setOpsView('claim')
+      } else if (section === 'bribe') {
         setOpsView('market')
         setMarketView('bribe')
       } else if (section === 'vote') {
@@ -1046,6 +1230,7 @@ export function GraiLiquidationActions() {
     const onHashChange = () => {
       const section = readGraiSectionFromHash()
       if (
+        section === 'claim' ||
         section === 'vote' ||
         section === 'bribe' ||
         section === 'auctions' ||
@@ -1068,7 +1253,7 @@ export function GraiLiquidationActions() {
   }, [refreshBuybackAuctions])
 
   const handleOpsViewChange = useCallback(
-    (view: 'distribute' | 'buyback' | 'market' | 'liquidate' | 'redeem') => {
+    (view: 'claim' | 'distribute' | 'buyback' | 'market' | 'liquidate' | 'redeem') => {
       setOpsView(view)
       if (view === 'buyback') {
         void refreshBuybackAuctions()
@@ -1078,13 +1263,15 @@ export function GraiLiquidationActions() {
         return
       }
       const hash =
-        view === 'buyback'
-          ? '#buyback'
-          : view === 'market'
-            ? `#${marketView}`
-            : view === 'liquidate'
-              ? '#auctions'
-              : '#assets'
+        view === 'claim'
+          ? '#claim'
+          : view === 'buyback'
+            ? '#buyback'
+            : view === 'market'
+              ? `#${marketView}`
+              : view === 'liquidate'
+                ? '#auctions'
+                : '#assets'
       if (window.location.hash !== hash) {
         window.history.replaceState({}, '', `${window.location.pathname}${hash}`)
       }
@@ -1295,6 +1482,266 @@ export function GraiLiquidationActions() {
     if (distributeAssetAddress.toLowerCase() === selectedDistributeAsset.address.toLowerCase()) return
     setDistributeAssetAddress(selectedDistributeAsset.address)
   }, [distributeAssetAddress, selectedDistributeAsset])
+  const selectedClaimAsset = useMemo(() => {
+    return (
+      distributeAssetOptions.find(
+        (asset) => asset.address.toLowerCase() === claimAssetAddress.toLowerCase(),
+      ) ?? distributeAssetOptions[0]
+    )
+  }, [claimAssetAddress, distributeAssetOptions])
+  useEffect(() => {
+    if (!selectedClaimAsset) return
+    if (claimAssetAddress.toLowerCase() === selectedClaimAsset.address.toLowerCase()) return
+    setClaimAssetAddress(selectedClaimAsset.address)
+  }, [claimAssetAddress, selectedClaimAsset])
+  const {
+    claim: claimEstimate,
+    claims: claimEstimates,
+    claimableLabel,
+    claimableMaxAmount,
+    usdLabel: claimUsdLabel,
+    isLoading: claimBalanceLoading,
+    refresh: refreshClaimEstimate,
+  } = useGraiClaimEstimate(
+    opsView === 'claim' && Boolean(selectedClaimLocker),
+    selectedClaimAsset?.address,
+    selectedClaimLocker,
+  )
+  const claimDecimals = claimEstimate.decimals || 9
+
+  const lockerHasAnyClaimable = useMemo(() => {
+    if (claimEstimates.some((row) => row.amountRaw > 0n)) return true
+    if (!selectedClaimLocker) return false
+    return (claimableRawByLocker[selectedClaimLocker.toLowerCase()] ?? 0n) > 0n
+  }, [claimEstimates, claimableRawByLocker, selectedClaimLocker])
+
+  // Prefill claim amount when the selected locker/asset has positive claimable.
+  useEffect(() => {
+    if (opsView !== 'claim' || claimAllDividends) return
+    if (!claimableMaxAmount) {
+      setClaimAmount('')
+      return
+    }
+    setClaimAmount(claimableMaxAmount)
+  }, [
+    claimAllDividends,
+    claimableMaxAmount,
+    opsView,
+    selectedClaimAsset?.address,
+    selectedClaimLocker,
+  ])
+
+  useEffect(() => {
+    if (opsView !== 'claim') return
+    let cancelled = false
+    setClaimLockersLoading(true)
+    void (async () => {
+      try {
+        let next: EvmLockerEntry[] = []
+        if (chainKind === 'solana' && connection && solana) {
+          next = await fetchSolanaLockers(connection, solana)
+        } else if (chainKind === 'evm' && (connectedEvm || evmProtocol)) {
+          next = await fetchEvmLockers(connectedEvm ?? evmProtocol!)
+        }
+        if (cancelled) return
+        const sorted = [...next].sort((a, b) => {
+          const aIsWallet =
+            walletAddress != null && a.address.toLowerCase() === walletAddress.toLowerCase()
+          const bIsWallet =
+            walletAddress != null && b.address.toLowerCase() === walletAddress.toLowerCase()
+          if (aIsWallet !== bIsWallet) return aIsWallet ? -1 : 1
+          if (a.lockedGrai === b.lockedGrai) return 0
+          return a.lockedGrai > b.lockedGrai ? -1 : 1
+        })
+        setClaimLockers(sorted)
+      } catch {
+        if (!cancelled) setClaimLockers([])
+      } finally {
+        if (!cancelled) setClaimLockersLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [chainKind, connectedEvm, connection, evmProtocol, opsView, solana, walletAddress])
+
+  useEffect(() => {
+    if (opsView !== 'claim') return
+    if (claimLockers.length === 0) {
+      setSelectedClaimLocker(null)
+      return
+    }
+    const stillSelected =
+      selectedClaimLocker != null &&
+      claimLockers.some(
+        (locker) => locker.address.toLowerCase() === selectedClaimLocker.toLowerCase(),
+      )
+    if (stillSelected) return
+    const walletLocker =
+      walletAddress != null
+        ? claimLockers.find(
+            (locker) => locker.address.toLowerCase() === walletAddress.toLowerCase(),
+          )
+        : undefined
+    setSelectedClaimLocker(walletLocker?.address ?? claimLockers[0]?.address ?? null)
+  }, [claimLockers, opsView, selectedClaimLocker, walletAddress])
+
+  useEffect(() => {
+    if (opsView !== 'claim' || claimLockers.length === 0) {
+      setClaimableByLocker({})
+      setClaimableRawByLocker({})
+      setClaimableByLockerLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setClaimableByLockerLoading(true)
+
+    void (async () => {
+      const entries = await Promise.all(
+        claimLockers.map(async (locker) => {
+          const key = locker.address.toLowerCase()
+          try {
+            if (chainKind === 'solana' && connection && solana) {
+              const claims = await estimateSolanaClaimAll(
+                connection,
+                solana,
+                new PublicKey(locker.address),
+              )
+              const usdRaw = claims.reduce((sum, claim) => sum + claim.usdRaw, 0n)
+              return [key, formatClaimUsdTotal(usdRaw), usdRaw] as const
+            }
+
+            if (
+              chainKind === 'evm' &&
+              (connectedEvm || evmProtocol) &&
+              locker.address.startsWith('0x')
+            ) {
+              const claims = await estimateEvmClaimAll(
+                connectedEvm ?? evmProtocol!,
+                locker.address.toLowerCase() as `0x${string}`,
+              )
+              const usdRaw = claims.reduce((sum, claim) => sum + claim.usdRaw, 0n)
+              return [key, formatClaimUsdTotal(usdRaw), usdRaw] as const
+            }
+
+            return [key, '$0.00', 0n] as const
+          } catch {
+            return [key, '—', 0n] as const
+          }
+        }),
+      )
+      if (cancelled) return
+      setClaimableByLocker(
+        Object.fromEntries(entries.map(([key, label]) => [key, label])),
+      )
+      setClaimableRawByLocker(
+        Object.fromEntries(entries.map(([key, , usdRaw]) => [key, usdRaw])),
+      )
+      setClaimableByLockerLoading(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    chainKind,
+    claimLockers,
+    connectedEvm,
+    connection,
+    evmProtocol,
+    opsView,
+    solana,
+  ])
+
+  const filteredClaimLockers = useMemo(() => {
+    const query = claimLockerSearch.trim().toLowerCase()
+    const filtered = query
+      ? claimLockers.filter((locker) => locker.address.toLowerCase().includes(query))
+      : [...claimLockers]
+
+    filtered.sort((a, b) => {
+      const aKey = a.address.toLowerCase()
+      const bKey = b.address.toLowerCase()
+      if (claimLockerSort === 'locked-desc') {
+        return a.lockedGrai === b.lockedGrai ? 0 : a.lockedGrai < b.lockedGrai ? 1 : -1
+      }
+      if (claimLockerSort === 'locked-asc') {
+        return a.lockedGrai === b.lockedGrai ? 0 : a.lockedGrai > b.lockedGrai ? 1 : -1
+      }
+      const aClaimable = claimableRawByLocker[aKey] ?? 0n
+      const bClaimable = claimableRawByLocker[bKey] ?? 0n
+      if (claimLockerSort === 'claimable-desc') {
+        return aClaimable === bClaimable ? 0 : aClaimable < bClaimable ? 1 : -1
+      }
+      return aClaimable === bClaimable ? 0 : aClaimable > bClaimable ? 1 : -1
+    })
+
+    return filtered
+  }, [claimLockerSearch, claimLockerSort, claimLockers, claimableRawByLocker])
+
+  const claimLockerPageCount = Math.max(
+    1,
+    Math.ceil(filteredClaimLockers.length / VOTERS_GRID_PAGE_SIZE),
+  )
+  const safeClaimLockerPage = Math.min(claimLockerPage, claimLockerPageCount - 1)
+  const claimLockerPageItems = useMemo(() => {
+    const start = safeClaimLockerPage * VOTERS_GRID_PAGE_SIZE
+    const slice: (EvmLockerEntry | null)[] = filteredClaimLockers.slice(
+      start,
+      start + VOTERS_GRID_PAGE_SIZE,
+    )
+    while (slice.length < VOTERS_GRID_PAGE_SIZE) slice.push(null)
+    return slice
+  }, [filteredClaimLockers, safeClaimLockerPage])
+
+  useEffect(() => {
+    setClaimLockerPage(0)
+  }, [claimLockerSearch, claimLockerSort, claimLockers.length])
+
+  useEffect(() => {
+    if (opsView !== 'claim' || chainKind !== 'evm' || !connectedEvm) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const { createGraiEvmPublicClient, resolveGraiContractAddress } = await import('../../grai/evm/client')
+        const { graiAbi } = await import('../../grai/evm/abi')
+        const client = createGraiEvmPublicClient(connectedEvm)
+        const config = await client.readContract({
+          address: resolveGraiContractAddress(connectedEvm),
+          abi: graiAbi,
+          functionName: 'config',
+        })
+        if (!cancelled) setClaimTipBps(Number(config[3]))
+      } catch {
+        // keep default 1%
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [chainKind, connectedEvm, opsView])
+
+  const claimAmountRaw = useMemo(() => {
+    if (claimAllDividends) return claimEstimate.amountRaw
+    if (!claimAmount.trim()) return 0n
+    try {
+      return parseTokenAmount(claimAmount, claimDecimals)
+    } catch {
+      return 0n
+    }
+  }, [claimAllDividends, claimAmount, claimDecimals, claimEstimate.amountRaw])
+
+  const claimTipRaw = useMemo(
+    () => (claimAmountRaw * BigInt(claimTipBps)) / 10_000n,
+    [claimAmountRaw, claimTipBps],
+  )
+
+  const claimTipLabel = useMemo(
+    () => (claimTipRaw <= 0n ? '0' : formatTokenBalance(claimTipRaw, claimDecimals)),
+    [claimDecimals, claimTipRaw],
+  )
+
   const {
     balanceLabel: distributeWalletBalanceLabel,
     maxAmount: distributeWalletMaxAmount,
@@ -1813,6 +2260,48 @@ export function GraiLiquidationActions() {
     }
   }
 
+  const handleClaim = async () => {
+    const toastId = toast.loading(claimAllDividends ? 'Claiming all dividends…' : 'Claiming dividends…')
+    try {
+      const holder = selectedClaimLocker ?? undefined
+      const signature = claimAllDividends
+        ? await claimAllDividendsTx({ holder })
+        : await claimDividends({
+            assetAddress: selectedClaimAsset!.address,
+            amountInput: claimAmount,
+            assetDecimals: claimDecimals,
+            holder,
+          })
+      toast.update(toastId, {
+        render: (
+          <GraiTransactionToast
+            message={claimAllDividends ? 'Claim all submitted' : 'Claim submitted'}
+            explorerHref={signature ? explorerTxUrl(signature) : null}
+          />
+        ),
+        type: 'success',
+        isLoading: false,
+        autoClose: 8000,
+        closeOnClick: true,
+      })
+      setClaimAmount('')
+      refreshClaimEstimate()
+      setClaimableByLockerLoading(true)
+      setClaimableByLocker({})
+      setClaimableRawByLocker({})
+      // Re-fetch locker claimables after a successful claim.
+      setClaimLockers((current) => [...current])
+    } catch (error) {
+      toast.update(toastId, {
+        render: error instanceof Error ? error.message : 'Claim transaction failed',
+        type: 'error',
+        isLoading: false,
+        autoClose: 8000,
+        closeOnClick: true,
+      })
+    }
+  }
+
   const handleBuyback = async () => {
     if (!selectedYieldAsset?.address) return
     if (selectedYieldAsset.startTime <= 0 || selectedYieldAsset.available <= 0n) {
@@ -1909,6 +2398,21 @@ export function GraiLiquidationActions() {
       role="tablist"
       aria-label="Protocol operations"
     >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={opsView === 'claim'}
+        className={`grai-action-switch-btn is-claim ${opsView === 'claim' ? 'is-active' : ''}`}
+        onClick={() => handleOpsViewChange('claim')}
+      >
+        <span className="grai-action-switch-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19V5" />
+            <path d="m5 12 7 7 7-7" />
+          </svg>
+        </span>
+        <span className="grai-action-switch-label">Claim</span>
+      </button>
       <button
         type="button"
         role="tab"
@@ -2306,6 +2810,288 @@ export function GraiLiquidationActions() {
       </aside>
 
       <div className="grai-liquidation-ops-main">
+      {opsView === 'claim' ? (
+      <div className="grai-liquidation-distribute-screen grai-claim-screen" id="grai-claim-section">
+        <h3 className="grai-liquidation-distribute-title">Claim</h3>
+        <div
+          className="grai-liquidation-bribe-voters-picker grai-liquidation-bribe-voters-picker--chart grai-claim-lockers-picker"
+          aria-label="Lockers to claim"
+        >
+          <div className="grai-liquidation-bribe-toolbar is-inline" aria-hidden={false}>
+            <label className="grai-liquidation-bribe-search">
+              <span className="visually-hidden">Search lockers</span>
+              <svg
+                className="grai-liquidation-bribe-search-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                type="search"
+                value={claimLockerSearch}
+                onChange={(event) => setClaimLockerSearch(event.target.value)}
+                placeholder="Search"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+            <GraiToolbarSortSelect
+              label="Filter lockers"
+              value={claimLockerSort}
+              options={CLAIM_LOCKER_SORT_OPTIONS}
+              onChange={setClaimLockerSort}
+            />
+          </div>
+          {claimLockersLoading ? (
+            <p className="grai-claim-lockers-status" role="status">
+              Loading lockers…
+            </p>
+          ) : filteredClaimLockers.length === 0 ? (
+            <p className="grai-claim-lockers-status" role="status">
+              {claimLockers.length === 0 ? 'No lockers found' : 'No lockers match search'}
+            </p>
+          ) : (
+            <div className="grai-liquidation-voters-carousel is-grid">
+              <div className="grai-liquidation-voters-viewport">
+                <div className="grai-liquidation-voters-scroller">
+                  <div className="grai-liquidation-voters-track" role="list">
+                    {claimLockerPageItems.map((locker, slotIndex) => {
+                      if (!locker) {
+                        return (
+                          <div
+                            key={`claim-locker-empty-${slotIndex}`}
+                            className="grai-liquidation-voters-item is-grid-slot-empty"
+                            aria-hidden="true"
+                          />
+                        )
+                      }
+                      const isSelected =
+                        selectedClaimLocker != null &&
+                        locker.address.toLowerCase() === selectedClaimLocker.toLowerCase()
+                      const lockedLabel = formatTokenBalance(locker.lockedGrai, graiDecimals)
+                      const claimableLabelForLocker = claimableByLockerLoading
+                        ? '…'
+                        : (claimableByLocker[locker.address.toLowerCase()] ?? '—')
+                      const href = explorerAccountUrl?.(locker.address) ?? null
+                      return (
+                        <div
+                          key={locker.address}
+                          className={`grai-liquidation-voters-item${isSelected ? ' is-selected' : ''}`}
+                          role="listitem"
+                        >
+                          <button
+                            type="button"
+                            className="grai-liquidation-voters-item-select"
+                            aria-pressed={isSelected}
+                            aria-label={`Select locker ${shortAddress(locker.address)}`}
+                            onClick={() => {
+                              setSelectedClaimLocker(locker.address)
+                              setClaimAmount('')
+                            }}
+                          >
+                            <article
+                              className={`grai-liquidation-voter${isSelected ? ' is-selected' : ''}`}
+                              aria-label={`Locker ${shortAddress(locker.address)}`}
+                            >
+                              <div className="grai-liquidation-voter-rows">
+                                <div className="grai-liquidation-voter-row">
+                                  <span className="grai-liquidation-voter-row-label">Locker</span>
+                                  <span className="grai-liquidation-voter-address">
+                                    <span
+                                      className="grai-liquidation-voter-address-text"
+                                      title={locker.address}
+                                    >
+                                      {shortAddress(locker.address)}
+                                    </span>
+                                    {href ? (
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="grai-mint-asset-value-solscan"
+                                        aria-label="View locker on block explorer"
+                                        title="View locker on block explorer"
+                                        onClick={(event) => event.stopPropagation()}
+                                      >
+                                        {MINT_ASSET_SOLSCAN_ICON}
+                                      </a>
+                                    ) : null}
+                                  </span>
+                                </div>
+                                <div className="grai-liquidation-voter-row">
+                                  <span className="grai-liquidation-voter-row-label">Locked</span>
+                                  <span className="grai-liquidation-voter-escrow">
+                                    <span className="grai-liquidation-voter-escrow-amount">
+                                      {lockedLabel} GRAI
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="grai-liquidation-voter-row">
+                                  <span className="grai-liquidation-voter-row-label">Claimable</span>
+                                  <span className="grai-liquidation-voter-escrow">
+                                    <span className="grai-liquidation-voter-escrow-amount">
+                                      {claimableLabelForLocker}
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+                            </article>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+              {filteredClaimLockers.length > VOTERS_GRID_PAGE_SIZE ? (
+                <div className="grai-liquidation-voters-pagination" aria-label="Lockers pages">
+                  <button
+                    type="button"
+                    className="grai-liquidation-voters-pagination-btn"
+                    aria-label="Previous lockers page"
+                    disabled={safeClaimLockerPage <= 0}
+                    onClick={() => setClaimLockerPage(safeClaimLockerPage - 1)}
+                  >
+                    {VOTERS_PAGE_CHEVRON_LEFT}
+                  </button>
+                  <span className="grai-liquidation-voters-pagination-status">
+                    {safeClaimLockerPage * VOTERS_GRID_PAGE_SIZE + 1}
+                    –
+                    {Math.min(
+                      (safeClaimLockerPage + 1) * VOTERS_GRID_PAGE_SIZE,
+                      filteredClaimLockers.length,
+                    )}{' '}
+                    of {filteredClaimLockers.length}
+                  </span>
+                  <button
+                    type="button"
+                    className="grai-liquidation-voters-pagination-btn"
+                    aria-label="Next lockers page"
+                    disabled={safeClaimLockerPage >= claimLockerPageCount - 1}
+                    onClick={() => setClaimLockerPage(safeClaimLockerPage + 1)}
+                  >
+                    {VOTERS_PAGE_CHEVRON_RIGHT}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+        <div className="grai-liquidation-ops-row">
+          <div className="grai-liquidation-yield-block">
+            <div className="grai-liquidation-escrow-body">
+              <GraiAmountInput
+                key={selectedClaimAsset?.address ?? 'claim-amount'}
+                label="Claim Amount"
+                assets={distributeAssetOptions}
+                defaultAsset={selectedClaimAsset?.symbol}
+                value={claimAmount}
+                onValueChange={setClaimAmount}
+                onAssetChange={(asset) => {
+                  setClaimAssetAddress(asset.address)
+                  setClaimAmount('')
+                }}
+                balanceLabel={selectedClaimLocker ? claimableLabel : '—'}
+                balanceLoading={Boolean(selectedClaimLocker) && claimBalanceLoading}
+                balancePrefix="Claimable:"
+                maxAmount={
+                  selectedClaimLocker && !claimAllDividends ? claimableMaxAmount : ''
+                }
+                decimals={claimDecimals}
+                showPresets={!claimAllDividends}
+                showVolatility={false}
+                usdLabel={claimUsdLabel}
+                usdTrailingLabel="claimable:"
+                disabled={claimAllDividends}
+              />
+              <div
+                className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
+                  claimAllDividends ? ' is-active' : ''
+                }`}
+              >
+                <span className="grai-mint-dividends-toggle-label">
+                  <span className="grai-mint-dividends-toggle-label-text">Claim all dividends:</span>
+                </span>
+                <button
+                  type="button"
+                  className={`grai-mint-dividends-toggle-btn${claimAllDividends ? ' is-active' : ''}`}
+                  role="switch"
+                  aria-checked={claimAllDividends}
+                  aria-label="Claim all dividends"
+                  onClick={() => setClaimAllDividends((current) => !current)}
+                >
+                  <span className="grai-mint-dividends-toggle-option is-yes">Yes</span>
+                  <span className="grai-mint-dividends-toggle-track" aria-hidden="true">
+                    <span className="grai-mint-dividends-toggle-thumb" />
+                  </span>
+                  <span className="grai-mint-dividends-toggle-option is-no">No</span>
+                </button>
+              </div>
+              <div className="grai-liquidation-bribe-amount-row">
+                <span className="grai-liquidation-bribe-amount-label">
+                  You claim{' '}
+                  {selectedClaimLocker ? (
+                    <span
+                      className="grai-liquidation-bribe-amount-address"
+                      title={selectedClaimLocker}
+                    >
+                      {shortAddress(selectedClaimLocker)}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="grai-liquidation-bribe-amount-value">
+                  {claimAllDividends
+                    ? 'All dividends'
+                    : `${claimAmount.trim() || '0'} ${selectedClaimAsset?.symbol ?? ''}`}
+                </span>
+              </div>
+              <div className="grai-liquidation-bribe-amount-row">
+                <span className="grai-liquidation-bribe-amount-label">Your tip:</span>
+                <span className="grai-liquidation-bribe-amount-value">
+                  {claimTipLabel} {selectedClaimAsset?.symbol ?? ''}
+                </span>
+              </div>
+              {isWalletConnected ? (
+                <div className="grai-action-submit">
+                  <button
+                    type="button"
+                    className="grai-mint-btn"
+                    disabled={
+                      isClaiming ||
+                      !selectedClaimLocker ||
+                      (claimAllDividends
+                        ? !lockerHasAnyClaimable
+                        : !claimAmount.trim() ||
+                          !selectedClaimAsset?.address ||
+                          !claimableMaxAmount)
+                    }
+                    onClick={() => {
+                      void handleClaim()
+                    }}
+                  >
+                    {isClaiming ? 'Claiming…' : claimAllDividends ? 'Claim all' : 'Claim'}
+                  </button>
+                </div>
+              ) : (
+                <GraiActionConnectWalletButton />
+              )}
+              <p className="grai-liquidation-buyback-vote-note">
+                Claim accrued dividends for a locker. Anyone can claim on a locker&apos;s behalf;
+                a tip share goes to the caller, the rest to the locker.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      ) : null}
+
       {opsView === 'distribute' ? (
       <div className="grai-liquidation-distribute-screen" id="grai-distribute-section">
         <h3 className="grai-liquidation-distribute-title">Distribute</h3>
@@ -2358,8 +3144,11 @@ export function GraiLiquidationActions() {
                 <GraiActionConnectWalletButton />
               )}
               <p className="grai-liquidation-buyback-vote-note">
-                Used by Grinder to distribute yield. Anyone can distribute listed asset to
-                claims, treasury and buybacks
+                Used by <span className="grai-note-accent">Grinder</span> to distribute yield.
+                Anyone can distribute listed asset to{' '}
+                <span className="grai-note-accent is-claims">claims</span>,{' '}
+                <span className="grai-note-accent is-treasury">treasury</span> and{' '}
+                <span className="grai-note-accent is-buybacks">buybacks</span>
               </p>
             </div>
           </div>
@@ -2564,6 +3353,13 @@ export function GraiLiquidationActions() {
               className="grai-liquidation-bribe-toolbar is-inline"
               aria-hidden={false}
             >
+              <button
+                type="button"
+                className="grai-liquidation-bribe-back"
+                onClick={() => setBribeVotersOpen(false)}
+              >
+                ← Chart
+              </button>
               <label className="grai-liquidation-bribe-search">
                 <span className="visually-hidden">Search voters</span>
                 <svg
@@ -2588,52 +3384,35 @@ export function GraiLiquidationActions() {
                   spellCheck={false}
                 />
               </label>
-              <label className="grai-liquidation-bribe-filter">
-                <span className="visually-hidden">Filter voters</span>
-                <svg
-                  className="grai-liquidation-bribe-filter-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M4 5h16" />
-                  <path d="M7 12h10" />
-                  <path d="M10 19h4" />
-                </svg>
-                <select
-                  value={bribeSort}
-                  onChange={(event) =>
-                    setBribeSort(
-                      event.target.value as
-                        | 'escrow-desc'
-                        | 'escrow-asc'
-                        | 'bribe-desc'
-                        | 'bribe-asc',
-                    )
-                  }
-                >
-                  <option value="escrow-desc">Escrow ↓</option>
-                  <option value="escrow-asc">Escrow ↑</option>
-                  <option value="bribe-desc">Bribe ↓</option>
-                  <option value="bribe-asc">Bribe ↑</option>
-                </select>
-              </label>
+              <GraiToolbarSortSelect
+                label="Filter voters"
+                value={bribeSort}
+                options={BRIBE_VOTER_SORT_OPTIONS}
+                onChange={setBribeSort}
+              />
             </div>
           )
 
           return (
           <div className="grai-liquidation-market-stack">
-            <GraiBribeCurveChart
-              quorumBps={state?.liquidationQuorumBps ?? 6667}
-              bribePremiumBps={bribePremiumBps}
-              totalVoted={state?.totalVoted ?? 0n}
-              totalSupply={state?.totalSupply ?? 0n}
-              totalValue={state?.totalValue ?? 0n}
-            />
+            {bribeVotersOpen && marketView === 'bribe' ? (
+              <div
+                className="grai-liquidation-bribe-voters-picker grai-liquidation-bribe-voters-picker--chart"
+                aria-label="All voters"
+              >
+                <h3 className="grai-bribe-curve-chart-title">Vote and Bribe</h3>
+                {bribeVotersToolbar}
+                {carousel ?? empty}
+              </div>
+            ) : (
+              <GraiBribeCurveChart
+                quorumBps={state?.liquidationQuorumBps ?? 6667}
+                bribePremiumBps={bribePremiumBps}
+                totalVoted={state?.totalVoted ?? 0n}
+                totalSupply={state?.totalSupply ?? 0n}
+                totalValue={state?.totalValue ?? 0n}
+              />
+            )}
             <div
               className="grai-liquidation-market-row"
               id="grai-liquidation-market"
@@ -2712,14 +3491,7 @@ export function GraiLiquidationActions() {
                   className="grai-liquidation-panel grai-liquidation-panel--bribe"
                 >
                     <div className="grai-liquidation-bribe-body">
-                      {bribeVotersOpen ? (
-                        <div className="grai-liquidation-bribe-voters-picker">
-                          {bribeVotersToolbar}
-                          {carousel ?? empty}
-                        </div>
-                      ) : (
-                        <div className="grai-liquidation-field">{amount}</div>
-                      )}
+                      <div className="grai-liquidation-field">{amount}</div>
                     </div>
                 </section>
               )}

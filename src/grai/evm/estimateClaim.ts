@@ -215,8 +215,8 @@ export async function estimateEvmUnlockPreview(
 
   const decimals = Number(decimalsRaw)
   const lockedAt = Number(escrow[4])
-  const unlockFeeBps = Number(protocolConfig[5])
-  const unlockPenaltyPeriod = Number(protocolConfig[9])
+  const unlockFeeBps = Number(protocolConfig[6])
+  const unlockPenaltyPeriod = Number(protocolConfig[10])
   const secondsLeft =
     unlockPenaltyPeriod > 0 && lockedAt > 0
       ? Math.max(0, lockedAt + unlockPenaltyPeriod - nowSec)

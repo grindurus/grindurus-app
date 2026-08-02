@@ -10,6 +10,7 @@ export type GraiSection =
   | 'buyback'
   | 'grinders'
   | 'allocate'
+  | 'deallocate'
   | 'distribute'
   | 'auctions'
   | 'vote'
@@ -17,7 +18,7 @@ export type GraiSection =
 
 export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   mint: 'grai-actions-section',
-  claim: 'grai-actions-section',
+  claim: 'grai-claim-section',
   lock: 'grai-actions-section',
   unlock: 'grai-actions-section',
   burn: 'grai-redeem-section',
@@ -25,6 +26,7 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   buyback: 'grai-buyback-section',
   grinders: 'grai-grinders-summary',
   allocate: 'grai-manage-section',
+  deallocate: 'grai-manage-section',
   distribute: 'grai-manage-section',
   auctions: 'grai-liquidation-market',
   vote: 'grai-liquidation-market',
@@ -41,16 +43,21 @@ export const GRAI_SECTION_HASHES: GraiSection[] = [
   'buyback',
   'grinders',
   'allocate',
+  'deallocate',
   'distribute',
   'auctions',
   'vote',
   'bribe',
 ]
 
-const GRINDERS_PAGE_SECTIONS: ReadonlySet<GraiSection> = new Set(['allocate', 'distribute'])
+const GRINDERS_PAGE_SECTIONS: ReadonlySet<GraiSection> = new Set([
+  'allocate',
+  'deallocate',
+  'distribute',
+])
 
 export function isManageSectionHash(hash: string): boolean {
-  return hash === 'allocate' || hash === 'distribute' || hash === 'manage'
+  return hash === 'allocate' || hash === 'deallocate' || hash === 'distribute' || hash === 'manage'
 }
 
 export function readGraiSectionFromHash(): GraiSection | null {

@@ -11312,11 +11312,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: stretch;
     width: 100%;
     max-width: 100%;
-    gap: 0.15rem;
+    gap: 0.1rem;
     overflow: visible;
     border: 0;
   }
@@ -11331,13 +11331,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 0.28rem;
+    gap: 0.22rem;
     width: 100%;
     min-width: 0;
-    padding: 0.45rem 0.15rem 0.5rem;
-    font-size: 0.68rem;
+    padding: 0.4rem 0.08rem 0.45rem;
+    font-size: 0.62rem;
     font-weight: 600;
-    line-height: 1.15;
+    line-height: 1.1;
     letter-spacing: 0.01em;
     text-align: center;
     white-space: normal;
@@ -11431,6 +11431,57 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #fff;
+}
+
+.grai-claim-lockers-block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-claim-lockers-status {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme='light'] .grai-claim-lockers-status {
+  color: rgba(20, 24, 32, 0.55);
+}
+
+.grai-claim-screen {
+  align-items: center;
+}
+
+.grai-claim-screen > .grai-claim-lockers-picker.grai-liquidation-bribe-voters-picker--chart {
+  width: min(100%, 52.375rem);
+  max-width: 100%;
+  margin-inline: auto;
+  align-self: center;
+  /* Screen gap is 0.85rem; pull up so title→toolbar matches bribe (0.55rem). */
+  margin-top: -0.3rem;
+  padding: 0 0.6rem 0.75rem;
+  /*
+   * Bribe picker keeps title + top padding inside its 22.9375rem box.
+   * Claim title is outside — shrink so the voters scroller matches bribe (266px).
+   */
+  height: calc(22.9375rem - 0.85rem - 0.55rem - 1.14rem);
+  min-height: calc(22.9375rem - 0.85rem - 0.55rem - 1.14rem);
+}
+
+.grai-claim-screen > .grai-liquidation-ops-row {
+  width: min(100%, 25.3125rem);
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.grai-claim-lockers-picker .grai-liquidation-bribe-filter {
+  width: 10.5rem;
+  max-width: 10.5rem;
 }
 
 .grai-liquidation-liquidate-screen {
@@ -11944,6 +11995,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+  /* Match mint panel amount → claim-all toggle spacing (net 0.4rem via is-below-amount). */
+  --grai-action-content-gap: 0.55rem;
   width: 100%;
   max-width: 100%;
   margin-inline: 0;
@@ -12473,6 +12526,39 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   text-align: center;
   color: var(--text-secondary);
   box-sizing: border-box;
+}
+
+.grai-liquidation-buyback-vote-note .grai-note-accent {
+  color: #ff69b4;
+  font-weight: 600;
+}
+
+.grai-liquidation-buyback-vote-note .grai-note-accent.is-claims {
+  color: #22c55e;
+}
+
+.grai-liquidation-buyback-vote-note .grai-note-accent.is-treasury {
+  color: #c9a227;
+}
+
+.grai-liquidation-buyback-vote-note .grai-note-accent.is-buybacks {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-vote-note .grai-note-accent {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-vote-note .grai-note-accent.is-claims {
+  color: #16a34a;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-vote-note .grai-note-accent.is-treasury {
+  color: #a8841a;
+}
+
+[data-theme='light'] .grai-liquidation-buyback-vote-note .grai-note-accent.is-buybacks {
+  color: #e91e8c;
 }
 
 .grai-liquidation-yield-results {
@@ -13345,6 +13431,146 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   max-width: 100%;
   margin-inline: auto;
   align-self: center;
+  min-height: 22.9375rem;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-market-stack > .grai-liquidation-bribe-voters-picker--chart,
+.grai-claim-lockers-picker.grai-liquidation-bribe-voters-picker--chart {
+  width: min(100%, 52.375rem);
+  max-width: 100%;
+  margin-inline: auto;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 22.9375rem;
+  height: 22.9375rem;
+  padding: 0.85rem 0.6rem 0.75rem;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-toolbar.is-inline {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.grai-liquidation-bribe-back {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.grai-liquidation-bribe-back:hover,
+.grai-liquidation-bribe-back:focus-visible {
+  color: #ff69b4;
+  border-color: color-mix(in srgb, #ff69b4 45%, var(--border-color));
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-back {
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding: 0 0.65rem;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-search,
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-filter {
+  min-width: 0;
+  height: 40px;
+  max-height: 40px;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-toolbar-sort {
+  max-height: none;
+  overflow: visible;
+  z-index: 30;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-toolbar-sort.is-open {
+  z-index: 40;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-search {
+  flex: 1 1 auto;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-filter {
+  flex: 0 0 auto;
+  margin-left: 0;
+  width: 9.75rem;
+  max-width: 9.75rem;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-toolbar-sort-trigger {
+  min-width: 0;
+  width: 100%;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-search input,
+.grai-liquidation-bribe-voters-picker--chart .grai-toolbar-sort-trigger {
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel,
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel.is-grid {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 15rem;
+  max-height: none;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-scroller {
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .grai-liquidation-market-stack > .grai-bribe-curve-chart,
+  .grai-liquidation-market-stack > .grai-liquidation-bribe-voters-picker--chart {
+    min-height: 19.5rem;
+  }
+
+  .grai-liquidation-market-stack > .grai-liquidation-bribe-voters-picker--chart {
+    height: 19.5rem;
+  }
+
+  .grai-claim-lockers-picker.grai-liquidation-bribe-voters-picker--chart {
+    height: calc(19.5rem - 0.85rem - 0.55rem - 1.14rem);
+    min-height: calc(19.5rem - 0.85rem - 0.55rem - 1.14rem);
+  }
+
+  .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel,
+  .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel.is-grid {
+    min-height: 12rem;
+  }
 }
 
 .grai-bribe-curve-chart {
@@ -14111,7 +14337,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     margin-left: 0;
   }
 
-  .grai-liquidation-bribe-filter select {
+  .grai-toolbar-sort-trigger {
     min-width: 6.5rem;
     font-size: 0.88rem;
   }
@@ -14209,7 +14435,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     margin-left: 0;
   }
 
-  .grai-liquidation-bribe-filter select {
+  .grai-toolbar-sort-trigger {
     min-width: 5.5rem;
     font-size: 0.85rem;
   }
@@ -14662,6 +14888,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   visibility: visible;
   pointer-events: auto;
   margin-bottom: 0.45rem;
+  overflow: visible;
 }
 
 .grai-liquidation-bribe-voters-picker .grai-liquidation-voters-carousel {
@@ -14745,7 +14972,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-bribe-search input,
-.grai-liquidation-bribe-filter select {
+.grai-toolbar-sort-trigger {
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
@@ -14769,14 +14996,29 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   padding: 0 0.65rem 0 1.85rem;
 }
 
-.grai-liquidation-bribe-filter select {
+.grai-toolbar-sort {
+  z-index: 4;
+}
+
+.grai-toolbar-sort-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
   padding: 0 1.7rem 0 1.85rem;
   cursor: pointer;
   min-width: 7.25rem;
+  text-align: left;
 }
 
-.grai-liquidation-bribe-filter::after {
-  content: '';
+.grai-toolbar-sort-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-toolbar-sort-caret {
   position: absolute;
   right: 0.65rem;
   top: 50%;
@@ -14786,6 +15028,74 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   border-bottom: 1.75px solid #ff69b4;
   transform: translateY(calc(-50% - 2px)) rotate(45deg);
   pointer-events: none;
+  transition: transform 0.18s ease;
+}
+
+.grai-toolbar-sort.is-open .grai-toolbar-sort-caret {
+  transform: translateY(calc(-50% + 1px)) rotate(225deg);
+}
+
+.grai-toolbar-sort-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  left: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 0.28rem;
+  list-style: none;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-primary, #121212) 92%, #1a1a1a);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.grai-toolbar-sort-menu.is-portal {
+  position: fixed;
+  right: auto;
+  left: auto;
+  z-index: 10050;
+}
+
+[data-theme='light'] .grai-toolbar-sort-menu {
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.grai-toolbar-sort-option {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.grai-toolbar-sort-option:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--border-color) 40%, transparent);
+}
+
+.grai-toolbar-sort-option.is-active {
+  color: #fff;
+  background: rgba(255, 105, 180, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 105, 180, 0.4);
+}
+
+[data-theme='light'] .grai-toolbar-sort-option.is-active {
+  color: #1a0b14;
+  background: rgba(233, 30, 140, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(233, 30, 140, 0.3);
 }
 
 .grai-liquidation-bribe-search input::placeholder {
@@ -14794,9 +15104,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-bribe-search input:hover,
-.grai-liquidation-bribe-filter select:hover,
+.grai-toolbar-sort-trigger:hover,
 .grai-liquidation-bribe-search input:focus,
-.grai-liquidation-bribe-filter select:focus {
+.grai-toolbar-sort-trigger:focus-visible,
+.grai-toolbar-sort.is-open .grai-toolbar-sort-trigger {
   border-color: color-mix(in srgb, #ff69b4 45%, transparent);
 }
 
