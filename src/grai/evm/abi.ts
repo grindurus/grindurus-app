@@ -552,7 +552,7 @@ export const treasuryAbi = [
         type: 'tuple[]',
         components: [
           { name: 'locker', type: 'address' },
-          { name: 'referrer', type: 'address' },
+          { name: 'ownerOf', type: 'address' },
           {
             name: 'book',
             type: 'tuple',
@@ -560,6 +560,7 @@ export const treasuryAbi = [
               { name: 'value', type: 'uint256' },
               { name: 'l1Value', type: 'uint256' },
               { name: 'l2Value', type: 'uint256' },
+              { name: 'referrer', type: 'address' },
             ],
           },
         ],

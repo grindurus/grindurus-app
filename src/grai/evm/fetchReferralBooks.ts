@@ -52,22 +52,11 @@ export async function fetchEvmReferralBooks(config: GraiEvmConfig): Promise<EvmR
       functionName: 'getReferralsData',
       args: [from, to],
     })
-    const owners = await Promise.all(
-      page.map((item) =>
-        client.readContract({
-          address: treasuryAddress,
-          abi: treasuryAbi,
-          functionName: 'ownerOf',
-          args: [BigInt(item.locker)],
-        }),
-      ),
-    )
-    for (let i = 0; i < page.length; i++) {
-      const item = page[i]!
+    for (const item of page) {
       rows.push({
         locker: item.locker,
-        referrer: item.referrer,
-        owner: owners[i]!,
+        referrer: item.book.referrer,
+        owner: item.ownerOf,
         value: item.book.value,
         l1Value: item.book.l1Value,
         l2Value: item.book.l2Value,
