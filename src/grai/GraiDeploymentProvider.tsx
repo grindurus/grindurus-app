@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react'
 import { Connection } from '@solana/web3.js'
 import { useConnection } from '@solana/wallet-adapter-react'
-import { useWalletContext, type SolanaCluster } from '../providers/AppWalletProvider'
+import { useWalletContext, type SolanaCluster } from '../providers/walletContext'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { deferAfterPaint } from '../utils/deferAfterPaint'
 import { useEvmWallet } from '../hooks/useEvmWallet'

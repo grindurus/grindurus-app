@@ -20,6 +20,7 @@ import { resolveSolanaGrindersProgramId } from './solanaAllocateCustody'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   assetConfigPda,
+  depositorAllowancePda,
   escrowPda,
   getAssociatedTokenAddress,
   grindersStatePda,
@@ -79,6 +80,11 @@ export async function buildMintTransaction({
   const grindersAta = getAssociatedTokenAddress(assetMint, grindersState)
   const escrow = escrowPda(minter, programId)
   const graiVaultAta = vaultAtaPda(config.graiMint, programId)
+  // Anchor `Option<Account>`: pass program id when whitelist is empty / unused.
+  const depositorAllowance =
+    protocol.totalDepositors > 0n
+      ? depositorAllowancePda(minter, programId)
+      : programId
 
   const keys = [
     { pubkey: minter, isSigner: true, isWritable: true },
@@ -88,6 +94,7 @@ export async function buildMintTransaction({
     { pubkey: assetConfig, isSigner: false, isWritable: false },
     { pubkey: priceFeed, isSigner: false, isWritable: false },
     { pubkey: grindersState, isSigner: false, isWritable: false },
+    { pubkey: depositorAllowance, isSigner: false, isWritable: false },
     { pubkey: depositorAssetAta, isSigner: false, isWritable: true },
     { pubkey: grindersAta, isSigner: false, isWritable: true },
     { pubkey: depositorGraiAta, isSigner: false, isWritable: true },

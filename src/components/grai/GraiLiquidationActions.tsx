@@ -20,28 +20,24 @@ import { useGraiBribe } from '../../hooks/useGraiBribe'
 import { useGraiVote } from '../../hooks/useGraiVote'
 import { useGraiLiquidate } from '../../hooks/useGraiLiquidate'
 import { useGraiDistribute } from '../../hooks/useGraiDistribute'
-import { useGraiBuyback } from '../../hooks/useGraiBuyback'
 import { useGraiLock } from '../../hooks/useGraiLock'
 import { useGraiClaimEstimate } from '../../hooks/useGraiClaimEstimate'
 import { useGraiAssets } from '../../hooks/useGraiAssets'
-import { useGraiBuybackAuctions } from '../../hooks/useGraiBuybackAuctions'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
 import { useSolanaWallet } from '../../hooks/useSolanaWallet'
 import { useEvmWallet } from '../../hooks/useEvmWallet'
 import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useGraiAssetUsdLabel } from '../../hooks/useGraiAssetUsdLabel'
-import { estimateEvmClaimAll, formatClaimUsdTotal } from '../../grai/evm/estimateClaim'
+import { estimateEvmClaimAll } from '../../grai/evm/estimateClaim'
 import { estimateSolanaClaimAll } from '../../grai/estimateSolanaClaim'
-import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
-import type { GraiBuybackAuction } from '../../grai/fetchBuybackAuctions'
 import { assetUrl } from '../../utils/appPaths'
 import { navigateToGraiSection, readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
-import { GraiDutchAuctionChart } from './GraiDutchAuctionChart'
 import { GraiBribeCurveChart } from './GraiBribeCurveChart'
 import { GraiDistributeMoneyFlow } from './GraiDistributeMoneyFlow'
+import { GraiReferralTree } from './GraiReferralTree'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiMintBurnPanel } from './GraiMintBurnPanel'
 import { GraiTransactionToast } from './GraiTransactionToast'
@@ -230,13 +226,6 @@ function GraiToolbarSortSelect<T extends string>({
   )
 }
 
-const CLAIM_LOCKER_SORT_OPTIONS = [
-  { value: 'locked-desc', label: 'Locked ↓' },
-  { value: 'locked-asc', label: 'Locked ↑' },
-  { value: 'claimable-desc', label: 'Claimable ↓' },
-  { value: 'claimable-asc', label: 'Claimable ↑' },
-] as const
-
 const BRIBE_VOTER_SORT_OPTIONS = [
   { value: 'escrow-desc', label: 'Escrow ↓' },
   { value: 'escrow-asc', label: 'Escrow ↑' },
@@ -377,12 +366,6 @@ function GraiLiquidationVoterCard({
 
 const VOTERS_GRID_PAGE_SIZE = 4
 
-const BUYBACK_SCROLL_DURATION_MS = 320
-
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-}
-
 const VOTERS_PAGE_CHEVRON_LEFT = (
   <svg viewBox="0 0 8 12" fill="none" aria-hidden="true">
     <path d="M7 1 2 6l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
@@ -394,92 +377,6 @@ const VOTERS_PAGE_CHEVRON_RIGHT = (
     <path d="M1 1l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
-
-type BuybackAuctionAsset = GraiBuybackAuction
-
-function dutchAskGrai(
-  maxPayment: bigint,
-  minPayment: bigint,
-  elapsedSec: number,
-  periodSec: number,
-): bigint {
-  if (periodSec <= 0 || elapsedSec >= periodSec) return minPayment
-  return maxPayment - ((maxPayment - minPayment) * BigInt(elapsedSec)) / BigInt(periodSec)
-}
-
-function buybackSecondsLeft(asset: BuybackAuctionAsset, nowSec: number): number {
-  if (asset.startTime <= 0 || asset.period <= 0) return 0
-  const end = asset.startTime + asset.period
-  return Math.max(0, end - nowSec)
-}
-
-function formatBuybackAuctionRemaining(secondsLeft: number): string {
-  if (secondsLeft <= 0) return 'floor'
-  const d = Math.floor(secondsLeft / 86_400)
-  const h = Math.floor((secondsLeft % 86_400) / 3600)
-  const m = Math.floor((secondsLeft % 3600) / 60)
-  if (d > 0) {
-    const parts = [`${d}d`]
-    if (h > 0) parts.push(`${h}h`)
-    if (m > 0) parts.push(`${m}m`)
-    return parts.join(' ')
-  }
-  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
-  if (m > 0) return `${m}m`
-  return `${secondsLeft % 60}s`
-}
-
-function currentBuybackAskGrai(asset: BuybackAuctionAsset, nowSec: number): bigint {
-  const elapsed = Math.max(0, nowSec - asset.startTime)
-  return dutchAskGrai(asset.maxPaymentGrai, asset.minPaymentGrai, elapsed, asset.period)
-}
-
-/** Discount vs listing maxPayment, in percent (1 decimal). */
-function buybackDiscountPct(maxPayment: bigint, ask: bigint): number {
-  if (maxPayment <= 0n || ask >= maxPayment) return 0
-  const bps = Number(((maxPayment - ask) * 10_000n) / maxPayment)
-  return Math.round(bps) / 100
-}
-
-function formatBuybackDiscountPct(pct: number): string {
-  if (pct <= 0) return '0%'
-  return `−${pct.toFixed(pct >= 10 || Number.isInteger(pct) ? 0 : 1)}%`
-}
-
-/** Compact chip label so large balances still fit the carousel window. */
-function formatBuybackChipAmount(raw: bigint, decimals: number): string {
-  if (raw <= 0n) return '0'
-  const asNumber = Number(raw) / 10 ** decimals
-  if (!Number.isFinite(asNumber)) return formatTokenBalance(raw, decimals, 4)
-  if (Math.abs(asNumber) < 1000) return formatTokenBalance(raw, decimals, 4)
-  return asNumber.toLocaleString('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: 2,
-  })
-}
-
-/** Unit ask in GRAI for one whole asset token (from full-lot ask / initial). */
-function buybackUnitAskGrai(asset: BuybackAuctionAsset, lotAsk: bigint): bigint {
-  const scale = 10n ** BigInt(asset.decimals)
-  if (scale <= 0n) return 0n
-  const qty = asset.initial > 0n ? asset.initial : asset.available > 0n ? asset.available : scale
-  return (lotAsk * scale) / qty
-}
-
-function buybackUnitPriceLabel(asset: BuybackAuctionAsset, graiDecimals: number): string {
-  // Unit GRAI ask at listing (maxPayment / initial); Dutch discount is live via minPayment clock.
-  const unitAsk = buybackUnitAskGrai(asset, asset.maxPaymentGrai)
-  return `1 ${asset.symbol} = $${formatVaultBalanceDisplay(unitAsk, graiDecimals, 4)}`
-}
-
-/** Mirrors GRAI.sol `previewBuyback` / `_dutchAmount` with live auction clock. */
-function previewBuybackGrai(asset: BuybackAuctionAsset, amountOut: bigint, nowSec: number): bigint {
-  if (amountOut <= 0n || asset.initial <= 0n || asset.maxPaymentGrai <= 0n) return 0n
-  const capped = amountOut > asset.available ? asset.available : amountOut
-  const elapsed = Math.max(0, nowSec - asset.startTime)
-  const ask = dutchAskGrai(asset.maxPaymentGrai, asset.minPaymentGrai, elapsed, asset.period)
-  return (ask * capped) / asset.initial
-}
 
 type VoterPickerParts = {
   carousel: ReactNode
@@ -1146,14 +1043,7 @@ export function GraiLiquidationActions() {
     reset: resetDistribute,
   } = useGraiDistribute()
   const { claim: claimDividends, claimAll: claimAllDividendsTx, isPending: isClaiming } = useGraiLock()
-  const {
-    buyback,
-    isBuyingBack,
-    reset: resetBuyback,
-  } = useGraiBuyback()
   const { assets: graiAssets } = useGraiAssets()
-  const { auctions: buybackAuctionAssets, refresh: refreshBuybackAuctions } = useGraiBuybackAuctions()
-
   const [state, setState] = useState<EvmLiquidationVoteState | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [voteAmount, setVoteAmount] = useState('')
@@ -1166,7 +1056,6 @@ export function GraiLiquidationActions() {
   const [bribeVotersOpen, setBribeVotersOpen] = useState(false)
   const votersListLayout = bribeVotersOpen
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
-  const [yieldAmount, setYieldAmount] = useState('')
   const [distributeAmount, setDistributeAmount] = useState('')
   const [distributeAssetAddress, setDistributeAssetAddress] = useState('')
   const [claimAmount, setClaimAmount] = useState('')
@@ -1174,27 +1063,18 @@ export function GraiLiquidationActions() {
   const [claimAllDividends, setClaimAllDividends] = useState(false)
   const [claimTipBps, setClaimTipBps] = useState(100)
   const [claimLockers, setClaimLockers] = useState<EvmLockerEntry[]>([])
-  const [claimLockersLoading, setClaimLockersLoading] = useState(false)
   const [selectedClaimLocker, setSelectedClaimLocker] = useState<string | null>(null)
-  const [claimableByLocker, setClaimableByLocker] = useState<Record<string, string>>({})
   const [claimableRawByLocker, setClaimableRawByLocker] = useState<Record<string, bigint>>({})
-  const [claimableByLockerLoading, setClaimableByLockerLoading] = useState(false)
-  const [claimLockerSearch, setClaimLockerSearch] = useState('')
-  const [claimLockerSort, setClaimLockerSort] = useState<
-    'locked-desc' | 'locked-asc' | 'claimable-desc' | 'claimable-asc'
-  >('locked-desc')
-  const [claimLockerPage, setClaimLockerPage] = useState(0)
   const [marketView, setMarketView] = useState<'vote' | 'bribe'>(() => {
     const section = readGraiSectionFromHash()
     if (section === 'bribe') return 'bribe'
     return 'vote'
   })
   const [opsView, setOpsView] = useState<
-    'claim' | 'distribute' | 'buyback' | 'market' | 'liquidate' | 'redeem'
+    'claim' | 'distribute' | 'market' | 'liquidate' | 'redeem'
   >(() => {
     const section = readGraiSectionFromHash()
     if (section === 'claim') return 'claim'
-    if (section === 'buyback') return 'buyback'
     if (section === 'auctions') return 'liquidate'
     if (section === 'burn') return 'redeem'
     if (section === 'vote' || section === 'bribe') return 'market'
@@ -1213,9 +1093,6 @@ export function GraiLiquidationActions() {
         setMarketView('vote')
       } else if (section === 'auctions') {
         setOpsView('liquidate')
-      } else if (section === 'buyback') {
-        setOpsView('buyback')
-        void refreshBuybackAuctions()
       } else if (section === 'burn') {
         setOpsView('redeem')
       } else if (section === 'assets') {
@@ -1234,7 +1111,6 @@ export function GraiLiquidationActions() {
         section === 'vote' ||
         section === 'bribe' ||
         section === 'auctions' ||
-        section === 'buyback' ||
         section === 'burn' ||
         section === 'assets'
       ) {
@@ -1250,14 +1126,11 @@ export function GraiLiquidationActions() {
       window.removeEventListener('grai-section-nav', onSectionNav)
       window.removeEventListener('hashchange', onHashChange)
     }
-  }, [refreshBuybackAuctions])
+  }, [])
 
   const handleOpsViewChange = useCallback(
-    (view: 'claim' | 'distribute' | 'buyback' | 'market' | 'liquidate' | 'redeem') => {
+    (view: 'claim' | 'distribute' | 'market' | 'liquidate' | 'redeem') => {
       setOpsView(view)
-      if (view === 'buyback') {
-        void refreshBuybackAuctions()
-      }
       if (view === 'redeem') {
         navigateToGraiSection('burn')
         return
@@ -1265,18 +1138,16 @@ export function GraiLiquidationActions() {
       const hash =
         view === 'claim'
           ? '#claim'
-          : view === 'buyback'
-            ? '#buyback'
-            : view === 'market'
-              ? `#${marketView}`
-              : view === 'liquidate'
-                ? '#auctions'
-                : '#assets'
+          : view === 'market'
+            ? `#${marketView}`
+            : view === 'liquidate'
+              ? '#auctions'
+              : '#assets'
       if (window.location.hash !== hash) {
         window.history.replaceState({}, '', `${window.location.pathname}${hash}`)
       }
     },
-    [marketView, refreshBuybackAuctions],
+    [marketView],
   )
 
   const handleMarketViewChange = useCallback((view: 'vote' | 'bribe') => {
@@ -1410,66 +1281,15 @@ export function GraiLiquidationActions() {
     ],
     [evmProtocol],
   )
-  const [buybackNowSec, setBuybackNowSec] = useState(() => Math.floor(Date.now() / 1000))
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setBuybackNowSec(Math.floor(Date.now() / 1000))
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [])
-  const yieldAssetOptions = useMemo<GraiAmountAsset[]>(
-    () =>
-      buybackAuctionAssets.map((asset) => ({
-        icon: asset.icon,
-        symbol: asset.symbol,
-        address: asset.address,
-      })),
-    [buybackAuctionAssets],
-  )
   const distributeAssetOptions = useMemo<GraiAmountAsset[]>(() => {
-    const listed = graiAssets
+    return graiAssets
       .filter((asset) => asset.symbol.toUpperCase() !== 'GRAI')
       .map((asset) => ({
         icon: asset.icon.src,
         symbol: asset.symbol,
         address: asset.mint,
       }))
-    if (listed.length > 0) return listed
-    return yieldAssetOptions
-  }, [graiAssets, yieldAssetOptions])
-  const [yieldAssetAddress, setYieldAssetAddress] = useState<string | undefined>()
-  const [buybackVisualIndex, setBuybackVisualIndex] = useState(0)
-  const [buybackScrollTargetIndex, setBuybackScrollTargetIndex] = useState<number | null>(null)
-  const buybackAssetsScrollerRef = useRef<HTMLDivElement>(null)
-  const buybackAssetsTrackRef = useRef<HTMLDivElement>(null)
-  const buybackAssetItemRefs = useRef<(HTMLDivElement | null)[]>([])
-  const buybackEdgeSpacerStartRef = useRef<HTMLDivElement>(null)
-  const buybackEdgeSpacerEndRef = useRef<HTMLDivElement>(null)
-  const buybackSelectedIndexRef = useRef(0)
-  const buybackEdgePadRef = useRef({ start: 0, end: 0 })
-  const buybackScrollAnimRef = useRef<number | null>(null)
-  const selectedYieldAsset = useMemo(() => {
-    return (
-      buybackAuctionAssets.find(
-        (asset) => asset.address.toLowerCase() === yieldAssetAddress?.toLowerCase(),
-      ) ?? buybackAuctionAssets[0]
-    )
-  }, [buybackAuctionAssets, yieldAssetAddress])
-  const selectedBuybackAssetIndex = useMemo(() => {
-    if (!selectedYieldAsset) return 0
-    const index = buybackAuctionAssets.findIndex(
-      (asset) => asset.address.toLowerCase() === selectedYieldAsset.address.toLowerCase(),
-    )
-    return index >= 0 ? index : 0
-  }, [buybackAuctionAssets, selectedYieldAsset])
-  buybackSelectedIndexRef.current = selectedBuybackAssetIndex
-  const yieldDecimals = selectedYieldAsset?.decimals ?? 18
-  useEffect(() => {
-    if (!selectedYieldAsset) return
-    if (yieldAssetAddress?.toLowerCase() === selectedYieldAsset.address.toLowerCase()) return
-    setYieldAssetAddress(selectedYieldAsset.address)
-  }, [selectedYieldAsset, yieldAssetAddress])
-
+  }, [graiAssets])
   const selectedDistributeAsset = useMemo(() => {
     return (
       distributeAssetOptions.find(
@@ -1534,7 +1354,6 @@ export function GraiLiquidationActions() {
   useEffect(() => {
     if (opsView !== 'claim') return
     let cancelled = false
-    setClaimLockersLoading(true)
     void (async () => {
       try {
         let next: EvmLockerEntry[] = []
@@ -1556,8 +1375,6 @@ export function GraiLiquidationActions() {
         setClaimLockers(sorted)
       } catch {
         if (!cancelled) setClaimLockers([])
-      } finally {
-        if (!cancelled) setClaimLockersLoading(false)
       }
     })()
     return () => {
@@ -1571,31 +1388,25 @@ export function GraiLiquidationActions() {
       setSelectedClaimLocker(null)
       return
     }
-    const stillSelected =
-      selectedClaimLocker != null &&
-      claimLockers.some(
-        (locker) => locker.address.toLowerCase() === selectedClaimLocker.toLowerCase(),
-      )
-    if (stillSelected) return
-    const walletLocker =
-      walletAddress != null
-        ? claimLockers.find(
-            (locker) => locker.address.toLowerCase() === walletAddress.toLowerCase(),
-          )
-        : undefined
-    setSelectedClaimLocker(walletLocker?.address ?? claimLockers[0]?.address ?? null)
-  }, [claimLockers, opsView, selectedClaimLocker, walletAddress])
+    setSelectedClaimLocker((current) => {
+      if (current != null) return current
+      const walletLocker =
+        walletAddress != null
+          ? claimLockers.find(
+              (locker) => locker.address.toLowerCase() === walletAddress.toLowerCase(),
+            )
+          : undefined
+      return walletLocker?.address ?? claimLockers[0]?.address ?? null
+    })
+  }, [claimLockers, opsView, walletAddress])
 
   useEffect(() => {
     if (opsView !== 'claim' || claimLockers.length === 0) {
-      setClaimableByLocker({})
       setClaimableRawByLocker({})
-      setClaimableByLockerLoading(false)
       return
     }
 
     let cancelled = false
-    setClaimableByLockerLoading(true)
 
     void (async () => {
       const entries = await Promise.all(
@@ -1609,7 +1420,7 @@ export function GraiLiquidationActions() {
                 new PublicKey(locker.address),
               )
               const usdRaw = claims.reduce((sum, claim) => sum + claim.usdRaw, 0n)
-              return [key, formatClaimUsdTotal(usdRaw), usdRaw] as const
+              return [key, usdRaw] as const
             }
 
             if (
@@ -1622,23 +1433,17 @@ export function GraiLiquidationActions() {
                 locker.address.toLowerCase() as `0x${string}`,
               )
               const usdRaw = claims.reduce((sum, claim) => sum + claim.usdRaw, 0n)
-              return [key, formatClaimUsdTotal(usdRaw), usdRaw] as const
+              return [key, usdRaw] as const
             }
 
-            return [key, '$0.00', 0n] as const
+            return [key, 0n] as const
           } catch {
-            return [key, '—', 0n] as const
+            return [key, 0n] as const
           }
         }),
       )
       if (cancelled) return
-      setClaimableByLocker(
-        Object.fromEntries(entries.map(([key, label]) => [key, label])),
-      )
-      setClaimableRawByLocker(
-        Object.fromEntries(entries.map(([key, , usdRaw]) => [key, usdRaw])),
-      )
-      setClaimableByLockerLoading(false)
+      setClaimableRawByLocker(Object.fromEntries(entries))
     })()
 
     return () => {
@@ -1654,65 +1459,28 @@ export function GraiLiquidationActions() {
     solana,
   ])
 
-  const filteredClaimLockers = useMemo(() => {
-    const query = claimLockerSearch.trim().toLowerCase()
-    const filtered = query
-      ? claimLockers.filter((locker) => locker.address.toLowerCase().includes(query))
-      : [...claimLockers]
-
-    filtered.sort((a, b) => {
-      const aKey = a.address.toLowerCase()
-      const bKey = b.address.toLowerCase()
-      if (claimLockerSort === 'locked-desc') {
-        return a.lockedGrai === b.lockedGrai ? 0 : a.lockedGrai < b.lockedGrai ? 1 : -1
-      }
-      if (claimLockerSort === 'locked-asc') {
-        return a.lockedGrai === b.lockedGrai ? 0 : a.lockedGrai > b.lockedGrai ? 1 : -1
-      }
-      const aClaimable = claimableRawByLocker[aKey] ?? 0n
-      const bClaimable = claimableRawByLocker[bKey] ?? 0n
-      if (claimLockerSort === 'claimable-desc') {
-        return aClaimable === bClaimable ? 0 : aClaimable < bClaimable ? 1 : -1
-      }
-      return aClaimable === bClaimable ? 0 : aClaimable > bClaimable ? 1 : -1
-    })
-
-    return filtered
-  }, [claimLockerSearch, claimLockerSort, claimLockers, claimableRawByLocker])
-
-  const claimLockerPageCount = Math.max(
-    1,
-    Math.ceil(filteredClaimLockers.length / VOTERS_GRID_PAGE_SIZE),
-  )
-  const safeClaimLockerPage = Math.min(claimLockerPage, claimLockerPageCount - 1)
-  const claimLockerPageItems = useMemo(() => {
-    const start = safeClaimLockerPage * VOTERS_GRID_PAGE_SIZE
-    const slice: (EvmLockerEntry | null)[] = filteredClaimLockers.slice(
-      start,
-      start + VOTERS_GRID_PAGE_SIZE,
-    )
-    while (slice.length < VOTERS_GRID_PAGE_SIZE) slice.push(null)
-    return slice
-  }, [filteredClaimLockers, safeClaimLockerPage])
-
   useEffect(() => {
-    setClaimLockerPage(0)
-  }, [claimLockerSearch, claimLockerSort, claimLockers.length])
-
-  useEffect(() => {
-    if (opsView !== 'claim' || chainKind !== 'evm' || !connectedEvm) return
+    if (opsView !== 'claim') return
     let cancelled = false
     void (async () => {
       try {
-        const { createGraiEvmPublicClient, resolveGraiContractAddress } = await import('../../grai/evm/client')
-        const { graiAbi } = await import('../../grai/evm/abi')
-        const client = createGraiEvmPublicClient(connectedEvm)
-        const config = await client.readContract({
-          address: resolveGraiContractAddress(connectedEvm),
-          abi: graiAbi,
-          functionName: 'config',
-        })
-        if (!cancelled) setClaimTipBps(Number(config[3]))
+        if (chainKind === 'evm' && connectedEvm) {
+          const { createGraiEvmPublicClient, resolveGraiContractAddress } = await import('../../grai/evm/client')
+          const { graiAbi } = await import('../../grai/evm/abi')
+          const client = createGraiEvmPublicClient(connectedEvm)
+          const config = await client.readContract({
+            address: resolveGraiContractAddress(connectedEvm),
+            abi: graiAbi,
+            functionName: 'config',
+          })
+          if (!cancelled) setClaimTipBps(Number(config[3]))
+          return
+        }
+        if (chainKind === 'solana' && connection && solana) {
+          const { fetchGraiProtocol } = await import('../../grai/fetchGraiProtocol')
+          const protocol = await fetchGraiProtocol(connection, solana.graiMint)
+          if (!cancelled) setClaimTipBps(protocol.config.claimTipBps)
+        }
       } catch {
         // keep default 1%
       }
@@ -1720,7 +1488,7 @@ export function GraiLiquidationActions() {
     return () => {
       cancelled = true
     }
-  }, [chainKind, connectedEvm, opsView])
+  }, [chainKind, connectedEvm, connection, opsView, solana])
 
   const claimAmountRaw = useMemo(() => {
     if (claimAllDividends) return claimEstimate.amountRaw
@@ -1742,6 +1510,11 @@ export function GraiLiquidationActions() {
     [claimDecimals, claimTipRaw],
   )
 
+  const claimTipPctLabel = useMemo(() => {
+    const pct = claimTipBps / 100
+    return `${Number.isInteger(pct) ? pct : pct.toFixed(2)}%`
+  }, [claimTipBps])
+
   const {
     balanceLabel: distributeWalletBalanceLabel,
     maxAmount: distributeWalletMaxAmount,
@@ -1758,295 +1531,8 @@ export function GraiLiquidationActions() {
     distributeWalletDecimals,
   )
 
-  const applyBuybackEdgePad = useCallback(() => {
-    const scroller = buybackAssetsScrollerRef.current
-    const track = buybackAssetsTrackRef.current
-    const startSpacer = buybackEdgeSpacerStartRef.current
-    const endSpacer = buybackEdgeSpacerEndRef.current
-    if (!scroller || !track || !startSpacer || !endSpacer) {
-      return { pad: buybackEdgePadRef.current, changed: false }
-    }
-
-    const items = buybackAssetItemRefs.current.filter(Boolean) as HTMLDivElement[]
-    const first = items[0]
-    const last = items[items.length - 1] ?? first
-    const scrollerWidth = scroller.clientWidth
-    const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '0') || 0
-    const padStart = first
-      ? Math.max(0, Math.round((scrollerWidth - first.offsetWidth) / 2 - gap))
-      : Math.max(0, Math.round(scrollerWidth / 2))
-    const padEnd = last
-      ? Math.max(0, Math.round((scrollerWidth - last.offsetWidth) / 2 - gap))
-      : padStart
-    const prev = buybackEdgePadRef.current
-    const changed = prev.start !== padStart || prev.end !== padEnd
-    if (changed) {
-      buybackEdgePadRef.current = { start: padStart, end: padEnd }
-      startSpacer.style.width = `${padStart}px`
-      startSpacer.style.flexBasis = `${padStart}px`
-      endSpacer.style.width = `${padEnd}px`
-      endSpacer.style.flexBasis = `${padEnd}px`
-    }
-    return { pad: buybackEdgePadRef.current, changed }
-  }, [])
-
-  const cancelBuybackScrollAnimation = useCallback(() => {
-    if (buybackScrollAnimRef.current == null) return
-    cancelAnimationFrame(buybackScrollAnimRef.current)
-    buybackScrollAnimRef.current = null
-  }, [])
-
-  const animateBuybackScrollTo = useCallback(
-    (targetLeft: number, onComplete?: () => void, duration = BUYBACK_SCROLL_DURATION_MS) => {
-      const scroller = buybackAssetsScrollerRef.current
-      if (!scroller) {
-        onComplete?.()
-        return
-      }
-
-      cancelBuybackScrollAnimation()
-
-      const startLeft = scroller.scrollLeft
-      const delta = targetLeft - startLeft
-      if (Math.abs(delta) < 1) {
-        onComplete?.()
-        return
-      }
-
-      const startTime = performance.now()
-      const step = (now: number) => {
-        const progress = Math.min(1, (now - startTime) / duration)
-        scroller.scrollLeft = startLeft + delta * easeInOutCubic(progress)
-        if (progress < 1) {
-          buybackScrollAnimRef.current = requestAnimationFrame(step)
-        } else {
-          buybackScrollAnimRef.current = null
-          onComplete?.()
-        }
-      }
-      buybackScrollAnimRef.current = requestAnimationFrame(step)
-    },
-    [cancelBuybackScrollAnimation],
-  )
-
-  const getBuybackScrollTargetForIndex = useCallback(
-    (index: number) => {
-      const scroller = buybackAssetsScrollerRef.current
-      const item = buybackAssetItemRefs.current[index]
-      if (!scroller || !item) return null
-
-      applyBuybackEdgePad()
-      // Force layout so spacer widths are included in scrollWidth before measuring.
-      void scroller.scrollWidth
-
-      const itemCenter = item.offsetLeft + item.offsetWidth / 2
-      const targetScroll = itemCenter - scroller.clientWidth / 2
-      const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
-      return Math.min(maxScroll, Math.max(0, targetScroll))
-    },
-    [applyBuybackEdgePad],
-  )
-
-  const scrollBuybackAssetToIndex = useCallback(
-    (index: number, behavior: ScrollBehavior = 'smooth', onComplete?: () => void) => {
-      const scroller = buybackAssetsScrollerRef.current
-      const nextLeft = getBuybackScrollTargetForIndex(index)
-      if (!scroller || nextLeft == null) {
-        onComplete?.()
-        return
-      }
-      if (Math.abs(nextLeft - scroller.scrollLeft) < 1) {
-        onComplete?.()
-        return
-      }
-
-      if (behavior === 'auto') {
-        cancelBuybackScrollAnimation()
-        scroller.scrollLeft = nextLeft
-        onComplete?.()
-        return
-      }
-
-      animateBuybackScrollTo(nextLeft, onComplete)
-    },
-    [animateBuybackScrollTo, cancelBuybackScrollAnimation, getBuybackScrollTargetForIndex],
-  )
-
-  const commitBuybackSelection = useCallback((asset: BuybackAuctionAsset, index: number) => {
-    setBuybackScrollTargetIndex(null)
-    buybackSelectedIndexRef.current = index
-    setBuybackVisualIndex(index)
-    setYieldAssetAddress(asset.address)
-    setYieldAmount(formatTokenBalance(asset.available, asset.decimals))
-  }, [])
-
-  const navigateBuybackToIndex = useCallback(
-    (index: number) => {
-      const asset = buybackAuctionAssets[index]
-      if (!asset) return
-
-      const scroller = buybackAssetsScrollerRef.current
-      const nextLeft = getBuybackScrollTargetForIndex(index)
-      const alreadyCentered =
-        scroller != null && nextLeft != null && Math.abs(nextLeft - scroller.scrollLeft) < 1
-
-      if (
-        alreadyCentered &&
-        index === buybackVisualIndex &&
-        buybackScrollTargetIndex == null
-      ) {
-        commitBuybackSelection(asset, index)
-        return
-      }
-
-      setBuybackScrollTargetIndex(index)
-      scrollBuybackAssetToIndex(index, 'smooth', () => {
-        commitBuybackSelection(asset, index)
-      })
-    },
-    [
-      buybackAuctionAssets,
-      buybackScrollTargetIndex,
-      buybackVisualIndex,
-      commitBuybackSelection,
-      getBuybackScrollTargetForIndex,
-      scrollBuybackAssetToIndex,
-    ],
-  )
-
-  const selectBuybackAsset = useCallback(
-    (_asset: BuybackAuctionAsset, index: number) => {
-      navigateBuybackToIndex(index)
-    },
-    [navigateBuybackToIndex],
-  )
-
-  const activeBuybackCarouselIndex = buybackScrollTargetIndex ?? buybackVisualIndex
-
-  const shiftBuybackAsset = useCallback(
-    (delta: -1 | 1) => {
-      const nextIndex = activeBuybackCarouselIndex + delta
-      if (nextIndex < 0 || nextIndex >= buybackAuctionAssets.length) return
-      navigateBuybackToIndex(nextIndex)
-    },
-    [activeBuybackCarouselIndex, buybackAuctionAssets.length, navigateBuybackToIndex],
-  )
-
-  const canShiftBuybackPrev = buybackAuctionAssets.length > 1 && activeBuybackCarouselIndex > 0
-  const canShiftBuybackNext =
-    buybackAuctionAssets.length > 1 && activeBuybackCarouselIndex < buybackAuctionAssets.length - 1
-
-  useLayoutEffect(() => {
-    const index = selectedBuybackAssetIndex
-    buybackSelectedIndexRef.current = index
-    let raf2 = 0
-
-    const centerSelected = () => {
-      applyBuybackEdgePad()
-      setBuybackScrollTargetIndex(null)
-      setBuybackVisualIndex(index)
-      scrollBuybackAssetToIndex(index, 'auto')
-    }
-
-    centerSelected()
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(centerSelected)
-    })
-
-    return () => {
-      cancelAnimationFrame(raf1)
-      if (raf2) cancelAnimationFrame(raf2)
-    }
-  }, [
-    applyBuybackEdgePad,
-    scrollBuybackAssetToIndex,
-    buybackAuctionAssets.length,
-    selectedBuybackAssetIndex,
-  ])
-
-  useLayoutEffect(() => {
-    const scroller = buybackAssetsScrollerRef.current
-    if (!scroller || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(() => {
-      if (buybackScrollAnimRef.current != null) return
-      const { changed } = applyBuybackEdgePad()
-      if (!changed) return
-      scrollBuybackAssetToIndex(buybackSelectedIndexRef.current, 'auto')
-    })
-    observer.observe(scroller)
-    return () => observer.disconnect()
-  }, [applyBuybackEdgePad, scrollBuybackAssetToIndex, buybackAuctionAssets.length])
-
-  useEffect(() => {
-    const scroller = buybackAssetsScrollerRef.current
-    if (!scroller) return
-
-    const onWheel = (event: WheelEvent) => {
-      if (scroller.scrollWidth <= scroller.clientWidth) return
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
-      event.preventDefault()
-      scroller.scrollLeft += event.deltaY
-    }
-
-    scroller.addEventListener('wheel', onWheel, { passive: false })
-    return () => scroller.removeEventListener('wheel', onWheel)
-  }, [buybackAuctionAssets.length])
-
-  useEffect(() => () => cancelBuybackScrollAnimation(), [cancelBuybackScrollAnimation])
-
-  const prevBuybackAssetRef = useRef<string | undefined>(undefined)
-  useEffect(() => {
-    const next = selectedYieldAsset
-    if (!next) return
-    const nextAddress = next.address
-    if (
-      prevBuybackAssetRef.current &&
-      prevBuybackAssetRef.current.toLowerCase() !== nextAddress.toLowerCase()
-    ) {
-      setYieldAmount(formatTokenBalance(next.available, next.decimals))
-    }
-    prevBuybackAssetRef.current = nextAddress
-  }, [selectedYieldAsset])
-
-  const buybackPreview = useMemo(() => {
-    if (!selectedYieldAsset) {
-      return { receiveLabel: '—', payLabel: '0.0', amountRaw: 0n, graiIn: 0n }
-    }
-    if (!yieldAmount.trim()) {
-      return { receiveLabel: '0.0', payLabel: '0.0', amountRaw: 0n, graiIn: 0n }
-    }
-    let amountRaw = 0n
-    try {
-      amountRaw = parseTokenAmount(yieldAmount, selectedYieldAsset.decimals)
-    } catch {
-      return { receiveLabel: '—', payLabel: '—', amountRaw: 0n, graiIn: 0n }
-    }
-    if (amountRaw > selectedYieldAsset.available) amountRaw = selectedYieldAsset.available
-    const graiIn = previewBuybackGrai(selectedYieldAsset, amountRaw, buybackNowSec)
-    return {
-      receiveLabel: formatTokenBalance(amountRaw, selectedYieldAsset.decimals),
-      payLabel: formatTokenBalance(graiIn, graiDecimals, 6),
-      amountRaw,
-      graiIn,
-    }
-  }, [buybackNowSec, graiDecimals, selectedYieldAsset, yieldAmount])
-
-  const selectedBuybackMeta = useMemo(() => {
-    if (!selectedYieldAsset) return null
-    const currentAsk = currentBuybackAskGrai(selectedYieldAsset, buybackNowSec)
-    const discountPct = buybackDiscountPct(selectedYieldAsset.maxPaymentGrai, currentAsk)
-    return {
-      marketValueLabel: `$${formatVaultBalanceDisplay(selectedYieldAsset.maxPaymentGrai, graiDecimals, 2)}`,
-      buybackValueLabel: `$${formatVaultBalanceDisplay(currentAsk, graiDecimals, 2)}`,
-      discountPct,
-      discountLabel: formatBuybackDiscountPct(discountPct),
-      remainingLabel: formatBuybackAuctionRemaining(
-        buybackSecondsLeft(selectedYieldAsset, buybackNowSec),
-      ),
-    }
-  }, [buybackNowSec, graiDecimals, selectedYieldAsset])
-
   const liquidationBlocked = state?.liquidationOpen ?? false
+  const redeemAvailable = liquidationBlocked
   const liquidationConfirmed = state?.confirmed ?? false
   const liquidationHasQuorum = state?.hasQuorum ?? false
   const quorumBps = state?.liquidationQuorumBps ?? 6667
@@ -2065,6 +1551,14 @@ export function GraiLiquidationActions() {
   const untilQuorumShareLabel = state
     ? formatPct(untilQuorumAmount, totalSupplyAmount)
     : '—'
+
+  useEffect(() => {
+    if (isLoading || redeemAvailable || opsView !== 'redeem') return
+    setOpsView('distribute')
+    if (window.location.hash === '#burn') {
+      window.history.replaceState({}, '', `${window.location.pathname}#assets`)
+    }
+  }, [isLoading, opsView, redeemAvailable])
 
   const voteMightReceiveLabel = useMemo(() => {
     const trimmed = voteAmount.trim()
@@ -2286,64 +1780,12 @@ export function GraiLiquidationActions() {
       })
       setClaimAmount('')
       refreshClaimEstimate()
-      setClaimableByLockerLoading(true)
-      setClaimableByLocker({})
       setClaimableRawByLocker({})
       // Re-fetch locker claimables after a successful claim.
       setClaimLockers((current) => [...current])
     } catch (error) {
       toast.update(toastId, {
         render: error instanceof Error ? error.message : 'Claim transaction failed',
-        type: 'error',
-        isLoading: false,
-        autoClose: 8000,
-        closeOnClick: true,
-      })
-    }
-  }
-
-  const handleBuyback = async () => {
-    if (!selectedYieldAsset?.address) return
-    if (selectedYieldAsset.startTime <= 0 || selectedYieldAsset.available <= 0n) {
-      toast.error('No open auction for this asset')
-      return
-    }
-    const paymentMaxGrai =
-      selectedYieldAsset.maxPaymentGrai > 0n
-        ? selectedYieldAsset.maxPaymentGrai
-        : buybackPreview.graiIn
-    if (paymentMaxGrai <= 0n) {
-      toast.error('Unable to price this buyback')
-      return
-    }
-
-    const toastId = toast.loading('Buying back…')
-    try {
-      const signature = await buyback({
-        assetMint: selectedYieldAsset.address,
-        amountInput: yieldAmount,
-        assetDecimals: selectedYieldAsset.decimals,
-        paymentMaxGrai,
-      })
-      toast.update(toastId, {
-        render: (
-          <GraiTransactionToast
-            message="Buyback submitted"
-            explorerHref={signature ? explorerTxUrl(signature) : null}
-          />
-        ),
-        type: 'success',
-        isLoading: false,
-        autoClose: 8000,
-        closeOnClick: true,
-      })
-      setYieldAmount('')
-      resetBuyback()
-      void refreshBuybackAuctions()
-      void refreshState()
-    } catch (error) {
-      toast.update(toastId, {
-        render: error instanceof Error ? error.message : 'Buyback transaction failed',
         type: 'error',
         isLoading: false,
         autoClose: 8000,
@@ -2394,25 +1836,12 @@ export function GraiLiquidationActions() {
 
   const opsTabs = (
     <div
-      className={`grai-action-switch grai-action-switch--ops is-${opsView}-active`}
+      className={`grai-action-switch grai-action-switch--ops is-${opsView === 'market' ? marketView : opsView}-active${
+        redeemAvailable ? ' has-redeem' : ''
+      }`}
       role="tablist"
       aria-label="Protocol operations"
     >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={opsView === 'claim'}
-        className={`grai-action-switch-btn is-claim ${opsView === 'claim' ? 'is-active' : ''}`}
-        onClick={() => handleOpsViewChange('claim')}
-      >
-        <span className="grai-action-switch-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 19V5" />
-            <path d="m5 12 7 7 7-7" />
-          </svg>
-        </span>
-        <span className="grai-action-switch-label">Claim</span>
-      </button>
       <button
         type="button"
         role="tab"
@@ -2434,25 +1863,24 @@ export function GraiLiquidationActions() {
       <button
         type="button"
         role="tab"
-        aria-selected={opsView === 'buyback'}
-        className={`grai-action-switch-btn is-buyback ${opsView === 'buyback' ? 'is-active' : ''}`}
-        onClick={() => handleOpsViewChange('buyback')}
+        aria-selected={opsView === 'claim'}
+        className={`grai-action-switch-btn is-claim ${opsView === 'claim' ? 'is-active' : ''}`}
+        onClick={() => handleOpsViewChange('claim')}
       >
         <span className="grai-action-switch-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
+            <path d="M12 19V5" />
+            <path d="m5 12 7 7 7-7" />
           </svg>
         </span>
-        <span className="grai-action-switch-label">Buyback</span>
+        <span className="grai-action-switch-label">Claim</span>
       </button>
       <button
         type="button"
         role="tab"
-        aria-selected={opsView === 'market'}
-        aria-label="Vote and Bribe"
-        className={`grai-action-switch-btn is-market ${opsView === 'market' ? 'is-active' : ''}`}
-        onClick={() => handleOpsViewChange('market')}
+        aria-selected={opsView === 'market' && marketView === 'vote'}
+        className={`grai-action-switch-btn is-vote ${opsView === 'market' && marketView === 'vote' ? 'is-active' : ''}`}
+        onClick={() => handleMarketViewChange('vote')}
       >
         <span className="grai-action-switch-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2461,10 +1889,25 @@ export function GraiLiquidationActions() {
             <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
           </svg>
         </span>
-        <span className="grai-action-switch-label">
-          <span className="grai-action-switch-label-full">Vote and Bribe</span>
-          <span className="grai-action-switch-label-short">Vote</span>
+        <span className="grai-action-switch-label">Vote</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={opsView === 'market' && marketView === 'bribe'}
+        className={`grai-action-switch-btn is-bribe ${opsView === 'market' && marketView === 'bribe' ? 'is-active' : ''}`}
+        onClick={() => handleMarketViewChange('bribe')}
+      >
+        <span className="grai-action-switch-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 12v10H4V12" />
+            <path d="M2 7h20v5H2z" />
+            <path d="M12 22V7" />
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+          </svg>
         </span>
+        <span className="grai-action-switch-label">Bribe</span>
       </button>
       <button
         type="button"
@@ -2480,51 +1923,25 @@ export function GraiLiquidationActions() {
         </span>
         <span className="grai-action-switch-label">Liquidate</span>
       </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={opsView === 'redeem'}
-        className={`grai-action-switch-btn is-redeem ${opsView === 'redeem' ? 'is-active' : ''}`}
-        onClick={() => handleOpsViewChange('redeem')}
-      >
-        <span className="grai-action-switch-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M8 12h8" />
-          </svg>
-        </span>
-        <span className="grai-action-switch-label">Redeem</span>
-      </button>
+      {redeemAvailable ? (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={opsView === 'redeem'}
+          className={`grai-action-switch-btn is-redeem ${opsView === 'redeem' ? 'is-active' : ''}`}
+          onClick={() => handleOpsViewChange('redeem')}
+        >
+          <span className="grai-action-switch-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 12h8" />
+            </svg>
+          </span>
+          <span className="grai-action-switch-label">Redeem</span>
+        </button>
+      ) : null}
     </div>
   )
-
-  const marketTabs = (
-    <div
-      className={`grai-action-switch grai-action-switch--buttons grai-action-switch--market is-${marketView}-active`}
-      role="tablist"
-      aria-label="Vote or Bribe Market"
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={marketView === 'vote'}
-        className={`grai-action-switch-btn is-vote ${marketView === 'vote' ? 'is-active' : ''}`}
-        onClick={() => handleMarketViewChange('vote')}
-      >
-        Vote
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={marketView === 'bribe'}
-        className={`grai-action-switch-btn is-bribe ${marketView === 'bribe' ? 'is-active' : ''}`}
-        onClick={() => handleMarketViewChange('bribe')}
-      >
-        Bribe
-      </button>
-    </div>
-  )
-
 
   const liquidateReadyCount =
     (liquidationHasQuorum ? 1 : 0) + (liquidationConfirmed ? 1 : 0)
@@ -2684,112 +2101,6 @@ export function GraiLiquidationActions() {
     </div>
   )
 
-  const buybackAssetsCarousel = (
-    <div className="grai-liquidation-buyback-assets-carousel grai-liquidation-buyback-assets-carousel--chart-leading">
-      <div className="grai-liquidation-buyback-assets-viewport">
-        {buybackAuctionAssets.length > 1 ? (
-          <button
-            type="button"
-            className="grai-liquidation-buyback-assets-nav grai-liquidation-buyback-assets-nav--prev"
-            aria-label="Previous auction asset"
-            disabled={!canShiftBuybackPrev}
-            aria-disabled={!canShiftBuybackPrev}
-            tabIndex={canShiftBuybackPrev ? 0 : -1}
-            onClick={() => shiftBuybackAsset(-1)}
-          >
-            {VOTERS_PAGE_CHEVRON_LEFT}
-          </button>
-        ) : null}
-        <div
-          className="grai-liquidation-buyback-assets-scroller"
-          ref={buybackAssetsScrollerRef}
-          tabIndex={buybackAuctionAssets.length > 0 ? 0 : -1}
-        >
-          {buybackAuctionAssets.length > 0 ? (
-            <div
-              className="grai-liquidation-buyback-assets-track"
-              role="list"
-              aria-label="Assets on auction"
-              ref={buybackAssetsTrackRef}
-            >
-              <div
-                className="grai-liquidation-buyback-assets-edge-spacer"
-                ref={buybackEdgeSpacerStartRef}
-                aria-hidden="true"
-              />
-              {buybackAuctionAssets.map((asset, index) => {
-                const isSelected = activeBuybackCarouselIndex === index
-                const availableLabel = formatTokenBalance(asset.available, asset.decimals)
-                const chipAmountLabel = formatBuybackChipAmount(asset.available, asset.decimals)
-                const unitPriceLabel = buybackUnitPriceLabel(asset, graiDecimals)
-                return (
-                  <div
-                    key={asset.address}
-                    ref={(node) => {
-                      buybackAssetItemRefs.current[index] = node
-                    }}
-                    className={`grai-liquidation-buyback-assets-item${isSelected ? ' is-selected' : ' is-peek'}`}
-                    role="listitem"
-                  >
-                    <button
-                      type="button"
-                      className={`grai-liquidation-buyback-asset${isSelected ? ' is-selected' : ''}`}
-                      aria-pressed={isSelected}
-                      aria-label={`${asset.symbol}, ${availableLabel} available, ${unitPriceLabel}`}
-                      title={`${availableLabel} ${asset.symbol} · ${unitPriceLabel}`}
-                      onClick={() => selectBuybackAsset(asset, index)}
-                    >
-                      <span className="grai-liquidation-buyback-asset-head">
-                        <span className="grai-liquidation-buyback-asset-head-col">
-                          <span className="grai-liquidation-buyback-asset-top">
-                            <span className="grai-liquidation-buyback-asset-available-amt">{chipAmountLabel}</span>
-                            <img
-                              className="grai-liquidation-buyback-asset-icon"
-                              src={asset.icon}
-                              alt=""
-                              width={27}
-                              height={27}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                            <span className="grai-liquidation-buyback-asset-symbol">{asset.symbol}</span>
-                          </span>
-                          <span className="grai-liquidation-buyback-asset-unit-price">{unitPriceLabel}</span>
-                        </span>
-                      </span>
-                    </button>
-                  </div>
-                )
-              })}
-              <div
-                className="grai-liquidation-buyback-assets-edge-spacer"
-                ref={buybackEdgeSpacerEndRef}
-                aria-hidden="true"
-              />
-            </div>
-          ) : (
-            <p className="grai-liquidation-buyback-assets-empty" role="status">
-              No dutch auctions for buyback
-            </p>
-          )}
-        </div>
-        {buybackAuctionAssets.length > 1 ? (
-          <button
-            type="button"
-            className="grai-liquidation-buyback-assets-nav grai-liquidation-buyback-assets-nav--next"
-            aria-label="Next auction asset"
-            disabled={!canShiftBuybackNext}
-            aria-disabled={!canShiftBuybackNext}
-            tabIndex={canShiftBuybackNext ? 0 : -1}
-            onClick={() => shiftBuybackAsset(1)}
-          >
-            {VOTERS_PAGE_CHEVRON_RIGHT}
-          </button>
-        ) : null}
-      </div>
-    </div>
-  )
-
   return (
     <div className="grai-liquidation-actions" aria-live="polite">
       {!evmProtocol ? (
@@ -2813,177 +2124,17 @@ export function GraiLiquidationActions() {
       {opsView === 'claim' ? (
       <div className="grai-liquidation-distribute-screen grai-claim-screen" id="grai-claim-section">
         <h3 className="grai-liquidation-distribute-title">Claim</h3>
-        <div
-          className="grai-liquidation-bribe-voters-picker grai-liquidation-bribe-voters-picker--chart grai-claim-lockers-picker"
-          aria-label="Lockers to claim"
-        >
-          <div className="grai-liquidation-bribe-toolbar is-inline" aria-hidden={false}>
-            <label className="grai-liquidation-bribe-search">
-              <span className="visually-hidden">Search lockers</span>
-              <svg
-                className="grai-liquidation-bribe-search-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.5-3.5" />
-              </svg>
-              <input
-                type="search"
-                value={claimLockerSearch}
-                onChange={(event) => setClaimLockerSearch(event.target.value)}
-                placeholder="Search"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </label>
-            <GraiToolbarSortSelect
-              label="Filter lockers"
-              value={claimLockerSort}
-              options={CLAIM_LOCKER_SORT_OPTIONS}
-              onChange={setClaimLockerSort}
-            />
-          </div>
-          {claimLockersLoading ? (
-            <p className="grai-claim-lockers-status" role="status">
-              Loading lockers…
-            </p>
-          ) : filteredClaimLockers.length === 0 ? (
-            <p className="grai-claim-lockers-status" role="status">
-              {claimLockers.length === 0 ? 'No lockers found' : 'No lockers match search'}
-            </p>
-          ) : (
-            <div className="grai-liquidation-voters-carousel is-grid">
-              <div className="grai-liquidation-voters-viewport">
-                <div className="grai-liquidation-voters-scroller">
-                  <div className="grai-liquidation-voters-track" role="list">
-                    {claimLockerPageItems.map((locker, slotIndex) => {
-                      if (!locker) {
-                        return (
-                          <div
-                            key={`claim-locker-empty-${slotIndex}`}
-                            className="grai-liquidation-voters-item is-grid-slot-empty"
-                            aria-hidden="true"
-                          />
-                        )
-                      }
-                      const isSelected =
-                        selectedClaimLocker != null &&
-                        locker.address.toLowerCase() === selectedClaimLocker.toLowerCase()
-                      const lockedLabel = formatTokenBalance(locker.lockedGrai, graiDecimals)
-                      const claimableLabelForLocker = claimableByLockerLoading
-                        ? '…'
-                        : (claimableByLocker[locker.address.toLowerCase()] ?? '—')
-                      const href = explorerAccountUrl?.(locker.address) ?? null
-                      return (
-                        <div
-                          key={locker.address}
-                          className={`grai-liquidation-voters-item${isSelected ? ' is-selected' : ''}`}
-                          role="listitem"
-                        >
-                          <button
-                            type="button"
-                            className="grai-liquidation-voters-item-select"
-                            aria-pressed={isSelected}
-                            aria-label={`Select locker ${shortAddress(locker.address)}`}
-                            onClick={() => {
-                              setSelectedClaimLocker(locker.address)
-                              setClaimAmount('')
-                            }}
-                          >
-                            <article
-                              className={`grai-liquidation-voter${isSelected ? ' is-selected' : ''}`}
-                              aria-label={`Locker ${shortAddress(locker.address)}`}
-                            >
-                              <div className="grai-liquidation-voter-rows">
-                                <div className="grai-liquidation-voter-row">
-                                  <span className="grai-liquidation-voter-row-label">Locker</span>
-                                  <span className="grai-liquidation-voter-address">
-                                    <span
-                                      className="grai-liquidation-voter-address-text"
-                                      title={locker.address}
-                                    >
-                                      {shortAddress(locker.address)}
-                                    </span>
-                                    {href ? (
-                                      <a
-                                        href={href}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="grai-mint-asset-value-solscan"
-                                        aria-label="View locker on block explorer"
-                                        title="View locker on block explorer"
-                                        onClick={(event) => event.stopPropagation()}
-                                      >
-                                        {MINT_ASSET_SOLSCAN_ICON}
-                                      </a>
-                                    ) : null}
-                                  </span>
-                                </div>
-                                <div className="grai-liquidation-voter-row">
-                                  <span className="grai-liquidation-voter-row-label">Locked</span>
-                                  <span className="grai-liquidation-voter-escrow">
-                                    <span className="grai-liquidation-voter-escrow-amount">
-                                      {lockedLabel} GRAI
-                                    </span>
-                                  </span>
-                                </div>
-                                <div className="grai-liquidation-voter-row">
-                                  <span className="grai-liquidation-voter-row-label">Claimable</span>
-                                  <span className="grai-liquidation-voter-escrow">
-                                    <span className="grai-liquidation-voter-escrow-amount">
-                                      {claimableLabelForLocker}
-                                    </span>
-                                  </span>
-                                </div>
-                              </div>
-                            </article>
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-              {filteredClaimLockers.length > VOTERS_GRID_PAGE_SIZE ? (
-                <div className="grai-liquidation-voters-pagination" aria-label="Lockers pages">
-                  <button
-                    type="button"
-                    className="grai-liquidation-voters-pagination-btn"
-                    aria-label="Previous lockers page"
-                    disabled={safeClaimLockerPage <= 0}
-                    onClick={() => setClaimLockerPage(safeClaimLockerPage - 1)}
-                  >
-                    {VOTERS_PAGE_CHEVRON_LEFT}
-                  </button>
-                  <span className="grai-liquidation-voters-pagination-status">
-                    {safeClaimLockerPage * VOTERS_GRID_PAGE_SIZE + 1}
-                    –
-                    {Math.min(
-                      (safeClaimLockerPage + 1) * VOTERS_GRID_PAGE_SIZE,
-                      filteredClaimLockers.length,
-                    )}{' '}
-                    of {filteredClaimLockers.length}
-                  </span>
-                  <button
-                    type="button"
-                    className="grai-liquidation-voters-pagination-btn"
-                    aria-label="Next lockers page"
-                    disabled={safeClaimLockerPage >= claimLockerPageCount - 1}
-                    onClick={() => setClaimLockerPage(safeClaimLockerPage + 1)}
-                  >
-                    {VOTERS_PAGE_CHEVRON_RIGHT}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
+        <GraiReferralTree
+          layout="graph-only"
+          evmProtocol={evmProtocol}
+          highlightAddress={walletAddress}
+          graiDecimals={graiDecimals}
+          selectedLockerId={selectedClaimLocker}
+          onSelectLocker={(lockerId) => {
+            setSelectedClaimLocker(lockerId)
+            setClaimAmount('')
+          }}
+        />
         <div className="grai-liquidation-ops-row">
           <div className="grai-liquidation-yield-block">
             <div className="grai-liquidation-escrow-body">
@@ -3055,7 +2206,9 @@ export function GraiLiquidationActions() {
               <div className="grai-liquidation-bribe-amount-row">
                 <span className="grai-liquidation-bribe-amount-label">Your tip:</span>
                 <span className="grai-liquidation-bribe-amount-value">
-                  {claimTipLabel} {selectedClaimAsset?.symbol ?? ''}
+                  {claimAllDividends
+                    ? claimTipPctLabel
+                    : `${claimTipLabel} ${selectedClaimAsset?.symbol ?? ''}`}
                 </span>
               </div>
               {isWalletConnected ? (
@@ -3146,144 +2299,12 @@ export function GraiLiquidationActions() {
               <p className="grai-liquidation-buyback-vote-note">
                 Used by <span className="grai-note-accent">Grinder</span> to distribute yield.
                 Anyone can distribute listed asset to{' '}
-                <span className="grai-note-accent is-claims">claims</span>,{' '}
-                <span className="grai-note-accent is-treasury">treasury</span> and{' '}
-                <span className="grai-note-accent is-buybacks">buybacks</span>
+                <span className="grai-note-accent is-claims">claims</span> and{' '}
+                <span className="grai-note-accent is-treasury">treasury</span>
               </p>
             </div>
           </div>
         </div>
-      </div>
-      ) : null}
-
-      {opsView === 'buyback' ? (
-      <div className="grai-liquidation-buyback-screen" id="grai-buyback-section">
-        {selectedYieldAsset ? (
-          <GraiDutchAuctionChart
-            symbol={selectedYieldAsset.symbol}
-            icon={selectedYieldAsset.icon}
-            available={selectedYieldAsset.available}
-            maxPaymentGrai={selectedYieldAsset.maxPaymentGrai}
-            minPaymentGrai={selectedYieldAsset.minPaymentGrai}
-            startTime={selectedYieldAsset.startTime}
-            period={selectedYieldAsset.period}
-            nowSec={buybackNowSec}
-            graiDecimals={graiDecimals}
-            discountLabel={selectedBuybackMeta?.discountLabel}
-            remainingLabel={selectedBuybackMeta?.remainingLabel}
-            leading={buybackAssetsCarousel}
-          />
-        ) : null}
-
-        <div className="grai-liquidation-ops-row">
-          <div className="grai-liquidation-yield-block">
-          <div className="grai-liquidation-escrow-body">
-            <GraiAmountInput
-              key={selectedYieldAsset?.address ?? 'buyback-amount'}
-              label="Buyback Amount"
-              assets={yieldAssetOptions}
-              defaultAsset={selectedYieldAsset?.symbol}
-              value={yieldAmount}
-              onValueChange={setYieldAmount}
-              onAssetChange={(asset) => {
-                const index = buybackAuctionAssets.findIndex(
-                  (item) => item.address.toLowerCase() === asset.address.toLowerCase(),
-                )
-                const auction = index >= 0 ? buybackAuctionAssets[index] : undefined
-                if (auction) {
-                  selectBuybackAsset(auction, index)
-                  return
-                }
-                setYieldAssetAddress(asset.address)
-                setYieldAmount('')
-              }}
-              balanceLabel={
-                selectedYieldAsset
-                  ? formatTokenBalance(selectedYieldAsset.available, selectedYieldAsset.decimals)
-                  : '—'
-              }
-              balancePrefix="Available:"
-              maxAmount={
-                selectedYieldAsset && selectedYieldAsset.available > 0n
-                  ? formatTokenBalance(selectedYieldAsset.available, selectedYieldAsset.decimals)
-                  : ''
-              }
-              decimals={yieldDecimals}
-              showPresets
-              showVolatility={false}
-              usdLabel="$0.00"
-              usdTrailingLabel="balance:"
-            />
-            <div className="grai-action-result-group grai-liquidation-yield-results">
-              <div className="grai-action-result" aria-live="polite">
-                <span className="grai-action-result-label-wrap">
-                  <span className="grai-action-result-label">You pay:</span>
-                </span>
-                <span className="grai-action-result-value">
-                  {buybackPreview.payLabel}
-                  <img
-                    src={assetUrl('logo.png')}
-                    alt=""
-                    width={18}
-                    height={18}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  GRAI
-                </span>
-              </div>
-              <div className="grai-action-result" aria-live="polite">
-                <span className="grai-action-result-label-wrap">
-                  <span className="grai-action-result-label">You receive:</span>
-                </span>
-                <span className="grai-action-result-value">
-                  {selectedYieldAsset ? (
-                    <>
-                      {buybackPreview.receiveLabel}
-                      <img
-                        src={selectedYieldAsset.icon}
-                        alt=""
-                        width={18}
-                        height={18}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      {selectedYieldAsset.symbol}
-                    </>
-                  ) : null}
-                </span>
-              </div>
-            </div>
-            {isWalletConnected ? (
-              <div className="grai-action-submit">
-                <button
-                  type="button"
-                  className="grai-mint-btn"
-                  disabled={
-                    !yieldAmount.trim() ||
-                    liquidationBlocked ||
-                    isBuyingBack ||
-                    !selectedYieldAsset ||
-                    selectedYieldAsset.startTime <= 0 ||
-                    selectedYieldAsset.available <= 0n
-                  }
-                  onClick={() => {
-                    void handleBuyback()
-                  }}
-                >
-                  {isBuyingBack ? 'Buying back…' : 'Buyback'}
-                </button>
-              </div>
-            ) : (
-              <GraiActionConnectWalletButton />
-            )}
-            <p className="grai-liquidation-buyback-vote-note">
-              GRAI paid for buyback is cast as a liquidation vote. You become a voter and can receive
-               a bribe or unlock on your own.
-            </p>
-          </div>
-        </div>
-      </div>
       </div>
       ) : null}
 
@@ -3299,7 +2320,7 @@ export function GraiLiquidationActions() {
         </div>
       ) : null}
 
-      {opsView === 'redeem' ? (
+      {opsView === 'redeem' && redeemAvailable ? (
         <div className="grai-liquidation-redeem-screen" id="grai-redeem-section">
           <h3 className="grai-liquidation-distribute-title">Redeem</h3>
           <div className="grai-liquidation-ops-row">
@@ -3400,12 +2421,13 @@ export function GraiLiquidationActions() {
                 className="grai-liquidation-bribe-voters-picker grai-liquidation-bribe-voters-picker--chart"
                 aria-label="All voters"
               >
-                <h3 className="grai-bribe-curve-chart-title">Vote and Bribe</h3>
+                <h3 className="grai-bribe-curve-chart-title">Bribe</h3>
                 {bribeVotersToolbar}
                 {carousel ?? empty}
               </div>
             ) : (
               <GraiBribeCurveChart
+                title={marketView === 'vote' ? 'Vote' : 'Bribe'}
                 quorumBps={state?.liquidationQuorumBps ?? 6667}
                 bribePremiumBps={bribePremiumBps}
                 totalVoted={state?.totalVoted ?? 0n}
@@ -3418,7 +2440,6 @@ export function GraiLiquidationActions() {
               id="grai-liquidation-market"
             >
             <div className="grai-liquidation-vote-block">
-              {marketTabs}
               {marketView === 'vote' ? (
                 <section
                   id="grai-vote-section"
@@ -3504,6 +2525,13 @@ export function GraiLiquidationActions() {
       </div>
       </div>
       </div>
+      {opsView === 'distribute' ? (
+        <GraiReferralTree
+          evmProtocol={evmProtocol}
+          highlightAddress={walletAddress}
+          graiDecimals={graiDecimals}
+        />
+      ) : null}
       <HowItWorksModal isOpen={isHowItWorksOpen} onClose={() => setIsHowItWorksOpen(false)} />
     </div>
   )

@@ -37,6 +37,7 @@ type Props = {
   totalVoted: bigint
   totalSupply: bigint
   totalValue: bigint
+  title?: string
 }
 
 function clamp(n: number, min: number, max: number): number {
@@ -120,6 +121,7 @@ export function GraiBribeCurveChart({
   totalVoted,
   totalSupply,
   totalValue,
+  title = 'Vote',
 }: Props) {
   const gradientId = useId().replace(/:/g, '')
   const plotRef = useRef<HTMLDivElement>(null)
@@ -205,7 +207,7 @@ export function GraiBribeCurveChart({
       className="grai-bribe-curve-chart"
       aria-label="Bribe ask versus voted share of supply"
     >
-      <h3 className="grai-bribe-curve-chart-title">Vote and Bribe</h3>
+      <h3 className="grai-bribe-curve-chart-title">{title}</h3>
       <header className="grai-bribe-curve-chart-head">
         <div className="grai-bribe-curve-chart-meta">
           <span className="grai-bribe-curve-chart-meta-col">

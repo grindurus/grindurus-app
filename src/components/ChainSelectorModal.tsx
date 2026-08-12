@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useWalletContext } from '../providers/walletContext'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import metamaskFoxIcon from '../assets/metamask-fox.svg'
@@ -32,7 +32,7 @@ function EvmWalletsLoadingPanel() {
   useEffect(() => {
     const id = window.setInterval(() => {
       setStepIndex((index) => Math.min(index + 1, EVM_LOADING_STEPS.length - 1))
-    }, 1500)
+    }, 450)
 
     return () => window.clearInterval(id)
   }, [])
@@ -125,7 +125,6 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   const handleEvmConnectorSelect = useCallback(
     async (connector: { id: string; uid: string; name: string }) => {
       setEvmConnectError('')
-      setSelectedChainType('evm')
 
       try {
         // MetaMask may use WalletConnect under the hood when the extension is absent —
@@ -135,11 +134,15 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
             setEvmConnectError('WalletConnect failed. Check WalletConnect Project ID and try again.')
             return
           }
+          setSelectedChainType('evm')
           openRainbowKit()
           return
         }
 
         await evmWallet.connectWithConnector(connector.uid)
+        setSelectedChainType('evm')
+        // Drop focus before aria-hidden flips on the backdrop.
+        ;(document.activeElement as HTMLElement | null)?.blur?.()
         onClose()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)

@@ -24,6 +24,9 @@ import { createAssociatedTokenAccountIdempotentInstruction } from './splInstruct
 /** Anchor `global:claim` discriminator. */
 const CLAIM_DISCRIMINATOR = Buffer.from([62, 198, 214, 193, 213, 159, 108, 210])
 
+/** Anchor `global:claim_all` discriminator. */
+const CLAIM_ALL_DISCRIMINATOR = Buffer.from([194, 194, 80, 194, 234, 210, 217, 90])
+
 /** `u64::MAX` — claim the full pending balance (EVM `type(uint256).max`). */
 export const CLAIM_AMOUNT_MAX = 0xffff_ffff_ffff_ffffn
 
@@ -40,7 +43,7 @@ export type BuildClaimTransactionParams = {
   amount: bigint
   connection: Connection
   config: GraiSolanaRuntime
-  /** Pays rent for Position / ATA init; defaults to holder. */
+  /** Pays rent for Position / ATA init and receives claim tip; defaults to holder. */
   payer?: PublicKey
 }
 
@@ -61,6 +64,7 @@ export async function buildClaimTransaction({
   const position = positionPda(holder, assetMint, programId)
   const vaultAta = vaultAtaPda(assetMint, programId)
   const holderAssetAta = getAssociatedTokenAddress(assetMint, holder)
+  const tipAssetAta = getAssociatedTokenAddress(assetMint, payer)
 
   const claimIx = new TransactionInstruction({
     programId,
@@ -74,6 +78,7 @@ export async function buildClaimTransaction({
       { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: vaultAta, isSigner: false, isWritable: true },
       { pubkey: holderAssetAta, isSigner: false, isWritable: true },
+      { pubkey: tipAssetAta, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
@@ -84,8 +89,13 @@ export async function buildClaimTransaction({
 
   const instructions: TransactionInstruction[] = [
     createAssociatedTokenAccountIdempotentInstruction(payer, holderAssetAta, holder, assetMint),
-    claimIx,
   ]
+  if (!tipAssetAta.equals(holderAssetAta)) {
+    instructions.push(
+      createAssociatedTokenAccountIdempotentInstruction(payer, tipAssetAta, payer, assetMint),
+    )
+  }
+  instructions.push(claimIx)
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   const transaction = new Transaction({
@@ -138,22 +148,29 @@ export async function executeClaim({
 
 export type ExecuteClaimAllParams = {
   holder: PublicKey
-  /** Asset mints with pending > 0 (caller filters via estimate). */
-  assetMints: PublicKey[]
+  /**
+   * Optional filter of mints with pending > 0. The on-chain ix still requires every
+   * registry mint in order; non-claimable rows are skipped server-side.
+   */
+  assetMints?: PublicKey[]
   signTransaction: (transaction: Transaction) => Promise<Transaction>
   connection: Connection
   config: GraiSolanaRuntime
+  payer?: PublicKey
 }
 
-/** Claims each listed asset with `u64::MAX` in a single transaction. */
+/** EVM `claimAll` — one `claim_all` ix over the full asset registry. */
 export async function executeClaimAll({
   holder,
-  assetMints,
+  assetMints: _pendingMints,
   signTransaction,
   connection,
   config,
+  payer = holder,
 }: ExecuteClaimAllParams): Promise<{ signature: string }> {
-  if (assetMints.length === 0) {
+  const protocol = await fetchGraiProtocol(connection, config.graiMint)
+  const registryMints = protocol.assetMints
+  if (registryMints.length === 0) {
     throw new Error('No claimable dividends')
   }
 
@@ -162,40 +179,46 @@ export async function executeClaimAll({
   const escrow = escrowPda(holder, programId)
   const instructions: TransactionInstruction[] = []
 
-  for (const assetMint of assetMints) {
+  const remainingKeys: { pubkey: PublicKey; isSigner: boolean; isWritable: boolean }[] = []
+  for (const assetMint of registryMints) {
     const holderAssetAta = getAssociatedTokenAddress(assetMint, holder)
+    const tipAssetAta = getAssociatedTokenAddress(assetMint, payer)
     instructions.push(
-      createAssociatedTokenAccountIdempotentInstruction(holder, holderAssetAta, holder, assetMint),
+      createAssociatedTokenAccountIdempotentInstruction(payer, holderAssetAta, holder, assetMint),
     )
-    instructions.push(
-      new TransactionInstruction({
-        programId,
-        keys: [
-          { pubkey: holder, isSigner: true, isWritable: true },
-          { pubkey: graiState, isSigner: false, isWritable: false },
-          { pubkey: holder, isSigner: false, isWritable: false },
-          { pubkey: escrow, isSigner: false, isWritable: false },
-          { pubkey: assetMint, isSigner: false, isWritable: false },
-          { pubkey: assetConfigPda(assetMint, programId), isSigner: false, isWritable: true },
-          { pubkey: positionPda(holder, assetMint, programId), isSigner: false, isWritable: true },
-          { pubkey: vaultAtaPda(assetMint, programId), isSigner: false, isWritable: true },
-          { pubkey: holderAssetAta, isSigner: false, isWritable: true },
-          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-          { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-          { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
-        ],
-        data: encodeClaimInstructionData(CLAIM_AMOUNT_MAX),
-      }),
+    if (!tipAssetAta.equals(holderAssetAta)) {
+      instructions.push(
+        createAssociatedTokenAccountIdempotentInstruction(payer, tipAssetAta, payer, assetMint),
+      )
+    }
+    remainingKeys.push(
+      { pubkey: assetMint, isSigner: false, isWritable: false },
+      { pubkey: assetConfigPda(assetMint, programId), isSigner: false, isWritable: true },
+      { pubkey: positionPda(holder, assetMint, programId), isSigner: false, isWritable: true },
+      { pubkey: vaultAtaPda(assetMint, programId), isSigner: false, isWritable: true },
+      { pubkey: holderAssetAta, isSigner: false, isWritable: true },
+      { pubkey: tipAssetAta, isSigner: false, isWritable: true },
     )
   }
 
-  // Ensure registry still lists these mints (guards stale client lists).
-  await fetchGraiProtocol(connection, config.graiMint)
+  instructions.push(
+    new TransactionInstruction({
+      programId,
+      keys: [
+        { pubkey: payer, isSigner: true, isWritable: true },
+        { pubkey: graiState, isSigner: false, isWritable: false },
+        { pubkey: holder, isSigner: false, isWritable: false },
+        { pubkey: escrow, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        ...remainingKeys,
+      ],
+      data: Buffer.from(CLAIM_ALL_DISCRIMINATOR),
+    }),
+  )
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   const transaction = new Transaction({
-    feePayer: holder,
+    feePayer: payer,
     blockhash,
     lastValidBlockHeight,
   })

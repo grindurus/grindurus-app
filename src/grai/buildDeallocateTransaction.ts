@@ -1,7 +1,6 @@
 import {
   Connection,
   PublicKey,
-  SystemProgram,
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js'
@@ -9,11 +8,10 @@ import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
 import {
-  resolveSolanaAllocateCustodyAccounts,
+  assertSolanaCustodianWallet,
   resolveSolanaGrindersProgramId,
 } from './solanaAllocateCustody'
 import {
-  allocationPda,
   getAssociatedTokenAddress,
   grindersStatePda,
   TOKEN_PROGRAM_ID,
@@ -29,22 +27,12 @@ function encodeDeallocateInstructionData(amount: bigint): Buffer {
   return data
 }
 
-export function totalAllocationPda(
-  assetMint: PublicKey,
-  grindersProgramId: PublicKey,
-): PublicKey {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('total_allocation'), assetMint.toBuffer()],
-    grindersProgramId,
-  )[0]
-}
-
 export type BuildDeallocateTransactionParams = {
   /** Custodian state PDA / custody wallet holding the inventory. */
   custodyWallet: PublicKey
   assetMint: PublicKey
   amount: bigint
-  /** Signs as grinders custodian NFT owner. */
+  /** Signs as grinders protocol owner. */
   owner: PublicKey
   connection: Connection
   config: GraiSolanaRuntime
@@ -65,32 +53,22 @@ export async function buildDeallocateTransaction({
   const grindersProgram = resolveSolanaGrindersProgramId(config.cluster)
   const grindersState = grindersStatePda(grindersProgram)
   const graiState = graiStatePda(config.programId)
-  const { custodianRecord } = await resolveSolanaAllocateCustodyAccounts(
-    connection,
-    custodyWallet,
-    grindersProgram,
-  )
+  await assertSolanaCustodianWallet(connection, custodyWallet, grindersProgram)
 
-  const allocation = allocationPda(custodyWallet, assetMint, grindersProgram)
-  const totalAllocation = totalAllocationPda(assetMint, grindersProgram)
   const custodyAta = getAssociatedTokenAddress(assetMint, custodyWallet)
   const grindersAta = getAssociatedTokenAddress(assetMint, grindersState)
 
   const deallocateIx = new TransactionInstruction({
     programId: grindersProgram,
     keys: [
-      { pubkey: owner, isSigner: true, isWritable: true },
+      { pubkey: owner, isSigner: true, isWritable: false },
       { pubkey: grindersState, isSigner: false, isWritable: false },
       { pubkey: graiState, isSigner: false, isWritable: false },
       { pubkey: custodyWallet, isSigner: false, isWritable: false },
-      { pubkey: custodianRecord, isSigner: false, isWritable: false },
       { pubkey: assetMint, isSigner: false, isWritable: false },
-      { pubkey: allocation, isSigner: false, isWritable: true },
-      { pubkey: totalAllocation, isSigner: false, isWritable: true },
       { pubkey: custodyAta, isSigner: false, isWritable: true },
       { pubkey: grindersAta, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: encodeDeallocateInstructionData(amount),
   })

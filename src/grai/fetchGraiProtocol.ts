@@ -6,6 +6,7 @@ export type GraiProtocolConfig = {
   buybackCutBps: number
   dividendCutBps: number
   treasuryCutBps: number
+  claimTipBps: number
   bribePremiumBps: number
   quorumBps: number
   unlockFeeBps: number
@@ -32,6 +33,8 @@ export type GraiProtocolSnapshot = {
   totalLocked: bigint
   /** Voted GRAI toward liquidation (raw base units). */
   totalVoted: bigint
+  /** Allowlisted depositors count (EVM `totalDepositors`). Zero = open deposits. */
+  totalDepositors: bigint
   liquidation: boolean
   confirmed: boolean
   liquidationAt: bigint
@@ -51,10 +54,10 @@ export type GraiStateFixedFields = {
 }
 
 /**
- * New GraiState layout (after 8-byte discriminator):
+ * GraiState layout (after 8-byte discriminator):
  * authority(32) treasury(32) grinders(32) bribe_asset(32) total_value(16)
- * total_locked(8) total_voted(8) liquidation(1) confirmed(1) liquidation_at(8)
- * Config(28) then asset_mints / lockers / voters vecs, then bump.
+ * total_locked(8) total_voted(8) total_depositors(8) liquidation(1) confirmed(1)
+ * liquidation_at(8) Config(30) then asset_mints / lockers / voters vecs, then bump.
  */
 /** Bytes before `config` in GraiState (includes 8-byte Anchor discriminator). */
 export const GRAI_STATE_CONFIG_OFFSET =
@@ -66,12 +69,13 @@ export const GRAI_STATE_CONFIG_OFFSET =
   16 + // total_value
   8 + // total_locked
   8 + // total_voted
+  8 + // total_depositors
   1 + // liquidation
   1 + // confirmed
   8 // liquidation_at
 
 /** Bytes before `asset_mints` vec length prefix. */
-const GRAI_STATE_ASSET_MINTS_OFFSET = GRAI_STATE_CONFIG_OFFSET + 28 // Config (6×u16 + 4×u32)
+const GRAI_STATE_ASSET_MINTS_OFFSET = GRAI_STATE_CONFIG_OFFSET + 30 // Config (7×u16 + 4×u32)
 
 function readU128LE(data: Buffer, offset: number): bigint {
   let value = 0n
@@ -83,20 +87,21 @@ function readU128LE(data: Buffer, offset: number): bigint {
 
 function decodeGraiStateConfig(data: Buffer): GraiProtocolConfig {
   const o = GRAI_STATE_CONFIG_OFFSET
-  if (data.length < o + 28) {
+  if (data.length < o + 30) {
     throw new Error('GRAI state account data too short for config')
   }
   return {
     buybackCutBps: data.readUInt16LE(o),
     dividendCutBps: data.readUInt16LE(o + 2),
     treasuryCutBps: data.readUInt16LE(o + 4),
-    bribePremiumBps: data.readUInt16LE(o + 6),
-    quorumBps: data.readUInt16LE(o + 8),
-    unlockFeeBps: data.readUInt16LE(o + 10),
-    buybackPeriod: data.readUInt32LE(o + 12),
-    liquidationPeriod: data.readUInt32LE(o + 16),
-    redeemPeriod: data.readUInt32LE(o + 20),
-    unlockPenaltyPeriod: data.readUInt32LE(o + 24),
+    claimTipBps: data.readUInt16LE(o + 6),
+    bribePremiumBps: data.readUInt16LE(o + 8),
+    quorumBps: data.readUInt16LE(o + 10),
+    unlockFeeBps: data.readUInt16LE(o + 12),
+    buybackPeriod: data.readUInt32LE(o + 14),
+    liquidationPeriod: data.readUInt32LE(o + 18),
+    redeemPeriod: data.readUInt32LE(o + 22),
+    unlockPenaltyPeriod: data.readUInt32LE(o + 26),
   }
 }
 
@@ -104,6 +109,7 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
   totalValue: bigint
   totalLocked: bigint
   totalVoted: bigint
+  totalDepositors: bigint
   liquidation: boolean
   confirmed: boolean
   liquidationAt: bigint
@@ -125,9 +131,10 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
     totalValue: readU128LE(data, 136),
     totalLocked: data.readBigUInt64LE(152),
     totalVoted: data.readBigUInt64LE(160),
-    liquidation: data[168] !== 0,
-    confirmed: data[169] !== 0,
-    liquidationAt: data.readBigInt64LE(170),
+    totalDepositors: data.readBigUInt64LE(168),
+    liquidation: data[176] !== 0,
+    confirmed: data[177] !== 0,
+    liquidationAt: data.readBigInt64LE(178),
     config: decodeGraiStateConfig(data),
   }
 }
@@ -250,6 +257,7 @@ export async function fetchGraiProtocol(
       totalValue: fixed.totalValue,
       totalLocked: fixed.totalLocked,
       totalVoted: fixed.totalVoted,
+      totalDepositors: fixed.totalDepositors,
       liquidation: fixed.liquidation,
       confirmed: fixed.confirmed,
       liquidationAt: fixed.liquidationAt,

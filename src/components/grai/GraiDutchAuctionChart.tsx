@@ -74,9 +74,9 @@ function askAtProgress(
   minPaymentGrai: bigint,
   period: number,
   graiDecimals: number,
-  hasLot: boolean,
+  canDrawCurve: boolean,
 ): number {
-  if (!hasLot) return 0
+  if (!canDrawCurve) return 0
   const elapsed = Math.max(0, Math.min(period, Math.round(period * clamp(progress, 0, 1))))
   return toGraiNumber(dutchAskAt(maxPaymentGrai, minPaymentGrai, elapsed, period), graiDecimals)
 }
@@ -196,7 +196,8 @@ export function GraiDutchAuctionChart({
   leading,
 }: Props) {
   const hasLot = available > 0n
-  const chartIdentity = `${symbol}:${hasLot ? 'lot' : 'empty'}`
+  const canDrawCurve = maxPaymentGrai > minPaymentGrai && period > 0
+  const chartIdentity = `${symbol}:${hasLot ? 'lot' : canDrawCurve ? 'preview' : 'empty'}`
   const plotRef = useRef<HTMLDivElement>(null)
   const [curveAnimating, setCurveAnimating] = useState(true)
   const [plotEnter, setPlotEnter] = useState(true)
@@ -236,15 +237,15 @@ export function GraiDutchAuctionChart({
           minPaymentGrai,
           period,
           graiDecimals,
-          hasLot,
+          canDrawCurve,
         ),
       })
     },
-    [graiDecimals, hasLot, maxPaymentGrai, minPaymentGrai, period],
+    [canDrawCurve, graiDecimals, maxPaymentGrai, minPaymentGrai, period],
   )
 
   const { points, nowPoint, yDomain, yTicks } = useMemo(() => {
-    if (!hasLot) {
+    if (!canDrawCurve) {
       const nextPoints: ChartPoint[] = []
       for (let i = 0; i <= SAMPLE_COUNT; i += 1) {
         const progress = i / SAMPLE_COUNT
@@ -287,18 +288,18 @@ export function GraiDutchAuctionChart({
       yTicks: buildEvenTicks(domain[0], domain[1], 4),
     }
   }, [
+    canDrawCurve,
     currentAsk,
     graiDecimals,
-    hasLot,
     maxPaymentGrai,
     minPaymentGrai,
     period,
     progressNow,
   ])
 
-  const currentAskLabel = hasLot ? formatChartAskUsd(currentAsk, graiDecimals) : '$0.00'
-  const maxLabel = hasLot ? formatChartAskUsd(maxPaymentGrai, graiDecimals) : '$0.00'
-  const minLabel = hasLot ? formatChartAskUsd(minPaymentGrai, graiDecimals) : '$0.00'
+  const currentAskLabel = hasLot ? formatChartAskUsd(currentAsk, graiDecimals) : '—'
+  const maxLabel = hasLot ? formatChartAskUsd(maxPaymentGrai, graiDecimals) : '—'
+  const minLabel = hasLot ? formatChartAskUsd(minPaymentGrai, graiDecimals) : '—'
   const endTime = startTime > 0 && period > 0 ? startTime + period : 0
   const startDate = formatAuctionDate(startTime)
   const endDate = formatAuctionDate(endTime)
@@ -340,7 +341,7 @@ export function GraiDutchAuctionChart({
         : `${(scrubPoint.progress * 100).toFixed(scrubPoint.progress < 0.1 ? 2 : 1)}% elapsed`
     : ''
   const scrubDiscountLabel =
-    scrubPoint && hasLot
+    scrubPoint && canDrawCurve
       ? formatDiscountPct(
           discountPctAtAsk(
             maxPaymentGrai,
@@ -351,7 +352,7 @@ export function GraiDutchAuctionChart({
 
   return (
     <section
-      className="grai-dutch-auction-chart"
+      className={`grai-dutch-auction-chart${hasLot ? '' : ' is-empty'}`}
       aria-label={`${symbol} dutch auction price curve`}
     >
       <h3 className="grai-dutch-auction-chart-title">GRAI Buyback Dutch Auction</h3>
@@ -390,7 +391,7 @@ export function GraiDutchAuctionChart({
           <span className="grai-dutch-auction-chart-meta-col is-end">
             <span className="grai-dutch-auction-chart-meta-label">Discount</span>
             <span className="grai-dutch-auction-chart-meta-value is-discount">
-              {hasLot ? (discountLabel ?? '—') : '0%'}
+              {hasLot ? (discountLabel ?? '—') : '—'}
             </span>
           </span>
           <span className="grai-dutch-auction-chart-meta-col is-end">

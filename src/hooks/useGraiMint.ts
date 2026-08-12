@@ -66,6 +66,7 @@ export function useGraiMint() {
       amountInput: string
       assetDecimals: number
       lock?: boolean
+      referrer?: string
     }) => {
       if (!evm) throw new Error('GRAI is not configured for this EVM network')
 
@@ -82,6 +83,7 @@ export function useGraiMint() {
             amountInput: params.amountInput,
             assetDecimals: params.assetDecimals,
             lock: params.lock ?? false,
+            referrer: params.referrer,
           }),
       })
 
@@ -96,6 +98,7 @@ export function useGraiMint() {
       amountInput: string
       assetDecimals?: number
       lock?: boolean
+      referrer?: string
     }) => {
       if (chainKind === 'evm') {
         if (params.assetDecimals === undefined) {
@@ -106,6 +109,7 @@ export function useGraiMint() {
           amountInput: params.amountInput,
           assetDecimals: params.assetDecimals,
           lock: params.lock,
+          referrer: params.referrer,
         })
       }
       return mintSolana(params)

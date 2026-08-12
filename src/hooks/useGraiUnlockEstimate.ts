@@ -22,7 +22,7 @@ const EMPTY_PREVIEW: EvmUnlockPreview = {
   penaltyLabel: '0.0',
   secondsLeft: 0,
   unlockPenaltyPeriod: 0,
-  unlockFeeBps: 0,
+  unlockPenaltyBps: 0,
   lockedAt: 0,
   decimals: 6,
 }

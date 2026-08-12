@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useEvmWallet } from './useEvmWallet'
 import { useSolanaWallet } from './useSolanaWallet'
-import { useWalletContext, ChainType } from '../providers/AppWalletProvider'
+import { useWalletContext, type ChainType } from '../providers/walletContext'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
 
 export interface ActiveWalletState {

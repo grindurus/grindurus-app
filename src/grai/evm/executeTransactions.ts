@@ -539,6 +539,40 @@ export async function executeEvmGrindersRegister({
   return { hash }
 }
 
+export type ExecuteEvmPoachParams = {
+  config: GraiEvmConfig
+  locker: `0x${string}`
+}
+
+/** Buy out the referrer NFT for `locker` — pays `previewPoach` GRAI to the current owner. */
+export async function executeEvmPoach({
+  config,
+  locker,
+}: ExecuteEvmPoachParams): Promise<{ hash: string; price: bigint; referrer: `0x${string}` }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to poach a referral slot')
+  }
+
+  const graiAddress = resolveGraiContractAddress(config)
+  const [price, referrer] = await readContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'previewPoach',
+    args: [locker, account.address],
+  })
+
+  const hash = await writeContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'poach',
+    args: [locker],
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash, price, referrer }
+}
+
 /** Parse human-readable amount to wei using viem (for consistency with ERC-20 decimals). */
 export function parseEvmTokenAmount(input: string, decimals: number): bigint {
   const trimmed = input.trim()

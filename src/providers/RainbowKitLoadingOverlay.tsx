@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
-import { useWalletContext } from './AppWalletProvider'
+import { useWalletContext } from './walletContext'
 
 const WALLET_CONNECT_PENDING_MAX_MS = 12_000
 

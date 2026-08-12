@@ -271,7 +271,7 @@ export async function fetchEvmRedeemUnlockTiming(
   ])
 
   const liquidationAt = Number(liquidationAtRaw)
-  const liquidationPeriodSec = Number(protocolConfig[8])
+  const liquidationPeriodSec = Number(protocolConfig[9])
   const redeemUnlockAt =
     liquidationOpen && liquidationAt > 0 ? liquidationAt + liquidationPeriodSec : null
 
@@ -446,8 +446,8 @@ export async function fetchEvmLiquidationVoteState(
     settlementAsset,
     settlementDecimals,
     settlementSymbol: settlementMeta.symbol,
-    bribePremiumBps: Number(protocolConfig[4]),
-    liquidationQuorumBps: Number(protocolConfig[5]),
+    bribePremiumBps: Number(protocolConfig[5]),
+    liquidationQuorumBps: Number(protocolConfig[6]),
     voters: voterEscrows.map((escrow) => escrow.account),
     voterEntries,
     listedAssets,

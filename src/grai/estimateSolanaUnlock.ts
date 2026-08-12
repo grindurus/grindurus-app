@@ -17,6 +17,7 @@ const GRAI_STATE_CONFIG_OFFSET =
   16 + // total_value
   8 + // total_locked
   8 + // total_voted
+  8 + // total_depositors
   1 + // liquidation
   1 + // confirmed
   8 // liquidation_at
@@ -30,18 +31,18 @@ function decodeEscrow(data: Buffer): { amount: bigint; lockedAt: number } {
   }
 }
 
-/** `Config.unlock_fee_bps` (u16 @ +10) and `unlock_penalty_period` (u32 @ +24). */
+/** `Config.unlock_fee_bps` (u16 @ +12) and `unlock_penalty_period` (u32 @ +26). */
 function decodeUnlockConfig(graiStateData: Buffer): {
   unlockFeeBps: number
   unlockPenaltyPeriod: number
 } {
   const base = GRAI_STATE_CONFIG_OFFSET
-  if (graiStateData.length < base + 28) {
+  if (graiStateData.length < base + 30) {
     return { unlockFeeBps: 0, unlockPenaltyPeriod: 0 }
   }
   return {
-    unlockFeeBps: graiStateData.readUInt16LE(base + 10),
-    unlockPenaltyPeriod: graiStateData.readUInt32LE(base + 24),
+    unlockFeeBps: graiStateData.readUInt16LE(base + 12),
+    unlockPenaltyPeriod: graiStateData.readUInt32LE(base + 26),
   }
 }
 
@@ -151,7 +152,7 @@ export async function estimateSolanaUnlockPreview(
     penaltyLabel: formatUnlockAmountLabel(penalty, decimals),
     secondsLeft,
     unlockPenaltyPeriod,
-    unlockFeeBps,
+    unlockPenaltyBps: unlockFeeBps,
     lockedAt,
     decimals,
   }

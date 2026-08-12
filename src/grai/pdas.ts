@@ -48,16 +48,21 @@ export function escrowPda(user: PublicKey, programId: PublicKey): PublicKey {
   )[0]
 }
 
-/** Grinders Allocation PDA — lives on the grinders program. */
-export function allocationPda(
-  custodianState: PublicKey,
-  assetMint: PublicKey,
-  grindersProgramId: PublicKey,
-): PublicKey {
+/** Deposit allowlist PDA (EVM `isDepositor`). Absent + `total_depositors == 0` ⇒ open deposits. */
+export function depositorAllowancePda(depositor: PublicKey, programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('allocation'), custodianState.toBuffer(), assetMint.toBuffer()],
-    grindersProgramId,
+    [Buffer.from('depositor'), depositor.toBuffer()],
+    programId,
   )[0]
+}
+
+/** @deprecated Issuance ledger removed — track Allocate/Deallocate off-chain. */
+export function allocationPda(
+  _custodianState: PublicKey,
+  _assetMint: PublicKey,
+  _grindersProgramId: PublicKey,
+): PublicKey {
+  throw new Error('allocation PDA removed; track Allocate/Deallocate off-chain')
 }
 
 export function getAssociatedTokenAddress(mint: PublicKey, owner: PublicKey): PublicKey {

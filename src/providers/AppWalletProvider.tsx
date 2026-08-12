@@ -1,44 +1,29 @@
-import { ReactNode, createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
-import { ChainSelectorModal } from '../components/ChainSelectorModal'
+import { ReactNode, useState, useCallback, useEffect, useMemo } from 'react'
+import {
+  WalletContext,
+  useWalletContext,
+  type ChainType,
+  type EvmChain,
+  type SolanaCluster,
+  type WalletContextType,
+} from './walletContext'
 import { getDefaultGraiSolanaCluster } from '../grai/deployments'
 import { stripBasePath } from '../utils/appPaths'
 import { SolanaProvider } from './SolanaProvider'
-import { LazyEvmShell } from './LazyEvmShell'
+import { LazyEvmShell, preloadEvmProvider } from './LazyEvmShell'
 import { EvmWalletSnapshotProvider } from './EvmWalletSnapshotContext'
+import { ChainSelectorModal } from '../components/ChainSelectorModal'
 
-export type ChainType = 'evm' | 'solana' | null
-export type EvmChain = 'ethereum' | 'arbitrum' | 'sepolia'
-export type SolanaCluster = 'mainnet-beta' | 'testnet' | 'devnet'
-
-interface WalletContextType {
-  selectedChainType: ChainType
-  setSelectedChainType: (type: ChainType) => void
-  evmChain: EvmChain
-  setEvmChain: (chain: EvmChain) => void
-  solanaCluster: SolanaCluster
-  setSolanaCluster: (cluster: SolanaCluster) => void
-  isChainSelectorOpen: boolean
-  openChainSelector: () => void
-  closeChainSelector: () => void
-  disconnect: () => void
-  requestRainbowKit: () => void
-  isEvmStackReady: boolean
-  pendingWalletConnectOpen: boolean
-  clearPendingWalletConnectOpen: () => void
-}
-
-const WalletContext = createContext<WalletContextType | undefined>(undefined)
-
-export function useWalletContext() {
-  const context = useContext(WalletContext)
-  if (!context) {
-    throw new Error('useWalletContext must be used within AppWalletProvider')
-  }
-  return context
-}
+export type { ChainType, EvmChain, SolanaCluster, WalletContextType }
+export { useWalletContext }
 
 interface AppWalletProviderProps {
   children: ReactNode
+}
+
+function pathNeedsEvmStack(pathname: string): boolean {
+  const path = stripBasePath(pathname)
+  return path === '/grai' || path.startsWith('/grai/') || path === '/backtest'
 }
 
 export function AppWalletProvider({ children }: AppWalletProviderProps) {
@@ -59,7 +44,12 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
-  const [evmStackRequested, setEvmStackRequested] = useState(false)
+  const [evmStackRequested, setEvmStackRequested] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      (pathNeedsEvmStack(window.location.pathname) ||
+        localStorage.getItem('selectedChainType') === 'evm'),
+  )
   const [rainbowKitEnabled, setRainbowKitEnabled] = useState(false)
   const [isEvmStackReady, setIsEvmStackReady] = useState(false)
   const [pendingWalletConnectOpen, setPendingWalletConnectOpen] = useState(false)
@@ -86,6 +76,32 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
     localStorage.setItem('solanaCluster', solanaCluster)
   }, [solanaCluster])
 
+  const warmEvmStack = useCallback(() => {
+    preloadEvmProvider()
+    setEvmStackRequested(true)
+  }, [])
+
+  // Prefetch wagmi chunk on idle so Connect Wallet is not blocked on first open.
+  useEffect(() => {
+    if (evmStackRequested) {
+      preloadEvmProvider()
+      return
+    }
+
+    const warm = () => {
+      preloadEvmProvider()
+      setEvmStackRequested(true)
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(warm, { timeout: 2000 })
+      return () => window.cancelIdleCallback(idleId)
+    }
+
+    const timeoutId = window.setTimeout(warm, 1200)
+    return () => window.clearTimeout(timeoutId)
+  }, [evmStackRequested])
+
   const requestRainbowKit = useCallback(() => {
     setRainbowKitEnabled(true)
     setPendingWalletConnectOpen(true)
@@ -96,9 +112,9 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   }, [])
 
   const openChainSelector = useCallback(() => {
-    setEvmStackRequested(true)
+    warmEvmStack()
     setIsChainSelectorOpen(true)
-  }, [])
+  }, [warmEvmStack])
 
   const closeChainSelector = useCallback(() => {
     setIsChainSelectorOpen(false)
@@ -114,7 +130,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
     rainbowKitEnabled ||
     selectedChainType === 'evm' ||
     isChainSelectorOpen ||
-    stripBasePath(window.location.pathname) === '/backtest'
+    pathNeedsEvmStack(typeof window !== 'undefined' ? window.location.pathname : '')
 
   const handleEvmStackReady = useCallback(() => {
     setIsEvmStackReady(true)
@@ -137,6 +153,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       closeChainSelector,
       disconnect,
       requestRainbowKit,
+      warmEvmStack,
       isEvmStackReady,
       pendingWalletConnectOpen,
       clearPendingWalletConnectOpen,
@@ -150,6 +167,7 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       closeChainSelector,
       disconnect,
       requestRainbowKit,
+      warmEvmStack,
       isEvmStackReady,
       pendingWalletConnectOpen,
       clearPendingWalletConnectOpen,
