@@ -1,4 +1,10 @@
-{
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/grai.json`.
+ */
+export type Grai = {
   "address": "3Bc99GroACdqAVPbPUt7eHR8sPvKxh2m3suYfcnCtsCh",
   "metadata": {
     "name": "grai",
@@ -8,7 +14,7 @@
   },
   "instructions": [
     {
-      "name": "accept_ownership",
+      "name": "acceptOwnership",
       "docs": [
         "Pending owner takes over; clears `confirmed` so prior liquidation consent dies with the old owner."
       ],
@@ -24,11 +30,11 @@
       ],
       "accounts": [
         {
-          "name": "pending_owner",
+          "name": "pendingOwner",
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         }
       ],
@@ -56,63 +62,63 @@
           "name": "voter"
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
           "name": "escrow",
           "writable": true
         },
         {
-          "name": "settlement_mint"
+          "name": "settlementMint"
         },
         {
-          "name": "settlement_asset_config",
+          "name": "settlementAssetConfig",
           "writable": true
         },
         {
-          "name": "settlement_price_feed"
+          "name": "settlementPriceFeed"
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "settlement_vault_ata",
+          "name": "settlementVaultAta",
           "writable": true
         },
         {
-          "name": "briber_grai_ata",
+          "name": "briberGraiAta",
           "writable": true
         },
         {
-          "name": "briber_settlement_ata",
+          "name": "briberSettlementAta",
           "writable": true
         },
         {
-          "name": "voter_settlement_ata",
+          "name": "voterSettlementAta",
           "writable": true
         },
         {
-          "name": "treasury_vault",
+          "name": "treasuryVault",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "associated_token_program"
+          "name": "associatedTokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         }
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         }
       ]
@@ -141,7 +147,7 @@
           "signer": true
         },
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
           "name": "holder"
@@ -150,54 +156,54 @@
           "name": "escrow"
         },
         {
-          "name": "asset_mint"
+          "name": "assetMint"
         },
         {
-          "name": "asset_config",
+          "name": "assetConfig",
           "writable": true
         },
         {
-          "name": "price_feed"
+          "name": "priceFeed"
         },
         {
           "name": "position",
           "writable": true
         },
         {
-          "name": "vault_ata",
+          "name": "vaultAta",
           "writable": true
         },
         {
-          "name": "treasury_vault",
+          "name": "treasuryVault",
           "writable": true
         },
         {
-          "name": "holder_asset_ata",
+          "name": "holderAssetAta",
           "writable": true
         },
         {
-          "name": "tip_asset_ata",
+          "name": "tipAssetAta",
           "docs": [
             "Caller tip ATA (EVM `msg.sender` tip from `claimTipBps`). Same as holder ATA when self-claiming."
           ],
           "writable": true
         },
         {
-          "name": "beneficiar_ata",
+          "name": "beneficiarAta",
           "writable": true
         },
         {
-          "name": "holder_referrer",
+          "name": "holderReferrer",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "associated_token_program"
+          "name": "associatedTokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -211,7 +217,7 @@
       ]
     },
     {
-      "name": "claim_all",
+      "name": "claimAll",
       "docs": [
         "EVM `claimAll(locker)`. Remaining per listed mint: vault PDA + holder/payer ATAs are bound",
         "on-chain (`[\"vault\", mint]`, ATA(holder), ATA(payer))."
@@ -233,7 +239,7 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
@@ -243,10 +249,10 @@
           "name": "escrow"
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         }
       ],
       "args": []
@@ -270,55 +276,55 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "asset_mint"
+          "name": "assetMint"
         },
         {
-          "name": "grai_mint",
+          "name": "graiMint",
           "writable": true
         },
         {
-          "name": "asset_config"
+          "name": "assetConfig"
         },
         {
-          "name": "price_feed"
+          "name": "priceFeed"
         },
         {
-          "name": "grinders_state"
+          "name": "grindersState"
         },
         {
           "name": "referrer",
           "writable": true
         },
         {
-          "name": "treasury_nft_mint",
+          "name": "treasuryNftMint",
           "writable": true
         },
         {
-          "name": "treasury_nft_metadata",
+          "name": "treasuryNftMetadata",
           "writable": true
         },
         {
-          "name": "treasury_nft_edition",
+          "name": "treasuryNftEdition",
           "writable": true
         },
         {
-          "name": "treasury_nft_ata",
+          "name": "treasuryNftAta",
           "writable": true
         },
         {
-          "name": "depositor_ata",
+          "name": "depositorAta",
           "writable": true
         },
         {
-          "name": "grinders_ata",
+          "name": "grindersAta",
           "writable": true
         },
         {
-          "name": "depositor_grai_ata",
+          "name": "depositorGraiAta",
           "writable": true
         },
         {
@@ -326,20 +332,20 @@
           "writable": true
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "associated_token_program"
+          "name": "associatedTokenProgram"
         },
         {
-          "name": "token_metadata_program"
+          "name": "tokenMetadataProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -361,7 +367,7 @@
       ]
     },
     {
-      "name": "deposit_sol",
+      "name": "depositSol",
       "discriminator": [
         108,
         81,
@@ -379,55 +385,55 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "asset_mint"
+          "name": "assetMint"
         },
         {
-          "name": "grai_mint",
+          "name": "graiMint",
           "writable": true
         },
         {
-          "name": "asset_config"
+          "name": "assetConfig"
         },
         {
-          "name": "price_feed"
+          "name": "priceFeed"
         },
         {
-          "name": "grinders_state"
+          "name": "grindersState"
         },
         {
           "name": "referrer",
           "writable": true
         },
         {
-          "name": "treasury_nft_mint",
+          "name": "treasuryNftMint",
           "writable": true
         },
         {
-          "name": "treasury_nft_metadata",
+          "name": "treasuryNftMetadata",
           "writable": true
         },
         {
-          "name": "treasury_nft_edition",
+          "name": "treasuryNftEdition",
           "writable": true
         },
         {
-          "name": "treasury_nft_ata",
+          "name": "treasuryNftAta",
           "writable": true
         },
         {
-          "name": "depositor_wsol_ata",
+          "name": "depositorWsolAta",
           "writable": true
         },
         {
-          "name": "grinders_ata",
+          "name": "grindersAta",
           "writable": true
         },
         {
-          "name": "depositor_grai_ata",
+          "name": "depositorGraiAta",
           "writable": true
         },
         {
@@ -435,20 +441,20 @@
           "writable": true
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "associated_token_program"
+          "name": "associatedTokenProgram"
         },
         {
-          "name": "token_metadata_program"
+          "name": "tokenMetadataProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -483,7 +489,7 @@
       ],
       "accounts": [
         {
-          "name": "custody_wallet",
+          "name": "custodyWallet",
           "writable": true,
           "signer": true
         },
@@ -493,32 +499,32 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "asset_mint"
+          "name": "assetMint"
         },
         {
-          "name": "asset_config",
+          "name": "assetConfig",
           "writable": true
         },
         {
-          "name": "price_feed"
+          "name": "priceFeed"
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
-          "name": "custody_ata",
+          "name": "custodyAta",
           "writable": true
         },
         {
-          "name": "vault_ata",
+          "name": "vaultAta",
           "writable": true
         },
         {
-          "name": "treasury_vault",
+          "name": "treasuryVault",
           "docs": [
             "In-program treasury inventory vault (EVM `Treasury` balance for this asset).",
             "Created on `set_feed` list alongside the asset vault."
@@ -530,21 +536,21 @@
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         }
       ],
       "args": [
         {
-          "name": "yield_amount",
+          "name": "yieldAmount",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "get_assets",
+      "name": "getAssets",
       "docs": [
         "EVM `getAssets`."
       ],
@@ -560,7 +566,7 @@
       ],
       "accounts": [
         {
-          "name": "grai_state"
+          "name": "graiState"
         }
       ],
       "args": [],
@@ -569,7 +575,7 @@
       }
     },
     {
-      "name": "get_lockers",
+      "name": "getLockers",
       "docs": [
         "EVM `getLockers(fromId, toId)`. Remaining: escrow PDA per locker in the slice."
       ],
@@ -585,29 +591,29 @@
       ],
       "accounts": [
         {
-          "name": "grai_state"
+          "name": "graiState"
         }
       ],
       "args": [
         {
-          "name": "from_id",
+          "name": "fromId",
           "type": "u32"
         },
         {
-          "name": "to_id",
+          "name": "toId",
           "type": "u32"
         }
       ],
       "returns": {
         "vec": {
           "defined": {
-            "name": "EscrowView"
+            "name": "escrowView"
           }
         }
       }
     },
     {
-      "name": "get_redeemables",
+      "name": "getRedeemables",
       "docs": [
         "EVM `getRedeemables` — redeemable basket while liquidation is open.",
         "Remaining: `[asset_config, vault_ata]` × N."
@@ -624,18 +630,18 @@
       ],
       "accounts": [
         {
-          "name": "grai_state"
+          "name": "graiState"
         }
       ],
       "args": [],
       "returns": {
         "defined": {
-          "name": "RedeemQuote"
+          "name": "redeemQuote"
         }
       }
     },
     {
-      "name": "get_referrals",
+      "name": "getReferrals",
       "docs": [
         "EVM `getReferralsData(fromId, toId)`. Remaining: `Referrer` PDA per bound locker in mint order."
       ],
@@ -651,29 +657,29 @@
       ],
       "accounts": [
         {
-          "name": "grai_state"
+          "name": "graiState"
         }
       ],
       "args": [
         {
-          "name": "from_id",
+          "name": "fromId",
           "type": "u32"
         },
         {
-          "name": "to_id",
+          "name": "toId",
           "type": "u32"
         }
       ],
       "returns": {
         "vec": {
           "defined": {
-            "name": "LockerDataView"
+            "name": "lockerDataView"
           }
         }
       }
     },
     {
-      "name": "get_voters",
+      "name": "getVoters",
       "docs": [
         "EVM `getVoters(fromId, toId)`. Remaining: escrow PDA per voter in the slice."
       ],
@@ -689,29 +695,29 @@
       ],
       "accounts": [
         {
-          "name": "grai_state"
+          "name": "graiState"
         }
       ],
       "args": [
         {
-          "name": "from_id",
+          "name": "fromId",
           "type": "u32"
         },
         {
-          "name": "to_id",
+          "name": "toId",
           "type": "u32"
         }
       ],
       "returns": {
         "vec": {
           "defined": {
-            "name": "EscrowView"
+            "name": "escrowView"
           }
         }
       }
     },
     {
-      "name": "has_quorum",
+      "name": "hasQuorum",
       "discriminator": [
         246,
         60,
@@ -724,10 +730,10 @@
       ],
       "accounts": [
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         }
       ],
       "args": [],
@@ -752,26 +758,26 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint",
+          "name": "graiMint",
           "writable": true,
           "signer": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "token_metadata_program"
+          "name": "tokenMetadataProgram"
         },
         {
           "name": "metadata",
           "writable": true
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -798,28 +804,28 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "caller_grai_ata",
+          "name": "callerGraiAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "associated_token_program"
+          "name": "associatedTokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         }
       ],
       "args": []
@@ -843,29 +849,29 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
           "name": "escrow",
           "writable": true
         },
         {
-          "name": "locker_grai_ata",
+          "name": "lockerGraiAta",
           "writable": true
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -873,7 +879,7 @@
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         }
       ]
@@ -900,54 +906,54 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
           "name": "locker"
         },
         {
-          "name": "locker_referrer",
+          "name": "lockerReferrer",
           "writable": true
         },
         {
-          "name": "buyer_book",
+          "name": "buyerBook",
           "writable": true
         },
         {
-          "name": "seller_book",
+          "name": "sellerBook",
           "writable": true
         },
         {
-          "name": "old_l2_book",
+          "name": "oldL2Book",
           "writable": true
         },
         {
-          "name": "new_l2_book",
+          "name": "newL2Book",
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
-          "name": "poacher_grai_ata",
+          "name": "poacherGraiAta",
           "writable": true
         },
         {
-          "name": "seller_grai_ata",
+          "name": "sellerGraiAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         }
       ],
       "args": []
     },
     {
-      "name": "preview_bribe",
+      "name": "previewBribe",
       "docs": [
         "Dynamic bribe ask for `grai_amount` of `voter`'s vote: `(bribe_amount, premium, discount)`",
         "in `settlement_asset` units. Exactly one of `premium` / `discount` is non-zero."
@@ -967,38 +973,38 @@
           "name": "voter"
         },
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
           "name": "escrow"
         },
         {
-          "name": "settlement_mint"
+          "name": "settlementMint"
         },
         {
-          "name": "settlement_asset_config"
+          "name": "settlementAssetConfig"
         },
         {
-          "name": "settlement_price_feed"
+          "name": "settlementPriceFeed"
         }
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         }
       ],
       "returns": {
         "defined": {
-          "name": "BribeQuote"
+          "name": "bribeQuote"
         }
       }
     },
     {
-      "name": "preview_claim",
+      "name": "previewClaim",
       "docs": [
         "EVM `previewClaim`. `amount == u64::MAX` = full pending."
       ],
@@ -1017,16 +1023,16 @@
           "name": "holder"
         },
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
           "name": "escrow"
         },
         {
-          "name": "asset_mint"
+          "name": "assetMint"
         },
         {
-          "name": "asset_config"
+          "name": "assetConfig"
         },
         {
           "name": "position"
@@ -1041,7 +1047,7 @@
       "returns": "u64"
     },
     {
-      "name": "preview_claim_all",
+      "name": "previewClaimAll",
       "docs": [
         "EVM `previewClaimAll`. Remaining: `[asset_config, position]` × N."
       ],
@@ -1060,7 +1066,7 @@
           "name": "holder"
         },
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
           "name": "escrow"
@@ -1069,12 +1075,12 @@
       "args": [],
       "returns": {
         "defined": {
-          "name": "ClaimAllQuote"
+          "name": "claimAllQuote"
         }
       }
     },
     {
-      "name": "preview_deposit",
+      "name": "previewDeposit",
       "docs": [
         "EVM `previewDeposit` → `(value, grai_out)`."
       ],
@@ -1090,19 +1096,19 @@
       ],
       "accounts": [
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
-          "name": "asset_mint"
+          "name": "assetMint"
         },
         {
-          "name": "asset_config"
+          "name": "assetConfig"
         },
         {
-          "name": "price_feed"
+          "name": "priceFeed"
         }
       ],
       "args": [
@@ -1113,12 +1119,12 @@
       ],
       "returns": {
         "defined": {
-          "name": "DepositQuote"
+          "name": "depositQuote"
         }
       }
     },
     {
-      "name": "preview_poach",
+      "name": "previewPoach",
       "docs": [
         "Quote the current referral-slot purchase price and seller."
       ],
@@ -1140,18 +1146,18 @@
           "name": "locker"
         },
         {
-          "name": "locker_referrer"
+          "name": "lockerReferrer"
         }
       ],
       "args": [],
       "returns": {
         "defined": {
-          "name": "PoachQuote"
+          "name": "poachQuote"
         }
       }
     },
     {
-      "name": "preview_redeem",
+      "name": "previewRedeem",
       "docs": [
         "EVM `previewRedeem`. Remaining: `[asset_config, vault_ata]` × N."
       ],
@@ -1170,32 +1176,32 @@
           "name": "holder"
         },
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
           "name": "escrow"
         },
         {
-          "name": "holder_grai_ata"
+          "name": "holderGraiAta"
         }
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         }
       ],
       "returns": {
         "defined": {
-          "name": "RedeemQuote"
+          "name": "redeemQuote"
         }
       }
     },
     {
-      "name": "preview_unlock",
+      "name": "previewUnlock",
       "docs": [
         "EVM `previewUnlock`. Pass `timestamp == 0` to use the cluster clock."
       ],
@@ -1214,7 +1220,7 @@
           "name": "account"
         },
         {
-          "name": "grai_state"
+          "name": "graiState"
         },
         {
           "name": "escrow"
@@ -1222,7 +1228,7 @@
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         },
         {
@@ -1232,7 +1238,7 @@
       ],
       "returns": {
         "defined": {
-          "name": "UnlockQuote"
+          "name": "unlockQuote"
         }
       }
     },
@@ -1255,11 +1261,11 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint",
+          "name": "graiMint",
           "writable": true
         },
         {
@@ -1267,18 +1273,18 @@
           "writable": true
         },
         {
-          "name": "holder_grai_ata",
+          "name": "holderGraiAta",
           "writable": true
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -1286,7 +1292,7 @@
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         }
       ]
@@ -1309,20 +1315,20 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         }
       ],
       "args": []
     },
     {
-      "name": "set_beneficiar",
+      "name": "setBeneficiar",
       "discriminator": [
         64,
         113,
@@ -1339,7 +1345,7 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         }
       ],
@@ -1351,7 +1357,7 @@
       ]
     },
     {
-      "name": "set_config",
+      "name": "setConfig",
       "discriminator": [
         108,
         158,
@@ -1368,7 +1374,7 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         }
       ],
@@ -1377,14 +1383,14 @@
           "name": "cfg",
           "type": {
             "defined": {
-              "name": "Config"
+              "name": "config"
             }
           }
         }
       ]
     },
     {
-      "name": "set_feed",
+      "name": "setFeed",
       "docs": [
         "EVM `setFeed` waterfall: list / pause-only / replace-while-paused / delist (`FEED_NONE`).",
         "`paused` mirrors `Feed.paused`. Pass System Program as `price_feed` for delist (must be paused).",
@@ -1407,45 +1413,45 @@
           "signer": true
         },
         {
-          "name": "asset_mint"
+          "name": "assetMint"
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "asset_config",
+          "name": "assetConfig",
           "docs": [
             "Seeds: `[AssetConfig::SEED, asset_mint]`."
           ],
           "writable": true
         },
         {
-          "name": "vault_ata",
+          "name": "vaultAta",
           "docs": [
             "Seeds: `[AssetConfig::VAULT_SEED, asset_mint]`."
           ],
           "writable": true
         },
         {
-          "name": "treasury_vault",
+          "name": "treasuryVault",
           "writable": true
         },
         {
-          "name": "price_feed"
+          "name": "priceFeed"
         },
         {
-          "name": "moved_asset_config",
+          "name": "movedAssetConfig",
           "docs": [
             "Pass `asset_config` when unused (list / update / last asset)."
           ],
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -1459,7 +1465,7 @@
       ]
     },
     {
-      "name": "set_grinders",
+      "name": "setGrinders",
       "discriminator": [
         251,
         52,
@@ -1476,11 +1482,11 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grinders_state"
+          "name": "grindersState"
         }
       ],
       "args": [
@@ -1491,7 +1497,7 @@
       ]
     },
     {
-      "name": "set_revenue_share_bps",
+      "name": "setRevenueShareBps",
       "discriminator": [
         197,
         178,
@@ -1508,7 +1514,7 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         }
       ],
@@ -1522,7 +1528,7 @@
       ]
     },
     {
-      "name": "set_royalty_bps",
+      "name": "setRoyaltyBps",
       "discriminator": [
         158,
         109,
@@ -1539,19 +1545,19 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         }
       ],
       "args": [
         {
-          "name": "royalty_bps",
+          "name": "royaltyBps",
           "type": "u16"
         }
       ]
     },
     {
-      "name": "set_settlement_asset",
+      "name": "setSettlementAsset",
       "discriminator": [
         136,
         125,
@@ -1568,23 +1574,23 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "settlement_mint"
+          "name": "settlementMint"
         },
         {
-          "name": "settlement_asset_config"
+          "name": "settlementAssetConfig"
         },
         {
-          "name": "settlement_price_feed"
+          "name": "settlementPriceFeed"
         }
       ],
       "args": []
     },
     {
-      "name": "transfer_ownership",
+      "name": "transferOwnership",
       "docs": [
         "Propose a new owner (EVM `Ownable2Step.transferOwnership`).",
         "Pass `Pubkey::default()` to cancel a pending handoff; `owner` is unchanged until accept."
@@ -1605,13 +1611,13 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         }
       ],
       "args": [
         {
-          "name": "new_owner",
+          "name": "newOwner",
           "type": "pubkey"
         }
       ]
@@ -1635,34 +1641,34 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
           "name": "escrow",
           "writable": true
         },
         {
-          "name": "account_grai_ata",
+          "name": "accountGraiAta",
           "writable": true
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         }
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         }
       ]
@@ -1686,29 +1692,29 @@
           "signer": true
         },
         {
-          "name": "grai_state",
+          "name": "graiState",
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "graiMint"
         },
         {
           "name": "escrow",
           "writable": true
         },
         {
-          "name": "voter_grai_ata",
+          "name": "voterGraiAta",
           "writable": true
         },
         {
-          "name": "grai_vault_ata",
+          "name": "graiVaultAta",
           "writable": true
         },
         {
-          "name": "token_program"
+          "name": "tokenProgram"
         },
         {
-          "name": "system_program"
+          "name": "systemProgram"
         },
         {
           "name": "rent"
@@ -1716,7 +1722,7 @@
       ],
       "args": [
         {
-          "name": "grai_amount",
+          "name": "graiAmount",
           "type": "u64"
         }
       ]
@@ -1724,7 +1730,7 @@
   ],
   "accounts": [
     {
-      "name": "AssetConfig",
+      "name": "assetConfig",
       "discriminator": [
         57,
         112,
@@ -1737,7 +1743,7 @@
       ]
     },
     {
-      "name": "Escrow",
+      "name": "escrow",
       "discriminator": [
         31,
         213,
@@ -1750,7 +1756,7 @@
       ]
     },
     {
-      "name": "GraiState",
+      "name": "graiState",
       "discriminator": [
         145,
         250,
@@ -1763,7 +1769,7 @@
       ]
     },
     {
-      "name": "Position",
+      "name": "position",
       "discriminator": [
         170,
         188,
@@ -1776,7 +1782,7 @@
       ]
     },
     {
-      "name": "Referrer",
+      "name": "referrer",
       "discriminator": [
         99,
         150,
@@ -1792,272 +1798,272 @@
   "errors": [
     {
       "code": 6000,
-      "name": "Unauthorized",
+      "name": "unauthorized",
       "msg": "Only the configured owner can perform this action"
     },
     {
       "code": 6001,
-      "name": "InvalidPendingOwner",
+      "name": "invalidPendingOwner",
       "msg": "New owner must differ from the current owner"
     },
     {
       "code": 6002,
-      "name": "AmountZero",
+      "name": "amountZero",
       "msg": "Amount must be greater than zero"
     },
     {
       "code": 6003,
-      "name": "InvalidAmount",
+      "name": "invalidAmount",
       "msg": "Amount or limit is out of range"
     },
     {
       "code": 6004,
-      "name": "MathOverflow",
+      "name": "mathOverflow",
       "msg": "Arithmetic overflow"
     },
     {
       "code": 6005,
-      "name": "BpsTooHigh",
+      "name": "bpsTooHigh",
       "msg": "BPS value exceeds 10_000"
     },
     {
       "code": 6006,
-      "name": "PeriodZero",
+      "name": "periodZero",
       "msg": "Liquidation and redeem periods must be non-zero"
     },
     {
       "code": 6007,
-      "name": "InvalidMint",
+      "name": "invalidMint",
       "msg": "GRAI mint authority does not match program config"
     },
     {
       "code": 6008,
-      "name": "InvalidDestination",
+      "name": "invalidDestination",
       "msg": "Token account is invalid for this operation"
     },
     {
       "code": 6009,
-      "name": "InvalidDepositSource",
+      "name": "invalidDepositSource",
       "msg": "Depositor token account is invalid"
     },
     {
       "code": 6010,
-      "name": "InvalidGrinders",
+      "name": "invalidGrinders",
       "msg": "Grinders state does not match grai config"
     },
     {
       "code": 6011,
-      "name": "GrindersGraiMismatch",
+      "name": "grindersGraiMismatch",
       "msg": "Grinders.grai_program does not match this GRAI program"
     },
     {
       "code": 6012,
-      "name": "ZeroAddress",
+      "name": "zeroAddress",
       "msg": "Address must be non-default"
     },
     {
       "code": 6013,
-      "name": "AlreadyBound",
+      "name": "alreadyBound",
       "msg": "Referral slot is already bound to this affiliate"
     },
     {
       "code": 6014,
-      "name": "ReferralLoop",
+      "name": "referralLoop",
       "msg": "Referral rebind would create a cycle"
     },
     {
       "code": 6015,
-      "name": "InvalidShares",
+      "name": "invalidShares",
       "msg": "Affiliate share weights invalid (empty or sum != 10_000)"
     },
     {
       "code": 6016,
-      "name": "AssetUnknown",
+      "name": "assetUnknown",
       "msg": "Asset is unknown / not listed"
     },
     {
       "code": 6017,
-      "name": "AssetAlreadyRegistered",
+      "name": "assetAlreadyRegistered",
       "msg": "Asset is already registered"
     },
     {
       "code": 6018,
-      "name": "NotPaused",
+      "name": "notPaused",
       "msg": "Asset must be paused before removal"
     },
     {
       "code": 6019,
-      "name": "Paused",
+      "name": "paused",
       "msg": "Asset is paused"
     },
     {
       "code": 6020,
-      "name": "AssetBalanceNonZero",
+      "name": "assetBalanceNonZero",
       "msg": "Asset vault balance must be zero to remove"
     },
     {
       "code": 6021,
-      "name": "BribeAssetUnset",
+      "name": "bribeAssetUnset",
       "msg": "Bribe asset is unset"
     },
     {
       "code": 6022,
-      "name": "SettlementAssetUnset",
+      "name": "settlementAssetUnset",
       "msg": "Settlement asset is unset"
     },
     {
       "code": 6023,
-      "name": "InvalidCuts",
+      "name": "invalidCuts",
       "msg": "Yield cuts must sum to 10_000"
     },
     {
       "code": 6024,
-      "name": "VotesOpen",
+      "name": "votesOpen",
       "msg": "Cannot change asset while votes are open"
     },
     {
       "code": 6025,
-      "name": "LiquidationOpen",
+      "name": "liquidationOpen",
       "msg": "Liquidation is open"
     },
     {
       "code": 6026,
-      "name": "LiquidationClosed",
+      "name": "liquidationClosed",
       "msg": "Liquidation is closed"
     },
     {
       "code": 6027,
-      "name": "LiquidationQuorumNotMet",
+      "name": "liquidationQuorumNotMet",
       "msg": "Liquidation quorum not met"
     },
     {
       "code": 6028,
-      "name": "LiquidationDelay",
+      "name": "liquidationDelay",
       "msg": "Liquidation delay has not elapsed"
     },
     {
       "code": 6029,
-      "name": "RedeemPeriodActive",
+      "name": "redeemPeriodActive",
       "msg": "Redeem period is still active"
     },
     {
       "code": 6030,
-      "name": "ChainlinkReadError",
+      "name": "chainlinkReadError",
       "msg": "Failed to read Chainlink feed account"
     },
     {
       "code": 6031,
-      "name": "ChainlinkRoundMissing",
+      "name": "chainlinkRoundMissing",
       "msg": "Chainlink feed has no latest round data"
     },
     {
       "code": 6032,
-      "name": "InvalidChainlinkPrice",
+      "name": "invalidChainlinkPrice",
       "msg": "Chainlink price must be positive"
     },
     {
       "code": 6033,
-      "name": "StaleChainlinkPrice",
+      "name": "staleChainlinkPrice",
       "msg": "Chainlink price is stale"
     },
     {
       "code": 6034,
-      "name": "InvalidChainlinkFeed",
+      "name": "invalidChainlinkFeed",
       "msg": "Price feed does not match asset config"
     },
     {
       "code": 6035,
-      "name": "InvalidCustomPriceFeed",
+      "name": "invalidCustomPriceFeed",
       "msg": "Custom price feed does not match asset mint"
     },
     {
       "code": 6036,
-      "name": "PythReadError",
+      "name": "pythReadError",
       "msg": "Failed to read Pyth price feed account"
     },
     {
       "code": 6037,
-      "name": "StalePythPrice",
+      "name": "stalePythPrice",
       "msg": "Pyth price is stale"
     },
     {
       "code": 6038,
-      "name": "InvalidPythPrice",
+      "name": "invalidPythPrice",
       "msg": "Pyth price must be positive"
     },
     {
       "code": 6039,
-      "name": "InvalidRemainingAccounts",
+      "name": "invalidRemainingAccounts",
       "msg": "Remaining accounts do not match asset registry"
     },
     {
       "code": 6040,
-      "name": "InvalidVoteEscrow",
+      "name": "invalidVoteEscrow",
       "msg": "Vote escrow does not match voter"
     },
     {
       "code": 6041,
-      "name": "InsufficientGraiBalance",
+      "name": "insufficientGraiBalance",
       "msg": "Insufficient GRAI balance"
     },
     {
       "code": 6042,
-      "name": "InsolventRevive",
+      "name": "insolventRevive",
       "msg": "Leftover NAV would dilute remaining shares"
     },
     {
       "code": 6043,
-      "name": "InsolventBook",
+      "name": "insolventBook",
       "msg": "Deposit book is zero while shares remain"
     },
     {
       "code": 6044,
-      "name": "LiquidationNotConfirmed",
+      "name": "liquidationNotConfirmed",
       "msg": "Liquidation has not been confirmed by the owner"
     },
     {
       "code": 6045,
-      "name": "InvalidLockerRange",
+      "name": "invalidLockerRange",
       "msg": "Invalid get_lockers range"
     },
     {
       "code": 6046,
-      "name": "InvalidVoterRange",
+      "name": "invalidVoterRange",
       "msg": "Invalid get_voters range"
     },
     {
       "code": 6047,
-      "name": "InvalidReferrer",
+      "name": "invalidReferrer",
       "msg": "Sticky referrer / poach target is a protocol sink (GRAI, treasury, WSOL)"
     },
     {
       "code": 6048,
-      "name": "InvalidReferralRange",
+      "name": "invalidReferralRange",
       "msg": "Invalid get_referrals range"
     },
     {
       "code": 6049,
-      "name": "InvalidPdaInit",
+      "name": "invalidPdaInit",
       "msg": "PDA must be system-owned and empty to initialize"
     },
     {
       "code": 6050,
-      "name": "InvalidPythFeedId",
+      "name": "invalidPythFeedId",
       "msg": "Pyth PriceUpdateV2 feed_id mismatch or unset"
     }
   ],
   "types": [
     {
-      "name": "AssetConfig",
+      "name": "assetConfig",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "asset_mint",
+            "name": "assetMint",
             "type": "pubkey"
           },
           {
-            "name": "price_feed",
+            "name": "priceFeed",
             "type": "pubkey"
           },
           {
@@ -2069,14 +2075,14 @@
             "type": "u32"
           },
           {
-            "name": "acc_share",
+            "name": "accShare",
             "docs": [
               "Dividend index per unvoted locked GRAI, scaled by 1e18 (EVM `TotalPosition.accShare`)."
             ],
             "type": "u128"
           },
           {
-            "name": "total_claimable",
+            "name": "totalClaimable",
             "docs": [
               "Vault inventory reserved for locker claims (excluded from redeem / revive)."
             ],
@@ -2087,7 +2093,7 @@
             "type": "u8"
           },
           {
-            "name": "pyth_feed_id",
+            "name": "pythFeedId",
             "docs": [
               "Pyth push price id (EVM `Feed.data`). Zero for custom / Chainlink / legacy Pyth."
             ],
@@ -2102,7 +2108,7 @@
       }
     },
     {
-      "name": "BribeQuote",
+      "name": "bribeQuote",
       "docs": [
         "Return shape of the `preview_bribe` view."
       ],
@@ -2110,7 +2116,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "bribe_amount",
+            "name": "bribeAmount",
             "type": "u64"
           },
           {
@@ -2125,7 +2131,7 @@
       }
     },
     {
-      "name": "ClaimAllQuote",
+      "name": "claimAllQuote",
       "docs": [
         "Return shape of `preview_claim_all`."
       ],
@@ -2148,7 +2154,7 @@
       }
     },
     {
-      "name": "Config",
+      "name": "config",
       "docs": [
         "Yield split, bribe premium, liquidation quorum, unlock penalty, and timing.",
         "",
@@ -2159,21 +2165,21 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "dividend_cut_bps",
+            "name": "dividendCutBps",
             "docs": [
               "Share of distributed yield / bribe cut pool paid as dividends on unvoted locked GRAI, in bps."
             ],
             "type": "u16"
           },
           {
-            "name": "treasury_cut_bps",
+            "name": "treasuryCutBps",
             "docs": [
               "Share of distributed yield / bribe cut pool sent to the in-program treasury vault, in bps."
             ],
             "type": "u16"
           },
           {
-            "name": "revenue_share_bps",
+            "name": "revenueShareBps",
             "docs": [
               "Affiliate slice of treasury income allocated on claim (`claimed * this / dividend_cut`).",
               "EVM default `5_55` (~5.55% of yield → affiliates)."
@@ -2181,42 +2187,42 @@
             "type": "u16"
           },
           {
-            "name": "claim_tip_bps",
+            "name": "claimTipBps",
             "docs": [
               "Share of each `claim` paid to the caller as a tip, in bps of claimed amount (max 5%)."
             ],
             "type": "u16"
           },
           {
-            "name": "bribe_premium_bps",
+            "name": "bribePremiumBps",
             "docs": [
               "Max |ask adjustment| for dynamic bribes, in bps of book value."
             ],
             "type": "u16"
           },
           {
-            "name": "quorum_bps",
+            "name": "quorumBps",
             "docs": [
               "Voted / supply needed to open liquidation, in bps."
             ],
             "type": "u16"
           },
           {
-            "name": "unlock_penalty_bps",
+            "name": "unlockPenaltyBps",
             "docs": [
               "Flat unlock fee in bps of unlocked GRAI (EVM `unlockPenaltyBps`)."
             ],
             "type": "u16"
           },
           {
-            "name": "liquidation_period",
+            "name": "liquidationPeriod",
             "docs": [
               "Delay after liquidation opens before `redeem` is allowed."
             ],
             "type": "u32"
           },
           {
-            "name": "redeem_period",
+            "name": "redeemPeriod",
             "docs": [
               "Extra window after `liquidation_period` before liquidation can be closed via `revive`."
             ],
@@ -2226,7 +2232,7 @@
       }
     },
     {
-      "name": "DepositQuote",
+      "name": "depositQuote",
       "docs": [
         "Return shape of `preview_deposit`."
       ],
@@ -2238,14 +2244,14 @@
             "type": "u128"
           },
           {
-            "name": "grai_out",
+            "name": "graiOut",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "Escrow",
+      "name": "escrow",
       "docs": [
         "Per-user lock + liquidation vote escrow (GRAI held by the GRAI vault while locked)."
       ],
@@ -2267,21 +2273,21 @@
             "type": "u64"
           },
           {
-            "name": "voted_at",
+            "name": "votedAt",
             "docs": [
               "Timestamp of the latest `vote`."
             ],
             "type": "i64"
           },
           {
-            "name": "locker_id",
+            "name": "lockerId",
             "docs": [
               "Index of this account in `grai_state.lockers`."
             ],
             "type": "u32"
           },
           {
-            "name": "voter_id",
+            "name": "voterId",
             "docs": [
               "Index of this account in `grai_state.voters`."
             ],
@@ -2295,7 +2301,7 @@
       }
     },
     {
-      "name": "EscrowView",
+      "name": "escrowView",
       "docs": [
         "EVM `Escrow` view row for `getLockers` / `getVoters`."
       ],
@@ -2307,7 +2313,7 @@
             "type": "pubkey"
           },
           {
-            "name": "locker_id",
+            "name": "lockerId",
             "type": "u32"
           },
           {
@@ -2319,18 +2325,18 @@
             "type": "u64"
           },
           {
-            "name": "voted_at",
+            "name": "votedAt",
             "type": "i64"
           },
           {
-            "name": "voter_id",
+            "name": "voterId",
             "type": "u32"
           }
         ]
       }
     },
     {
-      "name": "GraiState",
+      "name": "graiState",
       "type": {
         "kind": "struct",
         "fields": [
@@ -2342,7 +2348,7 @@
             "type": "pubkey"
           },
           {
-            "name": "pending_owner",
+            "name": "pendingOwner",
             "docs": [
               "Two-step handoff target (EVM `Ownable2Step.pendingOwner`). Default = none."
             ],
@@ -2361,25 +2367,25 @@
             "type": "pubkey"
           },
           {
-            "name": "settlement_asset",
+            "name": "settlementAsset",
             "docs": [
               "Asset used for bribe payments (EVM `settlementAsset`). `Pubkey::default()` means unset."
             ],
             "type": "pubkey"
           },
           {
-            "name": "total_value",
+            "name": "totalValue",
             "type": "u128"
           },
           {
-            "name": "total_locked",
+            "name": "totalLocked",
             "docs": [
               "Total escrowed GRAI (`total_locked - total_voted` is the dividend base)."
             ],
             "type": "u64"
           },
           {
-            "name": "total_voted",
+            "name": "totalVoted",
             "type": "u64"
           },
           {
@@ -2394,33 +2400,33 @@
             "type": "bool"
           },
           {
-            "name": "liquidation_at",
+            "name": "liquidationAt",
             "type": "i64"
           },
           {
             "name": "config",
             "type": {
               "defined": {
-                "name": "Config"
+                "name": "config"
               }
             }
           },
           {
-            "name": "royalty_bps",
+            "name": "royaltyBps",
             "docs": [
               "Secondary-sale royalty in bps (EVM ERC-2981 `royaltyBps`); receiver = locker."
             ],
             "type": "u16"
           },
           {
-            "name": "affiliate_levels",
+            "name": "affiliateLevels",
             "docs": [
               "Active affiliate referrer levels (`affiliate_share_bps[0..affiliate_levels]`)."
             ],
             "type": "u8"
           },
           {
-            "name": "affiliate_share_bps",
+            "name": "affiliateShareBps",
             "docs": [
               "Per-level split of claim-time revenue share (bps; active prefix sums to 10_000)."
             ],
@@ -2432,7 +2438,7 @@
             }
           },
           {
-            "name": "asset_mints",
+            "name": "assetMints",
             "type": {
               "vec": "pubkey"
             }
@@ -2472,7 +2478,7 @@
       }
     },
     {
-      "name": "LockerDataView",
+      "name": "lockerDataView",
       "docs": [
         "EVM `ITreasury.ReferralData` (+ `nft_mint` for Metaplex cashflow NFT)."
       ],
@@ -2488,21 +2494,21 @@
             "type": "pubkey"
           },
           {
-            "name": "owner_of",
+            "name": "ownerOf",
             "docs": [
               "Current NFT holder when known; default if not passed / not minted."
             ],
             "type": "pubkey"
           },
           {
-            "name": "nft_mint",
+            "name": "nftMint",
             "type": "pubkey"
           },
           {
             "name": "book",
             "type": {
               "defined": {
-                "name": "ReferralBookView"
+                "name": "referralBookView"
               }
             }
           }
@@ -2510,7 +2516,7 @@
       }
     },
     {
-      "name": "PoachQuote",
+      "name": "poachQuote",
       "docs": [
         "Return shape of `preview_poach`."
       ],
@@ -2529,7 +2535,7 @@
       }
     },
     {
-      "name": "Position",
+      "name": "position",
       "docs": [
         "Per-account, per-asset ledger (EVM `Position`).",
         "",
@@ -2568,7 +2574,7 @@
       }
     },
     {
-      "name": "RedeemQuote",
+      "name": "redeemQuote",
       "docs": [
         "Return shape of `preview_redeem` / `get_redeemables`."
       ],
@@ -2591,7 +2597,7 @@
       }
     },
     {
-      "name": "ReferralBookView",
+      "name": "referralBookView",
       "docs": [
         "EVM `ITreasury.ReferralBook`."
       ],
@@ -2603,11 +2609,11 @@
             "type": "u128"
           },
           {
-            "name": "l1_value",
+            "name": "l1Value",
             "type": "u128"
           },
           {
-            "name": "l2_value",
+            "name": "l2Value",
             "type": "u128"
           },
           {
@@ -2618,7 +2624,7 @@
       }
     },
     {
-      "name": "Referrer",
+      "name": "referrer",
       "docs": [
         "Sticky referrer tree + Metaplex cashflow NFT for a locker (EVM Treasury three-layer slot).",
         "",
@@ -2637,7 +2643,7 @@
             "type": "pubkey"
           },
           {
-            "name": "nft_mint",
+            "name": "nftMint",
             "docs": [
               "Treasury cashflow NFT mint (`[\"treasury-nft\", locker]`); default = not minted yet."
             ],
@@ -2651,14 +2657,14 @@
             "type": "u128"
           },
           {
-            "name": "l1_value",
+            "name": "l1Value",
             "docs": [
               "Cumulative value directly referred by this wallet."
             ],
             "type": "u128"
           },
           {
-            "name": "l2_value",
+            "name": "l2Value",
             "docs": [
               "Cumulative value referred through its direct affiliates."
             ],
@@ -2672,7 +2678,7 @@
       }
     },
     {
-      "name": "UnlockQuote",
+      "name": "unlockQuote",
       "docs": [
         "Return shape of `preview_unlock`."
       ],
@@ -2680,7 +2686,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "unlock_amount",
+            "name": "unlockAmount",
             "type": "u64"
           },
           {
@@ -2691,4 +2697,4 @@
       }
     }
   ]
-}
+};

@@ -1022,10 +1022,12 @@ export function GraiLiquidationActions() {
     useGraiDeployment()
   const configuredEvmChains = useMemo(() => listConfiguredEvmChains(), [])
   const evmProtocol = connectedEvm ?? configuredEvmChains[0] ?? null
-  const canTransact = chainKind === 'evm' && connectedEvm !== null
   const activeWallet = useActiveWallet()
   const solanaWallet = useSolanaWallet()
   const evmWallet = useEvmWallet()
+  const canTransact =
+    (chainKind === 'evm' && connectedEvm !== null && evmWallet.isConnected) ||
+    (chainKind === 'solana' && solana !== null && solanaWallet.isConnected)
   // Prefer the wallet that matches the GRAI deployment network (selectedChainType alone
   // can stay null/stale after Phantom connect and hide action buttons).
   const isWalletConnected =
@@ -1036,7 +1038,7 @@ export function GraiLiquidationActions() {
         : activeWallet.isConnected
   const { vote, isVoting } = useGraiVote()
   const { bribe, isBribing } = useGraiBribe()
-  const { liquidate, isLiquidating } = useGraiLiquidate()
+  const { liquidate, confirmLiquidation, isLiquidating } = useGraiLiquidate()
   const {
     distribute,
     isDistributing,
@@ -1659,7 +1661,7 @@ export function GraiLiquidationActions() {
   const handleConfirmLiquidation = async () => {
     const toastId = toast.loading('Confirming liquidation…')
     try {
-      const signature = await liquidate({
+      const signature = await confirmLiquidation({
         connectMessage: 'Connect a wallet to confirm liquidation',
         chainAction: 'confirm liquidation',
         failureMessage: 'Confirm transaction failed',
@@ -2030,7 +2032,7 @@ export function GraiLiquidationActions() {
               <GraiActionConnectWalletButton />
             )}
             <span className="grai-liquidation-step-hint">
-              Liquidate needs 2 of 2: quorum reached and owner confirmed.
+              Liquidate needs 2 of 2: quorum reached and Grinders owner confirmed.
             </span>
           </div>
         </div>
@@ -2126,7 +2128,9 @@ export function GraiLiquidationActions() {
         <h3 className="grai-liquidation-distribute-title">Claim</h3>
         <GraiReferralTree
           layout="graph-only"
-          evmProtocol={evmProtocol}
+          evmProtocol={chainKind === 'evm' ? evmProtocol : null}
+          solana={chainKind === 'solana' ? solana : null}
+          connection={chainKind === 'solana' ? connection : null}
           highlightAddress={walletAddress}
           graiDecimals={graiDecimals}
           selectedLockerId={selectedClaimLocker}
@@ -2527,7 +2531,9 @@ export function GraiLiquidationActions() {
       </div>
       {opsView === 'distribute' ? (
         <GraiReferralTree
-          evmProtocol={evmProtocol}
+          evmProtocol={chainKind === 'evm' ? evmProtocol : null}
+          solana={chainKind === 'solana' ? solana : null}
+          connection={chainKind === 'solana' ? connection : null}
           highlightAddress={walletAddress}
           graiDecimals={graiDecimals}
         />

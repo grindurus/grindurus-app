@@ -14,6 +14,8 @@ export type ExecuteEvmMintParams = {
   assetDecimals: number
   /** Escrow minted GRAI in the same tx (`deposit(..., lock)`). */
   lock?: boolean
+  /** Sticky affiliate; omit for self-bind / zero address. */
+  referrer?: string
 }
 
 export async function executeEvmMint({
@@ -22,6 +24,7 @@ export async function executeEvmMint({
   amountInput,
   assetDecimals,
   lock = false,
+  referrer,
 }: ExecuteEvmMintParams): Promise<{ hash: string; amount: bigint }> {
   const account = getAccount(wagmiConfig)
   if (!account.address) {
@@ -31,6 +34,7 @@ export async function executeEvmMint({
   const graiAddress = resolveGraiContractAddress(config)
   const amount = parseTokenAmount(amountInput, assetDecimals)
   const asset = assetAddress.toLowerCase() as `0x${string}`
+  const stickyReferrer = (referrer?.trim() || '0x0000000000000000000000000000000000000000') as `0x${string}`
 
   if (!isNativeEvmAsset(asset)) {
     const allowance = await readContract(wagmiConfig, {
@@ -55,7 +59,7 @@ export async function executeEvmMint({
     address: graiAddress,
     abi: graiAbi,
     functionName: 'deposit',
-    args: [asset, amount, lock],
+    args: [asset, amount, lock, stickyReferrer],
     value: isNativeEvmAsset(asset) ? amount : 0n,
   })
 

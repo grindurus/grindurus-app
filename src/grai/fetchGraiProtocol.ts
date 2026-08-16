@@ -3,16 +3,23 @@ import { graiStatePda } from './deployments'
 import { decodeMintAuthority, decodeMintDecimals, decodeMintSupply } from './onchain'
 
 export type GraiProtocolConfig = {
-  buybackCutBps: number
   dividendCutBps: number
   treasuryCutBps: number
+  revenueShareBps: number
   claimTipBps: number
   bribePremiumBps: number
   quorumBps: number
+  /** Flat unlock fee in bps (on-chain `unlock_penalty_bps`). */
+  unlockPenaltyBps: number
+  /** @deprecated Alias of `unlockPenaltyBps` for older UI. */
   unlockFeeBps: number
-  buybackPeriod: number
   liquidationPeriod: number
   redeemPeriod: number
+  /** @deprecated Removed from Solana Config — always 0. */
+  buybackCutBps: number
+  /** @deprecated Removed from Solana Config — always 0. */
+  buybackPeriod: number
+  /** @deprecated Time-decay unlock removed — always 0. */
   unlockPenaltyPeriod: number
 }
 
@@ -21,9 +28,16 @@ export type GraiProtocolSnapshot = {
   graiState: PublicKey
   programId: PublicKey
   mintSupply: { raw: bigint; decimals: number }
+  /** Protocol admin (`GraiState.owner`). */
   authority: PublicKey
-  /** @deprecated Prefer `treasury`. */
+  owner: PublicKey
+  /** Two-step handoff target (`GraiState.pending_owner`). Default pubkey = none. */
+  pendingOwner: PublicKey
+  /** Fee recipient (`GraiState.beneficiar`). */
+  beneficiar: PublicKey
+  /** @deprecated Prefer `beneficiar`. */
   treasuryWallet: PublicKey
+  /** @deprecated Prefer `beneficiar`. */
   treasury: PublicKey
   grinders: PublicKey
   settlementAsset: PublicKey
@@ -33,21 +47,31 @@ export type GraiProtocolSnapshot = {
   totalLocked: bigint
   /** Voted GRAI toward liquidation (raw base units). */
   totalVoted: bigint
-  /** Allowlisted depositors count (EVM `totalDepositors`). Zero = open deposits. */
+  /** @deprecated Depositor allowlist removed — always 0. */
   totalDepositors: bigint
   liquidation: boolean
   confirmed: boolean
   liquidationAt: bigint
   config: GraiProtocolConfig
+  royaltyBps: number
+  affiliateLevels: number
+  affiliateShareBps: [number, number]
   assetMints: PublicKey[]
+  lockers: PublicKey[]
   /** Accounts with `escrow.voted > 0` (owner pubkeys from `GraiState.voters`). */
   voters: PublicKey[]
+  referrers: PublicKey[]
 }
 
 export type GraiStateFixedFields = {
   authority: PublicKey
-  /** @deprecated Prefer `treasury`. */
+  owner: PublicKey
+  /** Two-step handoff target (`GraiState.pending_owner`). Default pubkey = none. */
+  pendingOwner: PublicKey
+  beneficiar: PublicKey
+  /** @deprecated Prefer `beneficiar`. */
   treasuryWallet: PublicKey
+  /** @deprecated Prefer `beneficiar`. */
   treasury: PublicKey
   grinders: PublicKey
   settlementAsset: PublicKey
@@ -55,27 +79,33 @@ export type GraiStateFixedFields = {
 
 /**
  * GraiState layout (after 8-byte discriminator):
- * authority(32) treasury(32) grinders(32) bribe_asset(32) total_value(16)
- * total_locked(8) total_voted(8) total_depositors(8) liquidation(1) confirmed(1)
- * liquidation_at(8) Config(30) then asset_mints / lockers / voters vecs, then bump.
+ * owner(32) pending_owner(32) beneficiar(32) grinders(32) settlement_asset(32)
+ * total_value(16) total_locked(8) total_voted(8) liquidation(1)
+ * liquidation_at(8) Config(22) royalty_bps(2) affiliate_levels(1)
+ * affiliate_share_bps(4) then asset_mints / lockers / voters / referrers vecs, then bump.
+ *
+ * Owner liquidation arm (`confirmed`) lives on GrindersState, not here.
  */
 /** Bytes before `config` in GraiState (includes 8-byte Anchor discriminator). */
 export const GRAI_STATE_CONFIG_OFFSET =
   8 + // discriminator
-  32 + // authority
-  32 + // treasury
+  32 + // owner
+  32 + // pending_owner
+  32 + // beneficiar
   32 + // grinders
-  32 + // bribe_asset
+  32 + // settlement_asset
   16 + // total_value
   8 + // total_locked
   8 + // total_voted
-  8 + // total_depositors
   1 + // liquidation
-  1 + // confirmed
   8 // liquidation_at
 
-/** Bytes before `asset_mints` vec length prefix. */
-const GRAI_STATE_ASSET_MINTS_OFFSET = GRAI_STATE_CONFIG_OFFSET + 30 // Config (7×u16 + 4×u32)
+/** Config::LEN = 7×u16 + 2×u32 */
+export const GRAI_STATE_CONFIG_LEN = 22
+
+/** Bytes before `asset_mints` vec length prefix (excludes trailing bump after vecs). */
+const GRAI_STATE_ASSET_MINTS_OFFSET =
+  GRAI_STATE_CONFIG_OFFSET + GRAI_STATE_CONFIG_LEN + 2 + 1 + 4 // royalty + levels + share[2]
 
 function readU128LE(data: Buffer, offset: number): bigint {
   let value = 0n
@@ -85,23 +115,36 @@ function readU128LE(data: Buffer, offset: number): bigint {
   return value
 }
 
+/**
+ * GrindersState: disc(8) + owner(32) + grai_program(32) + next_custodian_id(8) +
+ * collection_mint(32) + confirmed(1) + bump(1).
+ */
+export function decodeGrindersConfirmed(data: Buffer): boolean {
+  const offset = 8 + 32 + 32 + 8 + 32
+  if (data.length <= offset) return false
+  return data[offset] !== 0
+}
+
 function decodeGraiStateConfig(data: Buffer): GraiProtocolConfig {
   const o = GRAI_STATE_CONFIG_OFFSET
-  if (data.length < o + 30) {
+  if (data.length < o + GRAI_STATE_CONFIG_LEN) {
     throw new Error('GRAI state account data too short for config')
   }
+  const unlockPenaltyBps = data.readUInt16LE(o + 12)
   return {
-    buybackCutBps: data.readUInt16LE(o),
-    dividendCutBps: data.readUInt16LE(o + 2),
-    treasuryCutBps: data.readUInt16LE(o + 4),
+    dividendCutBps: data.readUInt16LE(o),
+    treasuryCutBps: data.readUInt16LE(o + 2),
+    revenueShareBps: data.readUInt16LE(o + 4),
     claimTipBps: data.readUInt16LE(o + 6),
     bribePremiumBps: data.readUInt16LE(o + 8),
     quorumBps: data.readUInt16LE(o + 10),
-    unlockFeeBps: data.readUInt16LE(o + 12),
-    buybackPeriod: data.readUInt32LE(o + 14),
-    liquidationPeriod: data.readUInt32LE(o + 18),
-    redeemPeriod: data.readUInt32LE(o + 22),
-    unlockPenaltyPeriod: data.readUInt32LE(o + 26),
+    unlockPenaltyBps,
+    unlockFeeBps: unlockPenaltyBps,
+    liquidationPeriod: data.readUInt32LE(o + 14),
+    redeemPeriod: data.readUInt32LE(o + 18),
+    buybackCutBps: 0,
+    buybackPeriod: 0,
+    unlockPenaltyPeriod: 0,
   }
 }
 
@@ -109,45 +152,55 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
   totalValue: bigint
   totalLocked: bigint
   totalVoted: bigint
-  totalDepositors: bigint
   liquidation: boolean
   confirmed: boolean
   liquidationAt: bigint
   config: GraiProtocolConfig
+  royaltyBps: number
+  affiliateLevels: number
+  affiliateShareBps: [number, number]
 } {
   if (data.length < GRAI_STATE_ASSET_MINTS_OFFSET) {
     throw new Error('GRAI state account data too short')
   }
-  const authority = new PublicKey(data.subarray(8, 40))
-  const treasury = new PublicKey(data.subarray(40, 72))
-  const grinders = new PublicKey(data.subarray(72, 104))
-  const settlementAsset = new PublicKey(data.subarray(104, 136))
+  const owner = new PublicKey(data.subarray(8, 40))
+  const pendingOwner = new PublicKey(data.subarray(40, 72))
+  const beneficiar = new PublicKey(data.subarray(72, 104))
+  const grinders = new PublicKey(data.subarray(104, 136))
+  const settlementAsset = new PublicKey(data.subarray(136, 168))
+  const configEnd = GRAI_STATE_CONFIG_OFFSET + GRAI_STATE_CONFIG_LEN
   return {
-    authority,
-    treasury,
-    treasuryWallet: treasury,
+    authority: owner,
+    owner,
+    pendingOwner,
+    beneficiar,
+    treasury: beneficiar,
+    treasuryWallet: beneficiar,
     grinders,
     settlementAsset,
-    totalValue: readU128LE(data, 136),
-    totalLocked: data.readBigUInt64LE(152),
-    totalVoted: data.readBigUInt64LE(160),
-    totalDepositors: data.readBigUInt64LE(168),
-    liquidation: data[176] !== 0,
-    confirmed: data[177] !== 0,
-    liquidationAt: data.readBigInt64LE(178),
+    totalValue: readU128LE(data, 168),
+    totalLocked: data.readBigUInt64LE(184),
+    totalVoted: data.readBigUInt64LE(192),
+    liquidation: data[200] !== 0,
+    /** Populated by callers from GrindersState; GraiState no longer stores the arm. */
+    confirmed: false,
+    liquidationAt: data.readBigInt64LE(201),
     config: decodeGraiStateConfig(data),
+    royaltyBps: data.readUInt16LE(configEnd),
+    affiliateLevels: data[configEnd + 2] ?? 0,
+    affiliateShareBps: [data.readUInt16LE(configEnd + 3), data.readUInt16LE(configEnd + 5)],
   }
 }
 
-/** u128 total_value at offset 8 + 4*32 = 136. */
+/** u128 total_value at offset 8 + 5*32 = 168 (owner + pending_owner + beneficiar + grinders + settlement). */
 export function decodeGraiStateTotalValue(data: Buffer): bigint {
-  if (data.length < 136 + 16) return 0n
-  return readU128LE(data, 136)
+  if (data.length < 168 + 16) return 0n
+  return readU128LE(data, 168)
 }
 
 export function decodeGraiStateTotalVoted(data: Buffer): bigint {
-  if (data.length < 168) return 0n
-  return data.readBigUInt64LE(160)
+  if (data.length < 200) return 0n
+  return data.readBigUInt64LE(192)
 }
 
 /**
@@ -171,10 +224,6 @@ function decodePubkeyVecAt(data: Buffer, offset: number): { keys: PublicKey[]; n
   return { keys, nextOffset: cursor }
 }
 
-function decodeGraiStateAssetMints(data: Buffer): PublicKey[] {
-  return decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET).keys
-}
-
 /** `voters` vec after `asset_mints` and `lockers`. */
 export function decodeGraiStateVoters(data: Buffer): PublicKey[] {
   const assets = decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET)
@@ -186,6 +235,14 @@ export function decodeGraiStateVoters(data: Buffer): PublicKey[] {
 export function decodeGraiStateLockers(data: Buffer): PublicKey[] {
   const assets = decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET)
   return decodePubkeyVecAt(data, assets.nextOffset).keys
+}
+
+/** `referrers` vec after `asset_mints` / `lockers` / `voters`. */
+export function decodeGraiStateReferrers(data: Buffer): PublicKey[] {
+  const assets = decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET)
+  const lockers = decodePubkeyVecAt(data, assets.nextOffset)
+  const voters = decodePubkeyVecAt(data, lockers.nextOffset)
+  return decodePubkeyVecAt(data, voters.nextOffset).keys
 }
 
 const cacheByMint = new Map<string, GraiProtocolSnapshot>()
@@ -240,6 +297,19 @@ export async function fetchGraiProtocol(
 
     const stateData = Buffer.from(stateInfo.data)
     const fixed = decodeGraiStateFixedFields(stateData)
+    const assets = decodePubkeyVecAt(stateData, GRAI_STATE_ASSET_MINTS_OFFSET)
+    const lockers = decodePubkeyVecAt(stateData, assets.nextOffset)
+    const voters = decodePubkeyVecAt(stateData, lockers.nextOffset)
+    const referrers = decodePubkeyVecAt(stateData, voters.nextOffset)
+
+    // EVM `Grinders.confirmed` — owner arm lives on GrindersState, not GraiState.
+    let confirmed = false
+    if (!fixed.grinders.equals(PublicKey.default)) {
+      const grindersInfo = await connection.getAccountInfo(fixed.grinders)
+      if (grindersInfo?.data) {
+        confirmed = decodeGrindersConfirmed(Buffer.from(grindersInfo.data))
+      }
+    }
 
     const snapshot: GraiProtocolSnapshot = {
       graiMint,
@@ -250,20 +320,28 @@ export async function fetchGraiProtocol(
         decimals: decodeMintDecimals(mintData),
       },
       authority: fixed.authority,
-      treasury: fixed.treasury,
-      treasuryWallet: fixed.treasury,
+      owner: fixed.owner,
+      beneficiar: fixed.beneficiar,
+      treasury: fixed.beneficiar,
+      treasuryWallet: fixed.beneficiar,
       grinders: fixed.grinders,
       settlementAsset: fixed.settlementAsset,
+      pendingOwner: fixed.pendingOwner,
       totalValue: fixed.totalValue,
       totalLocked: fixed.totalLocked,
       totalVoted: fixed.totalVoted,
-      totalDepositors: fixed.totalDepositors,
+      totalDepositors: 0n,
       liquidation: fixed.liquidation,
-      confirmed: fixed.confirmed,
+      confirmed,
       liquidationAt: fixed.liquidationAt,
       config: fixed.config,
-      assetMints: decodeGraiStateAssetMints(stateData),
-      voters: decodeGraiStateVoters(stateData),
+      royaltyBps: fixed.royaltyBps,
+      affiliateLevels: fixed.affiliateLevels,
+      affiliateShareBps: fixed.affiliateShareBps,
+      assetMints: assets.keys,
+      lockers: lockers.keys,
+      voters: voters.keys,
+      referrers: referrers.keys,
     }
 
     cacheByMint.set(cacheKey, snapshot)

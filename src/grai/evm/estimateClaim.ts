@@ -145,7 +145,7 @@ export function formatClaimUsdTotal(usdRaw: bigint): string {
 export async function fetchEvmLockedGrai(
   config: GraiEvmConfig,
   owner: `0x${string}`,
-): Promise<{ locked: bigint; voted: bigint; lockedAt: number; decimals: number }> {
+): Promise<{ locked: bigint; voted: bigint; decimals: number }> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
   const [escrow, decimalsRaw] = await Promise.all([
@@ -164,7 +164,6 @@ export async function fetchEvmLockedGrai(
   return {
     locked: escrow[2],
     voted: escrow[3],
-    lockedAt: Number(escrow[4]),
     decimals: Number(decimalsRaw),
   }
 }
@@ -179,7 +178,6 @@ export type EvmUnlockPreview = {
   /** @deprecated Flat fee; always 0. Kept for UI callers. */
   unlockPenaltyPeriod: number
   unlockPenaltyBps: number
-  lockedAt: number
   decimals: number
 }
 
@@ -195,13 +193,7 @@ export async function estimateEvmUnlockPreview(
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
 
-  const [escrow, decimalsRaw, protocolConfig] = await Promise.all([
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'escrows',
-      args: [owner],
-    }),
+  const [decimalsRaw, protocolConfig] = await Promise.all([
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
@@ -215,7 +207,6 @@ export async function estimateEvmUnlockPreview(
   ])
 
   const decimals = Number(decimalsRaw)
-  const lockedAt = Number(escrow[4])
   const unlockPenaltyBps = Number(protocolConfig[7])
 
   let amountRaw = 0n
@@ -259,7 +250,6 @@ export async function estimateEvmUnlockPreview(
     secondsLeft: 0,
     unlockPenaltyPeriod: 0,
     unlockPenaltyBps,
-    lockedAt,
     decimals,
   }
 }

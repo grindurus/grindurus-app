@@ -4,45 +4,30 @@ import { formatTokenBalance, parseTokenAmount } from './onchain'
 import { escrowPda } from './pdas'
 import { GRAI_DECIMALS } from './tokenomics'
 import type { EvmUnlockPreview } from './evm/estimateClaim'
+import { GRAI_STATE_CONFIG_OFFSET } from './fetchGraiProtocol'
 
 const BPS = 10_000n
 
-/** Bytes before `config` in GraiState (includes 8-byte Anchor discriminator). */
-const GRAI_STATE_CONFIG_OFFSET =
-  8 + // discriminator
-  32 + // authority
-  32 + // treasury
-  32 + // grinders
-  32 + // bribe_asset
-  16 + // total_value
-  8 + // total_locked
-  8 + // total_voted
-  8 + // total_depositors
-  1 + // liquidation
-  1 + // confirmed
-  8 // liquidation_at
-
-/** Anchor Escrow: disc(8) + amount(u64) + voted(u64) + locked_at(i64) + … */
-function decodeEscrow(data: Buffer): { amount: bigint; lockedAt: number } {
-  if (data.length < 32) return { amount: 0n, lockedAt: 0 }
+/** Anchor Escrow: disc(8) + amount(u64) + voted(u64) + … */
+function decodeEscrow(data: Buffer): { amount: bigint } {
+  if (data.length < 16) return { amount: 0n }
   return {
     amount: data.readBigUInt64LE(8),
-    lockedAt: Number(data.readBigInt64LE(24)),
   }
 }
 
-/** `Config.unlock_fee_bps` (u16 @ +12) and `unlock_penalty_period` (u32 @ +26). */
+/** `Config.unlock_penalty_bps` (u16 @ +12) — flat fee, no time decay. */
 function decodeUnlockConfig(graiStateData: Buffer): {
   unlockFeeBps: number
   unlockPenaltyPeriod: number
 } {
   const base = GRAI_STATE_CONFIG_OFFSET
-  if (graiStateData.length < base + 30) {
+  if (graiStateData.length < base + 14) {
     return { unlockFeeBps: 0, unlockPenaltyPeriod: 0 }
   }
   return {
     unlockFeeBps: graiStateData.readUInt16LE(base + 12),
-    unlockPenaltyPeriod: graiStateData.readUInt32LE(base + 26),
+    unlockPenaltyPeriod: 0,
   }
 }
 
@@ -52,33 +37,33 @@ function formatUnlockAmountLabel(amountRaw: bigint, decimals: number): string {
   return label.includes('.') ? label : `${label}.0`
 }
 
-/** Mirrors on-chain `tokenomics::preview_unlock` / EVM `previewUnlock`. */
+/**
+ * Mirrors on-chain `tokenomics::preview_unlock` (flat `unlock_penalty_bps`).
+ */
 export function previewSolanaUnlock(
   graiAmount: bigint,
   escrowAmount: bigint,
-  lockedAt: number,
   unlockFeeBps: number,
-  unlockPenaltyPeriod: number,
-  timestamp: number,
 ): { unlockAmount: bigint; penalty: bigint } {
-  if (unlockFeeBps === 0 || unlockPenaltyPeriod === 0 || graiAmount === 0n) {
+  if (graiAmount > escrowAmount) {
+    return { unlockAmount: 0n, penalty: 0n }
+  }
+  if (unlockFeeBps === 0 || graiAmount === 0n) {
     return { unlockAmount: graiAmount, penalty: 0n }
   }
-  const elapsed = Math.max(0, timestamp - lockedAt)
-  if (elapsed >= unlockPenaltyPeriod) {
-    return { unlockAmount: graiAmount, penalty: 0n }
+
+  const minUnlock = (BPS + BigInt(unlockFeeBps) - 1n) / BigInt(unlockFeeBps)
+  if (graiAmount < minUnlock) {
+    return { unlockAmount: 0n, penalty: 0n }
   }
-  const penaltyBps =
-    (BigInt(unlockFeeBps) * BigInt(unlockPenaltyPeriod - elapsed)) / BigInt(unlockPenaltyPeriod)
-  const penalty = (graiAmount * penaltyBps) / BPS
+
+  const penalty = (graiAmount * BigInt(unlockFeeBps) + BPS - 1n) / BPS
   const unlockAmount = graiAmount > penalty ? graiAmount - penalty : 0n
-  void escrowAmount
   return { unlockAmount, penalty }
 }
 
 export type SolanaLockedGrai = {
   locked: bigint
-  lockedAt: number
   unlockFeeBps: number
   unlockPenaltyPeriod: number
   decimals: number
@@ -98,14 +83,14 @@ export async function fetchSolanaLockedGrai(
     const cfg = stateInfo?.data
       ? decodeUnlockConfig(Buffer.from(stateInfo.data))
       : { unlockFeeBps: 0, unlockPenaltyPeriod: 0 }
-    return { locked: 0n, lockedAt: 0, ...cfg, decimals }
+    return { locked: 0n, ...cfg, decimals }
   }
 
-  const { amount, lockedAt } = decodeEscrow(Buffer.from(escrowInfo.data))
+  const { amount } = decodeEscrow(Buffer.from(escrowInfo.data))
   const cfg = stateInfo?.data
     ? decodeUnlockConfig(Buffer.from(stateInfo.data))
     : { unlockFeeBps: 0, unlockPenaltyPeriod: 0 }
-  return { locked: amount, lockedAt, ...cfg, decimals }
+  return { locked: amount, ...cfg, decimals }
 }
 
 /** Local preview matching Solana `preview_unlock` (same math as on-chain). */
@@ -114,15 +99,10 @@ export async function estimateSolanaUnlockPreview(
   programId: PublicKey,
   owner: PublicKey,
   amountInput: string,
-  nowSec = Math.floor(Date.now() / 1000),
+  _nowSec = Math.floor(Date.now() / 1000),
 ): Promise<EvmUnlockPreview & { locked: bigint }> {
   const escrow = await fetchSolanaLockedGrai(connection, programId, owner)
-  const { locked, lockedAt, unlockFeeBps, unlockPenaltyPeriod, decimals } = escrow
-
-  const secondsLeft =
-    unlockPenaltyPeriod > 0 && lockedAt > 0
-      ? Math.max(0, lockedAt + unlockPenaltyPeriod - nowSec)
-      : 0
+  const { locked, unlockFeeBps, decimals } = escrow
 
   let amountRaw = 0n
   const trimmed = amountInput.trim()
@@ -138,10 +118,7 @@ export async function estimateSolanaUnlockPreview(
   const { unlockAmount, penalty } = previewSolanaUnlock(
     amountRaw,
     locked,
-    lockedAt,
     unlockFeeBps,
-    unlockPenaltyPeriod,
-    nowSec,
   )
 
   return {
@@ -150,10 +127,9 @@ export async function estimateSolanaUnlockPreview(
     penalty,
     unlockAmountLabel: formatUnlockAmountLabel(unlockAmount, decimals),
     penaltyLabel: formatUnlockAmountLabel(penalty, decimals),
-    secondsLeft,
-    unlockPenaltyPeriod,
+    secondsLeft: 0,
+    unlockPenaltyPeriod: 0,
     unlockPenaltyBps: unlockFeeBps,
-    lockedAt,
     decimals,
   }
 }

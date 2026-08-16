@@ -20,6 +20,7 @@ import {
   escrowPda,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
+  treasuryVaultPda,
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
@@ -67,7 +68,7 @@ export async function buildBribeTransaction({
   const briberGraiAta = getAssociatedTokenAddress(config.graiMint, briber)
   const briberBribeAta = getAssociatedTokenAddress(bribeMint, briber)
   const voterBribeAta = getAssociatedTokenAddress(bribeMint, voter)
-  const treasuryBribeAta = getAssociatedTokenAddress(bribeMint, protocol.treasury)
+  const treasuryBribeAta = treasuryVaultPda(bribeMint, programId)
 
   const keys = [
     { pubkey: briber, isSigner: true, isWritable: true },
@@ -99,27 +100,14 @@ export async function buildBribeTransaction({
 
   const instructions: TransactionInstruction[] = []
 
-  // `briber_bribe_ata` / `treasury_bribe_ata` are not `init_if_needed` — ensure they exist.
-  const [briberBribeInfo, treasuryBribeInfo] = await connection.getMultipleAccountsInfo([
-    briberBribeAta,
-    treasuryBribeAta,
-  ])
+  // `briber_bribe_ata` is not `init_if_needed` — ensure it exists. Treasury vault is a program PDA.
+  const briberBribeInfo = await connection.getAccountInfo(briberBribeAta)
   if (!briberBribeInfo) {
     instructions.push(
       createAssociatedTokenAccountIdempotentInstruction(
         briber,
         briberBribeAta,
         briber,
-        bribeMint,
-      ),
-    )
-  }
-  if (!treasuryBribeInfo) {
-    instructions.push(
-      createAssociatedTokenAccountIdempotentInstruction(
-        briber,
-        treasuryBribeAta,
-        protocol.treasury,
         bribeMint,
       ),
     )

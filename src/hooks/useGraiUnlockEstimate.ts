@@ -23,7 +23,6 @@ const EMPTY_PREVIEW: EvmUnlockPreview = {
   secondsLeft: 0,
   unlockPenaltyPeriod: 0,
   unlockPenaltyBps: 0,
-  lockedAt: 0,
   decimals: 6,
 }
 
@@ -35,7 +34,6 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
   const [lockedLabel, setLockedLabel] = useState('—')
   const [lockedMaxAmount, setLockedMaxAmount] = useState('')
   const [unlockPreview, setUnlockPreview] = useState<EvmUnlockPreview>(EMPTY_PREVIEW)
-  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000))
   const [isLoading, setIsLoading] = useState(false)
   const [refreshNonce, setRefreshNonce] = useState(0)
 
@@ -80,7 +78,6 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
             preview.locked > 0n ? formatTokenBalance(preview.locked, preview.decimals) : '',
           )
           setUnlockPreview(preview)
-          setNowSec(timestamp)
         } catch {
           if (!cancelled) {
             setLockedLabel('—')
@@ -135,7 +132,6 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
         const preview = await estimateEvmUnlockPreview(evm, owner, amountInput, timestamp)
         if (cancelled) return
         setUnlockPreview(preview)
-        setNowSec(timestamp)
       } catch {
         if (!cancelled) setUnlockPreview(EMPTY_PREVIEW)
       }
@@ -168,18 +164,8 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
   ])
 
   const liveSecondsLeft = useMemo(() => {
-    const { lockedAt, unlockPenaltyPeriod } = unlockPreview
-    if (unlockPenaltyPeriod <= 0 || lockedAt <= 0) return 0
-    return Math.max(0, lockedAt + unlockPenaltyPeriod - nowSec)
-  }, [nowSec, unlockPreview])
-
-  useEffect(() => {
-    if (!enabled) return
-    const id = window.setInterval(() => {
-      setNowSec(Math.floor(Date.now() / 1000))
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [enabled])
+    return unlockPreview.secondsLeft
+  }, [unlockPreview])
 
   useEffect(() => {
     if (!enabled || liveSecondsLeft <= 0) return

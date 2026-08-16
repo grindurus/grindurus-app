@@ -27,8 +27,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import type { Connection } from '@solana/web3.js'
 import { toast } from 'react-toastify'
-import type { GraiEvmConfig } from '../../grai/deployments'
+import type { GraiEvmConfig, GraiSolanaRuntime } from '../../grai/deployments'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import {
   buildExampleReferralForest,
@@ -38,16 +39,33 @@ import {
 } from '../../grai/evm/fetchReferralBooks'
 import { GRAI_DECIMALS_EVM } from '../../grai/evm/constants'
 import { executeEvmPoach } from '../../grai/evm/executeTransactions'
+import { executePoach } from '../../grai/buildPoachTransaction'
+import { fetchSolanaReferralBooks } from '../../grai/fetchSolanaReferralBooks'
+import { useGraiTransaction } from '../../hooks/useGraiTransaction'
 import { assetUrl } from '../../utils/appPaths'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
+import { GraiActionConnectWalletButton } from './GraiWalletAction'
 
 type Props = {
   evmProtocol: GraiEvmConfig | null
+  /** When set with a live Solana deployment, loads on-chain referral books / poach. */
+  solana?: GraiSolanaRuntime | null
+  connection?: Connection | null
   highlightAddress?: string | null
   graiDecimals?: number
   layout?: 'dashboard' | 'graph-only'
   selectedLockerId?: string | null
   onSelectLocker?: (lockerId: string | null) => void
+}
+
+/** EVM addresses are case-insensitive; Solana base58 must stay exact. */
+function addressKey(address: string): string {
+  return address.startsWith('0x') || address.startsWith('0X') ? address.toLowerCase() : address
+}
+
+function addressesEqual(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false
+  return addressKey(a) === addressKey(b)
 }
 
 type ReferralNodeData = {
@@ -116,8 +134,8 @@ function layoutForest(
     const blockWidth = leaves * (NODE_WIDTH + GAP_X) - GAP_X
     const x = leftX + blockWidth / 2 - NODE_WIDTH / 2
     const y = depth * (NODE_HEIGHT + GAP_Y)
-    const id = node.locker.toLowerCase()
-    const isYou = Boolean(highlight) && id === highlight!.toLowerCase()
+    const id = addressKey(node.locker)
+    const isYou = Boolean(highlight) && addressesEqual(id, highlight)
 
     if (parentId) parentOf.set(id, parentId)
 
@@ -346,13 +364,19 @@ function FindLockerInputBar({
   }, [open])
 
   const submit = useCallback(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.trim()
     if (!q) return
+    const qLower = q.toLowerCase()
     const nodes = getNodes()
     const match = nodes.find((node) => {
-      const locker = node.id.toLowerCase()
-      const owner = (node.data as ReferralNodeData).owner.toLowerCase()
-      return locker.includes(q) || owner.includes(q)
+      const locker = node.id
+      const owner = (node.data as ReferralNodeData).owner
+      return (
+        locker.includes(q) ||
+        locker.toLowerCase().includes(qLower) ||
+        owner.includes(q) ||
+        owner.toLowerCase().includes(qLower)
+      )
     })
     if (!match) {
       setNotFound(true)
@@ -413,7 +437,7 @@ function MeControlButton({
   onSelect: (id: string) => void
 }) {
   const { getNode, setCenter, getZoom } = useReactFlow()
-  const targetId = address?.toLowerCase() ?? null
+  const targetId = address ? addressKey(address) : null
 
   return (
     <ControlButton
@@ -441,24 +465,27 @@ function MeControlButton({
 
 export function GraiReferralTree({
   evmProtocol,
+  solana = null,
+  connection = null,
   highlightAddress,
   graiDecimals = GRAI_DECIMALS_EVM,
   layout = 'dashboard',
   selectedLockerId,
   onSelectLocker,
 }: Props) {
+  const { run: runSolanaTx } = useGraiTransaction()
   const isSelectionControlled = onSelectLocker != null
   const [forest, setForest] = useState<GraiReferralTreeNode[]>([])
   const [isExample, setIsExample] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uncontrolledSelectedId, setUncontrolledSelectedId] = useState<string | null>(null)
   const selectedId = isSelectionControlled
-    ? (selectedLockerId?.toLowerCase() ?? null)
+    ? (selectedLockerId ? addressKey(selectedLockerId) : null)
     : uncontrolledSelectedId
 
   const updateSelectedId = useCallback(
     (id: string | null) => {
-      const normalized = id?.toLowerCase() ?? null
+      const normalized = id ? addressKey(id) : null
       if (isSelectionControlled) {
         onSelectLocker?.(normalized)
       } else {
@@ -497,7 +524,10 @@ export function GraiReferralTree({
   }, [disarmChartFocus, selectedId, sideView, topPage])
 
   const reloadForest = useCallback(async () => {
-    if (!evmProtocol?.protocolAddress && !evmProtocol?.graiToken) {
+    const hasSolana = Boolean(connection && solana)
+    const hasEvm = Boolean(evmProtocol?.protocolAddress || evmProtocol?.graiToken)
+
+    if (!hasSolana && !hasEvm) {
       setForest(buildExampleReferralForest())
       setIsExample(true)
       setError(null)
@@ -506,7 +536,9 @@ export function GraiReferralTree({
 
     setError(null)
     try {
-      const rows = await fetchEvmReferralBooks(evmProtocol)
+      const rows = hasSolana
+        ? await fetchSolanaReferralBooks(connection!, solana!.graiMint)
+        : await fetchEvmReferralBooks(evmProtocol!)
       if (rows.length === 0) {
         setForest(buildExampleReferralForest())
         setIsExample(true)
@@ -519,7 +551,7 @@ export function GraiReferralTree({
       setIsExample(true)
       setError(err instanceof Error ? err.message : 'Failed to load referral tree')
     }
-  }, [evmProtocol])
+  }, [connection, evmProtocol, solana])
 
   useEffect(() => {
     void reloadForest()
@@ -528,9 +560,9 @@ export function GraiReferralTree({
   useEffect(() => {
     if (isSelectionControlled) return
     if (!highlightAddress) return
-    const key = highlightAddress.toLowerCase()
+    const key = addressKey(highlightAddress)
     const flatNodes = flattenForest(forest)
-    if (flatNodes.some((node) => node.locker.toLowerCase() === key)) {
+    if (flatNodes.some((node) => addressKey(node.locker) === key)) {
       updateSelectedId(key)
     }
   }, [forest, highlightAddress, isSelectionControlled, updateSelectedId])
@@ -555,7 +587,7 @@ export function GraiReferralTree({
   )
 
   const selected = useMemo(
-    () => flat.find((node) => node.locker.toLowerCase() === selectedId) ?? null,
+    () => flat.find((node) => addressKey(node.locker) === selectedId) ?? null,
     [flat, selectedId],
   )
 
@@ -565,32 +597,59 @@ export function GraiReferralTree({
     return shortAddress(selected.referrer)
   }, [selected])
 
+  const liveChainReady = Boolean(connection && solana) || Boolean(evmProtocol)
+  const walletChainLabel = connection && solana ? 'Solana' : 'EVM'
+
   const poachBlockedReason = useMemo(() => {
     if (!selected) return null
-    if (isExample || !evmProtocol) return 'Demo tree — live poach needs on-chain books'
-    if (!highlightAddress) return 'Connect an EVM wallet to poach'
-    if (highlightAddress.toLowerCase() === selected.referrer.toLowerCase()) {
+    if (isExample || !liveChainReady) return 'Demo tree — live poach needs on-chain books'
+    if (!highlightAddress) return `Connect a ${walletChainLabel} wallet to poach`
+    if (addressesEqual(highlightAddress, selected.referrer)) {
       return 'You already hold this upline seat'
     }
     if (poachAsk <= 0n) return 'Poach ask is zero'
     return null
-  }, [selected, isExample, evmProtocol, highlightAddress, poachAsk])
+  }, [selected, isExample, liveChainReady, highlightAddress, poachAsk, walletChainLabel])
 
   const onPoach = useCallback(async () => {
-    if (!selected || !evmProtocol || poachBlockedReason) return
+    if (!selected || poachBlockedReason) return
     const toastId = toast.loading(`Poaching ${shortAddress(selected.locker)}…`)
     setIsPoaching(true)
     try {
-      const result = await executeEvmPoach({
-        config: evmProtocol,
-        locker: selected.locker,
-      })
-      toast.update(toastId, {
-        render: `Poached for ${formatVaultBalanceDisplay(result.price, graiDecimals, 2)} GRAI`,
-        type: 'success',
-        isLoading: false,
-        autoClose: 5000,
-      })
+      if (connection && solana) {
+        const result = await runSolanaTx({
+          connectMessage: 'Connect a Solana wallet to poach',
+          clusterAction: 'poach a referral slot',
+          failureMessage: 'Poach transaction failed',
+          execute: ({ connection: conn, solana: runtime, publicKey, signTransaction }) =>
+            executePoach({
+              connection: conn,
+              config: runtime,
+              poacher: publicKey,
+              locker: selected.locker,
+              signTransaction,
+            }),
+        })
+        toast.update(toastId, {
+          render: `Poached for ${formatVaultBalanceDisplay(result.price, graiDecimals, 2)} GRAI`,
+          type: 'success',
+          isLoading: false,
+          autoClose: 5000,
+        })
+      } else if (evmProtocol) {
+        const result = await executeEvmPoach({
+          config: evmProtocol,
+          locker: selected.locker as `0x${string}`,
+        })
+        toast.update(toastId, {
+          render: `Poached for ${formatVaultBalanceDisplay(result.price, graiDecimals, 2)} GRAI`,
+          type: 'success',
+          isLoading: false,
+          autoClose: 5000,
+        })
+      } else {
+        throw new Error('No live protocol configured for poach')
+      }
       await reloadForest()
     } catch (err) {
       toast.update(toastId, {
@@ -602,7 +661,16 @@ export function GraiReferralTree({
     } finally {
       setIsPoaching(false)
     }
-  }, [selected, evmProtocol, poachBlockedReason, graiDecimals, reloadForest])
+  }, [
+    selected,
+    poachBlockedReason,
+    connection,
+    solana,
+    evmProtocol,
+    graiDecimals,
+    reloadForest,
+    runSolanaTx,
+  ])
 
   const selectedBars = useMemo(() => {
     if (!selected) return []
@@ -630,7 +698,7 @@ export function GraiReferralTree({
     return [...flat]
       .sort((a, b) => (b.value > a.value ? 1 : b.value < a.value ? -1 : 0))
       .map((node) => ({
-        id: node.locker.toLowerCase(),
+        id: addressKey(node.locker),
         name: shortAddress(node.locker),
         own: toNumber(node.value, graiDecimals),
         l1: toNumber(node.l1Value, graiDecimals),
@@ -1084,16 +1152,20 @@ export function GraiReferralTree({
                     </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="grai-mint-btn grai-referral-dash-poach-btn"
-                  disabled={Boolean(poachBlockedReason) || isPoaching}
-                  onClick={() => {
-                    void onPoach()
-                  }}
-                >
-                  {isPoaching ? 'Poaching…' : 'Poach'}
-                </button>
+                {!highlightAddress ? (
+                  <GraiActionConnectWalletButton />
+                ) : (
+                  <button
+                    type="button"
+                    className="grai-mint-btn grai-referral-dash-poach-btn"
+                    disabled={Boolean(poachBlockedReason) || isPoaching}
+                    onClick={() => {
+                      void onPoach()
+                    }}
+                  >
+                    {isPoaching ? 'Poaching…' : 'Poach'}
+                  </button>
+                )}
                 <p className="grai-liquidation-buyback-vote-note">
                   You pay GRAI to the locker&apos;s current referrer to become their direct
                   referrer.

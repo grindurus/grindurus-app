@@ -33,6 +33,7 @@ export function useGraiMint() {
       amountInput: string
       assetDecimals?: number
       lock?: boolean
+      referrer?: string
     }) => {
       const amountInput = params.amountInput.trim()
       const assetMint = new PublicKey(params.assetMint)
@@ -52,6 +53,7 @@ export function useGraiMint() {
             amountInput,
             signTransaction,
             lock: params.lock ?? false,
+            referrer: params.referrer,
           }),
       })
 
@@ -112,7 +114,13 @@ export function useGraiMint() {
           referrer: params.referrer,
         })
       }
-      return mintSolana(params)
+      return mintSolana({
+        assetMint: params.assetMint,
+        amountInput: params.amountInput,
+        assetDecimals: params.assetDecimals,
+        lock: params.lock,
+        referrer: params.referrer,
+      })
     },
     [chainKind, mintEvm, mintSolana],
   )

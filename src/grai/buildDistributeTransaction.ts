@@ -7,7 +7,6 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
-import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { fetchAssetConfigPriceFeed, fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
 import {
   assertSolanaCustodianWallet,
@@ -18,6 +17,7 @@ import {
   getAssociatedTokenAddress,
   grindersStatePda,
   TOKEN_PROGRAM_ID,
+  treasuryVaultPda,
   vaultAtaPda,
   positionPda,
 } from './pdas'
@@ -63,13 +63,11 @@ export async function buildDistributeTransaction({
   const grindersState = grindersStatePda(grindersProgram)
   await assertSolanaCustodianWallet(connection, custodyWallet, grindersProgram)
 
-  const protocol = await fetchGraiProtocol(connection, config.graiMint)
-
   const assetConfig = assetConfigPda(assetMint, programId)
   const priceFeed = await fetchAssetConfigPriceFeed(connection, assetConfig)
   const custodyAta = getAssociatedTokenAddress(assetMint, custodyWallet)
   const vaultAta = vaultAtaPda(assetMint, programId)
-  const treasuryAta = getAssociatedTokenAddress(assetMint, protocol.treasury)
+  const treasuryAta = treasuryVaultPda(assetMint, programId)
   const position = positionPda(custodyWallet, assetMint, programId)
 
   const signer = owner ?? custodyWallet

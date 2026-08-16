@@ -12983,6 +12983,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-height: 2.4rem;
 }
 
+.grai-referral-dash-poach > .connect-wallet-btn.grai-action-connect-wallet-btn {
+  width: 100%;
+  min-height: 2.4rem;
+}
+
 @media (max-width: 980px) {
   .grai-referral-dash-grid {
     grid-template-columns: 1fr;

@@ -66,9 +66,16 @@ export async function fetchEvmReferralBooks(config: GraiEvmConfig): Promise<EvmR
   return rows
 }
 
+const SOLANA_PUBKEY_DEFAULT = '11111111111111111111111111111111'
+
+function addressKey(address: string): string {
+  return address.startsWith('0x') || address.startsWith('0X') ? address.toLowerCase() : address
+}
+
 function isRootReferrer(locker: string, referrer: string): boolean {
-  const ref = referrer.toLowerCase()
-  return !ref || ref === zeroAddress || ref === locker.toLowerCase()
+  const ref = addressKey(referrer)
+  const loc = addressKey(locker)
+  return !ref || ref === zeroAddress || ref === SOLANA_PUBKEY_DEFAULT || ref === loc
 }
 
 /** Build forest from sticky `referrerOf` edges. Self-roots and missing uplines become roots. */
@@ -76,7 +83,7 @@ export function buildReferralForest(entries: EvmReferralBookEntry[]): GraiReferr
   const byLocker = new Map<string, GraiReferralTreeNode>()
 
   for (const entry of entries) {
-    const key = entry.locker.toLowerCase()
+    const key = addressKey(entry.locker)
     byLocker.set(key, {
       locker: entry.locker,
       referrer: entry.referrer,
@@ -94,7 +101,7 @@ export function buildReferralForest(entries: EvmReferralBookEntry[]): GraiReferr
       roots.push(node)
       continue
     }
-    const parent = byLocker.get(node.referrer.toLowerCase())
+    const parent = byLocker.get(addressKey(node.referrer))
     if (!parent || parent === node) {
       roots.push(node)
       continue

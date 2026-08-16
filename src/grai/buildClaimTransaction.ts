@@ -9,16 +9,19 @@ import {
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import { confirmSignatureViaHttp, parseTokenAmount } from './onchain'
+import { confirmSignatureViaHttp, fetchAssetConfigPriceFeed, parseTokenAmount } from './onchain'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   assetConfigPda,
   escrowPda,
   getAssociatedTokenAddress,
   positionPda,
+  referrerPda,
   TOKEN_PROGRAM_ID,
+  treasuryVaultPda,
   vaultAtaPda,
 } from './pdas'
+import { claimAffiliateRemainingMetas } from './referralAccounts'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
 
 /** Anchor `global:claim` discriminator. */
@@ -35,6 +38,13 @@ function encodeClaimInstructionData(amount: bigint): Buffer {
   CLAIM_DISCRIMINATOR.copy(data, 0)
   data.writeBigUInt64LE(amount, 8)
   return data
+}
+
+function beneficiarOrOwner(protocol: {
+  beneficiar: PublicKey
+  owner: PublicKey
+}): PublicKey {
+  return protocol.beneficiar.equals(PublicKey.default) ? protocol.owner : protocol.beneficiar
 }
 
 export type BuildClaimTransactionParams = {
@@ -58,13 +68,26 @@ export async function buildClaimTransaction({
   if (amount <= 0n) throw new Error('Amount must be greater than zero')
 
   const programId = config.programId
+  const protocol = await fetchGraiProtocol(connection, config.graiMint)
   const graiState = graiStatePda(programId)
   const escrow = escrowPda(holder, programId)
   const assetConfig = assetConfigPda(assetMint, programId)
+  const priceFeed = await fetchAssetConfigPriceFeed(connection, assetConfig)
   const position = positionPda(holder, assetMint, programId)
   const vaultAta = vaultAtaPda(assetMint, programId)
+  const treasuryVault = treasuryVaultPda(assetMint, programId)
   const holderAssetAta = getAssociatedTokenAddress(assetMint, holder)
   const tipAssetAta = getAssociatedTokenAddress(assetMint, payer)
+  const feeRecipient = beneficiarOrOwner(protocol)
+  const beneficiarAta = getAssociatedTokenAddress(assetMint, feeRecipient)
+  const holderReferrer = referrerPda(holder, programId)
+  const affiliateRemaining = await claimAffiliateRemainingMetas(
+    connection,
+    holder,
+    assetMint,
+    programId,
+    protocol.affiliateLevels,
+  )
 
   const claimIx = new TransactionInstruction({
     programId,
@@ -75,20 +98,31 @@ export async function buildClaimTransaction({
       { pubkey: escrow, isSigner: false, isWritable: false },
       { pubkey: assetMint, isSigner: false, isWritable: false },
       { pubkey: assetConfig, isSigner: false, isWritable: true },
+      { pubkey: priceFeed, isSigner: false, isWritable: false },
       { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: vaultAta, isSigner: false, isWritable: true },
+      { pubkey: treasuryVault, isSigner: false, isWritable: true },
       { pubkey: holderAssetAta, isSigner: false, isWritable: true },
       { pubkey: tipAssetAta, isSigner: false, isWritable: true },
+      { pubkey: beneficiarAta, isSigner: false, isWritable: true },
+      { pubkey: holderReferrer, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+      ...affiliateRemaining,
     ],
     data: encodeClaimInstructionData(amount),
   })
 
   const instructions: TransactionInstruction[] = [
     createAssociatedTokenAccountIdempotentInstruction(payer, holderAssetAta, holder, assetMint),
+    createAssociatedTokenAccountIdempotentInstruction(
+      payer,
+      beneficiarAta,
+      feeRecipient,
+      assetMint,
+    ),
   ]
   if (!tipAssetAta.equals(holderAssetAta)) {
     instructions.push(
@@ -177,27 +211,50 @@ export async function executeClaimAll({
   const programId = config.programId
   const graiState = graiStatePda(programId)
   const escrow = escrowPda(holder, programId)
+  const feeRecipient = beneficiarOrOwner(protocol)
   const instructions: TransactionInstruction[] = []
-
   const remainingKeys: { pubkey: PublicKey; isSigner: boolean; isWritable: boolean }[] = []
+
   for (const assetMint of registryMints) {
     const holderAssetAta = getAssociatedTokenAddress(assetMint, holder)
     const tipAssetAta = getAssociatedTokenAddress(assetMint, payer)
+    const beneficiarAta = getAssociatedTokenAddress(assetMint, feeRecipient)
+    const assetConfig = assetConfigPda(assetMint, programId)
+    const priceFeed = await fetchAssetConfigPriceFeed(connection, assetConfig)
+    const affiliateRemaining = await claimAffiliateRemainingMetas(
+      connection,
+      holder,
+      assetMint,
+      programId,
+      protocol.affiliateLevels,
+    )
+
     instructions.push(
       createAssociatedTokenAccountIdempotentInstruction(payer, holderAssetAta, holder, assetMint),
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer,
+        beneficiarAta,
+        feeRecipient,
+        assetMint,
+      ),
     )
     if (!tipAssetAta.equals(holderAssetAta)) {
       instructions.push(
         createAssociatedTokenAccountIdempotentInstruction(payer, tipAssetAta, payer, assetMint),
       )
     }
+
     remainingKeys.push(
       { pubkey: assetMint, isSigner: false, isWritable: false },
-      { pubkey: assetConfigPda(assetMint, programId), isSigner: false, isWritable: true },
+      { pubkey: assetConfig, isSigner: false, isWritable: true },
+      { pubkey: priceFeed, isSigner: false, isWritable: false },
       { pubkey: positionPda(holder, assetMint, programId), isSigner: false, isWritable: true },
       { pubkey: vaultAtaPda(assetMint, programId), isSigner: false, isWritable: true },
       { pubkey: holderAssetAta, isSigner: false, isWritable: true },
       { pubkey: tipAssetAta, isSigner: false, isWritable: true },
+      { pubkey: treasuryVaultPda(assetMint, programId), isSigner: false, isWritable: true },
+      { pubkey: beneficiarAta, isSigner: false, isWritable: true },
+      ...affiliateRemaining,
     )
   }
 
@@ -206,10 +263,11 @@ export async function executeClaimAll({
       programId,
       keys: [
         { pubkey: payer, isSigner: true, isWritable: true },
-        { pubkey: graiState, isSigner: false, isWritable: false },
+        { pubkey: graiState, isSigner: false, isWritable: true },
         { pubkey: holder, isSigner: false, isWritable: false },
         { pubkey: escrow, isSigner: false, isWritable: false },
         { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         ...remainingKeys,
       ],
       data: Buffer.from(CLAIM_ALL_DISCRIMINATOR),

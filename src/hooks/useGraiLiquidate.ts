@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { executeConfirm } from '../grai/buildConfirmTransaction'
 import { executeLiquidate } from '../grai/buildLiquidateTransaction'
 import { executeEvmLiquidate } from '../grai/evm/executeTransactions'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
@@ -25,6 +26,38 @@ export function useGraiLiquidate() {
     lastHash: evmLastHash,
     isPending: isEvmPending,
   } = useGraiEvmTransaction()
+
+  const confirmLiquidation = useCallback(
+    async (params?: { connectMessage?: string; chainAction?: string; failureMessage?: string }) => {
+      const connectMessage =
+        params?.connectMessage ?? 'Connect a wallet to confirm liquidation'
+      const chainAction = params?.chainAction ?? 'confirm liquidation'
+      const failureMessage = params?.failureMessage ?? 'Confirm transaction failed'
+
+      if (chainKind === 'evm') {
+        throw new Error('Use Grinders.confirm on EVM (not yet wired in this hook)')
+      }
+
+      if (chainKind !== 'solana') {
+        throw new Error('Confirm is not available on this network')
+      }
+
+      const { signature } = await runSolana({
+        connectMessage,
+        clusterAction: chainAction,
+        failureMessage,
+        execute: ({ connection, solana, publicKey, signTransaction }) =>
+          executeConfirm({
+            connection,
+            config: solana,
+            owner: publicKey,
+            signTransaction,
+          }),
+      })
+      return signature
+    },
+    [chainKind, runSolana],
+  )
 
   const liquidate = useCallback(
     async (params?: { connectMessage?: string; chainAction?: string; failureMessage?: string }) => {
@@ -74,6 +107,7 @@ export function useGraiLiquidate() {
   const isEvm = chainKind === 'evm'
 
   return {
+    confirmLiquidation,
     liquidate,
     reset,
     status: isEvm ? evmStatus : solanaStatus,

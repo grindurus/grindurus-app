@@ -7,7 +7,6 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
-import { fetchGraiProtocol } from './fetchGraiProtocol'
 import {
   confirmSignatureViaHttp,
   fetchAssetConfigPriceFeed,
@@ -20,6 +19,7 @@ import {
   getAssociatedTokenAddress,
   positionPda,
   TOKEN_PROGRAM_ID,
+  treasuryVaultPda,
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
@@ -68,12 +68,11 @@ export async function buildProtocolDistributeTransaction({
   const feePayer = payer ?? custodyWallet
   const isSol = assetMint.toBase58() === NATIVE_MINT
   const graiState = graiStatePda(programId)
-  const protocol = await fetchGraiProtocol(connection, config.graiMint)
   const assetConfig = assetConfigPda(assetMint, programId)
   const priceFeed = await fetchAssetConfigPriceFeed(connection, assetConfig)
   const custodyAta = getAssociatedTokenAddress(assetMint, custodyWallet)
   const vaultAta = vaultAtaPda(assetMint, programId)
-  const treasuryAta = getAssociatedTokenAddress(assetMint, protocol.treasury)
+  const treasuryAta = treasuryVaultPda(assetMint, programId)
   const position = positionPda(custodyWallet, assetMint, programId)
 
   const distributeIx = new TransactionInstruction({
@@ -106,18 +105,6 @@ export async function buildProtocolDistributeTransaction({
       assetMint,
     ),
   )
-
-  const treasuryAtaInfo = await connection.getAccountInfo(treasuryAta)
-  if (!treasuryAtaInfo) {
-    instructions.push(
-      createAssociatedTokenAccountIdempotentInstruction(
-        feePayer,
-        treasuryAta,
-        protocol.treasury,
-        assetMint,
-      ),
-    )
-  }
 
   if (isSol) {
     let wrapped = 0n

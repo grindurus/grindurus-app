@@ -11,7 +11,7 @@ const BPS = 10_000n
 /** Match on-chain `get_voters(from, to)` page size for escrow fetches. */
 export const SOLANA_VOTERS_PAGE_SIZE = 10
 
-/** Anchor Escrow: disc(8) + amount(u64) + voted(u64) + locked_at(i64) + … */
+/** Anchor Escrow: disc(8) + amount(u64) + voted(u64) + … */
 function decodeEscrow(data: Buffer): { amount: bigint; voted: bigint } {
   if (data.length < 24) return { amount: 0n, voted: 0n }
   return {

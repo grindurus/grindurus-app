@@ -1,7 +1,7 @@
 import { stripTrailingSlash } from './urlUtils'
 
 /** Logical app routes (without GitHub Pages base prefix). */
-export type AppLogicalPath = '/' | '/grai' | '/grai/manage' | '/grinders' | '/backtest'
+export type AppLogicalPath = '/' | '/grai' | '/grai/manage' | '/grinders' | '/grs' | '/backtest'
 
 function normalizeLogicalPath(path: string): string {
   if (!path || path === '/') return '/'

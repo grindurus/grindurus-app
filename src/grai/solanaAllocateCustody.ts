@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import type { SolanaCluster } from '../providers/AppWalletProvider'
 
-const GRINDERS_PROGRAM_ID_DEFAULT = 'HLAmxNKz19CFJQYbsJPJHvixt7r9x4NdYjqqUQiiogJa'
+const GRINDERS_PROGRAM_ID_DEFAULT = '7W9uhZZvmHSyhRmdDRnbZPZfaUdJaMbGMWsBLjSRWT5v'
 
 function readEnv(key: string): string | undefined {
   const value = (import.meta.env as Record<string, string | undefined>)[key]
