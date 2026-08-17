@@ -9,7 +9,7 @@ import {
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import {
   decodeSolanaReferrerBook,
-  resolveNftOwner,
+  resolveNftOwners,
 } from './fetchSolanaReferralBooks'
 import { assetConfigPda, escrowPda, positionPda, referrerPda } from './pdas'
 
@@ -36,7 +36,7 @@ export async function fetchSolanaLockersData(
   connection: Connection,
   graiMint: PublicKey,
 ): Promise<SolanaLockerData[]> {
-  const protocol = await fetchGraiProtocol(connection, graiMint, { bypassCache: true })
+  const protocol = await fetchGraiProtocol(connection, graiMint)
   const lockers = protocol.referrers
   if (lockers.length === 0) return []
 
@@ -55,7 +55,7 @@ export async function fetchSolanaLockersData(
   }
 
   const accounts = await fetchAccountsByKey(connection, keys)
-  const rows: SolanaLockerData[] = []
+  const pending: Omit<SolanaLockerData, 'ownerOf'>[] = []
 
   for (const locker of lockers) {
     const bookData = getAccountData(accounts, referrerPda(locker, programId))
@@ -78,11 +78,9 @@ export async function fetchSolanaLockersData(
       claimable.push(pendingSolanaDividend(unvoted, accShare, debt, stored))
     }
 
-    const ownerOf = await resolveNftOwner(connection, book.nftMint, locker)
-    rows.push({
+    pending.push({
       locker,
       referrer: book.referrer,
-      ownerOf,
       nftMint: book.nftMint,
       book: {
         value: book.value,
@@ -95,5 +93,14 @@ export async function fetchSolanaLockersData(
     })
   }
 
-  return rows
+  const nftOwners = await resolveNftOwners(
+    connection,
+    pending.map((row) => row.nftMint),
+    pending.map((row) => row.locker),
+  )
+
+  return pending.map((row, index) => ({
+    ...row,
+    ownerOf: nftOwners[index] ?? row.locker,
+  }))
 }

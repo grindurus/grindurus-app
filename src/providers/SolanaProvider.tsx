@@ -7,6 +7,7 @@ import {
   CoinbaseWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
 import { resolveSolanaRpcUrl, getDefaultGraiSolanaCluster } from '../grai/deployments'
+import { getSharedJsonRpcBatchFetch } from '../grai/jsonRpcBatchFetch'
 import { deferAfterPaint } from '../utils/deferAfterPaint'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
@@ -18,6 +19,13 @@ interface SolanaProviderProps {
 
 export function SolanaProvider({ children }: SolanaProviderProps) {
   const endpoint = useMemo(() => resolveSolanaRpcUrl(getDefaultGraiSolanaCluster()), [])
+  const connectionConfig = useMemo(
+    () => ({
+      commitment: 'confirmed' as const,
+      fetch: getSharedJsonRpcBatchFetch(),
+    }),
+    [],
+  )
   const [autoConnect, setAutoConnect] = useState(false)
 
   const wallets = useMemo(
@@ -30,7 +38,7 @@ export function SolanaProvider({ children }: SolanaProviderProps) {
   }, [])
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <ConnectionProvider endpoint={endpoint} config={connectionConfig}>
       <WalletProvider wallets={wallets} autoConnect={autoConnect}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>

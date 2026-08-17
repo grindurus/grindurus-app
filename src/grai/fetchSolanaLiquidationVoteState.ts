@@ -1,4 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js'
+import { fetchAccountsByKey, getAccountData } from './accountBatch'
 import type { GraiSolanaConfig } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { resolveGraiAsset } from './knownMints'
@@ -45,16 +46,16 @@ export async function fetchSolanaVotersPage(
   if (slice.length === 0) return []
 
   const escrowKeys = slice.map((owner) => escrowPda(owner, programId))
-  const infos = await connection.getMultipleAccountsInfo(escrowKeys)
+  const accounts = await fetchAccountsByKey(connection, escrowKeys)
 
   const entries: EvmVoterEntry[] = []
-  for (let i = 0; i < slice.length; i += 1) {
-    const info = infos[i]
-    if (!info?.data) continue
-    const { voted } = decodeEscrow(Buffer.from(info.data))
+  for (const owner of slice) {
+    const data = getAccountData(accounts, escrowPda(owner, programId))
+    if (!data) continue
+    const { voted } = decodeEscrow(data)
     if (voted <= 0n) continue
     entries.push({
-      address: slice[i]!.toBase58() as `0x${string}`,
+      address: owner.toBase58() as `0x${string}`,
       escrowGrai: voted,
     })
   }
@@ -70,7 +71,7 @@ export async function fetchSolanaLiquidationVoteState(
   config: GraiSolanaConfig,
   owner: PublicKey | null,
 ): Promise<EvmLiquidationVoteState> {
-  const protocol = await fetchGraiProtocol(connection, config.graiMint, { bypassCache: true })
+  const protocol = await fetchGraiProtocol(connection, config.graiMint)
 
   let walletGrai = 0n
   let lockedGrai = 0n
@@ -95,17 +96,13 @@ export async function fetchSolanaLiquidationVoteState(
   const quorumBps = protocol.config.quorumBps
 
   const voterOwners = protocol.voters
-  const voterEntries: EvmVoterEntry[] = []
-  for (let from = 0; from < voterOwners.length; from += SOLANA_VOTERS_PAGE_SIZE) {
-    const page = await fetchSolanaVotersPage(
-      connection,
-      protocol.programId,
-      voterOwners,
-      from,
-      from + SOLANA_VOTERS_PAGE_SIZE,
-    )
-    voterEntries.push(...page)
-  }
+  const voterEntries = await fetchSolanaVotersPage(
+    connection,
+    protocol.programId,
+    voterOwners,
+    0,
+    voterOwners.length,
+  )
 
   // `GraiState.bribe_asset` (decoded as settlementAsset) — payment mint for bribes.
   const bribeAsset = protocol.settlementAsset

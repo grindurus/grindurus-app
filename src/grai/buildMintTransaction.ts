@@ -29,8 +29,9 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
-import { claimAffiliateRemainingMetas, depositAffiliateRemainingMetas } from './referralAccounts'
+import { depositAffiliateRemainingMetas } from './referralAccounts'
 import { lockRemainingAccountMetas } from './buildLockTransaction'
+import { fetchAccountsByKey } from './accountBatch'
 
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182])
 const DEPOSIT_SOL_DISCRIMINATOR = Buffer.from([108, 81, 78, 117, 125, 155, 56, 200])
@@ -151,10 +152,12 @@ export async function buildMintTransaction({
   })
 
   const instructions: TransactionInstruction[] = []
+  const ataKeys: PublicKey[] = [grindersAta, depositorGraiAta]
+  if (!isSol) ataKeys.unshift(depositorAssetAta)
+  const ataAccounts = await fetchAccountsByKey(connection, ataKeys)
 
   if (!isSol) {
-    const depositorAssetAtaInfo = await connection.getAccountInfo(depositorAssetAta)
-    if (!depositorAssetAtaInfo) {
+    if (!ataAccounts.get(depositorAssetAta.toBase58())) {
       instructions.push(
         createAssociatedTokenAccountIdempotentInstruction(
           minter,
@@ -175,8 +178,7 @@ export async function buildMintTransaction({
     )
   }
 
-  const grindersAtaInfo = await connection.getAccountInfo(grindersAta)
-  if (!grindersAtaInfo) {
+  if (!ataAccounts.get(grindersAta.toBase58())) {
     instructions.push(
       createAssociatedTokenAccountIdempotentInstruction(
         minter,
@@ -187,8 +189,7 @@ export async function buildMintTransaction({
     )
   }
 
-  const depositorGraiAtaInfo = await connection.getAccountInfo(depositorGraiAta)
-  if (!depositorGraiAtaInfo) {
+  if (!ataAccounts.get(depositorGraiAta.toBase58())) {
     instructions.push(
       createAssociatedTokenAccountIdempotentInstruction(
         minter,

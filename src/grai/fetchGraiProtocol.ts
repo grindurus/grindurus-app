@@ -1,5 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { graiStatePda } from './deployments'
+import { onJsonRpcMutation } from './jsonRpcBatchFetch'
 import { decodeMintAuthority, decodeMintDecimals, decodeMintSupply } from './onchain'
 
 export type GraiProtocolConfig = {
@@ -255,6 +256,8 @@ export function clearGraiProtocolCache(): void {
   cacheByMint.clear()
   promiseByMint.clear()
 }
+
+onJsonRpcMutation(clearGraiProtocolCache)
 
 /**
  * Resolves GRAI protocol metadata from the mint address alone (2 RPC round-trips):

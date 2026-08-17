@@ -111,9 +111,13 @@ export async function buildPoachTransaction({
   const sellerBook = selfOwned ? lockerReferrer : referrerPda(seller, programId)
 
   let oldL2Book = buyerBook
-  if (!selfOwned && protocol.affiliateLevels > 1) {
-    const sellerInfo = await connection.getAccountInfo(sellerBook)
-    if (sellerInfo?.data) {
+  let newL2Book = buyerBook
+  if (protocol.affiliateLevels > 1) {
+    const extras = selfOwned ? [buyerBook] : [sellerBook, buyerBook]
+    const extraInfos = await connection.getMultipleAccountsInfo(extras)
+    const sellerInfo = selfOwned ? null : extraInfos[0]
+    const buyerInfo = extraInfos[selfOwned ? 0 : 1]
+    if (!selfOwned && sellerInfo?.data) {
       const sellerBookData = decodeSolanaReferrerBook(Buffer.from(sellerInfo.data))
       if (
         sellerBookData &&
@@ -124,11 +128,6 @@ export async function buildPoachTransaction({
         oldL2Book = referrerPda(sellerBookData.referrer, programId)
       }
     }
-  }
-
-  let newL2Book = buyerBook
-  if (protocol.affiliateLevels > 1) {
-    const buyerInfo = await connection.getAccountInfo(buyerBook)
     if (buyerInfo?.data) {
       const buyerBookData = decodeSolanaReferrerBook(Buffer.from(buyerInfo.data))
       if (

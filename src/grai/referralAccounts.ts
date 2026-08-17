@@ -1,4 +1,5 @@
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js'
+import { fetchAccountsByKey, getAccountData } from './accountBatch'
 import {
   getAssociatedTokenAddress,
   referrerPda,
@@ -106,11 +107,20 @@ export async function depositAffiliateRemainingMetas(
   programId: PublicKey,
 ): Promise<AccountMeta[]> {
   let upline = stickyReferrer
+  const lockerPda = referrerPda(locker, programId)
+  const stickyPda =
+    !stickyReferrer.equals(PublicKey.default) && !stickyReferrer.equals(locker)
+      ? referrerPda(stickyReferrer, programId)
+      : null
+  const accounts = await fetchAccountsByKey(
+    connection,
+    stickyPda ? [lockerPda, stickyPda] : [lockerPda],
+  )
 
-  const lockerInfo = await connection.getAccountInfo(referrerPda(locker, programId))
-  const lockerDecoded = lockerInfo?.data
-    ? decodeReferrerAccount(Buffer.from(lockerInfo.data))
-    : null
+  const lockerDecoded = (() => {
+    const lockerInfo = getAccountData(accounts, lockerPda)
+    return lockerInfo ? decodeReferrerAccount(lockerInfo) : null
+  })()
   if (
     lockerDecoded &&
     !lockerDecoded.referrer.equals(PublicKey.default) &&
@@ -125,8 +135,11 @@ export async function depositAffiliateRemainingMetas(
 
   const l1 = referrerPda(upline, programId)
   let l2 = SystemProgram.programId
-  const info = await connection.getAccountInfo(l1)
-  const decoded = info?.data ? decodeReferrerAccount(Buffer.from(info.data)) : null
+  let l1Data = getAccountData(accounts, l1)
+  if (!l1Data) {
+    l1Data = getAccountData(await fetchAccountsByKey(connection, [l1]), l1)
+  }
+  const decoded = l1Data ? decodeReferrerAccount(l1Data) : null
   if (
     decoded &&
     !decoded.referrer.equals(PublicKey.default) &&

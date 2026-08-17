@@ -12,6 +12,7 @@ export async function fetchGraiStateFixedFields(
   return {
     authority: protocol.authority,
     owner: protocol.owner,
+    pendingOwner: protocol.pendingOwner,
     beneficiar: protocol.beneficiar,
     treasury: protocol.treasury,
     treasuryWallet: protocol.treasury,

@@ -539,7 +539,7 @@ export function GraiReferralTree({
   const [minimapOpen, setMinimapOpen] = useState(false)
   const [finderOpen, setFinderOpen] = useState(false)
   const [isPoaching, setIsPoaching] = useState(false)
-  const [mapRequested, setMapRequested] = useState(layout === 'graph-only')
+  const [mapRequested, setMapRequested] = useState(true)
   const [isLoadingMap, setIsLoadingMap] = useState(false)
   const chartHostRef = useRef<HTMLDivElement | null>(null)
 
@@ -579,7 +579,14 @@ export function GraiReferralTree({
     setIsLoadingMap(true)
     try {
       const rows = hasSolana
-        ? await fetchSolanaReferralBooks(connection!, solana!.graiMint)
+        ? await fetchSolanaReferralBooks(connection!, solana!.graiMint, {
+            onPartial: (partial) => {
+              if (partial.length === 0) return
+              setForest(buildReferralForest(partial))
+              setIsExample(false)
+              setIsLoadingMap(false)
+            },
+          })
         : await fetchEvmReferralBooks(evmProtocol!)
       if (rows.length === 0) {
         setForest(buildExampleReferralForest())
@@ -934,7 +941,7 @@ export function GraiReferralTree({
               type="button"
               className="grai-referral-dash-title-action"
               onClick={startMapLoad}
-              aria-label="Load referrers map"
+              aria-label="Reload referrers map"
             >
               Referrers dashboard
             </button>

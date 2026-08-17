@@ -1,11 +1,9 @@
 import { Connection } from '@solana/web3.js'
+import { fetchAccountsByKey, getAccountData } from './accountBatch'
 import type { GraiSolanaRuntime } from './deployments'
-import { decodeGraiStateLockers, fetchGraiProtocol } from './fetchGraiProtocol'
+import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { escrowPda } from './pdas'
 import type { EvmLockerEntry } from './evm/readProtocol'
-
-/** Match on-chain escrow page size used for voter fetches. */
-const LOCKERS_PAGE_SIZE = 32
 
 function decodeEscrowAmount(data: Buffer): bigint {
   // After discriminator(8): amount(u64)
@@ -21,27 +19,21 @@ export async function fetchSolanaLockers(
   config: GraiSolanaRuntime,
 ): Promise<EvmLockerEntry[]> {
   const protocol = await fetchGraiProtocol(connection, config.graiMint)
-  const stateInfo = await connection.getAccountInfo(protocol.graiState)
-  if (!stateInfo?.data) return []
+  const lockerKeys = protocol.lockers
+  if (lockerKeys.length === 0) return []
 
-  const lockerKeys = decodeGraiStateLockers(Buffer.from(stateInfo.data))
+  const escrowKeys = lockerKeys.map((owner) => escrowPda(owner, protocol.programId))
+  const accounts = await fetchAccountsByKey(connection, escrowKeys)
   const entries: EvmLockerEntry[] = []
-
-  for (let offset = 0; offset < lockerKeys.length; offset += LOCKERS_PAGE_SIZE) {
-    const slice = lockerKeys.slice(offset, offset + LOCKERS_PAGE_SIZE)
-    const escrowKeys = slice.map((owner) => escrowPda(owner, protocol.programId))
-    const infos = await connection.getMultipleAccountsInfo(escrowKeys)
-    infos.forEach((info, index) => {
-      const owner = slice[index]
-      if (!owner || !info?.data) return
-      const amount = decodeEscrowAmount(Buffer.from(info.data))
-      if (amount <= 0n) return
-      entries.push({
-        address: owner.toBase58(),
-        lockedGrai: amount,
-      })
+  for (const owner of lockerKeys) {
+    const data = getAccountData(accounts, escrowPda(owner, protocol.programId))
+    if (!data) continue
+    const amount = decodeEscrowAmount(data)
+    if (amount <= 0n) continue
+    entries.push({
+      address: owner.toBase58(),
+      lockedGrai: amount,
     })
   }
-
   return entries
 }
