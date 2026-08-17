@@ -364,6 +364,38 @@ export const graiAbi = [
   },
   {
     type: 'function',
+    name: 'getLockersData',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'fromId', type: 'uint256' },
+      { name: 'toId', type: 'uint256' },
+    ],
+    outputs: [
+      {
+        name: 'list',
+        type: 'tuple[]',
+        components: [
+          { name: 'locker', type: 'address' },
+          { name: 'referrer', type: 'address' },
+          { name: 'ownerOf', type: 'address' },
+          {
+            name: 'book',
+            type: 'tuple',
+            components: [
+              { name: 'value', type: 'uint256' },
+              { name: 'l1Value', type: 'uint256' },
+              { name: 'l2Value', type: 'uint256' },
+              { name: 'referrer', type: 'address' },
+            ],
+          },
+          { name: 'assets', type: 'address[]' },
+          { name: 'claimable', type: 'uint256[]' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'function',
     name: 'claim',
     stateMutability: 'nonpayable',
     inputs: [
@@ -537,7 +569,7 @@ export const treasuryAbi = [
   },
   {
     type: 'function',
-    name: 'getReferralsData',
+    name: 'getLockersData',
     stateMutability: 'view',
     inputs: [
       { name: 'fromId', type: 'uint256' },

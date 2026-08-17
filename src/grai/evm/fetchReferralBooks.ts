@@ -49,7 +49,7 @@ export async function fetchEvmReferralBooks(config: GraiEvmConfig): Promise<EvmR
     const page = await client.readContract({
       address: treasuryAddress,
       abi: treasuryAbi,
-      functionName: 'getReferralsData',
+      functionName: 'getLockersData',
       args: [from, to],
     })
     for (const item of page) {

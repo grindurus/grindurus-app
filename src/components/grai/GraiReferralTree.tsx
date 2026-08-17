@@ -38,6 +38,7 @@ import {
   type GraiReferralTreeNode,
 } from '../../grai/evm/fetchReferralBooks'
 import { GRAI_DECIMALS_EVM } from '../../grai/evm/constants'
+import { formatClaimUsdTotal } from '../../grai/evm/estimateClaim'
 import { executeEvmPoach } from '../../grai/evm/executeTransactions'
 import { executePoach } from '../../grai/buildPoachTransaction'
 import { fetchSolanaReferralBooks } from '../../grai/fetchSolanaReferralBooks'
@@ -56,6 +57,8 @@ type Props = {
   layout?: 'dashboard' | 'graph-only'
   selectedLockerId?: string | null
   onSelectLocker?: (lockerId: string | null) => void
+  /** Pending claim USD (`USD_SCALE`) keyed by locker. Claim graph only. */
+  claimUsdByLocker?: Record<string, bigint>
 }
 
 /** EVM addresses are case-insensitive; Solana base58 must stay exact. */
@@ -80,6 +83,8 @@ type ReferralNodeData = {
   isRoot: boolean
   decimals: number
   selected: boolean
+  showClaimUsd: boolean
+  claimUsdLabel: string | null
 }
 
 const NODE_WIDTH = 208
@@ -107,6 +112,18 @@ function formatGraiAmount(raw: bigint, decimals: number): string {
   return formatVaultBalanceDisplay(raw, decimals, 2)
 }
 
+function lookupClaimUsd(
+  claimUsdByLocker: Record<string, bigint> | undefined,
+  locker: string,
+): bigint | null {
+  if (!claimUsdByLocker) return null
+  const direct = claimUsdByLocker[locker] ?? claimUsdByLocker[addressKey(locker)]
+  if (direct != null) return direct
+  const lowered = locker.toLowerCase()
+  if (lowered in claimUsdByLocker) return claimUsdByLocker[lowered]!
+  return Object.keys(claimUsdByLocker).length === 0 ? null : 0n
+}
+
 function toNumber(raw: bigint, decimals: number): number {
   const scale = 10 ** Math.min(decimals, 8)
   const truncated = raw / 10n ** BigInt(Math.max(0, decimals - Math.min(decimals, 8)))
@@ -123,6 +140,7 @@ function layoutForest(
   highlight: string | null | undefined,
   decimals: number,
   selectedId: string | null,
+  claimUsdByLocker?: Record<string, bigint>,
 ): { nodes: Node<ReferralNodeData>[]; edges: Edge[] } {
   const nodes: Node<ReferralNodeData>[] = []
   const edges: Edge[] = []
@@ -138,6 +156,8 @@ function layoutForest(
     const isYou = Boolean(highlight) && addressesEqual(id, highlight)
 
     if (parentId) parentOf.set(id, parentId)
+
+    const claimUsdRaw = lookupClaimUsd(claimUsdByLocker, node.locker)
 
     nodes.push({
       id,
@@ -158,6 +178,8 @@ function layoutForest(
         isRoot: depth === 0,
         decimals,
         selected: selectedId === id,
+        showClaimUsd: claimUsdByLocker != null,
+        claimUsdLabel: claimUsdRaw == null ? null : formatClaimUsdTotal(claimUsdRaw),
       },
       draggable: true,
     })
@@ -261,6 +283,20 @@ const ReferralGraphNode = memo(function ReferralGraphNode({ data }: { data: Refe
         <span className="grai-referral-graph-node-owner-label">Owner:</span>{' '}
         <span className="grai-referral-graph-node-addr">{shortAddress(data.owner)}</span>
       </p>
+      {data.showClaimUsd ? (
+        <>
+          <div className="grai-referral-graph-node-bars" aria-hidden="true">
+            <span style={{ width: data.claimUsdLabel ? '100%' : '0%', background: COLORS.own }} />
+          </div>
+          <dl className="grai-referral-graph-node-stats is-claim">
+            <div>
+              <dt>Claimable</dt>
+              <dd>{data.claimUsdLabel ?? '…'}</dd>
+            </div>
+          </dl>
+        </>
+      ) : (
+        <>
       <div className="grai-referral-graph-node-bars" aria-hidden="true">
         <span style={{ width: '100%', background: COLORS.own }} />
         <span
@@ -290,6 +326,8 @@ const ReferralGraphNode = memo(function ReferralGraphNode({ data }: { data: Refe
           <dd>{formatBook(data.l2Value, data.decimals)}</dd>
         </div>
       </dl>
+        </>
+      )}
       <Handle type="target" position={Position.Bottom} className="grai-referral-graph-handle" />
     </div>
   )
@@ -472,6 +510,7 @@ export function GraiReferralTree({
   layout = 'dashboard',
   selectedLockerId,
   onSelectLocker,
+  claimUsdByLocker,
 }: Props) {
   const { run: runSolanaTx } = useGraiTransaction()
   const isSelectionControlled = onSelectLocker != null
@@ -500,6 +539,8 @@ export function GraiReferralTree({
   const [minimapOpen, setMinimapOpen] = useState(false)
   const [finderOpen, setFinderOpen] = useState(false)
   const [isPoaching, setIsPoaching] = useState(false)
+  const [mapRequested, setMapRequested] = useState(layout === 'graph-only')
+  const [isLoadingMap, setIsLoadingMap] = useState(false)
   const chartHostRef = useRef<HTMLDivElement | null>(null)
 
   const disarmChartFocus = useCallback(() => {
@@ -535,6 +576,7 @@ export function GraiReferralTree({
     }
 
     setError(null)
+    setIsLoadingMap(true)
     try {
       const rows = hasSolana
         ? await fetchSolanaReferralBooks(connection!, solana!.graiMint)
@@ -550,12 +592,24 @@ export function GraiReferralTree({
       setForest(buildExampleReferralForest())
       setIsExample(true)
       setError(err instanceof Error ? err.message : 'Failed to load referral tree')
+    } finally {
+      setIsLoadingMap(false)
     }
   }, [connection, evmProtocol, solana])
 
+  const startMapLoad = useCallback(() => {
+    if (isLoadingMap) return
+    if (mapRequested) {
+      void reloadForest()
+      return
+    }
+    setMapRequested(true)
+  }, [isLoadingMap, mapRequested, reloadForest])
+
   useEffect(() => {
+    if (!mapRequested) return
     void reloadForest()
-  }, [reloadForest])
+  }, [mapRequested, reloadForest])
 
   useEffect(() => {
     if (isSelectionControlled) return
@@ -582,8 +636,8 @@ export function GraiReferralTree({
   }, [flat, forest.length])
 
   const { nodes, edges } = useMemo(
-    () => layoutForest(forest, highlightAddress, graiDecimals, selectedId),
-    [forest, highlightAddress, graiDecimals, selectedId],
+    () => layoutForest(forest, highlightAddress, graiDecimals, selectedId, claimUsdByLocker),
+    [forest, highlightAddress, graiDecimals, selectedId, claimUsdByLocker],
   )
 
   const selected = useMemo(
@@ -764,8 +818,16 @@ export function GraiReferralTree({
     [updateSelectedId],
   )
 
+  const showLoadOverlay = layout !== 'graph-only' && (!mapRequested || (isLoadingMap && forest.length === 0))
+
   const graphPanel = (
     <div className="grai-referral-dash-graph" aria-label="Referral graph">
+      {showLoadOverlay ? (
+        <div className="grai-referral-dash-graph-load" role="status" aria-live="polite">
+          <span className="grai-referral-dash-graph-load-spinner" aria-hidden />
+          Loading...
+        </div>
+      ) : (
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -841,6 +903,7 @@ export function GraiReferralTree({
           />
         ) : null}
       </ReactFlow>
+      )}
     </div>
   )
 
@@ -867,7 +930,14 @@ export function GraiReferralTree({
               ariaLabel="Referrers dashboard information"
               tooltipClassName="grai-referral-dash-info-tooltip"
             />
-            Referrers dashboard
+            <button
+              type="button"
+              className="grai-referral-dash-title-action"
+              onClick={startMapLoad}
+              aria-label="Load referrers map"
+            >
+              Referrers dashboard
+            </button>
           </h3>
         </div>
       </header>

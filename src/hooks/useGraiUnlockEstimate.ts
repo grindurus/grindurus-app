@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   estimateEvmClaimAll,
   estimateEvmUnlockPreview,
   fetchEvmLockedGrai,
   formatClaimUsdTotal,
-  formatUnlockPenaltyDuration,
+  formatUnlockPenaltyBps,
   type EvmClaimEstimate,
   type EvmUnlockPreview,
 } from '../grai/evm/estimateClaim'
@@ -163,21 +163,9 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
     solanaPublicKey,
   ])
 
-  const liveSecondsLeft = useMemo(() => {
-    return unlockPreview.secondsLeft
-  }, [unlockPreview])
-
-  useEffect(() => {
-    if (!enabled || liveSecondsLeft <= 0) return
-    const id = window.setInterval(() => {
-      setRefreshNonce((current) => current + 1)
-    }, 15_000)
-    return () => window.clearInterval(id)
-  }, [enabled, liveSecondsLeft])
-
   const usdTotal = claims.reduce((sum, claim) => sum + claim.usdRaw, 0n)
   const usdLabel = isLoading ? '…' : formatClaimUsdTotal(usdTotal)
-  const penaltyDurationLabel = formatUnlockPenaltyDuration(liveSecondsLeft)
+  const penaltyDurationLabel = formatUnlockPenaltyBps(unlockPreview.unlockPenaltyBps)
 
   return {
     claims,
@@ -186,7 +174,7 @@ export function useGraiUnlockEstimate(enabled: boolean, amountInput = '') {
     lockedMaxAmount,
     unlockPreview,
     unlockAmountLabel: unlockPreview.unlockAmountLabel,
-    penaltyLabel: liveSecondsLeft > 0 ? unlockPreview.penaltyLabel : '0.0',
+    penaltyLabel: unlockPreview.penaltyLabel,
     penaltyDurationLabel,
     /** Always true in unlock mode once estimate is enabled — row stays visible. */
     showPenalty: enabled,

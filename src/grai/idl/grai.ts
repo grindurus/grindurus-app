@@ -641,19 +641,22 @@ export type Grai = {
       }
     },
     {
-      "name": "getReferrals",
+      "name": "getLockersData",
       "docs": [
-        "EVM `getReferralsData(fromId, toId)`. Remaining: `Referrer` PDA per bound locker in mint order."
+        "EVM GRAI `getLockersData(fromId, toId)`: bound lockers plus `previewClaimAll`.",
+        "Remaining: `[referrer] × M`, `[escrow] × M`, `[asset_config] × N`, then",
+        "`[position]` locker-major (`M` in `[from, to)`, `N` listed mints).",
+        "Escrow / position PDAs may be empty."
       ],
       "discriminator": [
-        172,
-        215,
-        248,
-        135,
-        140,
-        14,
-        177,
-        84
+        120,
+        98,
+        207,
+        9,
+        166,
+        41,
+        51,
+        34
       ],
       "accounts": [
         {
@@ -2039,7 +2042,7 @@ export type Grai = {
     {
       "code": 6048,
       "name": "invalidReferralRange",
-      "msg": "Invalid get_referrals range"
+      "msg": "Invalid get_lockers_data range"
     },
     {
       "code": 6049,
@@ -2464,7 +2467,7 @@ export type Grai = {
           {
             "name": "referrers",
             "docs": [
-              "Treasury-bound lockers in mint order (EVM ERC-721 enumerable / `getReferralsData`)."
+              "Treasury-bound lockers in mint order (EVM ERC-721 enumerable / `getLockersData`)."
             ],
             "type": {
               "vec": "pubkey"
@@ -2480,7 +2483,8 @@ export type Grai = {
     {
       "name": "lockerDataView",
       "docs": [
-        "EVM `ITreasury.ReferralData` (+ `nft_mint` for Metaplex cashflow NFT)."
+        "EVM GRAI `LockerData` (+ `nft_mint` for Metaplex cashflow NFT).",
+        "`assets` / `claimable` match `preview_claim_all` (listed-mint order; amount may be 0)."
       ],
       "type": {
         "kind": "struct",
@@ -2510,6 +2514,18 @@ export type Grai = {
               "defined": {
                 "name": "referralBookView"
               }
+            }
+          },
+          {
+            "name": "assets",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "claimable",
+            "type": {
+              "vec": "u64"
             }
           }
         ]

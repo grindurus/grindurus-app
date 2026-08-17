@@ -1269,8 +1269,13 @@ export function GraiLiquidationActions() {
     voterEntries,
   ])
 
-  const walletGraiLabel = state ? formatTokenBalance(state.walletGrai, graiDecimals) : '—'
-  const voteMaxAmount = state && state.walletGrai > 0n ? formatTokenBalance(state.walletGrai, graiDecimals) : ''
+  const unvotedEscrowGrai = state
+    ? (state.lockedGrai > state.votedGrai ? state.lockedGrai - state.votedGrai : 0n)
+    : 0n
+  const voteAvailableGrai = state ? unvotedEscrowGrai + state.walletGrai : 0n
+  const walletGraiLabel = state ? formatTokenBalance(voteAvailableGrai, graiDecimals) : '—'
+  const voteMaxAmount =
+    state && voteAvailableGrai > 0n ? formatTokenBalance(voteAvailableGrai, graiDecimals) : ''
   const voteAssetOptions = useMemo<GraiAmountAsset[]>(
     () => [
       {
@@ -2134,6 +2139,7 @@ export function GraiLiquidationActions() {
           highlightAddress={walletAddress}
           graiDecimals={graiDecimals}
           selectedLockerId={selectedClaimLocker}
+          claimUsdByLocker={claimableRawByLocker}
           onSelectLocker={(lockerId) => {
             setSelectedClaimLocker(lockerId)
             setClaimAmount('')
@@ -2460,7 +2466,7 @@ export function GraiLiquidationActions() {
                         onValueChange={setVoteAmount}
                         balanceLabel={walletGraiLabel}
                         balanceLoading={isLoading && !state}
-                        balancePrefix="Your balance:"
+                        balancePrefix="Available:"
                         maxAmount={liquidationBlocked ? '' : voteMaxAmount}
                         decimals={graiDecimals}
                         showPresets

@@ -1403,7 +1403,7 @@
           {
             "name": "referrers",
             "docs": [
-              "Treasury-bound lockers in mint order (EVM ERC-721 enumerable / `getReferralsData`)."
+              "Treasury-bound lockers in mint order (EVM ERC-721 enumerable / `getLockersData`)."
             ],
             "type": {
               "vec": "pubkey"

@@ -32,7 +32,7 @@ export function decodeSolanaReferrerBook(data: Buffer): SolanaReferrerBook | nul
   }
 }
 
-async function resolveNftOwner(
+export async function resolveNftOwner(
   connection: Connection,
   nftMint: PublicKey,
   fallback: PublicKey,
@@ -56,7 +56,7 @@ async function resolveNftOwner(
 
 /**
  * Load sticky referral books from `GraiState.referrers` + each locker's Referrer PDA.
- * Shape matches EVM `getReferralsData` rows so the tree UI can reuse `buildReferralForest`.
+ * Shape matches EVM `getLockersData` rows so the tree UI can reuse `buildReferralForest`.
  */
 export async function fetchSolanaReferralBooks(
   connection: Connection,

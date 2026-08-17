@@ -81,13 +81,13 @@ export type GraiStateFixedFields = {
  * GraiState layout (after 8-byte discriminator):
  * owner(32) pending_owner(32) beneficiar(32) grinders(32) settlement_asset(32)
  * total_value(16) total_locked(8) total_voted(8) liquidation(1)
- * liquidation_at(8) Config(22) royalty_bps(2) affiliate_levels(1)
+ * liquidation_at(8) grai_mint(32) Config(22) royalty_bps(2) affiliate_levels(1)
  * affiliate_share_bps(4) then asset_mints / lockers / voters / referrers vecs, then bump.
  *
  * Owner liquidation arm (`confirmed`) lives on GrindersState, not here.
  */
-/** Bytes before `config` in GraiState (includes 8-byte Anchor discriminator). */
-export const GRAI_STATE_CONFIG_OFFSET =
+/** Canonical share mint, immediately before `config` (includes 8-byte discriminator). */
+const GRAI_STATE_GRAI_MINT_OFFSET =
   8 + // discriminator
   32 + // owner
   32 + // pending_owner
@@ -99,6 +99,9 @@ export const GRAI_STATE_CONFIG_OFFSET =
   8 + // total_voted
   1 + // liquidation
   8 // liquidation_at
+
+/** Bytes before `config` in GraiState (includes 8-byte Anchor discriminator). */
+export const GRAI_STATE_CONFIG_OFFSET = GRAI_STATE_GRAI_MINT_OFFSET + 32
 
 /** Config::LEN = 7×u16 + 2×u32 */
 export const GRAI_STATE_CONFIG_LEN = 22
@@ -116,11 +119,11 @@ function readU128LE(data: Buffer, offset: number): bigint {
 }
 
 /**
- * GrindersState: disc(8) + owner(32) + grai_program(32) + next_custodian_id(8) +
- * collection_mint(32) + confirmed(1) + bump(1).
+ * GrindersState: disc(8) + owner(32) + pending_owner(32) + grai_program(32) +
+ * next_custodian_id(8) + collection_mint(32) + confirmed(1) + bump(1).
  */
 export function decodeGrindersConfirmed(data: Buffer): boolean {
-  const offset = 8 + 32 + 32 + 8 + 32
+  const offset = 8 + 32 + 32 + 32 + 8 + 32
   if (data.length <= offset) return false
   return data[offset] !== 0
 }
@@ -296,6 +299,15 @@ export async function fetchGraiProtocol(
     }
 
     const stateData = Buffer.from(stateInfo.data)
+    if (stateData.length < GRAI_STATE_GRAI_MINT_OFFSET + 32) {
+      throw new Error('GRAI protocol state account data too short for grai_mint')
+    }
+    const storedMint = new PublicKey(
+      stateData.subarray(GRAI_STATE_GRAI_MINT_OFFSET, GRAI_STATE_GRAI_MINT_OFFSET + 32),
+    )
+    if (!storedMint.equals(graiMint)) {
+      throw new Error('GRAI mint does not match protocol grai_mint')
+    }
     const fixed = decodeGraiStateFixedFields(stateData)
     const assets = decodePubkeyVecAt(stateData, GRAI_STATE_ASSET_MINTS_OFFSET)
     const lockers = decodePubkeyVecAt(stateData, assets.nextOffset)

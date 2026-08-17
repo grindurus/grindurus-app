@@ -105,9 +105,12 @@ export async function buildPoachTransaction({
   const graiState = graiStatePda(programId)
   const buyerBook = referrerPda(poacher, programId)
   const selfOwned = seller.equals(locker)
-  const sellerBook = selfOwned ? SystemProgram.programId : referrerPda(seller, programId)
+  // `seller_book` / L2 slots are `#[account(mut)]`. System Program is executable so the
+  // runtime demotes it to read-only → Anchor ConstraintMut (2000). Unused slots must be
+  // a writable Referrer PDA (same pattern as treasury.t.ts poach helper).
+  const sellerBook = selfOwned ? lockerReferrer : referrerPda(seller, programId)
 
-  let oldL2Book = SystemProgram.programId
+  let oldL2Book = buyerBook
   if (!selfOwned && protocol.affiliateLevels > 1) {
     const sellerInfo = await connection.getAccountInfo(sellerBook)
     if (sellerInfo?.data) {
@@ -123,7 +126,7 @@ export async function buildPoachTransaction({
     }
   }
 
-  let newL2Book = SystemProgram.programId
+  let newL2Book = buyerBook
   if (protocol.affiliateLevels > 1) {
     const buyerInfo = await connection.getAccountInfo(buyerBook)
     if (buyerInfo?.data) {

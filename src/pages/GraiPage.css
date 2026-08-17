@@ -12219,6 +12219,61 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   overflow: visible;
 }
 
+.grai-referral-dash-title-action {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.grai-referral-dash-title-action:hover,
+.grai-referral-dash-title-action:focus-visible {
+  color: #ff69b4;
+}
+
+.grai-referral-dash-graph-load {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 12px;
+  color: rgba(255, 105, 180, 0.85);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.grai-referral-dash-graph-load-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 105, 180, 0.25);
+  border-top-color: #ff69b4;
+  border-radius: 50%;
+  animation: grai-estimate-spin 0.8s linear infinite;
+}
+
+[data-theme='light'] .grai-referral-dash-graph-load {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-referral-dash-title-action:hover,
+[data-theme='light'] .grai-referral-dash-title-action:focus-visible {
+  color: #e91e8c;
+}
+
 [data-theme='light'] .grai-referral-dash-title {
   color: var(--text-primary);
 }
@@ -12637,6 +12692,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.25rem;
   margin: 0.35rem 0 0;
+}
+
+.grai-referral-graph-node-stats.is-claim {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.grai-referral-graph-node-stats.is-claim dd {
+  font-size: 0.82rem;
+  color: #ff69b4;
 }
 
 .grai-referral-graph-node-stats dt {

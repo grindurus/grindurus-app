@@ -30,6 +30,7 @@ import {
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
 import { claimAffiliateRemainingMetas, depositAffiliateRemainingMetas } from './referralAccounts'
+import { lockRemainingAccountMetas } from './buildLockTransaction'
 
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182])
 const DEPOSIT_SOL_DISCRIMINATOR = Buffer.from([108, 81, 78, 117, 125, 155, 56, 200])

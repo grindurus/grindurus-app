@@ -234,8 +234,7 @@ export async function estimateEvmUnlockPreview(
       penalty = preview[1]
     } catch {
       if (unlockPenaltyBps > 0) {
-        penalty = (amountRaw * BigInt(unlockPenaltyBps)) / BPS
-        if (penalty === 0n) penalty = 1n
+        penalty = (amountRaw * BigInt(unlockPenaltyBps) + BPS - 1n) / BPS
         if (penalty > amountRaw) penalty = amountRaw
         unlockAmount = amountRaw - penalty
       }
@@ -264,4 +263,11 @@ export function formatUnlockPenaltyDuration(secondsLeft: number): string {
   if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
   if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`
   return `${s}s`
+}
+
+/** Flat `unlockPenaltyBps` (100 = 1%). */
+export function formatUnlockPenaltyBps(bps: number): string {
+  if (bps <= 0) return '0%'
+  if (bps % 100 === 0) return `${bps / 100}%`
+  return `${(bps / 100).toFixed(2).replace(/\.?0+$/, '')}%`
 }

@@ -99,35 +99,26 @@ function buildGrindersCashflowHint(): ReactNode {
   )
 }
 
-function formatUnlockFeeWindow(unlockPenaltyPeriodSec: number): string {
-  const duration = unlockPenaltyPeriodSec > 0 ? unlockPenaltyPeriodSec : 24 * 3600
-  const hours = Math.max(1, Math.round(duration / 3600))
-  if (hours === 24) return '24 hours'
-  if (hours % 24 === 0) {
-    const days = hours / 24
-    return days === 1 ? '24 hours' : `${days} days`
-  }
-  return `${hours} hours`
+function formatUnlockPenaltyPercent(bps: number): string {
+  if (bps <= 0) return '0%'
+  if (bps % 100 === 0) return `${bps / 100}%`
+  return `${(bps / 100).toFixed(2).replace(/\.?0+$/, '')}%`
 }
 
-function buildUnlockPenaltyHint(unlockPenaltyPeriodSec: number): ReactNode {
-  const windowLabel = formatUnlockFeeWindow(unlockPenaltyPeriodSec)
+function buildUnlockPenaltyHint(unlockPenaltyBps: number): ReactNode {
+  const pct = formatUnlockPenaltyPercent(unlockPenaltyBps > 0 ? unlockPenaltyBps : 100)
   return (
     <>
       <span className="grai-field-info-tooltip-title">Unlock penalty</span>
       <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">Early unlock</span>
-        A decaying fee applies from the moment you lock. It starts at the configured max and falls
-        linearly to zero.
-      </span>
-      <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">No penalty</span>
-        After {windowLabel} from lock time you can unlock the full amount with no penalty.
+        <span className="grai-field-info-tooltip-section-label">Flat fee</span>
+        Every unlock takes {pct} of the GRAI you withdraw. The fee is rounded up and does not decay
+        over time.
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Where it goes</span>
-        The penalty stays in GRAI and is credited to liquidation voters via the buyback reward
-        index.
+        The penalty stays on the GRAI vault as dead inventory and is scooped by whoever opens
+        liquidation.
       </span>
     </>
   )
@@ -1371,7 +1362,7 @@ export function GraiMintBurnPanel({
                   <span className="grai-action-result-label-wrap">
                     <GraiFieldInfoButton
                       className="grai-action-result-penalty-info"
-                      hint={buildUnlockPenaltyHint(unlockPreview.unlockPenaltyPeriod)}
+                      hint={buildUnlockPenaltyHint(unlockPreview.unlockPenaltyBps)}
                       ariaLabel="About unlock penalty"
                       structured
                     />
