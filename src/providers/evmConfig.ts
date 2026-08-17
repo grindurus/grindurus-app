@@ -23,6 +23,9 @@ const connectors = connectorsForWallets(
 )
 
 export const wagmiConfig = createConfig({
+  // Moves Hydrate.onMount into useEffect so reconnect does not setState during render
+  // when AppWalletProvider re-renders (e.g. selecting MetaMask → setSelectedChainType).
+  ssr: true,
   connectors,
   chains: [mainnet, base, arbitrum, sepolia],
   transports: {

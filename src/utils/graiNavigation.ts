@@ -7,7 +7,6 @@ export type GraiSection =
   | 'unlock'
   | 'burn'
   | 'assets'
-  | 'buyback'
   | 'grinders'
   | 'allocate'
   | 'deallocate'
@@ -23,7 +22,6 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   unlock: 'grai-actions-section',
   burn: 'grai-redeem-section',
   assets: 'grai-assets-section',
-  buyback: 'grai-buyback-section',
   grinders: 'grai-grinders-summary',
   allocate: 'grai-manage-section',
   deallocate: 'grai-manage-section',
@@ -40,7 +38,6 @@ export const GRAI_SECTION_HASHES: GraiSection[] = [
   'unlock',
   'burn',
   'assets',
-  'buyback',
   'grinders',
   'allocate',
   'deallocate',

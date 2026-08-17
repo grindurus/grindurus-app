@@ -32,11 +32,17 @@ import { useGraiBurnEstimate } from '../../hooks/useGraiBurnEstimate'
 import { useGraiMintEstimate } from '../../hooks/useGraiMintEstimate'
 import { useGraiUnlockEstimate } from '../../hooks/useGraiUnlockEstimate'
 import { useGraiClaimEstimate } from '../../hooks/useGraiClaimEstimate'
-import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
+import { useWalletAssetBalance, useWalletAssetBalances } from '../../hooks/useWalletAssetBalance'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
 import { useSolanaWallet } from '../../hooks/useSolanaWallet'
 import { useEvmWallet } from '../../hooks/useEvmWallet'
+import { useWalletContext } from '../../providers/AppWalletProvider'
 import { assetUrl } from '../../utils/appPaths'
+import { FALLBACK_GRAI_ASSETS, isPlaceholderGraiAssetMint } from '../../grai/knownMints'
+import {
+  isValidGraiReferrer,
+  type GraiReferrerChain,
+} from '../../grai/referrer'
 import { readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
 import { GraiMintSubtitleRotatingAsset } from './GraiMintSubtitleRotatingAsset'
@@ -93,35 +99,48 @@ function buildGrindersCashflowHint(): ReactNode {
   )
 }
 
-function formatUnlockFeeWindow(unlockPenaltyPeriodSec: number): string {
-  const duration = unlockPenaltyPeriodSec > 0 ? unlockPenaltyPeriodSec : 24 * 3600
-  const hours = Math.max(1, Math.round(duration / 3600))
-  if (hours === 24) return '24 hours'
-  if (hours % 24 === 0) {
-    const days = hours / 24
-    return days === 1 ? '24 hours' : `${days} days`
-  }
-  return `${hours} hours`
+function formatUnlockPenaltyPercent(bps: number): string {
+  if (bps <= 0) return '0%'
+  if (bps % 100 === 0) return `${bps / 100}%`
+  return `${(bps / 100).toFixed(2).replace(/\.?0+$/, '')}%`
 }
 
-function buildUnlockPenaltyHint(unlockPenaltyPeriodSec: number): ReactNode {
-  const windowLabel = formatUnlockFeeWindow(unlockPenaltyPeriodSec)
+function buildUnlockPenaltyHint(unlockPenaltyBps: number): ReactNode {
+  const pct = formatUnlockPenaltyPercent(unlockPenaltyBps > 0 ? unlockPenaltyBps : 100)
   return (
     <>
       <span className="grai-field-info-tooltip-title">Unlock penalty</span>
       <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">Early unlock</span>
-        A decaying fee applies from the moment you lock. It starts at the configured max and falls
-        linearly to zero.
-      </span>
-      <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">No penalty</span>
-        After {windowLabel} from lock time you can unlock the full amount with no penalty.
+        <span className="grai-field-info-tooltip-section-label">Flat fee</span>
+        Every unlock takes {pct} of the GRAI you withdraw. The fee is rounded up and does not decay
+        over time.
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Where it goes</span>
-        The penalty stays in GRAI and is credited to liquidation voters via the buyback reward
-        index.
+        The penalty stays on the GRAI vault as dead inventory and is scooped by whoever opens
+        liquidation.
+      </span>
+    </>
+  )
+}
+
+function buildReferrerAffiliateHint(): ReactNode {
+  return (
+    <>
+      <span className="grai-field-info-tooltip-title">Referrer</span>
+      <span className="grai-field-info-tooltip-section">
+        <span className="grai-field-info-tooltip-section-label">First deposit</span>
+        On your first deposit the protocol mints an affiliate NFT. The referrer becomes the owner of
+        that NFT.
+      </span>
+      <span className="grai-field-info-tooltip-section">
+        <span className="grai-field-info-tooltip-section-label">Revenue share</span>
+        The referrer receives revenue share from your claims.
+      </span>
+      <span className="grai-field-info-tooltip-section">
+        <span className="grai-field-info-tooltip-section-label">Empty field</span>
+        Leave blank to bind yourself (self-referrer). The bind is permanent unless the affiliate NFT
+        is transferred.
       </span>
     </>
   )
@@ -242,6 +261,7 @@ export function GraiMintBurnPanel({
   onOpenHowItWorks,
 }: Props) {
   const { chainKind, solana, staticSolana, evm, connection, explorerTxUrl } = useGraiDeployment()
+  const { selectedChainType } = useWalletContext()
   const activeWallet = useActiveWallet()
   const solanaWallet = useSolanaWallet()
   const evmWallet = useEvmWallet()
@@ -262,6 +282,8 @@ export function GraiMintBurnPanel({
   const [amount, setAmount] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<GraiAmountAsset | null>(null)
   const [earnDividends, setEarnDividends] = useState(true)
+  const [referrerOpen, setReferrerOpen] = useState(false)
+  const [referrerInput, setReferrerInput] = useState('')
   const [claimAllDividends, setClaimAllDividends] = useState(false)
   const [assetFlowView, setAssetFlowView] = useState<'deposit' | 'claim'>(() => {
     const section = readGraiSectionFromHash()
@@ -341,7 +363,8 @@ export function GraiMintBurnPanel({
       symbol: 'GRAI',
       address: graiMintAddress,
     }
-    const listed = graiAssets
+    const listedSource = graiAssets.length > 0 ? graiAssets : FALLBACK_GRAI_ASSETS
+    const listed = listedSource
       .filter((asset) => asset.symbol.toUpperCase() !== 'GRAI')
       .map((asset) => ({
         icon: asset.icon.src,
@@ -369,6 +392,17 @@ export function GraiMintBurnPanel({
   const isGraiUnlock = isGraiSelected && assetFlowView === 'claim'
   const isGraiLock = isGraiSelected && assetFlowView === 'deposit'
   const isAssetClaim = actionView === 'mint' && !isGraiSelected && assetFlowView === 'claim'
+  const referrerTrimmed = referrerInput.trim()
+  const referrerChain: GraiReferrerChain =
+    selectedChainType === 'evm' || activeWallet.chainType === 'evm' || evmWallet.isConnected
+      ? 'evm'
+      : selectedChainType === 'solana' || activeWallet.chainType === 'solana' || solanaWallet.isConnected
+        ? 'solana'
+        : chainKind === 'solana'
+          ? 'solana'
+          : 'evm'
+  const referrerIsInvalid =
+    referrerTrimmed.length > 0 && !isValidGraiReferrer(referrerTrimmed, referrerChain)
   const lockedGraiLabel = amount.trim() || '0.0'
   const {
     claims: unlockClaims,
@@ -396,20 +430,43 @@ export function GraiMintBurnPanel({
     refresh: refreshClaimEstimate,
   } = useGraiClaimEstimate(isAssetClaim, selectedAsset?.address)
 
+  const { balancesByAddress: mintWalletBalancesByAddress } = useWalletAssetBalances(
+    actionView === 'mint' && !isAssetClaim ? mintAssetOptions : [],
+  )
+
   const mintAssetSelectOptions = useMemo(() => {
-    if (!isAssetClaim) return mintAssetOptions
-    const byMint = new Map(
-      assetClaims.map((row) => [row.assetAddress.toLowerCase(), row] as const),
-    )
+    if (isAssetClaim) {
+      const byMint = new Map(
+        assetClaims.map((row) => [row.assetAddress.toLowerCase(), row] as const),
+      )
+      return mintAssetOptions.map((asset) => {
+        if (asset.symbol.toUpperCase() === 'GRAI') return asset
+        const claim = byMint.get(asset.address.toLowerCase())
+        return {
+          ...asset,
+          detail: claim?.amountLabel ?? '0',
+        }
+      })
+    }
+
     return mintAssetOptions.map((asset) => {
-      if (asset.symbol.toUpperCase() === 'GRAI') return asset
-      const claim = byMint.get(asset.address.toLowerCase())
+      const isGrai = asset.symbol.toUpperCase() === 'GRAI'
+      // Deposit picker: no balance under GRAI. Lock picker: same two-line style as deposit assets.
+      if (isGrai && !isGraiSelected) {
+        return asset
+      }
       return {
         ...asset,
-        detail: claim?.amountLabel ?? '0',
+        detail: mintWalletBalancesByAddress[asset.address.toLowerCase()] ?? '…',
       }
     })
-  }, [assetClaims, isAssetClaim, mintAssetOptions])
+  }, [
+    assetClaims,
+    isAssetClaim,
+    isGraiSelected,
+    mintAssetOptions,
+    mintWalletBalancesByAddress,
+  ])
 
   useEffect(() => {
     if (!claimAllDividends && isPreviewOpen && isAssetClaim) {
@@ -773,6 +830,7 @@ export function GraiMintBurnPanel({
                   amountInput: amount,
                   assetDecimals: decimals ?? undefined,
                   lock: earnDividends,
+                  referrer: referrerInput,
                 })
         : await burnGrai({ amountInput: amount, graiDecimals: decimals ?? undefined })
       toast.update(toastId, {
@@ -822,12 +880,14 @@ export function GraiMintBurnPanel({
     claimAllDividends,
     claimGrai,
     decimals,
+    earnDividends,
     explorerTxUrl,
     lockGrai,
     mintGrai,
     refreshClaimEstimate,
     refreshUnlockEstimate,
     refreshWalletBalance,
+    referrerInput,
     selectedAsset?.address,
     selectedAsset?.symbol,
     unlockGrai,
@@ -1158,56 +1218,141 @@ export function GraiMintBurnPanel({
             showVolatility={false}
             disabled={isClaimAllAssetDividends}
           />
-          {isAssetClaim ? (
-            <div
-              className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
-                claimAllDividends ? ' is-active' : ''
-              }`}
-            >
-              <span className="grai-mint-dividends-toggle-label">
-                <span className="grai-mint-dividends-toggle-label-text">Claim all dividends:</span>
-              </span>
-              <button
-                type="button"
-                className={`grai-mint-dividends-toggle-btn${claimAllDividends ? ' is-active' : ''}`}
-                role="switch"
-                aria-checked={claimAllDividends}
-                aria-label="Claim all dividends"
-                onClick={() => setClaimAllDividends((current) => !current)}
+          {actionView === 'mint' && !isGraiSelected ? (
+            <div className="grai-mint-flow-options">
+              <div
+                className={`grai-mint-flow-options-panel is-deposit${
+                  assetFlowView === 'deposit' ? ' is-active' : ''
+                }`}
+                aria-hidden={assetFlowView !== 'deposit'}
               >
-                <span className="grai-mint-dividends-toggle-option is-yes">Yes</span>
-                <span className="grai-mint-dividends-toggle-track" aria-hidden="true">
-                  <span className="grai-mint-dividends-toggle-thumb" />
-                </span>
-                <span className="grai-mint-dividends-toggle-option is-no">No</span>
-              </button>
-            </div>
-          ) : null}
-          {actionView === 'mint' && !isGraiSelected && !isAssetClaim ? (
-            <div
-              className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
-                earnDividends ? ' is-active' : ''
-              }`}
-            >
-              <span className="grai-mint-dividends-toggle-label">
-                <span className="grai-mint-dividends-toggle-label-text">
-                  Lock GRAI for dividends
-                </span>
-              </span>
-              <button
-                type="button"
-                className={`grai-mint-dividends-toggle-btn${earnDividends ? ' is-active' : ''}`}
-                role="switch"
-                aria-checked={earnDividends}
-                aria-label="Lock GRAI for dividends"
-                onClick={() => setEarnDividends((current) => !current)}
+                <div className="grai-mint-deposit-options">
+                  <div
+                    className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
+                      earnDividends ? ' is-active' : ''
+                    }${referrerOpen ? ' is-referrer-open' : ''}`}
+                  >
+                    <span className="grai-mint-dividends-toggle-label">
+                      <button
+                        type="button"
+                        className="grai-mint-referrer-chevron-btn"
+                        aria-expanded={referrerOpen}
+                        aria-controls="grai-mint-referrer-input"
+                        aria-label={referrerOpen ? 'Hide referrer' : 'Show referrer'}
+                        tabIndex={assetFlowView === 'deposit' ? 0 : -1}
+                        onClick={() => setReferrerOpen((open) => !open)}
+                      >
+                        <GraiUiCaret
+                          className={`grai-mint-referrer-chevron${referrerOpen ? ' is-open' : ''}`}
+                        />
+                      </button>
+                      <span className="grai-mint-dividends-toggle-label-text">
+                        Lock GRAI for dividends
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className={`grai-mint-dividends-toggle-btn${earnDividends ? ' is-active' : ''}`}
+                      role="switch"
+                      aria-checked={earnDividends}
+                      aria-label="Lock GRAI for dividends"
+                      tabIndex={assetFlowView === 'deposit' ? 0 : -1}
+                      onClick={() => setEarnDividends((current) => !current)}
+                    >
+                      <span className="grai-mint-dividends-toggle-option is-yes">Yes</span>
+                      <span className="grai-mint-dividends-toggle-track" aria-hidden="true">
+                        <span className="grai-mint-dividends-toggle-thumb" />
+                      </span>
+                      <span className="grai-mint-dividends-toggle-option is-no">No</span>
+                    </button>
+                  </div>
+                  {referrerOpen ? (
+                    <div
+                      className={`grai-mint-referrer-field${referrerIsInvalid ? ' is-invalid' : ''}`}
+                    >
+                      <div className="grai-mint-referrer-label-row">
+                        <label className="grai-mint-referrer-label" htmlFor="grai-mint-referrer-input">
+                          Referrer
+                        </label>
+                        <GraiFieldInfoButton
+                          className="grai-mint-referrer-info"
+                          ariaLabel="About referrer"
+                          hint={buildReferrerAffiliateHint()}
+                          structured
+                        />
+                      </div>
+                      <input
+                        id="grai-mint-referrer-input"
+                        className={`grai-mint-referrer-input${referrerIsInvalid ? ' is-invalid' : ''}`}
+                        type="text"
+                        inputMode="text"
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder={
+                          referrerChain === 'solana'
+                            ? 'Solana wallet address…'
+                            : 'EVM wallet address (0x…)'
+                        }
+                        value={referrerInput}
+                        aria-invalid={referrerIsInvalid}
+                        aria-describedby={
+                          referrerIsInvalid ? 'grai-mint-referrer-error' : undefined
+                        }
+                        tabIndex={assetFlowView === 'deposit' ? 0 : -1}
+                        onChange={(event) => {
+                          setReferrerInput(event.target.value)
+                        }}
+                      />
+                      {referrerIsInvalid ? (
+                        <p
+                          id="grai-mint-referrer-error"
+                          className="grai-mint-referrer-error"
+                          role="alert"
+                        >
+                          {referrerChain === 'solana'
+                            ? 'Enter a valid Solana wallet address'
+                            : 'Enter a valid EVM wallet address (0x + 40 hex)'}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div
+                className={`grai-mint-flow-options-panel is-claim${
+                  assetFlowView === 'claim' ? ' is-active' : ''
+                }`}
+                aria-hidden={assetFlowView !== 'claim'}
               >
-                <span className="grai-mint-dividends-toggle-option is-yes">Yes</span>
-                <span className="grai-mint-dividends-toggle-track" aria-hidden="true">
-                  <span className="grai-mint-dividends-toggle-thumb" />
-                </span>
-                <span className="grai-mint-dividends-toggle-option is-no">No</span>
-              </button>
+                <div
+                  className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
+                    claimAllDividends ? ' is-active' : ''
+                  }`}
+                >
+                  <span className="grai-mint-dividends-toggle-label">
+                    <span className="grai-mint-dividends-toggle-label-text">
+                      Claim all dividends:
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={`grai-mint-dividends-toggle-btn${
+                      claimAllDividends ? ' is-active' : ''
+                    }`}
+                    role="switch"
+                    aria-checked={claimAllDividends}
+                    aria-label="Claim all dividends"
+                    tabIndex={assetFlowView === 'claim' ? 0 : -1}
+                    onClick={() => setClaimAllDividends((current) => !current)}
+                  >
+                    <span className="grai-mint-dividends-toggle-option is-yes">Yes</span>
+                    <span className="grai-mint-dividends-toggle-track" aria-hidden="true">
+                      <span className="grai-mint-dividends-toggle-thumb" />
+                    </span>
+                    <span className="grai-mint-dividends-toggle-option is-no">No</span>
+                  </button>
+                </div>
+              </div>
             </div>
           ) : null}
           {actionView === 'mint' && isGraiSelected ? (
@@ -1217,7 +1362,7 @@ export function GraiMintBurnPanel({
                   <span className="grai-action-result-label-wrap">
                     <GraiFieldInfoButton
                       className="grai-action-result-penalty-info"
-                      hint={buildUnlockPenaltyHint(unlockPreview.unlockPenaltyPeriod)}
+                      hint={buildUnlockPenaltyHint(unlockPreview.unlockPenaltyBps)}
                       ariaLabel="About unlock penalty"
                       structured
                     />
@@ -1529,6 +1674,14 @@ export function GraiMintBurnPanel({
                 disabled={
                   isPending ||
                   (actionView === 'mint' && !selectedAsset?.address && !isClaimAllAssetDividends) ||
+                  (actionView === 'mint' &&
+                    !isGraiSelected &&
+                    !isAssetClaim &&
+                    Boolean(selectedAsset?.address && isPlaceholderGraiAssetMint(selectedAsset.address))) ||
+                  (actionView === 'mint' &&
+                    !isGraiSelected &&
+                    !isAssetClaim &&
+                    referrerIsInvalid) ||
                   (isClaimAllAssetDividends ? false : unlockAmountIsEmptyOrZero)
                 }
                 onClick={() => {

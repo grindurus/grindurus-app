@@ -1,6 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { fetchAccountsByKey, getAccountData } from './accountBatch'
 import type { GraiSolanaRuntime } from './deployments'
+import { decodeGraiStateTotalValue } from './fetchGraiProtocol'
 import {
   decodeAssetConfigPriceFeed,
   decodeMintSupply,
@@ -9,19 +10,6 @@ import {
 import { parseOraclePriceFeed } from './oraclePrice'
 import { assetConfigPda } from './pdas'
 import { depositValue, graiMintAmount } from './tokenomics'
-
-function readU128LE(buf: Buffer, offset: number): bigint {
-  let value = 0n
-  for (let i = 0; i < 16; i += 1) {
-    value |= BigInt(buf[offset + i]!) << BigInt(i * 8)
-  }
-  return value
-}
-
-function decodeGraiStateTotalValue(data: Buffer): bigint {
-  // After disc(8) + authority/treasury/grinders/bribe (128) → total_value at 136.
-  return readU128LE(data, 136)
-}
 
 function tryParseDepositAmount(amountInput: string, assetDecimals: number): bigint | null {
   const trimmed = amountInput.trim()

@@ -11,7 +11,7 @@ type BossEndpointsTableProps = {
 }
 
 const RESET_ENDPOINTS_HINT =
-  'Clear local endpoint changes and re-fetch boss URLs from GRAI metadata (metadata.json).'
+  'Clear local endpoint changes and re-fetch boss URLs from GRAI metadata (grai.json).'
 
 const ENDPOINTS_LEAD_HINT =
   'Boss API URIs for grinder data. Defaults load from GRAI metadata; reorder, probe, edit, or add URIs locally.'

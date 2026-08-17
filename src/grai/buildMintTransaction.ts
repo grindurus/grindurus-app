@@ -23,21 +23,31 @@ import {
   escrowPda,
   getAssociatedTokenAddress,
   grindersStatePda,
+  referrerPda,
   TOKEN_PROGRAM_ID,
+  treasuryNftDepositAccounts,
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import { depositAffiliateRemainingMetas } from './referralAccounts'
 import { lockRemainingAccountMetas } from './buildLockTransaction'
+import { fetchAccountsByKey } from './accountBatch'
 
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182])
 const DEPOSIT_SOL_DISCRIMINATOR = Buffer.from([108, 81, 78, 117, 125, 155, 56, 200])
 
-/** Anchor args: `amount: u64` + `lock: bool`. */
-function encodeDepositInstructionData(amount: bigint, lock: boolean, isSol: boolean): Buffer {
-  const data = Buffer.alloc(17)
+/** Anchor args: `amount: u64` + `lock: bool` + `referrer: Pubkey`. */
+function encodeDepositInstructionData(
+  amount: bigint,
+  lock: boolean,
+  referrer: PublicKey,
+  isSol: boolean,
+): Buffer {
+  const data = Buffer.alloc(49)
   ;(isSol ? DEPOSIT_SOL_DISCRIMINATOR : DEPOSIT_DISCRIMINATOR).copy(data, 0)
   data.writeBigUInt64LE(amount, 8)
   data.writeUInt8(lock ? 1 : 0, 16)
+  referrer.toBuffer().copy(data, 17)
   return data
 }
 
@@ -49,6 +59,18 @@ export type BuildMintTransactionParams = {
   config: GraiSolanaRuntime
   /** Escrow minted GRAI in the same tx (EVM `deposit(..., lock)`). Default false. */
   lock?: boolean
+  /**
+   * Sticky affiliate pubkey. Omit / default / self → self-bind on-chain.
+   * Pass a locker pubkey to bind as L1 referrer on first deposit.
+   */
+  referrer?: PublicKey | string | null
+}
+
+function resolveStickyReferrer(minter: PublicKey, referrer?: PublicKey | string | null): PublicKey {
+  if (referrer == null || referrer === '') return PublicKey.default
+  const key = typeof referrer === 'string' ? new PublicKey(referrer) : referrer
+  if (key.equals(PublicKey.default) || key.equals(minter)) return PublicKey.default
+  return key
 }
 
 /** Builds a `deposit` / `deposit_sol` transaction (legacy name kept for app hooks). */
@@ -59,6 +81,7 @@ export async function buildMintTransaction({
   connection,
   config,
   lock = false,
+  referrer: referrerInput = null,
 }: BuildMintTransactionParams): Promise<Transaction> {
   if (amount <= 0n) {
     throw new Error('Amount must be greater than zero')
@@ -66,6 +89,7 @@ export async function buildMintTransaction({
 
   const programId = config.programId
   const isSol = assetMint.toBase58() === NATIVE_MINT
+  const stickyReferrer = resolveStickyReferrer(minter, referrerInput)
   const graiState = graiStatePda(programId)
   const protocol = await fetchGraiProtocol(connection, config.graiMint)
   const grindersProgram = resolveSolanaGrindersProgramId(config.cluster)
@@ -79,6 +103,8 @@ export async function buildMintTransaction({
   const grindersAta = getAssociatedTokenAddress(assetMint, grindersState)
   const escrow = escrowPda(minter, programId)
   const graiVaultAta = vaultAtaPda(config.graiMint, programId)
+  const lockerReferrer = referrerPda(minter, programId)
+  const nftAccounts = treasuryNftDepositAccounts(minter, programId)
 
   const keys = [
     { pubkey: minter, isSigner: true, isWritable: true },
@@ -88,6 +114,11 @@ export async function buildMintTransaction({
     { pubkey: assetConfig, isSigner: false, isWritable: false },
     { pubkey: priceFeed, isSigner: false, isWritable: false },
     { pubkey: grindersState, isSigner: false, isWritable: false },
+    { pubkey: lockerReferrer, isSigner: false, isWritable: true },
+    { pubkey: nftAccounts.treasuryNftMint, isSigner: false, isWritable: true },
+    { pubkey: nftAccounts.treasuryNftMetadata, isSigner: false, isWritable: true },
+    { pubkey: nftAccounts.treasuryNftEdition, isSigner: false, isWritable: true },
+    { pubkey: nftAccounts.treasuryNftAta, isSigner: false, isWritable: true },
     { pubkey: depositorAssetAta, isSigner: false, isWritable: true },
     { pubkey: grindersAta, isSigner: false, isWritable: true },
     { pubkey: depositorGraiAta, isSigner: false, isWritable: true },
@@ -95,6 +126,7 @@ export async function buildMintTransaction({
     { pubkey: graiVaultAta, isSigner: false, isWritable: true },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: nftAccounts.tokenMetadataProgram, isSigner: false, isWritable: false },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
   ]
@@ -103,17 +135,29 @@ export async function buildMintTransaction({
     keys.push(...lockRemainingAccountMetas(minter, protocol.assetMints, programId))
   }
 
+  // L1/L2 ReferralBook PDAs after lock pairs (M-04: required after sticky bind; H-07 on first bind).
+  keys.push(
+    ...(await depositAffiliateRemainingMetas(
+      connection,
+      minter,
+      stickyReferrer,
+      programId,
+    )),
+  )
+
   const depositIx = new TransactionInstruction({
     programId,
     keys,
-    data: encodeDepositInstructionData(amount, lock, isSol),
+    data: encodeDepositInstructionData(amount, lock, stickyReferrer, isSol),
   })
 
   const instructions: TransactionInstruction[] = []
+  const ataKeys: PublicKey[] = [grindersAta, depositorGraiAta]
+  if (!isSol) ataKeys.unshift(depositorAssetAta)
+  const ataAccounts = await fetchAccountsByKey(connection, ataKeys)
 
   if (!isSol) {
-    const depositorAssetAtaInfo = await connection.getAccountInfo(depositorAssetAta)
-    if (!depositorAssetAtaInfo) {
+    if (!ataAccounts.get(depositorAssetAta.toBase58())) {
       instructions.push(
         createAssociatedTokenAccountIdempotentInstruction(
           minter,
@@ -134,8 +178,18 @@ export async function buildMintTransaction({
     )
   }
 
-  const depositorGraiAtaInfo = await connection.getAccountInfo(depositorGraiAta)
-  if (!depositorGraiAtaInfo) {
+  if (!ataAccounts.get(grindersAta.toBase58())) {
+    instructions.push(
+      createAssociatedTokenAccountIdempotentInstruction(
+        minter,
+        grindersAta,
+        grindersState,
+        assetMint,
+      ),
+    )
+  }
+
+  if (!ataAccounts.get(depositorGraiAta.toBase58())) {
     instructions.push(
       createAssociatedTokenAccountIdempotentInstruction(
         minter,
@@ -167,6 +221,7 @@ export type ExecuteMintParams = {
   connection: Connection
   config: GraiSolanaRuntime
   lock?: boolean
+  referrer?: PublicKey | string | null
 }
 
 export async function executeMint({
@@ -177,6 +232,7 @@ export async function executeMint({
   connection,
   config,
   lock = false,
+  referrer = null,
 }: ExecuteMintParams): Promise<{ signature: string; amount: bigint }> {
   const decimals = await fetchMintDecimals(connection, assetMint)
   const amount = parseTokenAmount(amountInput, decimals)
@@ -187,6 +243,7 @@ export async function executeMint({
     connection,
     config,
     lock,
+    referrer,
   })
   const signed = await signTransaction(transaction)
   const signature = await connection.sendRawTransaction(signed.serialize(), {

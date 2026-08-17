@@ -11,6 +11,9 @@ export async function fetchGraiStateFixedFields(
   const protocol = await fetchGraiProtocol(connection, config.graiMint)
   return {
     authority: protocol.authority,
+    owner: protocol.owner,
+    pendingOwner: protocol.pendingOwner,
+    beneficiar: protocol.beneficiar,
     treasury: protocol.treasury,
     treasuryWallet: protocol.treasury,
     grinders: protocol.grinders,

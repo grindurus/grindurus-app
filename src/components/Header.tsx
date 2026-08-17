@@ -3,9 +3,9 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { ConnectWalletButton } from './ConnectWalletButton'
 import { HeaderSettingsPopover } from './HeaderSettingsPopover'
-import { BALANCE_COLUMN_ICONS } from './grai/graiPageIcons'
 import { GraiUiCaret } from './grai/GraiUiCaret'
 import { navigateToGraiSection, type GraiSection } from '../utils/graiNavigation'
+import { navigateToGrsSection, type GrsSection } from '../utils/grsNavigation'
 import { assetUrl } from '../utils/appPaths'
 import './Header.css'
 
@@ -37,13 +37,6 @@ const LIQUIDATE_NAV_ICON = (
   </svg>
 )
 
-const REDEEM_NAV_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M8 12h8" />
-  </svg>
-)
-
 const VOTE_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="m9 12 2 2 4-4" />
@@ -69,10 +62,13 @@ const CLAIM_NAV_ICON = (
   </svg>
 )
 
-const BUYBACK_NAV_ICON = (
+const DISTRIBUTE_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-    <path d="M3 3v5h5" />
+    <circle cx="5" cy="6" r="2.25" />
+    <circle cx="19" cy="6" r="2.25" />
+    <circle cx="12" cy="18" r="2.25" />
+    <path d="M7 7.5 10.5 15" />
+    <path d="m17 7.5-3.5 7.5" />
   </svg>
 )
 
@@ -81,37 +77,65 @@ const GRAI_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[]
   { section: 'claim', label: 'Claim', icon: CLAIM_NAV_ICON },
   { section: 'lock', label: 'Lock', icon: LOCK_NAV_ICON },
   { section: 'unlock', label: 'Unlock', icon: UNLOCK_NAV_ICON },
-  { section: 'assets', label: 'Assets', icon: BALANCE_COLUMN_ICONS.assets },
-  { section: 'buyback', label: 'Buyback', icon: BUYBACK_NAV_ICON },
+  { section: 'assets', label: 'Distribute', icon: DISTRIBUTE_NAV_ICON },
   { section: 'vote', label: 'Vote', icon: VOTE_NAV_ICON },
   { section: 'bribe', label: 'Bribe', icon: BRIBE_NAV_ICON },
   { section: 'auctions', label: 'Liquidate', icon: LIQUIDATE_NAV_ICON },
-  { section: 'burn', label: 'Redeem', icon: REDEEM_NAV_ICON },
+]
+
+const BRIDGE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M7 17 17 7" />
+    <path d="M7 7h10v10" />
+  </svg>
+)
+
+const SALE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="9" cy="20" r="1.4" />
+    <circle cx="18" cy="20" r="1.4" />
+    <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h8.4a2 2 0 0 0 1.95-1.55L21 8H7" />
+  </svg>
+)
+
+const GRS_NAV_ITEMS: { section: GrsSection; label: string; icon: ReactNode }[] = [
+  { section: 'bridge', label: 'Bridge', icon: BRIDGE_NAV_ICON },
+  { section: 'sales', label: 'Sale', icon: SALE_NAV_ICON },
+  { section: 'vesting', label: 'Release', icon: UNLOCK_NAV_ICON },
+  { section: 'vest', label: 'Vest', icon: LOCK_NAV_ICON },
 ]
 
 function Header() {
   const { pathname } = useLocation()
   const isBacktestActive = pathname.startsWith('/backtest')
   const isGraiActive = pathname.startsWith('/grai')
+  const isGrsActive = pathname.startsWith('/grs')
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isGraiMenuOpen, setIsGraiMenuOpen] = useState(false)
+  const [isGrsMenuOpen, setIsGrsMenuOpen] = useState(false)
   const mobileNavId = useId()
   const graiMenuRef = useRef<HTMLLIElement>(null)
+  const grsMenuRef = useRef<HTMLLIElement>(null)
 
   useEffect(() => {
     setIsMobileNavOpen(false)
     setIsGraiMenuOpen(false)
+    setIsGrsMenuOpen(false)
   }, [pathname])
 
   useEffect(() => {
-    if (!isGraiMenuOpen) return
+    if (!isGraiMenuOpen && !isGrsMenuOpen) return
 
     const onDocumentClick = (event: MouseEvent) => {
-      if (graiMenuRef.current?.contains(event.target as Node)) return
-      setIsGraiMenuOpen(false)
+      const target = event.target as Node
+      if (!graiMenuRef.current?.contains(target)) setIsGraiMenuOpen(false)
+      if (!grsMenuRef.current?.contains(target)) setIsGrsMenuOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsGraiMenuOpen(false)
+      if (event.key === 'Escape') {
+        setIsGraiMenuOpen(false)
+        setIsGrsMenuOpen(false)
+      }
     }
     document.addEventListener('mousedown', onDocumentClick)
     window.addEventListener('keydown', onKeyDown)
@@ -119,7 +143,7 @@ function Header() {
       document.removeEventListener('mousedown', onDocumentClick)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isGraiMenuOpen])
+  }, [isGraiMenuOpen, isGrsMenuOpen])
 
   const headerRef = useRef<HTMLElement>(null)
   const [navLockSpacerHeight, setNavLockSpacerHeight] = useState(0)
@@ -171,6 +195,11 @@ function Header() {
     navigateToGraiSection(section)
   }
 
+  const handleGrsSectionClick = (section: GrsSection) => {
+    setIsGrsMenuOpen(false)
+    navigateToGrsSection(section)
+  }
+
   return (
     <>
     <header
@@ -217,7 +246,10 @@ function Header() {
                   aria-expanded={isGraiMenuOpen}
                   aria-haspopup="menu"
                   aria-label="GRAI sections"
-                  onClick={() => setIsGraiMenuOpen((open) => !open)}
+                  onClick={() => {
+                    setIsGrsMenuOpen(false)
+                    setIsGraiMenuOpen((open) => !open)
+                  }}
                 >
                   <GraiUiCaret className="header-nav-caret" />
                 </button>
@@ -234,6 +266,49 @@ function Header() {
                       role="menuitem"
                       className="header-nav-dropdown-item"
                       onClick={() => handleGraiSectionClick(item.section)}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </li>
+              <li
+                ref={grsMenuRef}
+                className={`header-nav-item header-nav-item--grai${isGrsMenuOpen ? ' is-open' : ''}`}
+              >
+                <NavLink
+                  to="/grs"
+                  className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+                >
+                  GRS
+                </NavLink>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn${isGrsMenuOpen ? ' is-open' : ''}`}
+                  aria-expanded={isGrsMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="GRS sections"
+                  onClick={() => {
+                    setIsGraiMenuOpen(false)
+                    setIsGrsMenuOpen((open) => !open)
+                  }}
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+                <div
+                  className={`header-nav-dropdown${isGrsMenuOpen ? ' is-open' : ''}`}
+                  role="menu"
+                  aria-label="GRS sections"
+                  aria-hidden={!isGrsMenuOpen}
+                >
+                  {GRS_NAV_ITEMS.map((item) => (
+                    <button
+                      key={item.section}
+                      type="button"
+                      role="menuitem"
+                      className="header-nav-dropdown-item"
+                      onClick={() => handleGrsSectionClick(item.section)}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
                       <span>{item.label}</span>
@@ -299,6 +374,15 @@ function Header() {
             </li>
             <li>
               <NavLink
+                to="/grs"
+                className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+                onClick={() => setIsMobileNavOpen(false)}
+              >
+                GRS
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
                 to="/grinders"
                 className={({ isActive }) =>
                   `header-nav-link header-nav-link--grinders${isActive ? ' is-current' : ''}`
@@ -318,6 +402,23 @@ function Header() {
                       onClick={() => {
                         setIsMobileNavOpen(false)
                         handleGraiSectionClick(item.section)
+                      }}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                ))
+              : null}
+            {isGrsActive
+              ? GRS_NAV_ITEMS.map((item) => (
+                  <li key={item.section}>
+                    <button
+                      type="button"
+                      className="header-nav-link header-mobile-nav-sublink"
+                      onClick={() => {
+                        setIsMobileNavOpen(false)
+                        handleGrsSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>

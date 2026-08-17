@@ -1,6 +1,14 @@
 import { lazy, ReactNode, Suspense } from 'react'
 
-const EvmProvider = lazy(() => import('./EvmProvider').then((module) => ({ default: module.EvmProvider })))
+const loadEvmProvider = () =>
+  import('./EvmProvider').then((module) => ({ default: module.EvmProvider }))
+
+const EvmProvider = lazy(loadEvmProvider)
+
+/** Warm the wagmi / RainbowKit chunk before Connect Wallet opens. */
+export function preloadEvmProvider(): void {
+  void loadEvmProvider()
+}
 
 type LazyEvmShellProps = {
   enabled: boolean

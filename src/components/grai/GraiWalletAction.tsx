@@ -133,7 +133,7 @@ export function GraiWalletActorRow({
 
 /** Opens the same ChainSelectorModal as the header Connect Wallet button. */
 export function GraiActionConnectWalletButton() {
-  const { isChainSelectorOpen, openChainSelector } = useWalletContext()
+  const { isChainSelectorOpen, openChainSelector, warmEvmStack } = useWalletContext()
   const activeWallet = useActiveWallet()
   const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
   const touchOpenedRef = useRef(false)
@@ -164,6 +164,8 @@ export function GraiActionConnectWalletButton() {
     <button
       type="button"
       className="connect-wallet-btn grai-action-connect-wallet-btn"
+      onPointerEnter={warmEvmStack}
+      onFocus={warmEvmStack}
       onPointerUp={handlePointerUp}
       onClick={handleClick}
       disabled={showConnecting}

@@ -7,16 +7,17 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
-import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { fetchAssetConfigPriceFeed, fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
 import {
-  resolveSolanaAllocateCustodyAccounts,
+  assertSolanaCustodianWallet,
   resolveSolanaGrindersProgramId,
 } from './solanaAllocateCustody'
 import {
   assetConfigPda,
   getAssociatedTokenAddress,
+  grindersStatePda,
   TOKEN_PROGRAM_ID,
+  treasuryVaultPda,
   vaultAtaPda,
   positionPda,
 } from './pdas'
@@ -35,7 +36,7 @@ export type BuildDistributeTransactionParams = {
   custodyWallet: PublicKey
   assetMint: PublicKey
   yieldAmount: bigint
-  /** Signs as grinders custodian NFT owner; defaults to custodyWallet when omitted. */
+  /** Signs as grinders protocol owner. */
   owner?: PublicKey
   /** Pays for Position init; defaults to owner. */
   payer?: PublicKey
@@ -59,25 +60,14 @@ export async function buildDistributeTransaction({
   const programId = config.programId
   const graiState = graiStatePda(programId)
   const grindersProgram = resolveSolanaGrindersProgramId(config.cluster)
-  const { custodianRecord } = await resolveSolanaAllocateCustodyAccounts(
-    connection,
-    custodyWallet,
-    grindersProgram,
-  )
-
-  const protocol = await fetchGraiProtocol(connection, config.graiMint)
-  const settlementMint = protocol.settlementAsset
-  if (settlementMint.equals(PublicKey.default)) {
-    throw new Error('Settlement asset is not set on GRAI protocol')
-  }
+  const grindersState = grindersStatePda(grindersProgram)
+  await assertSolanaCustodianWallet(connection, custodyWallet, grindersProgram)
 
   const assetConfig = assetConfigPda(assetMint, programId)
-  const settlementAssetConfig = assetConfigPda(settlementMint, programId)
   const priceFeed = await fetchAssetConfigPriceFeed(connection, assetConfig)
-  const settlementPriceFeed = await fetchAssetConfigPriceFeed(connection, settlementAssetConfig)
   const custodyAta = getAssociatedTokenAddress(assetMint, custodyWallet)
   const vaultAta = vaultAtaPda(assetMint, programId)
-  const treasuryAta = getAssociatedTokenAddress(assetMint, protocol.treasury)
+  const treasuryAta = treasuryVaultPda(assetMint, programId)
   const position = positionPda(custodyWallet, assetMint, programId)
 
   const signer = owner ?? custodyWallet
@@ -88,16 +78,14 @@ export async function buildDistributeTransaction({
     keys: [
       { pubkey: signer, isSigner: true, isWritable: false },
       { pubkey: feePayer, isSigner: true, isWritable: true },
-      { pubkey: custodyWallet, isSigner: false, isWritable: false },
-      { pubkey: custodianRecord, isSigner: false, isWritable: false },
+      { pubkey: grindersState, isSigner: false, isWritable: false },
+      { pubkey: custodyWallet, isSigner: false, isWritable: true },
       { pubkey: programId, isSigner: false, isWritable: false },
       { pubkey: graiState, isSigner: false, isWritable: true },
       { pubkey: assetMint, isSigner: false, isWritable: false },
       { pubkey: assetConfig, isSigner: false, isWritable: true },
       { pubkey: priceFeed, isSigner: false, isWritable: false },
-      { pubkey: settlementMint, isSigner: false, isWritable: false },
-      { pubkey: settlementAssetConfig, isSigner: false, isWritable: false },
-      { pubkey: settlementPriceFeed, isSigner: false, isWritable: false },
+      { pubkey: config.graiMint, isSigner: false, isWritable: false },
       { pubkey: custodyAta, isSigner: false, isWritable: true },
       { pubkey: vaultAta, isSigner: false, isWritable: true },
       { pubkey: treasuryAta, isSigner: false, isWritable: true },
@@ -124,7 +112,6 @@ export type ExecuteDistributeParams = {
   assetMint: PublicKey
   amountInput: string
   owner?: PublicKey
-  payer?: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
   connection: Connection
   config: GraiSolanaRuntime
@@ -135,7 +122,6 @@ export async function executeDistribute({
   assetMint,
   amountInput,
   owner,
-  payer,
   signTransaction,
   connection,
   config,
@@ -147,7 +133,6 @@ export async function executeDistribute({
     assetMint,
     yieldAmount,
     owner,
-    payer,
     connection,
     config,
   })

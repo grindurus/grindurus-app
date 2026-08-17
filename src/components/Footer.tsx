@@ -72,7 +72,7 @@ function Footer() {
           </div>
         </div>
 
-        <p className="app-footer-tagline">Passive access to volatility harvesting.</p>
+        <p className="app-footer-tagline">Passively earn yield from price volatility.</p>
       </div>
     </footer>
   )

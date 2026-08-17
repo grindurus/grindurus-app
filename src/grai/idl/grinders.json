@@ -1,0 +1,1527 @@
+{
+  "address": "7W9uhZZvmHSyhRmdDRnbZPZfaUdJaMbGMWsBLjSRWT5v",
+  "metadata": {
+    "name": "grinders",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Grinders: custodian NFT registry for GRAI"
+  },
+  "instructions": [
+    {
+      "name": "allocate",
+      "discriminator": [
+        64,
+        38,
+        189,
+        129,
+        24,
+        157,
+        82,
+        136
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "custodian_state"
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "grinders_ata",
+          "writable": true
+        },
+        {
+          "name": "custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "custodian_deallocate",
+      "discriminator": [
+        39,
+        155,
+        162,
+        95,
+        163,
+        247,
+        255,
+        195
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "custodian_state"
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "grinders_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "custodian_distribute",
+      "discriminator": [
+        181,
+        75,
+        97,
+        68,
+        255,
+        95,
+        111,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "custodian_state",
+          "writable": true
+        },
+        {
+          "name": "grai_program"
+        },
+        {
+          "name": "grai_state",
+          "writable": true
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "asset_config",
+          "writable": true
+        },
+        {
+          "name": "price_feed"
+        },
+        {
+          "name": "grai_mint"
+        },
+        {
+          "name": "custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "vault_ata",
+          "writable": true
+        },
+        {
+          "name": "treasury_ata",
+          "writable": true
+        },
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "yield_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "custodian_jupiter_gasless_swap",
+      "docs": [
+        "`grindurus.custodian.jupiter_gasless` — Jupiter path; grinders pays SOL (stub)."
+      ],
+      "discriminator": [
+        97,
+        176,
+        6,
+        152,
+        175,
+        137,
+        239,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "fee_payer",
+          "docs": [
+            "Signs and pays SOL for the outer transaction; must not be the grinder."
+          ],
+          "signer": true
+        },
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "custodian_state"
+        },
+        {
+          "name": "base_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "quote_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        }
+      ],
+      "args": [
+        {
+          "name": "min_out_amount",
+          "type": "u64"
+        },
+        {
+          "name": "ix_data",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "custodian_swap",
+      "docs": [
+        "`grindurus.custodian.explicit_swap` — router CPI; grinder pays SOL for the transaction off-chain."
+      ],
+      "discriminator": [
+        173,
+        23,
+        87,
+        31,
+        170,
+        138,
+        155,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "custodian_state"
+        },
+        {
+          "name": "base_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "quote_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        }
+      ],
+      "args": [
+        {
+          "name": "limit_price",
+          "type": "u128"
+        },
+        {
+          "name": "ix_data",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "grai_program"
+        },
+        {
+          "name": "grinders_state",
+          "writable": true
+        },
+        {
+          "name": "collection_mint",
+          "writable": true
+        },
+        {
+          "name": "collection_token_account",
+          "writable": true
+        },
+        {
+          "name": "collection_metadata",
+          "writable": true
+        },
+        {
+          "name": "collection_master_edition",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "token_metadata_program"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "rent"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "liquidate_custodian",
+      "docs": [
+        "Permissionless custodian sweep while GRAI liquidation is open (EVM `Grinders.liquidate`).",
+        "Pulls base + quote → Grinders ATAs, then forwards those amounts → GRAI vaults."
+      ],
+      "discriminator": [
+        193,
+        17,
+        50,
+        17,
+        107,
+        94,
+        0,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "custodian_state",
+          "writable": true
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "base_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "quote_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "base_grinders_ata",
+          "writable": true
+        },
+        {
+          "name": "quote_grinders_ata",
+          "writable": true
+        },
+        {
+          "name": "base_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "quote_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "liquidate_idle",
+      "docs": [
+        "Permissionless idle-reserve sweep while GRAI liquidation is open.",
+        "Remaining accounts: per listed GRAI asset — `[grinders_ata, grai_vault_ata]`."
+      ],
+      "discriminator": [
+        92,
+        158,
+        171,
+        207,
+        194,
+        163,
+        64,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "mint",
+      "discriminator": [
+        51,
+        57,
+        225,
+        47,
+        182,
+        146,
+        137,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "custodian_owner"
+        },
+        {
+          "name": "grinders_state",
+          "writable": true
+        },
+        {
+          "name": "grai_program"
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "custodian_state",
+          "writable": true
+        },
+        {
+          "name": "collection_mint"
+        },
+        {
+          "name": "collection_metadata"
+        },
+        {
+          "name": "collection_master_edition"
+        },
+        {
+          "name": "custodian_mint",
+          "writable": true
+        },
+        {
+          "name": "custodian_nft_ata",
+          "writable": true
+        },
+        {
+          "name": "custodian_metadata",
+          "writable": true
+        },
+        {
+          "name": "base_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "quote_custodian_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "token_metadata_program"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "rent"
+        }
+      ],
+      "args": [
+        {
+          "name": "custodian_kind",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_assets",
+      "docs": [
+        "Protocol owner sets base/quote trading assets (EVM `Grinders.setAssets`)."
+      ],
+      "discriminator": [
+        133,
+        157,
+        142,
+        223,
+        213,
+        231,
+        238,
+        228
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "custodian_state",
+          "writable": true
+        },
+        {
+          "name": "base_custodian_ata",
+          "docs": [
+            "Current base custodian ATA (must be empty)."
+          ]
+        },
+        {
+          "name": "quote_custodian_ata",
+          "docs": [
+            "Current quote custodian ATA (must be empty)."
+          ]
+        },
+        {
+          "name": "new_base_mint"
+        },
+        {
+          "name": "new_quote_mint"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_grai",
+      "docs": [
+        "Owner retargets the linked GRAI program (EVM `Grinders.setGrai`)."
+      ],
+      "discriminator": [
+        236,
+        190,
+        247,
+        248,
+        25,
+        226,
+        184,
+        69
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "grinders_state",
+          "writable": true
+        },
+        {
+          "name": "grai_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "transfer_custodian_nft",
+      "discriminator": [
+        46,
+        213,
+        220,
+        40,
+        233,
+        92,
+        171,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "current_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "new_owner"
+        },
+        {
+          "name": "custodian_state",
+          "writable": true
+        },
+        {
+          "name": "custodian_mint"
+        },
+        {
+          "name": "from_ata",
+          "writable": true
+        },
+        {
+          "name": "to_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "grinders_state",
+          "writable": true
+        },
+        {
+          "name": "to",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_token",
+      "discriminator": [
+        136,
+        235,
+        181,
+        5,
+        101,
+        109,
+        57,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "grinders_state"
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "to"
+        },
+        {
+          "name": "grinders_ata",
+          "writable": true
+        },
+        {
+          "name": "to_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CustodianState",
+      "discriminator": [
+        72,
+        149,
+        199,
+        139,
+        35,
+        137,
+        57,
+        104
+      ]
+    },
+    {
+      "name": "GraiState",
+      "discriminator": [
+        145,
+        250,
+        216,
+        73,
+        29,
+        234,
+        121,
+        33
+      ]
+    },
+    {
+      "name": "GrindersState",
+      "discriminator": [
+        143,
+        69,
+        81,
+        197,
+        166,
+        46,
+        241,
+        181
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AllocateEvent",
+      "discriminator": [
+        140,
+        230,
+        37,
+        132,
+        190,
+        177,
+        252,
+        38
+      ]
+    },
+    {
+      "name": "AssetsUpdated",
+      "discriminator": [
+        235,
+        40,
+        94,
+        39,
+        249,
+        73,
+        137,
+        120
+      ]
+    },
+    {
+      "name": "CustodianDeployed",
+      "discriminator": [
+        217,
+        175,
+        111,
+        247,
+        143,
+        238,
+        90,
+        22
+      ]
+    },
+    {
+      "name": "DeallocateEvent",
+      "discriminator": [
+        55,
+        219,
+        41,
+        169,
+        186,
+        119,
+        199,
+        177
+      ]
+    },
+    {
+      "name": "GraiTokenUpdate",
+      "discriminator": [
+        176,
+        15,
+        217,
+        93,
+        73,
+        89,
+        149,
+        215
+      ]
+    },
+    {
+      "name": "LiquidateEvent",
+      "discriminator": [
+        158,
+        94,
+        144,
+        4,
+        147,
+        52,
+        5,
+        255
+      ]
+    },
+    {
+      "name": "SwapExecuted",
+      "discriminator": [
+        150,
+        166,
+        26,
+        225,
+        28,
+        89,
+        38,
+        79
+      ]
+    },
+    {
+      "name": "WithdrawEvent",
+      "discriminator": [
+        22,
+        9,
+        133,
+        26,
+        160,
+        44,
+        71,
+        192
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Only the grinders owner can perform this action"
+    },
+    {
+      "code": 6001,
+      "name": "AmountZero",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6002,
+      "name": "ToZero",
+      "msg": "Recipient must be a valid pubkey"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidCustodianProgram",
+      "msg": "Custodian program is not executable"
+    },
+    {
+      "code": 6004,
+      "name": "UnknownCustodianKind",
+      "msg": "Unknown custodian kind"
+    },
+    {
+      "code": 6005,
+      "name": "CustodianKindMismatch",
+      "msg": "Custodian kind does not match registered implementation"
+    },
+    {
+      "code": 6006,
+      "name": "NotCustodianWallet",
+      "msg": "Custodian wallet is not registered with this grinders program"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidNftOwner",
+      "msg": "NFT owner does not match custodian record"
+    },
+    {
+      "code": 6008,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6009,
+      "name": "SolTransferFailed",
+      "msg": "SOL transfer failed"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidGrindersTokenAccount",
+      "msg": "Grinders token account owner mismatch"
+    },
+    {
+      "code": 6011,
+      "name": "NotCustodianOwner",
+      "msg": "Only the custodian NFT owner may call this instruction"
+    },
+    {
+      "code": 6012,
+      "name": "TargetZero",
+      "msg": "Swap target program is missing"
+    },
+    {
+      "code": 6013,
+      "name": "DataEmpty",
+      "msg": "Swap instruction data is empty"
+    },
+    {
+      "code": 6014,
+      "name": "SwapFailed",
+      "msg": "Low-level swap CPI failed"
+    },
+    {
+      "code": 6015,
+      "name": "NotTradingAsset",
+      "msg": "Mint is not a trading asset for this custodian wallet"
+    },
+    {
+      "code": 6016,
+      "name": "NoTrade",
+      "msg": "Balances did not move in opposite directions"
+    },
+    {
+      "code": 6017,
+      "name": "ExceededPriceLimit",
+      "msg": "Execution price violated limit_price"
+    },
+    {
+      "code": 6018,
+      "name": "GrinderMustNotPayGas",
+      "msg": "Grinder cannot be the transaction fee payer for this custodian kind"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidFeePayer",
+      "msg": "Fee payer is not authorized for this custodian kind"
+    },
+    {
+      "code": 6020,
+      "name": "CustodianSwapNotImplemented",
+      "msg": "Swap logic for this custodian kind is not implemented yet"
+    },
+    {
+      "code": 6021,
+      "name": "InsufficientReserve",
+      "msg": "Insufficient grinders reserve balance"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidCollection",
+      "msg": "Collection mint does not match grinders state"
+    },
+    {
+      "code": 6023,
+      "name": "NotGrai",
+      "msg": "Only the configured GRAI program may call this instruction"
+    },
+    {
+      "code": 6024,
+      "name": "NoLiquidation",
+      "msg": "GRAI liquidation is not open"
+    },
+    {
+      "code": 6025,
+      "name": "LiquidationOpen",
+      "msg": "GRAI liquidation is open"
+    },
+    {
+      "code": 6026,
+      "name": "InvalidRemainingAccounts",
+      "msg": "Remaining accounts do not match the expected layout"
+    },
+    {
+      "code": 6027,
+      "name": "BaseZero",
+      "msg": "Base mint cannot be default"
+    },
+    {
+      "code": 6028,
+      "name": "QuoteZero",
+      "msg": "Quote mint cannot be default"
+    },
+    {
+      "code": 6029,
+      "name": "SameAsset",
+      "msg": "Base and quote mints must differ"
+    },
+    {
+      "code": 6030,
+      "name": "NonZeroBalance",
+      "msg": "Cannot change assets while custodian balances are non-zero"
+    },
+    {
+      "code": 6031,
+      "name": "GraiTokenZero",
+      "msg": "GRAI program id cannot be default"
+    }
+  ],
+  "types": [
+    {
+      "name": "AllocateEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "custodian",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetsUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "custodian",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "docs": [
+        "Yield split, bribe premium, liquidation quorum, unlock penalty, and timing.",
+        "",
+        "Mirrors the EVM `Config`. `dividend_cut_bps + treasury_cut_bps` MUST sum to `BPS` (10_000).",
+        "Yield cuts are immutable after `initialize`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "dividend_cut_bps",
+            "docs": [
+              "Share of distributed yield / bribe cut pool paid as dividends on unvoted locked GRAI, in bps."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "treasury_cut_bps",
+            "docs": [
+              "Share of distributed yield / bribe cut pool sent to the in-program treasury vault, in bps."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "revenue_share_bps",
+            "docs": [
+              "Affiliate slice of treasury income allocated on claim (`claimed * this / dividend_cut`).",
+              "EVM default `5_55` (~5.55% of yield → affiliates)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "claim_tip_bps",
+            "docs": [
+              "Share of each `claim` paid to the caller as a tip, in bps of claimed amount (max 5%)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "bribe_premium_bps",
+            "docs": [
+              "Max |ask adjustment| for dynamic bribes, in bps of book value."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "quorum_bps",
+            "docs": [
+              "Voted / supply needed to open liquidation, in bps."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "unlock_penalty_bps",
+            "docs": [
+              "Flat unlock fee in bps of unlocked GRAI (EVM `unlockPenaltyBps`)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "liquidation_period",
+            "docs": [
+              "Delay after liquidation opens before `redeem` is allowed."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "redeem_period",
+            "docs": [
+              "Extra window after `liquidation_period` before liquidation can be closed via `revive`."
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CustodianDeployed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "custodian_kind",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "custodian_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "custodian_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CustodianState",
+      "docs": [
+        "On-chain custodian wallet PDA — custodian authority + registry (former `CustodianRecord`)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "grinders",
+            "type": "pubkey"
+          },
+          {
+            "name": "custodian_id",
+            "type": "u64"
+          },
+          {
+            "name": "grai_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "custodian_kind",
+            "docs": [
+              "`keccak256(\"grindurus.custodian.<name>\")` — same as EVM `custodianKind()`."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "nft_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "nft_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DeallocateEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "custodian",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GraiState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "Protocol admin (EVM `Ownable.owner`)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiar",
+            "docs": [
+              "Protocol fee recipient for the non-affiliate slice of claim-time treasury income",
+              "(EVM `Treasury.beneficiar`)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "grinders",
+            "type": "pubkey"
+          },
+          {
+            "name": "settlement_asset",
+            "docs": [
+              "Asset used for bribe payments (EVM `settlementAsset`). `Pubkey::default()` means unset."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "total_value",
+            "type": "u128"
+          },
+          {
+            "name": "total_locked",
+            "docs": [
+              "Total escrowed GRAI (`total_locked - total_voted` is the dividend base)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_voted",
+            "type": "u64"
+          },
+          {
+            "name": "liquidation",
+            "type": "bool"
+          },
+          {
+            "name": "confirmed",
+            "docs": [
+              "Owner consent bit for 2-of-2 liquidation open (EVM `confirmed`)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "liquidation_at",
+            "type": "i64"
+          },
+          {
+            "name": "config",
+            "type": {
+              "defined": {
+                "name": "Config"
+              }
+            }
+          },
+          {
+            "name": "royalty_bps",
+            "docs": [
+              "Secondary-sale royalty in bps (EVM ERC-2981 `royaltyBps`); receiver = locker."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "affiliate_levels",
+            "docs": [
+              "Active affiliate referrer levels (`affiliate_share_bps[0..affiliate_levels]`)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "affiliate_share_bps",
+            "docs": [
+              "Per-level split of claim-time revenue share (bps; active prefix sums to 10_000)."
+            ],
+            "type": {
+              "array": [
+                "u16",
+                4
+              ]
+            }
+          },
+          {
+            "name": "asset_mints",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "lockers",
+            "docs": [
+              "Accounts with an open lock (`escrow.amount > 0`). EVM `lockers`."
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "voters",
+            "docs": [
+              "Accounts with an open liquidation vote (`escrow.voted > 0`)."
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "referrers",
+            "docs": [
+              "Treasury-bound lockers in mint order (EVM ERC-721 enumerable / `getLockersData`)."
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GraiTokenUpdate",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "grai_program",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GrindersState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "grai_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_custodian_id",
+            "type": "u64"
+          },
+          {
+            "name": "collection_mint",
+            "docs": [
+              "Metaplex collection parent for all custodian NFTs (mirrors ERC-721 contract)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidateEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from_id",
+            "type": "u64"
+          },
+          {
+            "name": "to_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SwapExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "target",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_delta",
+            "type": "u64"
+          },
+          {
+            "name": "quote_delta",
+            "type": "u64"
+          },
+          {
+            "name": "execution_price",
+            "type": "u128"
+          },
+          {
+            "name": "limit_price",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -52,7 +52,7 @@ function SolanaClusterIcon({ clusterId }: { clusterId: 'mainnet-beta' | 'devnet'
 }
 
 export function ConnectWalletButton() {
-  const { isChainSelectorOpen, openChainSelector } = useWalletContext()
+  const { isChainSelectorOpen, openChainSelector, warmEvmStack } = useWalletContext()
   const activeWallet = useActiveWallet()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
@@ -294,6 +294,8 @@ export function ConnectWalletButton() {
       <button
         className="connect-wallet-btn"
         type="button"
+        onPointerEnter={warmEvmStack}
+        onFocus={warmEvmStack}
         onPointerUp={handlePointerUp}
         onClick={handleClick}
         disabled={showConnecting}

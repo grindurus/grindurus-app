@@ -1,22 +1,21 @@
 import {
   Connection,
   PublicKey,
-  SystemProgram,
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
 import {
-  resolveSolanaAllocateCustodyAccounts,
+  assertSolanaCustodianWallet,
   resolveSolanaGrindersProgramId,
 } from './solanaAllocateCustody'
 import {
-  allocationPda,
   getAssociatedTokenAddress,
   grindersStatePda,
   TOKEN_PROGRAM_ID,
 } from './pdas'
+import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
 
 /** grinders::allocate discriminator */
 const ALLOCATE_DISCRIMINATOR = Buffer.from([64, 38, 189, 129, 24, 157, 82, 136])
@@ -53,24 +52,29 @@ export async function buildAllocateTransaction({
   const grindersState = grindersStatePda(grindersProgram)
   const grindersAta = getAssociatedTokenAddress(assetMint, grindersState)
   const custodyAta = getAssociatedTokenAddress(assetMint, custodyWallet)
-  const allocation = allocationPda(custodyWallet, assetMint, grindersProgram)
-  await resolveSolanaAllocateCustodyAccounts(connection, custodyWallet, grindersProgram)
+  await assertSolanaCustodianWallet(connection, custodyWallet, grindersProgram)
 
-  const allocateIx = new TransactionInstruction({
-    programId: grindersProgram,
-    keys: [
-      { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: grindersState, isSigner: false, isWritable: false },
-      { pubkey: custodyWallet, isSigner: false, isWritable: false },
-      { pubkey: assetMint, isSigner: false, isWritable: false },
-      { pubkey: allocation, isSigner: false, isWritable: true },
-      { pubkey: grindersAta, isSigner: false, isWritable: true },
-      { pubkey: custodyAta, isSigner: false, isWritable: true },
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: encodeAllocateInstructionData(amount),
-  })
+  const instructions: TransactionInstruction[] = [
+    createAssociatedTokenAccountIdempotentInstruction(
+      authority,
+      custodyAta,
+      custodyWallet,
+      assetMint,
+    ),
+    new TransactionInstruction({
+      programId: grindersProgram,
+      keys: [
+        { pubkey: authority, isSigner: true, isWritable: false },
+        { pubkey: grindersState, isSigner: false, isWritable: false },
+        { pubkey: custodyWallet, isSigner: false, isWritable: false },
+        { pubkey: assetMint, isSigner: false, isWritable: false },
+        { pubkey: grindersAta, isSigner: false, isWritable: true },
+        { pubkey: custodyAta, isSigner: false, isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      ],
+      data: encodeAllocateInstructionData(amount),
+    }),
+  ]
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   const transaction = new Transaction({
@@ -78,7 +82,7 @@ export async function buildAllocateTransaction({
     blockhash,
     lastValidBlockHeight,
   })
-  transaction.add(allocateIx)
+  transaction.add(...instructions)
 
   return transaction
 }

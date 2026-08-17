@@ -1,8 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import type { SolanaCluster } from '../providers/AppWalletProvider'
 
-const ACCOUNT_DISCRIMINATOR_LEN = 8
-const GRINDERS_PROGRAM_ID_DEFAULT = 'HLAmxNKz19CFJQYbsJPJHvixt7r9x4NdYjqqUQiiogJa'
+const GRINDERS_PROGRAM_ID_DEFAULT = '7W9uhZZvmHSyhRmdDRnbZPZfaUdJaMbGMWsBLjSRWT5v'
 
 function readEnv(key: string): string | undefined {
   const value = (import.meta.env as Record<string, string | undefined>)[key]
@@ -13,29 +12,6 @@ function clusterEnvSuffix(cluster: SolanaCluster): string {
   if (cluster === 'mainnet-beta') return 'MAINNET'
   if (cluster === 'testnet') return 'TESTNET'
   return 'DEVNET'
-}
-
-function custodianIndexPda(custodianWallet: PublicKey, programId: PublicKey): PublicKey {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('custodian_index'), custodianWallet.toBuffer()],
-    programId,
-  )[0]
-}
-
-function custodianRecordPda(custodianId: number, programId: PublicKey): PublicKey {
-  const id = Buffer.alloc(8)
-  id.writeBigUInt64LE(BigInt(custodianId))
-  return PublicKey.findProgramAddressSync([Buffer.from('custodian'), id], programId)[0]
-}
-
-function decodeCustodianIndex(data: Buffer): { custodianId: number } {
-  const body = data.subarray(ACCOUNT_DISCRIMINATOR_LEN)
-  return { custodianId: Number(body.readBigUInt64LE(0)) }
-}
-
-function decodeCustodianRecordWallet(data: Buffer): PublicKey {
-  const body = data.subarray(ACCOUNT_DISCRIMINATOR_LEN)
-  return new PublicKey(body.subarray(8, 40))
 }
 
 export function resolveSolanaGrindersProgramId(cluster: SolanaCluster): PublicKey {
@@ -51,27 +27,25 @@ export function resolveSolanaGrindersProgramId(cluster: SolanaCluster): PublicKe
 /** @deprecated Use `resolveSolanaGrindersProgramId`. */
 export const resolveSolanaTreasuryProgramId = resolveSolanaGrindersProgramId
 
+/** Assert `custodyWallet` is a grinders `CustodianState` PDA. */
+export async function assertSolanaCustodianWallet(
+  connection: Pick<Connection, 'getAccountInfo'>,
+  custodyWallet: PublicKey,
+  programId: PublicKey,
+): Promise<void> {
+  const account = await connection.getAccountInfo(custodyWallet)
+  if (!account || !account.owner.equals(programId)) {
+    throw new Error('Custody wallet is not registered with grinders')
+  }
+}
+
+/** @deprecated Prefer `assertSolanaCustodianWallet`. */
 export async function resolveSolanaAllocateCustodyAccounts(
   connection: Pick<Connection, 'getAccountInfo'>,
   custodyWallet: PublicKey,
   programId: PublicKey,
 ): Promise<{ custodianIndex: PublicKey; custodianRecord: PublicKey }> {
-  const custodianIndex = custodianIndexPda(custodyWallet, programId)
-  const indexAccount = await connection.getAccountInfo(custodianIndex)
-  if (!indexAccount || !indexAccount.owner.equals(programId)) {
-    throw new Error('Custody wallet is not registered with grinders')
-  }
-
-  const { custodianId } = decodeCustodianIndex(indexAccount.data)
-  const custodianRecord = custodianRecordPda(custodianId, programId)
-  const recordAccount = await connection.getAccountInfo(custodianRecord)
-  if (!recordAccount || !recordAccount.owner.equals(programId)) {
-    throw new Error('Grinders custodian record is missing')
-  }
-
-  if (!decodeCustodianRecordWallet(recordAccount.data).equals(custodyWallet)) {
-    throw new Error('Grinders custodian record does not match custody wallet')
-  }
-
-  return { custodianIndex, custodianRecord }
+  await assertSolanaCustodianWallet(connection, custodyWallet, programId)
+  // Legacy return shape — callers should stop using index/record PDAs.
+  return { custodianIndex: custodyWallet, custodianRecord: custodyWallet }
 }

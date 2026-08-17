@@ -1,7 +1,7 @@
 import { fetchWithTimeout } from '../utils/fetchWithTimeout'
 import { stripTrailingSlash } from '../utils/urlUtils'
 
-export const DEFAULT_GRAI_METADATA_URL = 'https://grindurus.xyz/metadata.json'
+export const DEFAULT_GRAI_METADATA_URL = 'https://grindurus.xyz/grai.json'
 
 export type GraiTokenMetadata = {
   name?: string

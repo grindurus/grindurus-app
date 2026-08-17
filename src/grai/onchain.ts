@@ -70,12 +70,19 @@ export function decodeMintDecimals(data: Buffer): number {
   return data.readUInt8(44)
 }
 
+const mintDecimalsCache = new Map<string, number>()
+
 export async function fetchMintDecimals(connection: Connection, mint: PublicKey): Promise<number> {
+  const cacheKey = mint.toBase58()
+  const cached = mintDecimalsCache.get(cacheKey)
+  if (cached !== undefined) return cached
   const account = await connection.getAccountInfo(mint)
   if (!account?.data) {
     throw new Error('Asset mint account not found')
   }
-  return decodeMintDecimals(Buffer.from(account.data))
+  const decimals = decodeMintDecimals(Buffer.from(account.data))
+  mintDecimalsCache.set(cacheKey, decimals)
+  return decimals
 }
 
 export function parseTokenAmount(input: string, decimals: number): bigint {
@@ -142,14 +149,13 @@ export async function fetchWalletAssetBalance(
     return { raw: lamports, maxRaw, decimals: 9 }
   }
 
-  const decimals = await fetchMintDecimals(connection, assetMint)
   const ata = getAssociatedTokenAddress(assetMint, owner)
-
   try {
     const balance = await connection.getTokenAccountBalance(ata)
     const raw = BigInt(balance.value.amount)
     return { raw, maxRaw: raw, decimals: balance.value.decimals }
   } catch {
+    const decimals = await fetchMintDecimals(connection, assetMint)
     return { raw: 0n, maxRaw: 0n, decimals }
   }
 }

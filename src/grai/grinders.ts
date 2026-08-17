@@ -19,7 +19,7 @@ function envCustodyWallet(id: string): string | undefined {
 }
 
 /** Shared dev custody wallet from `grindurus-solana/migrations/keys/`. Override per grinder via env. */
-const SHARED_DEV_CUSTODY_WALLET = 'XqghfGLFReXYfCv7t1JFYS8uiGeHVrfWLUihPy6grai'
+const SHARED_DEV_CUSTODY_WALLET = 'ESQJJhS9r19ddW9276dUz9GYGhgtNLWC7tRV1uDogtNK'
 
 export function resolveGrinderCustodyWallet(id: string): string | undefined {
   return envCustodyWallet(id) ?? envCustodyWallet('default') ?? SHARED_DEV_CUSTODY_WALLET

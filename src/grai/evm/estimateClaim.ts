@@ -145,7 +145,7 @@ export function formatClaimUsdTotal(usdRaw: bigint): string {
 export async function fetchEvmLockedGrai(
   config: GraiEvmConfig,
   owner: `0x${string}`,
-): Promise<{ locked: bigint; voted: bigint; lockedAt: number; decimals: number }> {
+): Promise<{ locked: bigint; voted: bigint; decimals: number }> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
   const [escrow, decimalsRaw] = await Promise.all([
@@ -164,7 +164,6 @@ export async function fetchEvmLockedGrai(
   return {
     locked: escrow[2],
     voted: escrow[3],
-    lockedAt: Number(escrow[4]),
     decimals: Number(decimalsRaw),
   }
 }
@@ -174,33 +173,27 @@ export type EvmUnlockPreview = {
   penalty: bigint
   unlockAmountLabel: string
   penaltyLabel: string
-  /** Seconds until unlock penalty decays to 0 (`lockedAt + unlockPenaltyPeriod`). */
+  /** Always 0 — unlock fee is flat (no time decay). */
   secondsLeft: number
+  /** @deprecated Flat fee; always 0. Kept for UI callers. */
   unlockPenaltyPeriod: number
-  unlockFeeBps: number
-  lockedAt: number
+  unlockPenaltyBps: number
   decimals: number
 }
 
 const BPS = 10_000n
 
-/** Preview early-unlock penalty (local formula matching `GRAI.previewUnlock`). */
+/** Preview unlock fee (local formula matching flat `GRAI.previewUnlock`). */
 export async function estimateEvmUnlockPreview(
   config: GraiEvmConfig,
   owner: `0x${string}`,
   amountInput: string,
-  nowSec = Math.floor(Date.now() / 1000),
+  _nowSec = Math.floor(Date.now() / 1000),
 ): Promise<EvmUnlockPreview> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
 
-  const [escrow, decimalsRaw, protocolConfig] = await Promise.all([
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'escrows',
-      args: [owner],
-    }),
+  const [decimalsRaw, protocolConfig] = await Promise.all([
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
@@ -214,13 +207,7 @@ export async function estimateEvmUnlockPreview(
   ])
 
   const decimals = Number(decimalsRaw)
-  const lockedAt = Number(escrow[4])
-  const unlockFeeBps = Number(protocolConfig[6])
-  const unlockPenaltyPeriod = Number(protocolConfig[10])
-  const secondsLeft =
-    unlockPenaltyPeriod > 0 && lockedAt > 0
-      ? Math.max(0, lockedAt + unlockPenaltyPeriod - nowSec)
-      : 0
+  const unlockPenaltyBps = Number(protocolConfig[7])
 
   let amountRaw = 0n
   const trimmed = amountInput.trim()
@@ -236,25 +223,20 @@ export async function estimateEvmUnlockPreview(
   let penalty = 0n
 
   if (amountRaw > 0n) {
-    // Prefer on-chain preview when available; fall back to local decay math.
     try {
       const preview = await client.readContract({
         address: graiAddress,
         abi: graiAbi,
         functionName: 'previewUnlock',
-        args: [owner, amountRaw, BigInt(nowSec)],
+        args: [owner, amountRaw],
       })
       unlockAmount = preview[0]
       penalty = preview[1]
     } catch {
-      if (unlockFeeBps > 0 && unlockPenaltyPeriod > 0 && lockedAt > 0) {
-        const elapsed = Math.max(0, nowSec - lockedAt)
-        if (elapsed < unlockPenaltyPeriod) {
-          const penaltyBps =
-            (BigInt(unlockFeeBps) * BigInt(unlockPenaltyPeriod - elapsed)) / BigInt(unlockPenaltyPeriod)
-          penalty = (amountRaw * penaltyBps) / BPS
-          unlockAmount = amountRaw - penalty
-        }
+      if (unlockPenaltyBps > 0) {
+        penalty = (amountRaw * BigInt(unlockPenaltyBps) + BPS - 1n) / BPS
+        if (penalty > amountRaw) penalty = amountRaw
+        unlockAmount = amountRaw - penalty
       }
     }
   }
@@ -264,10 +246,9 @@ export async function estimateEvmUnlockPreview(
     penalty,
     unlockAmountLabel: formatClaimAmountLabel(unlockAmount, decimals),
     penaltyLabel: formatClaimAmountLabel(penalty, decimals),
-    secondsLeft,
-    unlockPenaltyPeriod,
-    unlockFeeBps,
-    lockedAt,
+    secondsLeft: 0,
+    unlockPenaltyPeriod: 0,
+    unlockPenaltyBps,
     decimals,
   }
 }
@@ -282,4 +263,11 @@ export function formatUnlockPenaltyDuration(secondsLeft: number): string {
   if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
   if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`
   return `${s}s`
+}
+
+/** Flat `unlockPenaltyBps` (100 = 1%). */
+export function formatUnlockPenaltyBps(bps: number): string {
+  if (bps <= 0) return '0%'
+  if (bps % 100 === 0) return `${bps / 100}%`
+  return `${(bps / 100).toFixed(2).replace(/\.?0+$/, '')}%`
 }

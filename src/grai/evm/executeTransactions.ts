@@ -14,6 +14,8 @@ export type ExecuteEvmMintParams = {
   assetDecimals: number
   /** Escrow minted GRAI in the same tx (`deposit(..., lock)`). */
   lock?: boolean
+  /** Sticky affiliate; omit for self-bind / zero address. */
+  referrer?: string
 }
 
 export async function executeEvmMint({
@@ -22,6 +24,7 @@ export async function executeEvmMint({
   amountInput,
   assetDecimals,
   lock = false,
+  referrer,
 }: ExecuteEvmMintParams): Promise<{ hash: string; amount: bigint }> {
   const account = getAccount(wagmiConfig)
   if (!account.address) {
@@ -31,6 +34,7 @@ export async function executeEvmMint({
   const graiAddress = resolveGraiContractAddress(config)
   const amount = parseTokenAmount(amountInput, assetDecimals)
   const asset = assetAddress.toLowerCase() as `0x${string}`
+  const stickyReferrer = (referrer?.trim() || '0x0000000000000000000000000000000000000000') as `0x${string}`
 
   if (!isNativeEvmAsset(asset)) {
     const allowance = await readContract(wagmiConfig, {
@@ -55,7 +59,7 @@ export async function executeEvmMint({
     address: graiAddress,
     abi: graiAbi,
     functionName: 'deposit',
-    args: [asset, amount, lock],
+    args: [asset, amount, lock, stickyReferrer],
     value: isNativeEvmAsset(asset) ? amount : 0n,
   })
 
@@ -537,6 +541,40 @@ export async function executeEvmGrindersRegister({
 
   await waitForTransactionReceipt(wagmiConfig, { hash })
   return { hash }
+}
+
+export type ExecuteEvmPoachParams = {
+  config: GraiEvmConfig
+  locker: `0x${string}`
+}
+
+/** Buy out the referrer NFT for `locker` — pays `previewPoach` GRAI to the current owner. */
+export async function executeEvmPoach({
+  config,
+  locker,
+}: ExecuteEvmPoachParams): Promise<{ hash: string; price: bigint; referrer: `0x${string}` }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to poach a referral slot')
+  }
+
+  const graiAddress = resolveGraiContractAddress(config)
+  const [price, referrer] = await readContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'previewPoach',
+    args: [locker, account.address],
+  })
+
+  const hash = await writeContract(wagmiConfig, {
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'poach',
+    args: [locker],
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash, price, referrer }
 }
 
 /** Parse human-readable amount to wei using viem (for consistency with ERC-20 decimals). */

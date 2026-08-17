@@ -18,7 +18,7 @@ const U64_MAX = 0xffff_ffff_ffff_ffffn
  * AssetConfig after discriminator:
  * mint(32) feed(32) paused(1) id(4) acc_share(16) …
  */
-function decodeAssetConfigAccShare(data: Buffer): bigint {
+export function decodeAssetConfigAccShare(data: Buffer): bigint {
   if (data.length < 93) return 0n
   let value = 0n
   for (let i = 0; i < 16; i += 1) {
@@ -28,7 +28,7 @@ function decodeAssetConfigAccShare(data: Buffer): bigint {
 }
 
 /** Position after discriminator: debt(u128) claimable(u64) … */
-function decodePosition(data: Buffer): { debt: bigint; claimable: bigint } {
+export function decodePosition(data: Buffer): { debt: bigint; claimable: bigint } {
   if (data.length < 32) return { debt: 0n, claimable: 0n }
   let debt = 0n
   for (let i = 0; i < 16; i += 1) {
@@ -41,7 +41,7 @@ function decodePosition(data: Buffer): { debt: bigint; claimable: bigint } {
 }
 
 /** Escrow after discriminator: amount(u64) voted(u64) … */
-function decodeEscrowUnvoted(data: Buffer): bigint {
+export function decodeEscrowUnvoted(data: Buffer): bigint {
   if (data.length < 24) return 0n
   const amount = data.readBigUInt64LE(8)
   const voted = data.readBigUInt64LE(16)

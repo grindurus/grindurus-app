@@ -2,13 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ResponsiveContainer, Sankey, Tooltip } from 'recharts'
 import type { SankeyLinkProps, SankeyNodeProps } from 'recharts'
 
-/** Colors: Money in, Claim, Treasury, Buyback */
-const NODE_COLORS = ['#ff69b4', '#22c55e', '#c9a227', '#ff69b4'] as const
-const SHARE_COUNT = 3
+/** Colors: Money in, Claim, Treasury, Revenue share */
+const NODE_COLORS = ['#ff69b4', '#22c55e', '#c9a227', '#e8c547'] as const
+const PRIMARY_SHARE_COUNT = 2
+/** Share of the Treasury leg that continues to Revenue share. */
+const TREASURY_REVENUE_SHARE = 0.1
 const NODE_WIDTH = 14
-/** Match `.grai-liquidation-ops-row` / escrow body width. */
+/** Match `.grai-liquidation-ops-row` / escrow body width per hop. */
 const FLOW_WIDTH_REM = 25.3125
 const MIN_SIDE_MARGIN = 96
+/** Extra room for right-column labels (e.g. Referrers / Revenue Share). */
+const MIN_RIGHT_LABEL_MARGIN = 118
+const COLUMN_COUNT = 3
+const LABEL_LINE_HEIGHT = 13
 
 type Props = {
   amountLabel: string
@@ -18,6 +24,11 @@ type Props = {
 type NodePayload = {
   name?: string
   amountLabel?: string
+  depth?: number
+}
+
+function splitNodeLabel(name: string): string[] {
+  return name.split('\n').map((line) => line.trim()).filter(Boolean)
 }
 
 function parseDistributeAmount(amountLabel: string): number {
@@ -35,9 +46,9 @@ function formatCompactAmount(value: number): string {
     .replace(/\.?0+$/, '')
 }
 
-function formatShareAmount(total: number, symbol?: string): string {
-  if (!(total > 0)) return symbol ? `0 ${symbol}` : '0'
-  const formatted = formatCompactAmount(total / SHARE_COUNT)
+function formatAmountWithSymbol(value: number, symbol?: string): string {
+  if (!(value > 0)) return symbol ? `0 ${symbol}` : '0'
+  const formatted = formatCompactAmount(value)
   return symbol ? `${formatted} ${symbol}` : formatted
 }
 
@@ -56,17 +67,21 @@ function readRemPx(): number {
 
 function SankeyNode({ x, y, width, height, index, payload }: SankeyNodeProps) {
   const color = NODE_COLORS[index % NODE_COLORS.length] ?? '#ff69b4'
-  const isSource = index === 0
-  const labelX = isSource ? x - 8 : x + width + 8
-  const textAnchor = isSource ? 'end' : 'start'
   const node = payload as NodePayload
-  const name = String(node.name ?? '')
+  const depth =
+    typeof node.depth === 'number' ? node.depth : index === 0 ? 0 : index === 3 ? 2 : 1
+  const isSource = depth === 0
+  const labelOnRight = !isSource
+  const labelX = labelOnRight ? x + width + 8 : x - 8
+  const textAnchor = labelOnRight ? 'start' : 'end'
+  const nameLines = splitNodeLabel(String(node.name ?? ''))
   const amountUnder = !isSource ? node.amountLabel : undefined
+  const nameBlockHeight = Math.max(1, nameLines.length) * LABEL_LINE_HEIGHT
   const labelY = isSource
     ? y + height / 2 + 8
     : amountUnder
-      ? y + height / 2 - 10
-      : y + height / 2
+      ? y + height / 2 - nameBlockHeight / 2 - 2
+      : y + height / 2 - (nameBlockHeight - LABEL_LINE_HEIGHT) / 2
 
   return (
     <g className="grai-distribute-sankey-node">
@@ -107,12 +122,16 @@ function SankeyNode({ x, y, width, height, index, payload }: SankeyNodeProps) {
         fontSize={isSource ? undefined : 12}
         fontWeight={600}
       >
-        {name}
+        {nameLines.map((line, lineIndex) => (
+          <tspan key={line} x={labelX} dy={lineIndex === 0 ? 0 : LABEL_LINE_HEIGHT}>
+            {line}
+          </tspan>
+        ))}
       </text>
       {amountUnder ? (
         <text
           x={labelX}
-          y={labelY + 18}
+          y={labelY + nameBlockHeight + 4}
           textAnchor={textAnchor}
           dominantBaseline="middle"
           className="grai-distribute-sankey-node-amount grai-distribute-sankey-node-amount-text"
@@ -174,7 +193,7 @@ function SankeyLink(props: SankeyLinkProps) {
   )
 }
 
-/** Sankey money flow: input amount splits evenly into Claim, Treasury, Buyback. */
+/** Sankey: input splits to Claim / Treasury; 10% of Treasury → Revenue share. */
 export function GraiDistributeMoneyFlow({ amountLabel, assetSymbol }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [chartWidth, setChartWidth] = useState(0)
@@ -190,41 +209,47 @@ export function GraiDistributeMoneyFlow({ amountLabel, assetSymbol }: Props) {
   }, [])
 
   const totalAmount = useMemo(() => parseDistributeAmount(amountLabel), [amountLabel])
-  const shareAmountLabel = useMemo(
-    () => formatShareAmount(totalAmount, assetSymbol),
-    [totalAmount, assetSymbol],
-  )
+  const primaryShare = totalAmount / PRIMARY_SHARE_COUNT
+  const treasuryKept = primaryShare * (1 - TREASURY_REVENUE_SHARE)
+  const revenueShareAmount = primaryShare * TREASURY_REVENUE_SHARE
+
   const sourceName = useMemo(() => {
     const amount = formatCompactAmount(totalAmount)
     return assetSymbol ? `${amount} ${assetSymbol}` : amount
   }, [totalAmount, assetSymbol])
 
   const margin = useMemo(() => {
-    const targetLink = FLOW_WIDTH_REM * readRemPx()
-    const contentWidth = targetLink + NODE_WIDTH * 2
-    const width = chartWidth > 0 ? chartWidth : contentWidth + MIN_SIDE_MARGIN * 2
-    const side = Math.max(MIN_SIDE_MARGIN, (width - contentWidth) / 2)
-    return { top: 14, right: side, bottom: 14, left: side }
+    const hop = FLOW_WIDTH_REM * readRemPx()
+    const contentWidth = hop * (COLUMN_COUNT - 1) + NODE_WIDTH * COLUMN_COUNT
+    const width = chartWidth > 0 ? chartWidth : contentWidth + MIN_SIDE_MARGIN + MIN_RIGHT_LABEL_MARGIN
+    const leftover = Math.max(0, width - contentWidth)
+    const left = Math.max(MIN_SIDE_MARGIN, leftover / 2)
+    const right = Math.max(MIN_RIGHT_LABEL_MARGIN, leftover - left)
+    return { top: 14, right, bottom: 14, left }
   }, [chartWidth])
 
   const sankeyData = useMemo(() => {
-    const share = 1
+    const primary = 1
+    const revenue = TREASURY_REVENUE_SHARE
     return {
       nodes: [
         { name: sourceName },
-        { name: 'Claim', amountLabel: shareAmountLabel },
-        { name: 'Treasury', amountLabel: shareAmountLabel },
-        { name: 'Buyback', amountLabel: shareAmountLabel },
+        { name: 'Claim', amountLabel: formatAmountWithSymbol(primaryShare, assetSymbol) },
+        { name: 'Treasury', amountLabel: formatAmountWithSymbol(treasuryKept, assetSymbol) },
+        {
+          name: 'Referrers\nRevenue Share',
+          amountLabel: formatAmountWithSymbol(revenueShareAmount, assetSymbol),
+        },
       ],
       links: [
-        { source: 0, target: 1, value: share },
-        { source: 0, target: 2, value: share },
-        { source: 0, target: 3, value: share },
+        { source: 0, target: 1, value: primary },
+        { source: 0, target: 2, value: primary },
+        { source: 2, target: 3, value: revenue },
       ],
     }
-  }, [sourceName, shareAmountLabel])
+  }, [sourceName, primaryShare, treasuryKept, revenueShareAmount, assetSymbol])
 
-  const totalFlow = SHARE_COUNT
+  const totalFlow = PRIMARY_SHARE_COUNT
 
   return (
     <div ref={rootRef} className="grai-distribute-money-flow" aria-label="Distribute money flow">
@@ -236,6 +261,7 @@ export function GraiDistributeMoneyFlow({ amountLabel, assetSymbol }: Props) {
           linkCurvature={0.55}
           iterations={48}
           margin={margin}
+          align="left"
           node={SankeyNode}
           link={SankeyLink}
         >

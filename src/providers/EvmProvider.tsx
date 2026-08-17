@@ -23,7 +23,7 @@ export function EvmProvider({ children, rainbowKitEnabled, onReady }: EvmProvide
   )
 
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiConfig} reconnectOnMount>
       <QueryClientProvider client={queryClient}>
         {rainbowKitEnabled ? (
           <Suspense fallback={inner}>

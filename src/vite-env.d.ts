@@ -25,6 +25,11 @@ interface ImportMetaEnv {
   readonly VITE_GRAI_SEPOLIA_TOKEN?: string
   readonly VITE_GRAI_SEPOLIA_PROTOCOL?: string
   readonly VITE_GRAI_BASE_SEPOLIA_TOKEN?: string
+  readonly VITE_GRS_ETHEREUM_TOKEN?: string
+  readonly VITE_GRS_BASE_TOKEN?: string
+  readonly VITE_GRS_ARBITRUM_TOKEN?: string
+  readonly VITE_GRS_SEPOLIA_TOKEN?: string
+  readonly VITE_GRS_BASE_SEPOLIA_TOKEN?: string
   readonly VITE_GRINDERS_PROGRAM_ID?: string
   readonly VITE_GRINDERS_DEVNET_PROGRAM_ID?: string
   readonly VITE_GRINDERS_MAINNET_PROGRAM_ID?: string

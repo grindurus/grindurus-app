@@ -1,7 +1,7 @@
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { useMemo, useCallback } from 'react'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useWalletContext } from '../providers/walletContext'
 import { shortenAddress } from '../utils/shortenAddress'
 
 function detectClusterFromRpcEndpoint(endpoint?: string): 'mainnet-beta' | 'testnet' | 'devnet' | null {

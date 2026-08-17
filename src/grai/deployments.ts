@@ -1,6 +1,7 @@
 import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js'
 import type { SolanaCluster } from '../providers/AppWalletProvider'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
+import { getSharedJsonRpcBatchFetch } from './jsonRpcBatchFetch'
 
 export type GraiChainKind = 'solana' | 'evm'
 
@@ -18,9 +19,9 @@ export type GraiSolanaRuntime = GraiSolanaConfig & {
 }
 
 const DEVNET_DEFAULTS = {
-  programId: 'CodEZVbeWcH97a8vr7PHQVofGPgYGrZpcbUCybrv99z',
-  graiState: 'AK7Vx1L8cpmMhxnZCsv48bsm7bWSDxiUQNYjHCzzEiS6',
-  graiMint: 'XqghfGLFReXYfCv7t1JFYS8uiGeHVrfWLUihPy6grai',
+  programId: '3Bc99GroACdqAVPbPUt7eHR8sPvKxh2m3suYfcnCtsCh',
+  graiState: 'Hig6qqBHLLCXpMynPv5RDDCLsYhT9MsHARUn7LKLyu7w',
+  graiMint: 'YTWRSw6PVK2EFpHKBBzED7nByzvrQ7Cgb6FSmUYgrai',
 } as const
 
 export type GraiEvmConfig = {
@@ -140,7 +141,10 @@ export function getGraiSolanaConfigOrThrow(cluster = getDefaultGraiSolanaCluster
 }
 
 export function createGraiConnection(config: GraiSolanaConfig): Connection {
-  return new Connection(config.rpcUrl, 'confirmed')
+  return new Connection(config.rpcUrl, {
+    commitment: 'confirmed',
+    fetch: getSharedJsonRpcBatchFetch(),
+  })
 }
 
 export async function resolveGraiSolanaRuntime(

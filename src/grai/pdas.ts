@@ -2,6 +2,7 @@ import { PublicKey } from '@solana/web3.js'
 
 export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
 export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+export const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
 
 export function assetConfigPda(assetMint: PublicKey, programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
@@ -13,6 +14,13 @@ export function assetConfigPda(assetMint: PublicKey, programId: PublicKey): Publ
 export function vaultAtaPda(assetMint: PublicKey, programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from('vault'), assetMint.toBuffer()],
+    programId,
+  )[0]
+}
+
+export function treasuryVaultPda(assetMint: PublicKey, programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('treasury'), assetMint.toBuffer()],
     programId,
   )[0]
 }
@@ -48,16 +56,66 @@ export function escrowPda(user: PublicKey, programId: PublicKey): PublicKey {
   )[0]
 }
 
-/** Grinders Allocation PDA — lives on the grinders program. */
-export function allocationPda(
-  custodianState: PublicKey,
-  assetMint: PublicKey,
-  grindersProgramId: PublicKey,
-): PublicKey {
+export function referrerPda(locker: PublicKey, programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('allocation'), custodianState.toBuffer(), assetMint.toBuffer()],
-    grindersProgramId,
+    [Buffer.from('referrer'), locker.toBuffer()],
+    programId,
   )[0]
+}
+
+export function treasuryNftMintPda(locker: PublicKey, programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('treasury-nft'), locker.toBuffer()],
+    programId,
+  )[0]
+}
+
+export function metadataPda(mint: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('metadata'), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    TOKEN_METADATA_PROGRAM_ID,
+  )[0]
+}
+
+export function masterEditionPda(mint: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from('metadata'),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      mint.toBuffer(),
+      Buffer.from('edition'),
+    ],
+    TOKEN_METADATA_PROGRAM_ID,
+  )[0]
+}
+
+/** Metaplex cashflow NFT accounts required on every `deposit` / `deposit_sol`. */
+export function treasuryNftDepositAccounts(locker: PublicKey, programId: PublicKey) {
+  const treasuryNftMint = treasuryNftMintPda(locker, programId)
+  return {
+    treasuryNftMint,
+    treasuryNftMetadata: metadataPda(treasuryNftMint),
+    treasuryNftEdition: masterEditionPda(treasuryNftMint),
+    treasuryNftAta: getAssociatedTokenAddress(treasuryNftMint, locker),
+    tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+  }
+}
+
+/** @deprecated Depositor allowlist removed from grai. */
+export function depositorAllowancePda(depositor: PublicKey, programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('depositor'), depositor.toBuffer()],
+    programId,
+  )[0]
+}
+
+/** @deprecated Issuance ledger removed — track Allocate/Deallocate off-chain. */
+export function allocationPda(
+  _custodianState: PublicKey,
+  _assetMint: PublicKey,
+  _grindersProgramId: PublicKey,
+): PublicKey {
+  throw new Error('allocation PDA removed; track Allocate/Deallocate off-chain')
 }
 
 export function getAssociatedTokenAddress(mint: PublicKey, owner: PublicKey): PublicKey {
@@ -87,7 +145,7 @@ export function juniorVaultAtaPda(assetMint: PublicKey, programId: PublicKey): P
   return vaultAtaPda(assetMint, programId)
 }
 
-/** @deprecated Custody allocation moved to grinders `allocation` PDA. */
+/** @deprecated Custody allocation PDA removed. */
 export function custodyAllocationPda(
   custodyWallet: PublicKey,
   assetMint: PublicKey,

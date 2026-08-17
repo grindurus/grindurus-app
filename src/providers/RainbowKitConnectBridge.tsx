@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
-import { useWalletContext } from './AppWalletProvider'
+import { useWalletContext } from './walletContext'
 
 /** Opens RainbowKit QR modal after lazy RainbowKitShell has mounted. */
 export function RainbowKitConnectBridge() {

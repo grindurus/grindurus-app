@@ -40,14 +40,19 @@ export const KNOWN_MINT_METADATA: Record<string, { symbol: string; icon: GraiAss
 }
 
 export const FALLBACK_GRAI_ASSETS: GraiAsset[] = [
-  { mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', symbol: 'USDC', icon: { src: COINGECKO.usdc, alt: 'USDC' } },
-  { mint: NATIVE_MINT, symbol: 'SOL', icon: { src: COINGECKO.sol, alt: 'SOL' } },
+  { mint: 'mock-usdc', symbol: 'USDC', icon: { src: COINGECKO.usdc, alt: 'USDC' } },
+  { mint: 'mock-sol', symbol: 'SOL', icon: { src: COINGECKO.sol, alt: 'SOL' } },
   { mint: 'mock-usdt', symbol: 'USDT', icon: { src: COINGECKO.usdt, alt: 'USDT' } },
   { mint: 'mock-eth', symbol: 'ETH', icon: { src: COINGECKO.eth, alt: 'ETH' } },
   { mint: 'mock-btc', symbol: 'BTC', icon: { src: COINGECKO.btc, alt: 'BTC' } },
   { mint: 'mock-arb', symbol: 'ARB', icon: { src: COINGECKO.arb, alt: 'ARB' } },
   { mint: 'mock-matic', symbol: 'MATIC', icon: { src: COINGECKO.matic, alt: 'MATIC' } },
 ]
+
+/** Display-only registry placeholders (no on-chain mint / ERC-20). */
+export function isPlaceholderGraiAssetMint(mint: string): boolean {
+  return mint.startsWith('mock-')
+}
 
 export function resolveGraiAsset(mint: string): GraiAsset {
   const known = KNOWN_MINT_METADATA[mint]
