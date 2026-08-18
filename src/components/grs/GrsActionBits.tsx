@@ -1,6 +1,8 @@
 import { toast } from 'react-toastify'
 import { GraiTransactionToast } from '../grai/GraiTransactionToast'
 import { GraiActionConnectWalletButton } from '../grai/GraiWalletAction'
+import { useActiveWallet } from '../../hooks/useActiveWallet'
+import { useEvmWallet } from '../../hooks/useEvmWallet'
 import { shortenAddress } from '../../utils/shortenAddress'
 import { grsExplorerTxUrl } from '../../grs/deployments'
 
@@ -56,7 +58,11 @@ export function GrsSubmit({
   label: string
   onClick: () => void
 }) {
-  if (!connected) return <GraiActionConnectWalletButton />
+  const evmWallet = useEvmWallet()
+  const activeWallet = useActiveWallet()
+  const headerWalletConnected =
+    evmWallet.isConnected || Boolean(evmWallet.address) || activeWallet.isConnected
+  if (!connected && !headerWalletConnected) return <GraiActionConnectWalletButton />
   return (
     <div className="grai-action-submit">
       <button type="button" className="grai-mint-btn" disabled={disabled || pending} onClick={onClick}>

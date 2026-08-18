@@ -357,6 +357,23 @@ export async function quoteGrsBridge(
   })
 }
 
+export async function quoteGrsSale(
+  config: GrsEvmConfig,
+  asset: `0x${string}`,
+  assetAmount: bigint,
+  grsAmount: bigint,
+  recipient: `0x${string}`,
+  dstEid: number,
+): Promise<bigint> {
+  const client = createGrsEvmPublicClient(config)
+  return client.readContract({
+    address: config.address,
+    abi: grsAbi,
+    functionName: 'quoteSale',
+    args: [asset, assetAmount, grsAmount, recipient, dstEid],
+  })
+}
+
 export async function fetchQuoteWalletBalance(
   config: GrsEvmConfig,
   owner: `0x${string}`,

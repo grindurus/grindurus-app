@@ -49,6 +49,7 @@ function usageCap(
 
 export function GrsCapInfographic({ snapshot, isLoading }: Props) {
   const [focus, setFocus] = useState<Focus | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const decimals = snapshot?.decimals ?? GRS_DECIMALS
   const allocations = snapshot?.allocations ?? null
   const salesRemaining = snapshot?.tokenSalesRemaining ?? allocationRow(allocations, 0)?.remaining ?? null
@@ -103,7 +104,37 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
   }
 
   return (
-    <aside className="grs-cap-infographic" aria-label="GRS 1 billion token cap table">
+    <aside className="grs-cap-infographic grai-liquidation-ops-block" aria-label="GRS 1 billion token cap table">
+      <h3 className="grai-liquidation-ops-heading">
+        <button
+          type="button"
+          className={`grai-referral-dash-collapse${isCollapsed ? ' is-collapsed' : ''}`}
+          onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+          aria-expanded={!isCollapsed}
+          aria-controls="grs-cap-layout"
+          aria-label={isCollapsed ? 'Show allocation' : 'Hide allocation'}
+        >
+          <svg
+            className="grai-donut-legend-toggle-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        Allocation
+      </h3>
+      <div
+        className={`grai-liquidation-ops-body${isCollapsed ? '' : ' is-open'}`}
+        id="grs-cap-layout"
+        aria-hidden={isCollapsed}
+      >
+        <div className="grai-liquidation-ops-body-inner">
       <div className="grs-cap-head">
         <div className="grs-cap-head-copy">
           <span className="grs-cap-kicker">
@@ -213,6 +244,8 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
       ) : null}
 
       <p className="grs-cap-detail">{detail}</p>
+        </div>
+      </div>
     </aside>
   )
 }

@@ -21,7 +21,7 @@ export function useActiveWallet(): ActiveWalletState {
   const solanaWallet = useSolanaWallet()
 
   const activeWallet = useMemo((): ActiveWalletState => {
-    if (selectedChainType === 'evm' && evmWallet.isConnected) {
+    if (selectedChainType !== 'solana' && evmWallet.isConnected) {
       const networkCaip2 = evmChainIdToCaip2(evmWallet.chainId)
       return {
         isConnected: true,
@@ -38,7 +38,7 @@ export function useActiveWallet(): ActiveWalletState {
       }
     }
 
-    if (selectedChainType === 'solana' && solanaWallet.isConnected) {
+    if (selectedChainType !== 'evm' && solanaWallet.isConnected) {
       const networkCaip2 = solanaClusterToCaip2(solanaWallet.cluster)
       return {
         isConnected: true,

@@ -1082,9 +1082,11 @@ export function GraiLiquidationActions() {
     if (section === 'vote' || section === 'bribe') return 'market'
     return 'distribute'
   })
+  const [isOpsCollapsed, setIsOpsCollapsed] = useState(false)
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {
+      setIsOpsCollapsed(false)
       if (section === 'claim') {
         setOpsView('claim')
       } else if (section === 'bribe') {
@@ -2112,7 +2114,7 @@ export function GraiLiquidationActions() {
     <div className="grai-liquidation-actions" aria-live="polite">
       {!evmProtocol ? (
         <p className="grai-liquidation-notice" role="status">
-          EVM GRAI protocol is not configured. Set VITE_GRAI_*_PROTOCOL env vars to enable liquidation vote and bribe.
+          {solana ? 'EVM NOT CONFIGURED, SOLANA CONFIGURED' : 'EVM NOT CONFIGURED'}
         </p>
       ) : !canTransact ? (
         <p className="grai-liquidation-notice" role="status">
@@ -2121,9 +2123,47 @@ export function GraiLiquidationActions() {
         </p>
       ) : null}
 
+      <GraiReferralTree
+        evmProtocol={chainKind === 'evm' ? evmProtocol : null}
+        solana={chainKind === 'solana' ? solana : null}
+        connection={chainKind === 'solana' ? connection : null}
+        highlightAddress={walletAddress}
+        graiDecimals={graiDecimals}
+      />
+
+      <div className="grai-liquidation-ops-block">
+      <h3 className="grai-liquidation-ops-heading">
+        <button
+          type="button"
+          className={`grai-referral-dash-collapse${isOpsCollapsed ? ' is-collapsed' : ''}`}
+          onClick={() => setIsOpsCollapsed((collapsed) => !collapsed)}
+          aria-expanded={!isOpsCollapsed}
+          aria-controls="grai-liquidation-ops-layout"
+          aria-label={isOpsCollapsed ? 'Show GRAI operations' : 'Hide GRAI operations'}
+        >
+          <svg
+            className="grai-donut-legend-toggle-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        GRAI operations
+      </h3>
+      <div
+        className={`grai-liquidation-ops-body${isOpsCollapsed ? '' : ' is-open'}`}
+        id="grai-liquidation-ops-layout"
+        aria-hidden={isOpsCollapsed}
+      >
+        <div className="grai-liquidation-ops-body-inner">
       <div className="grai-liquidation-ops-layout">
       <aside className="grai-liquidation-ops-tabs">
-        <h3 className="grai-liquidation-ops-heading">GRAI operations</h3>
         {opsTabs}
       </aside>
 
@@ -2534,16 +2574,10 @@ export function GraiLiquidationActions() {
       </GraiLiquidationVoterPicker>
       </div>
       </div>
+        </div>
       </div>
-      {opsView === 'distribute' ? (
-        <GraiReferralTree
-          evmProtocol={chainKind === 'evm' ? evmProtocol : null}
-          solana={chainKind === 'solana' ? solana : null}
-          connection={chainKind === 'solana' ? connection : null}
-          highlightAddress={walletAddress}
-          graiDecimals={graiDecimals}
-        />
-      ) : null}
+      </div>
+      </div>
       <HowItWorksModal isOpen={isHowItWorksOpen} onClose={() => setIsHowItWorksOpen(false)} />
     </div>
   )

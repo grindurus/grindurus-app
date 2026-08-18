@@ -43,8 +43,9 @@ import { executeEvmPoach } from '../../grai/evm/executeTransactions'
 import { executePoach } from '../../grai/buildPoachTransaction'
 import { fetchSolanaReferralBooks } from '../../grai/fetchSolanaReferralBooks'
 import { useGraiTransaction } from '../../hooks/useGraiTransaction'
+import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { assetUrl } from '../../utils/appPaths'
-import { GraiFieldInfoButton } from './GraiFieldInfo'
+import { navigateToGraiSection } from '../../utils/graiNavigation'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 
 type Props = {
@@ -69,6 +70,45 @@ function addressKey(address: string): string {
 function addressesEqual(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false
   return addressKey(a) === addressKey(b)
+}
+
+function isOwnLocker(wallet: string | null | undefined, locker: string): boolean {
+  return Boolean(wallet) && addressesEqual(wallet, locker)
+}
+
+/** Graph root: no parent edge drawn above this locker. */
+function isForestRoot(forest: GraiReferralTreeNode[], locker: string): boolean {
+  return forest.some((root) => addressesEqual(root.locker, locker))
+}
+
+function findTreeNode(
+  forest: GraiReferralTreeNode[],
+  locker: string,
+): GraiReferralTreeNode | null {
+  for (const node of forest) {
+    if (addressesEqual(node.locker, locker) || addressesEqual(node.owner, locker)) return node
+    const nested = findTreeNode(node.children, locker)
+    if (nested) return nested
+  }
+  return null
+}
+
+function lockerInSubtree(node: GraiReferralTreeNode, locker: string): boolean {
+  if (addressesEqual(node.locker, locker)) return true
+  return node.children.some((child) => lockerInSubtree(child, locker))
+}
+
+/** Direct or deeper downline of the connected wallet — protocol `AlreadyBound` / own tree. */
+function isOwnReferral(
+  forest: GraiReferralTreeNode[],
+  wallet: string | null | undefined,
+  locker: GraiReferralTreeNode,
+): boolean {
+  if (!wallet) return false
+  if (addressesEqual(wallet, locker.referrer)) return true
+  const seat = findTreeNode(forest, wallet)
+  if (!seat) return false
+  return seat.children.some((child) => lockerInSubtree(child, locker.locker))
 }
 
 type ReferralNodeData = {
@@ -274,14 +314,14 @@ const ReferralGraphNode = memo(function ReferralGraphNode({ data }: { data: Refe
       <Handle type="source" position={Position.Top} className="grai-referral-graph-handle" />
       <header className="grai-referral-graph-node-head">
         <span className="grai-referral-graph-node-name">
-          Locker <span className="grai-referral-graph-node-addr">{shortAddress(data.locker)}</span>
+          Locker <GraphCopyAddress address={data.locker} />
         </span>
         {data.isYou ? <span className="grai-referral-graph-badge">You</span> : null}
         {data.isRoot ? <span className="grai-referral-graph-badge is-root">Root</span> : null}
       </header>
-      <p className="grai-referral-graph-node-owner" title={data.owner}>
+      <p className="grai-referral-graph-node-owner">
         <span className="grai-referral-graph-node-owner-label">Owner:</span>{' '}
-        <span className="grai-referral-graph-node-addr">{shortAddress(data.owner)}</span>
+        <GraphCopyAddress address={data.owner} />
       </p>
       {data.showClaimUsd ? (
         <>
@@ -334,6 +374,90 @@ const ReferralGraphNode = memo(function ReferralGraphNode({ data }: { data: Refe
 })
 
 const nodeTypes: NodeTypes = { referral: ReferralGraphNode }
+
+function GraphCopyAddress({ address }: { address: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <button
+      type="button"
+      className={`grai-referral-graph-node-addr nodrag nopan${copied ? ' is-copied' : ''}`}
+      title={copied ? 'Copied!' : address}
+      aria-label={copied ? 'Copied!' : `Copy ${address}`}
+      onClick={(event) => {
+        event.stopPropagation()
+        void navigator.clipboard.writeText(address).then(() => {
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 1000)
+        }).catch(() => {
+          // ignore clipboard errors
+        })
+      }}
+    >
+      {copied ? 'Copied!' : shortAddress(address)}
+    </button>
+  )
+}
+
+function GraphArrowSample({ dashed }: { dashed?: boolean }) {
+  const stroke = dashed ? COLORS.own : COLORS.edge
+  return (
+    <svg
+      className="grai-referral-dash-graph-legend-arrow"
+      viewBox="0 0 44 12"
+      width="44"
+      height="12"
+      aria-hidden="true"
+    >
+      <line
+        x1="1"
+        y1="6"
+        x2="32"
+        y2="6"
+        fill="none"
+        stroke={stroke}
+        strokeWidth={dashed ? 2.4 : 2}
+        strokeDasharray={dashed ? '6 4' : undefined}
+        strokeLinecap="round"
+      />
+      <polygon points="31,2.2 42,6 31,9.8" fill={stroke} />
+    </svg>
+  )
+}
+
+function GraphArrowLegend({
+  open,
+  onToggle,
+}: {
+  open: boolean
+  onToggle: () => void
+}) {
+  return (
+    <Panel position="top-left" className="grai-referral-dash-graph-legend-panel nodrag nopan">
+      <button
+        type="button"
+        className={`grai-referral-dash-graph-legend-btn${open ? ' is-open' : ''}`}
+        aria-expanded={open}
+        aria-controls="grai-referral-graph-legend"
+        onClick={onToggle}
+      >
+        Legend
+      </button>
+      {open ? (
+        <div id="grai-referral-graph-legend" className="grai-referral-dash-graph-legend-card" role="note">
+          <div className="grai-referral-dash-graph-legend-row">
+            <GraphArrowSample />
+            <span>Solid: locker → referrer</span>
+          </div>
+          <div className="grai-referral-dash-graph-legend-row">
+            <GraphArrowSample dashed />
+            <span>Dashed: revshare to this upline</span>
+          </div>
+        </div>
+      ) : null}
+    </Panel>
+  )
+}
 
 function FitHomeControlButton() {
   const { fitView } = useReactFlow()
@@ -538,9 +662,11 @@ export function GraiReferralTree({
   const [topPage, setTopPage] = useState(0)
   const [minimapOpen, setMinimapOpen] = useState(false)
   const [finderOpen, setFinderOpen] = useState(false)
+  const [legendOpen, setLegendOpen] = useState(false)
   const [isPoaching, setIsPoaching] = useState(false)
   const [mapRequested, setMapRequested] = useState(true)
   const [isLoadingMap, setIsLoadingMap] = useState(false)
+  const [isDashCollapsed, setIsDashCollapsed] = useState(false)
   const chartHostRef = useRef<HTMLDivElement | null>(null)
 
   const disarmChartFocus = useCallback(() => {
@@ -660,17 +786,60 @@ export function GraiReferralTree({
 
   const liveChainReady = Boolean(connection && solana) || Boolean(evmProtocol)
   const walletChainLabel = connection && solana ? 'Solana' : 'EVM'
+  const graiMintAddress = solana?.graiMint.toBase58() ?? evmProtocol?.graiToken ?? undefined
+  const {
+    raw: walletGraiRaw,
+    isLoading: isGraiBalanceLoading,
+    isConnected: isGraiWalletConnected,
+  } = useWalletAssetBalance(graiMintAddress, 'GRAI')
+
+  const cannotPoachOwnRoot = Boolean(
+    selected &&
+      highlightAddress &&
+      isOwnLocker(highlightAddress, selected.locker) &&
+      isForestRoot(forest, selected.locker),
+  )
+  const cannotPoachOwnReferral = Boolean(
+    selected && highlightAddress && isOwnReferral(forest, highlightAddress, selected),
+  )
+
+  const needsGraiDeposit = Boolean(
+    selected &&
+      highlightAddress &&
+      !isExample &&
+      liveChainReady &&
+      poachAsk > 0n &&
+      !cannotPoachOwnRoot &&
+      !cannotPoachOwnReferral &&
+      isGraiWalletConnected &&
+      !isGraiBalanceLoading &&
+      walletGraiRaw < poachAsk,
+  )
 
   const poachBlockedReason = useMemo(() => {
     if (!selected) return null
     if (isExample || !liveChainReady) return 'Demo tree — live poach needs on-chain books'
     if (!highlightAddress) return `Connect a ${walletChainLabel} wallet to poach`
-    if (addressesEqual(highlightAddress, selected.referrer)) {
-      return 'You already hold this upline seat'
+    if (cannotPoachOwnRoot) {
+      return 'You already sit at this root — there is no upline to poach'
+    }
+    if (cannotPoachOwnReferral) {
+      return 'You cannot poach your own referrals'
     }
     if (poachAsk <= 0n) return 'Poach ask is zero'
+    if (needsGraiDeposit) return 'Not enough GRAI in your wallet'
     return null
-  }, [selected, isExample, liveChainReady, highlightAddress, poachAsk, walletChainLabel])
+  }, [
+    selected,
+    isExample,
+    liveChainReady,
+    highlightAddress,
+    poachAsk,
+    walletChainLabel,
+    needsGraiDeposit,
+    cannotPoachOwnRoot,
+    cannotPoachOwnReferral,
+  ])
 
   const onPoach = useCallback(async () => {
     if (!selected || poachBlockedReason) return
@@ -850,6 +1019,10 @@ export function GraiReferralTree({
         onPaneClick={onPaneClick}
       >
         <Background gap={20} size={1} color="rgba(148, 163, 184, 0.12)" />
+        <GraphArrowLegend
+          open={legendOpen}
+          onToggle={() => setLegendOpen((open) => !open)}
+        />
         <Controls showInteractive={false} showFitView={false}>
           <MeControlButton address={highlightAddress} onSelect={updateSelectedId} />
           <FitHomeControlButton />
@@ -932,11 +1105,27 @@ export function GraiReferralTree({
       <header className="grai-referral-dash-header">
         <div className="grai-referral-dash-header-copy">
           <h3 className="grai-referral-dash-title">
-            <GraiFieldInfoButton
-              hint="Interactive referrer tree graph. Drag nodes, zoom the canvas, click a locker for book charts."
-              ariaLabel="Referrers dashboard information"
-              tooltipClassName="grai-referral-dash-info-tooltip"
-            />
+            <button
+              type="button"
+              className={`grai-referral-dash-collapse${isDashCollapsed ? ' is-collapsed' : ''}`}
+              onClick={() => setIsDashCollapsed((collapsed) => !collapsed)}
+              aria-expanded={!isDashCollapsed}
+              aria-controls="grai-referral-dash-grid"
+              aria-label={isDashCollapsed ? 'Show referrers dashboard' : 'Hide referrers dashboard'}
+            >
+              <svg
+                className="grai-donut-legend-toggle-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
             <button
               type="button"
               className="grai-referral-dash-title-action"
@@ -955,6 +1144,12 @@ export function GraiReferralTree({
         </p>
       ) : null}
 
+      <div
+        className={`grai-referral-dash-body${isDashCollapsed ? '' : ' is-open'}`}
+        id="grai-referral-dash-grid"
+        aria-hidden={isDashCollapsed}
+      >
+        <div className="grai-referral-dash-body-inner">
       <div className="grai-referral-dash-grid">
         {graphPanel}
 
@@ -1003,7 +1198,12 @@ export function GraiReferralTree({
             >
               {selected ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={selectedBars} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <BarChart
+                    data={selectedBars}
+                    margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                    barCategoryGap="12%"
+                    barGap={8}
+                  >
                     <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis
                       tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
@@ -1026,7 +1226,14 @@ export function GraiReferralTree({
                       labelStyle={{ color: 'var(--text-secondary)' }}
                       itemStyle={{ color: 'var(--text-primary)' }}
                     />
-                    <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+                    <Bar
+                      dataKey="value"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={72}
+                      isAnimationActive
+                      animationDuration={420}
+                      animationEasing="ease-in-out"
+                    >
                       {selectedBars.map((row) => (
                         <Cell key={row.name} fill={row.fill} />
                       ))}
@@ -1090,6 +1297,7 @@ export function GraiReferralTree({
                         fill={COLORS.own}
                         name="Own"
                         cursor="pointer"
+                        isAnimationActive={false}
                         onClick={onTopBarClick}
                       />
                       <Bar
@@ -1098,6 +1306,7 @@ export function GraiReferralTree({
                         fill={COLORS.l1}
                         name="L1"
                         cursor="pointer"
+                        isAnimationActive={false}
                         onClick={onTopBarClick}
                       />
                       <Bar
@@ -1107,6 +1316,7 @@ export function GraiReferralTree({
                         name="L2"
                         radius={[0, 2, 2, 0]}
                         cursor="pointer"
+                        isAnimationActive={false}
                         onClick={onTopBarClick}
                       />
                     </BarChart>
@@ -1122,6 +1332,7 @@ export function GraiReferralTree({
                       outerRadius={68}
                       paddingAngle={2}
                       stroke="none"
+                      isAnimationActive={false}
                     >
                       {mixPie.map((row) => (
                         <Cell key={row.name} fill={row.fill} />
@@ -1213,7 +1424,7 @@ export function GraiReferralTree({
                       {poachSellerLabel}
                     </span>
                   </div>
-                  <div className="grai-action-metric-row">
+                  <div className={`grai-action-metric-row${needsGraiDeposit ? ' is-insufficient' : ''}`}>
                     <span className="grai-action-metric-label">Poach price:</span>
                     <span className="grai-action-metric-value is-yield grai-action-metric-value--grai">
                       {formatGraiAmount(poachAsk, graiDecimals)}
@@ -1229,8 +1440,43 @@ export function GraiReferralTree({
                     </span>
                   </div>
                 </div>
-                {!highlightAddress ? (
+                {needsGraiDeposit ? (
+                  <p className="grai-referral-dash-poach-warn" role="status">
+                    Not enough GRAI in your wallet ({formatGraiAmount(walletGraiRaw, graiDecimals)} /{' '}
+                    {formatGraiAmount(poachAsk, graiDecimals)}). Deposit assets to mint GRAI, then
+                    poach this seat.
+                  </p>
+                ) : (
+                  <p className="grai-referral-dash-poach-warn is-spacer" aria-hidden="true">
+                    &nbsp;
+                  </p>
+                )}
+                {cannotPoachOwnReferral ? (
+                  <button
+                    type="button"
+                    className="grai-mint-btn grai-referral-dash-poach-btn"
+                    disabled
+                  >
+                    You cannot poach your own referrals
+                  </button>
+                ) : cannotPoachOwnRoot ? (
+                  <button
+                    type="button"
+                    className="grai-mint-btn grai-referral-dash-poach-btn"
+                    disabled
+                  >
+                    You cannot poach your own locker while it has no upline
+                  </button>
+                ) : !highlightAddress ? (
                   <GraiActionConnectWalletButton />
+                ) : needsGraiDeposit ? (
+                  <button
+                    type="button"
+                    className="grai-mint-btn grai-referral-dash-poach-btn"
+                    onClick={() => navigateToGraiSection('mint')}
+                  >
+                    Deposit GRAI
+                  </button>
                 ) : (
                   <button
                     type="button"
@@ -1251,6 +1497,8 @@ export function GraiReferralTree({
             ) : null}
           </div>
         </aside>
+      </div>
+        </div>
       </div>
     </section>
   )

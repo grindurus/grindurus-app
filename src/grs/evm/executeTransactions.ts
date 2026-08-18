@@ -3,7 +3,7 @@ import { erc20Abi, getAddress, maxUint256 } from 'viem'
 import { wagmiConfig } from '../../providers/evmConfig'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import { GRS_DECIMALS } from '../constants'
-import { parseBridgeRecipient } from '../bytes32'
+import { parseBridgeRecipient, parseSaleAsset, ZERO_BYTES32, evmAddressToBytes32 } from '../bytes32'
 import type { GrsEvmConfig } from '../deployments'
 import { grsAbi } from './abi'
 import { quoteGrsBridge, previewGrsBuy } from './readProtocol'
@@ -152,4 +152,58 @@ export async function executeGrsRelease(
   })
   await waitForTransactionReceipt(wagmiConfig, { hash })
   return { hash }
+}
+
+export type ExecuteGrsSaleParams = {
+  config: GrsEvmConfig
+  assetInput: string
+  assetAmountInput: string
+  assetDecimals: number
+  grsAmountInput: string
+  recipientInput: string
+  dstEid: number
+  decimals?: number
+}
+
+export async function executeGrsSale({
+  config,
+  assetInput,
+  assetAmountInput,
+  assetDecimals,
+  grsAmountInput,
+  recipientInput,
+  dstEid,
+  decimals = GRS_DECIMALS,
+}: ExecuteGrsSaleParams): Promise<{ hash: string; amount: bigint; amountLabel: string }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) throw new Error('Connect an EVM wallet to list a GRS sale')
+
+  const grsAmount = parseTokenAmount(grsAmountInput, decimals)
+  const assetAmount = parseTokenAmount(assetAmountInput, assetDecimals)
+  const asset = parseSaleAsset(assetInput)
+  const recipient = recipientInput.trim()
+    ? evmAddressToBytes32(recipientInput)
+    : ZERO_BYTES32
+
+  let value = 0n
+  if (dstEid !== 0) {
+    const nativeFee = await readContract(wagmiConfig, {
+      address: config.address,
+      abi: grsAbi,
+      functionName: 'quoteSale',
+      args: [asset, assetAmount, grsAmount, recipient, dstEid],
+    })
+    value = nativeFee + nativeFee / 10n
+  }
+
+  const hash = await writeContract(wagmiConfig, {
+    address: config.address,
+    abi: grsAbi,
+    functionName: 'sale',
+    args: [asset, assetAmount, grsAmount, recipient, dstEid],
+    value,
+    account: account.address,
+  })
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash, amount: grsAmount, amountLabel: formatTokenBalance(grsAmount, decimals) }
 }

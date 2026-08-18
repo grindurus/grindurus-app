@@ -9,6 +9,19 @@ export function evmAddressToBytes32(address: string): Hex {
   return pad(getAddress(address) as Hex, { size: 32 })
 }
 
+export const ZERO_BYTES32 = evmAddressToBytes32('0x0000000000000000000000000000000000000000')
+
+export function parseSaleAsset(input: string): Hex {
+  const trimmed = input.trim()
+  if (!trimmed || trimmed.toUpperCase() === 'ETH' || trimmed === '0' || /^0x0+$/i.test(trimmed)) {
+    return ZERO_BYTES32
+  }
+  if (!isAddress(trimmed)) {
+    throw new Error('Enter ETH or an ERC-20 address')
+  }
+  return evmAddressToBytes32(trimmed)
+}
+
 export function isSolanaBase58Address(value: string): boolean {
   const trimmed = value.trim()
   if (!trimmed || trimmed.startsWith('0x')) return false

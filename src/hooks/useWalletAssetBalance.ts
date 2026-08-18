@@ -24,6 +24,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
   const connection = clusterMismatch ? graiConnection : (walletConnection ?? graiConnection)
   const [formattedBalance, setFormattedBalance] = useState<string | null>(null)
   const [maxAmount, setMaxAmount] = useState('')
+  const [raw, setRaw] = useState(0n)
   const [decimals, setDecimals] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -91,12 +92,14 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     if (!assetMint) {
       setFormattedBalance(null)
       setMaxAmount('')
+      setRaw(0n)
       return
     }
 
     if (isPlaceholderMint) {
       setFormattedBalance('0')
       setMaxAmount('')
+      setRaw(0n)
       setDecimals(placeholderDecimals(symbol))
       return
     }
@@ -105,22 +108,25 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       if (!evmAddress || !evm) {
         setFormattedBalance(null)
         setMaxAmount('')
+        setRaw(0n)
         return
       }
 
       setIsLoading(true)
       try {
-        const { raw, maxRaw, decimals: assetDecimals } = await fetchEvmWalletAssetBalance(
+        const { raw: walletRaw, maxRaw, decimals: assetDecimals } = await fetchEvmWalletAssetBalance(
           evm,
           evmAddress as `0x${string}`,
           assetMint,
         )
-        setFormattedBalance(formatTokenBalance(raw, assetDecimals))
+        setFormattedBalance(formatTokenBalance(walletRaw, assetDecimals))
         setMaxAmount(formatTokenBalance(maxRaw, assetDecimals))
+        setRaw(walletRaw)
         setDecimals(assetDecimals)
       } catch {
         setFormattedBalance(null)
         setMaxAmount('')
+        setRaw(0n)
       } finally {
         setIsLoading(false)
       }
@@ -130,6 +136,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     if (!publicKey || !connection) {
       setFormattedBalance(null)
       setMaxAmount('')
+      setRaw(0n)
       return
     }
 
@@ -137,18 +144,20 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     try {
       const mint = new PublicKey(assetMint)
       const isNativeSol = assetMint === NATIVE_MINT
-      const { raw, maxRaw, decimals: assetDecimals } = await fetchWalletAssetBalance(
+      const { raw: walletRaw, maxRaw, decimals: assetDecimals } = await fetchWalletAssetBalance(
         connection,
         publicKey,
         mint,
         isNativeSol,
       )
-      setFormattedBalance(formatTokenBalance(raw, assetDecimals))
+      setFormattedBalance(formatTokenBalance(walletRaw, assetDecimals))
       setMaxAmount(formatTokenBalance(maxRaw, assetDecimals))
+      setRaw(walletRaw)
       setDecimals(assetDecimals)
     } catch {
       setFormattedBalance(null)
       setMaxAmount('')
+      setRaw(0n)
     } finally {
       setIsLoading(false)
     }
@@ -158,6 +167,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     if (!assetMint) {
       setFormattedBalance(null)
       setMaxAmount('')
+      setRaw(0n)
       setIsLoading(false)
       return
     }
@@ -165,6 +175,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     if (isPlaceholderMint) {
       setFormattedBalance('0')
       setMaxAmount('')
+      setRaw(0n)
       setDecimals(placeholderDecimals(symbol))
       setIsLoading(false)
       return
@@ -174,12 +185,14 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       if (!evmAddress || !evm) {
         setFormattedBalance(null)
         setMaxAmount('')
+        setRaw(0n)
         setIsLoading(false)
         return
       }
     } else if (!publicKey || !connection) {
       setFormattedBalance(null)
       setMaxAmount('')
+      setRaw(0n)
       setIsLoading(false)
       return
     }
@@ -196,6 +209,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     balanceLabel,
     isConnected,
     maxAmount,
+    raw,
     decimals,
     isLoading,
     refresh,

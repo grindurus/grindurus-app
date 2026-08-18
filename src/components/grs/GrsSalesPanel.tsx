@@ -3,16 +3,16 @@ import { isAddress } from 'viem'
 import { GraiAmountInput } from '../grai/GraiAmountInput'
 import { GraiFieldInfoButton } from '../grai/GraiFieldInfo'
 import { useEvmWallet } from '../../hooks/useEvmWallet'
+import { useActiveWallet } from '../../hooks/useActiveWallet'
+import { useWalletContext } from '../../providers/AppWalletProvider'
 import { useGrsEvmTransaction } from '../../hooks/useGrsEvmTransaction'
 import { formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../../grai/onchain'
 import { assetUrl } from '../../utils/appPaths'
-import { shortenAddress } from '../../utils/shortenAddress'
 import { GRS_DECIMALS } from '../../grs/constants'
 import {
   MOCK_GRS_SALES,
   MOCK_TOKEN_SALES_REMAINING,
   mockQuoteSaleCost,
-  partyName,
 } from '../../grs/preview'
 import { executeGrsBuy } from '../../grs/evm/executeTransactions'
 import { previewGrsBuy } from '../../grs/evm/readProtocol'
@@ -20,8 +20,6 @@ import type { GrsEvmConfig } from '../../grs/deployments'
 import type { GrsSale, GrsSnapshot } from '../../grs/evm/readProtocol'
 import { navigateToGrsSection } from '../../utils/grsNavigation'
 import { GrsFeedback, GrsSubmit, toastGrsSuccess } from './GrsActionBits'
-
-const TOKEN_SALES_CAP = 150_000_000n * 10n ** 18n
 
 type Props = {
   config: GrsEvmConfig | null
@@ -31,23 +29,24 @@ type Props = {
   note: ReactNode
 }
 
-function saleHeadline(sale: GrsSale): string {
-  return `${formatTokenBalance(sale.assetAmount, sale.quoteDecimals, 8)} ${sale.quoteSymbol} / ${formatTokenBalance(sale.grsAmount, GRS_DECIMALS, 2)} GRS`
-}
-
-function proceedsWho(sale: GrsSale): string {
-  const name = partyName(sale.recipient)
-  const short = shortenAddress(sale.recipient)
-  return name ? `${name} · ${short}` : short
-}
-
 export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Props) {
   const evmWallet = useEvmWallet()
+  const activeWallet = useActiveWallet()
+  const { setSelectedChainType } = useWalletContext()
   const { run, reset, error, lastHash, isPending } = useGrsEvmTransaction()
   const [saleId, setSaleId] = useState('')
   const [amount, setAmount] = useState('')
   const [recipient, setRecipient] = useState('')
   const [cost, setCost] = useState<bigint | null>(null)
+
+  const headerEvmAddress = useMemo(() => {
+    const candidates = [evmWallet.address, activeWallet.address]
+    for (const value of candidates) {
+      if (value && isAddress(value)) return value
+    }
+    return ''
+  }, [activeWallet.address, evmWallet.address])
+  const recipientValue = recipient.trim() ? recipient : headerEvmAddress
 
   const decimals = snapshot?.decimals ?? GRS_DECIMALS
   const liveSales = snapshot?.sales ?? []
@@ -60,10 +59,10 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
   }, [saleId, selected])
 
   useEffect(() => {
-    if (evmWallet.address) {
-      setRecipient((current) => (current.trim() ? current : evmWallet.address ?? ''))
-    }
-  }, [evmWallet.address])
+    if (!headerEvmAddress) return
+    setSelectedChainType('evm')
+    setRecipient((current) => (current.trim() ? current : headerEvmAddress))
+  }, [headerEvmAddress, setSelectedChainType])
 
   useEffect(() => {
     if (!selected) {
@@ -106,9 +105,7 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
   const remaining = isPreview
     ? MOCK_TOKEN_SALES_REMAINING
     : (snapshot?.tokenSalesRemaining ?? null)
-  const sold = remaining == null ? null : TOKEN_SALES_CAP > remaining ? TOKEN_SALES_CAP - remaining : 0n
   const remainingLabel = remaining == null ? null : formatTokenBalance(remaining, decimals, 2)
-  const soldPct = remaining == null || sold == null ? 0 : Number((sold * 10_000n) / TOKEN_SALES_CAP) / 100
 
   const assets = useMemo(
     () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: config?.address ?? 'grs' }],
@@ -126,7 +123,7 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
 
   const handleBuy = async () => {
     if (!selected || !config || isPreview) return
-    const to = recipient.trim() || evmWallet.address
+    const to = recipientValue.trim() || headerEvmAddress
     if (!to || !isAddress(to)) return
     reset()
     try {
@@ -155,33 +152,8 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
     }
   }
 
-  if (config && isLoading && liveSales.length === 0) {
-    return (
-      <div className="grs-sales-split">
-        <aside className="grs-sales-catalog" />
-        <div className="grs-sales-form">
-          <div className="grai-action-card grai-mint">
-            <div className="grai-action-content">
-              <p className="grs-empty">Loading sales…</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const catalog = (
-    <aside className="grs-sales-catalog">
-      <div className="grs-sales-catalog-panel">
-      {isPreview ? (
-        <p className="grs-preview-note">
-          Preview of the TGE sale book — several rows, each with remaining GRS and the quote
-          proceeds the seller wants for that remainder. Home owner lists and LayerZero-publishes;
-          the spoke accepts that listing after inventory is on this contract. TokenSales 150M is
-          still the chain-wide buy/grant cap.
-        </p>
-      ) : null}
-
+    <div className="grs-sales-catalog-panel">
       {remaining != null ? (
         <div className="grai-action-metrics">
           <div className="grai-action-metric-row">
@@ -193,7 +165,7 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
               <span className="grai-action-metric-label">For sale</span>
             </span>
             <span className="grai-action-metric-value">
-              {remainingLabel} GRS · {soldPct.toFixed(1)}% sold
+              {remainingLabel} GRS · 0% sold
             </span>
           </div>
         </div>
@@ -214,24 +186,44 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
               }}
             >
               <span className="grs-book-row-top">
-                <span>
-                  #{sale.id.toString()} · {sale.quoteSymbol}
+                <span className="grs-book-network">
+                  #{sale.id.toString()} · {config?.chainName ?? 'Ethereum'}
                 </span>
-                <span>{saleHeadline(sale)}</span>
+                <span className="grs-book-quote">
+                  estimation:{' '}
+                  {formatTokenBalance(sale.assetAmount, sale.quoteDecimals, 8)} {sale.quoteSymbol}
+                </span>
               </span>
-              <span className="grs-book-who">
-                {formatTokenBalance(sale.grsAmount, decimals, 2)} GRS · proceeds {proceedsWho(sale)}
+              <span className="grs-book-row-bottom">
+                <span className="grs-book-grs">
+                  remaining: {formatTokenBalance(sale.grsAmount, decimals, 2)} GRS
+                </span>
               </span>
             </button>
           )
         })}
       </div>
-      </div>
-    </aside>
+    </div>
   )
+
+  if (config && isLoading && liveSales.length === 0) {
+    return (
+      <div className="grs-sales-split">
+        <h3 className="grai-liquidation-distribute-title">Token sale</h3>
+        <div className="grs-sales-form">
+          <div className="grai-action-card grai-mint">
+            <div className="grai-action-content">
+              <p className="grs-empty">Loading sales…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="grs-sales-split">
+      <h3 className="grai-liquidation-distribute-title">Token sale</h3>
       {catalog}
       <div className="grs-sales-form">
         <div className="grai-action-card grai-mint">
@@ -246,6 +238,7 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
               }}
               balanceLabel={buyableLabel ? `${buyableLabel} GRS` : '—'}
               balancePrefix="This sale:"
+              usdTrailingLabel="remaining"
               maxAmount={maxAmount}
               decimals={decimals}
               disabled={!selected}
@@ -256,31 +249,48 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
                 <span className="grai-mint-referrer-label">Deliver to</span>
                 <GraiFieldInfoButton hint="Buyer of this GRS. Instant transfer — no vesting lock." />
               </span>
-              <input
-                className="grai-mint-referrer-input"
-                value={recipient}
-                spellCheck={false}
-                placeholder="0x…"
-                onChange={(event) => {
-                  setRecipient(event.target.value)
-                  reset()
-                }}
-              />
+              <div className="grai-mint-referrer-input-row">
+                <input
+                  className="grai-mint-referrer-input"
+                  value={recipientValue}
+                  spellCheck={false}
+                  placeholder="0x…"
+                  onChange={(event) => {
+                    setRecipient(event.target.value)
+                    reset()
+                  }}
+                />
+                <button
+                  type="button"
+                  className="grai-mint-referrer-me-btn"
+                  disabled={!headerEvmAddress}
+                  title="Use connected wallet from the header"
+                  aria-label="Fill connected wallet address"
+                  onClick={() => {
+                    if (!headerEvmAddress) return
+                    setSelectedChainType('evm')
+                    setRecipient(headerEvmAddress)
+                    reset()
+                  }}
+                >
+                  ME
+                </button>
+              </div>
             </label>
 
             <div className="grai-action-metrics" aria-live="polite">
-              {selected ? (
-                <div className="grai-action-metric-row">
-                  <span className="grai-action-metric-label-wrap">
-                    <GraiFieldInfoButton
-                      className="grai-action-metric-label-info"
-                      hint="Quote proceeds from buy() go to this address (sale.recipient), not to the GRS buyer."
-                    />
-                    <span className="grai-action-metric-label">Proceeds</span>
-                  </span>
-                  <span className="grai-action-metric-value">{proceedsWho(selected)}</span>
-                </div>
-              ) : null}
+              <div className="grai-action-metric-row">
+                <span className="grai-action-metric-label-wrap">
+                  <GraiFieldInfoButton
+                    className="grai-action-metric-label-info"
+                    hint="GRS you receive from this buy. Instant transfer — no vesting lock."
+                  />
+                  <span className="grai-action-metric-label">You receive</span>
+                </span>
+                <span className="grai-action-metric-value">
+                  {amount.trim() ? `${amount} GRS` : '— GRS'}
+                </span>
+              </div>
               <div className="grai-action-metric-row">
                 <span className="grai-action-metric-label-wrap">
                   <GraiFieldInfoButton
@@ -311,12 +321,12 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
             ) : null}
 
             <GrsSubmit
-              connected={evmWallet.isConnected}
+              connected
               disabled={
-                isPreview || !selected || !amount.trim() || !isAddress(recipient.trim() || evmWallet.address || '')
+                isPreview || !selected || !amount.trim() || !isAddress(recipientValue)
               }
               pending={isPending}
-              label={selected ? `Buy with ${selected.quoteSymbol}` : 'Buy GRS'}
+              label="Buy"
               onClick={() => {
                 void handleBuy()
               }}

@@ -85,18 +85,14 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
     () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: config?.address ?? 'grs' }],
     [config?.address],
   )
+  const walletBalanceText =
+    snapshot != null ? formatTokenBalance(snapshot.balance, decimals, 6) : '—'
   const maxAmount =
-    snapshot && snapshot.balance > 0n
+    snapshot != null && snapshot.balance > 0n
       ? formatTokenBalance(snapshot.balance, decimals)
-      : isPreview
-        ? '100000'
-        : '0'
-  const balanceLabel =
-    snapshot && snapshot.balance > 0n
-      ? formatTokenBalance(snapshot.balance, decimals, 6)
-      : isPreview
-        ? '100000'
-        : '0'
+      : evmWallet.isConnected
+        ? '0'
+        : ''
 
   const handleRelease = async (id: bigint) => {
     if (!config || isPreview) return
@@ -155,11 +151,6 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
     <>
       {view === 'claim' ? (
         <>
-          {isPreview ? (
-            <p className="grs-preview-note">
-              Preview of home grants and a holder vest — who each schedule pays.
-            </p>
-          ) : null}
           {config && isLoading && liveRows.length === 0 ? (
             <p className="grs-empty">Loading schedules…</p>
           ) : (
@@ -222,18 +213,9 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
             chainId={config?.chainId}
             successLabel="Released."
           />
-
-          {!evmWallet.isConnected ? (
-            <GrsSubmit connected={false} disabled pending={false} label="Release" onClick={() => undefined} />
-          ) : null}
         </>
       ) : (
         <>
-          {isPreview ? (
-            <p className="grs-preview-note">
-              Preview vest form. Cliff and linear stream GRS to the beneficiary you enter.
-            </p>
-          ) : null}
           <GraiAmountInput
             label="Vest"
             assets={assets}
@@ -242,7 +224,9 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
               setAmount(normalizeDecimalInput(value, decimals))
               lockTx.reset()
             }}
-            balanceLabel={`${balanceLabel} GRS`}
+            balanceLabel={evmWallet.isConnected ? walletBalanceText : '—'}
+            balanceLoading={isLoading && snapshot == null}
+            usdTrailingLabel="balance"
             maxAmount={maxAmount}
             decimals={decimals}
             disabled={false}

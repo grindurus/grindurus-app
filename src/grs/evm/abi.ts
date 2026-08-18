@@ -209,6 +209,32 @@ export const grsAbi = [
   },
   {
     type: 'function',
+    name: 'quoteSale',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'asset', type: 'bytes32' },
+      { name: 'assetAmount', type: 'uint256' },
+      { name: 'grsAmount', type: 'uint256' },
+      { name: 'recipient', type: 'bytes32' },
+      { name: 'dstEid', type: 'uint32' },
+    ],
+    outputs: [{ name: 'nativeFee', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'sale',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'asset', type: 'bytes32' },
+      { name: 'assetAmount', type: 'uint256' },
+      { name: 'grsAmount', type: 'uint256' },
+      { name: 'recipient', type: 'bytes32' },
+      { name: 'dstEid', type: 'uint32' },
+    ],
+    outputs: [{ name: 'id', type: 'uint256' }],
+  },
+  {
+    type: 'function',
     name: 'bridge',
     stateMutability: 'payable',
     inputs: [

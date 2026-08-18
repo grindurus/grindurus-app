@@ -53,6 +53,21 @@ export function isGrsConfiguredAnywhere(): boolean {
   return listConfiguredGrsChains().length > 0
 }
 
+export function resolveGrsHomeChain(
+  snapshot: { home: boolean; homeChain: GrsEvmConfig | null } | null,
+  config: GrsEvmConfig | null,
+  configuredChains: GrsEvmConfig[] = listConfiguredGrsChains(),
+): GrsEvmConfig | null {
+  if (snapshot?.home && config) return config
+  if (snapshot?.homeChain) return snapshot.homeChain
+  return (
+    configuredChains.find((item) => item.chainId === 11155111) ??
+    configuredChains.find((item) => item.chainId === 1) ??
+    configuredChains[0] ??
+    null
+  )
+}
+
 export const grsExplorerTokenUrl = evmExplorerTokenUrl
 export const grsExplorerTxUrl = evmExplorerTxUrl
 export const grsExplorerAccountUrl = evmExplorerAccountUrl

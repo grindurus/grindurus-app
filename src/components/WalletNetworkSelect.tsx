@@ -39,7 +39,7 @@ function chainIdToEvmChain(chainId: number): EvmChain | null {
   return null
 }
 
-function EvmChainListIcon({ name }: { name: string }) {
+export function EvmChainListIcon({ name }: { name: string }) {
   if (name === 'Ethereum') {
     return (
       <img

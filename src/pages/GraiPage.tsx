@@ -41,6 +41,9 @@ function GraiPage() {
 
   return (
     <div className="grai-page">
+      <p className="grai-page-dev-banner" role="status">
+        TESTNET DEVELOPMENT
+      </p>
       <FloatingTokenBackground tokens={STABLE_FLOATING_TOKENS} className="grai-content-row">
         {(clusterMismatch || evmChainMismatch || !isConfigured || protocolError) && (
           <div className="grai-page-meta">
