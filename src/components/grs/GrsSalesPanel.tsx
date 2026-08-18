@@ -17,7 +17,7 @@ import {
 import { executeGrsBuy } from '../../grs/evm/executeTransactions'
 import { previewGrsBuy } from '../../grs/evm/readProtocol'
 import type { GrsEvmConfig } from '../../grs/deployments'
-import type { GrsSale, GrsSnapshot } from '../../grs/evm/readProtocol'
+import type { GrsSnapshot } from '../../grs/evm/readProtocol'
 import { navigateToGrsSection } from '../../utils/grsNavigation'
 import { GrsFeedback, GrsSubmit, toastGrsSuccess } from './GrsActionBits'
 

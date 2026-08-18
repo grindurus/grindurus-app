@@ -5,6 +5,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import { useWalletContext } from './providers/AppWalletProvider'
 import { navigateToGraiSection } from './utils/graiNavigation'
+import { primeBullSound } from './utils/playBullSound'
 import './App.css'
 
 const GraiPage = lazy(() => import('./pages/GraiPage'))
@@ -97,6 +98,18 @@ function App() {
   useEffect(() => {
     document.title = titleFromPath(pathname)
   }, [pathname])
+
+  useEffect(() => {
+    const prime = () => {
+      primeBullSound()
+    }
+    window.addEventListener('pointerdown', prime, { once: true })
+    window.addEventListener('keydown', prime, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', prime)
+      window.removeEventListener('keydown', prime)
+    }
+  }, [])
 
   return (
     <div className="App">

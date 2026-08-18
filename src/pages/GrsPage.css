@@ -559,6 +559,56 @@
   text-transform: uppercase;
 }
 
+.grs-cap-kicker .grai-field-info-wrap .grai-field-info-tooltip {
+  top: auto;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: auto;
+  transform: none;
+  z-index: 80;
+  width: min(20rem, calc(100vw - 1.5rem));
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  padding: 0.6rem 0.75rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #fff;
+  border-color: rgba(255, 105, 180, 0.5);
+  background: rgba(18, 10, 26, 0.98);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 105, 180, 0.22);
+}
+
+[data-theme='light'] .grs-cap-kicker .grai-field-info-wrap .grai-field-info-tooltip {
+  color: var(--text-primary);
+  border-color: rgba(233, 30, 140, 0.35);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.grs-cap-infographic:has(.grai-field-info-wrap:hover),
+.grs-cap-infographic:has(.grai-field-info-wrap:focus-within),
+.grs-cap-infographic:has(.grai-field-info-wrap.is-open),
+.grs-cap-infographic .grai-liquidation-ops-body:has(.grai-field-info-wrap:hover),
+.grs-cap-infographic .grai-liquidation-ops-body:has(.grai-field-info-wrap:focus-within),
+.grs-cap-infographic .grai-liquidation-ops-body:has(.grai-field-info-wrap.is-open),
+.grs-cap-infographic .grai-liquidation-ops-body-inner:has(.grai-field-info-wrap:hover),
+.grs-cap-infographic .grai-liquidation-ops-body-inner:has(.grai-field-info-wrap:focus-within),
+.grs-cap-infographic .grai-liquidation-ops-body-inner:has(.grai-field-info-wrap.is-open),
+.grs-page .grai-content-row:has(.grs-cap-infographic .grai-field-info-wrap:hover),
+.grs-page .grai-content-row:has(.grs-cap-infographic .grai-field-info-wrap:focus-within),
+.grs-page .grai-content-row:has(.grs-cap-infographic .grai-field-info-wrap.is-open) {
+  overflow: visible;
+}
+
+.grs-cap-infographic:has(.grai-field-info-wrap:hover),
+.grs-cap-infographic:has(.grai-field-info-wrap:focus-within),
+.grs-cap-infographic:has(.grai-field-info-wrap.is-open) {
+  position: relative;
+  z-index: 6;
+}
+
 .grs-cap-total,
 .grs-cap-total-side {
   color: var(--text-primary);

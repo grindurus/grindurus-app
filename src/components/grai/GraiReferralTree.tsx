@@ -46,6 +46,7 @@ import { useGraiTransaction } from '../../hooks/useGraiTransaction'
 import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { assetUrl } from '../../utils/appPaths'
 import { navigateToGraiSection } from '../../utils/graiNavigation'
+import { playBullSound } from '../../utils/playBullSound'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 
 type Props = {
@@ -880,6 +881,7 @@ export function GraiReferralTree({
       } else {
         throw new Error('No live protocol configured for poach')
       }
+      void playBullSound()
       await reloadForest()
     } catch (err) {
       toast.update(toastId, {
