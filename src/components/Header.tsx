@@ -258,7 +258,7 @@ function Header() {
   useEffect(() => {
     if (!isAffiliatesMenuOpen && !isGraiMenuOpen && !isGrindersMenuOpen && !isGrsMenuOpen) return
 
-    const onDocumentClick = (event: MouseEvent) => {
+    const onDocumentClick = (event: globalThis.MouseEvent) => {
       const target = event.target as Node
       if (!affiliatesMenuRef.current?.contains(target)) setIsAffiliatesMenuOpen(false)
       if (!graiMenuRef.current?.contains(target)) setIsGraiMenuOpen(false)
