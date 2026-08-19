@@ -2123,14 +2123,6 @@ export function GraiLiquidationActions() {
         </p>
       ) : null}
 
-      <GraiReferralTree
-        evmProtocol={chainKind === 'evm' ? evmProtocol : null}
-        solana={chainKind === 'solana' ? solana : null}
-        connection={chainKind === 'solana' ? connection : null}
-        highlightAddress={walletAddress}
-        graiDecimals={graiDecimals}
-      />
-
       <div className="grai-liquidation-ops-block">
       <h3 className="grai-liquidation-ops-heading">
         <button

@@ -230,6 +230,14 @@ function Header() {
                   Backtest (soon)
                 </span>
               </li>
+              <li>
+                <NavLink
+                  to="/affiliate"
+                  className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+                >
+                  AFFILIATES
+                </NavLink>
+              </li>
               <li
                 ref={graiMenuRef}
                 className={`header-nav-item header-nav-item--grai${isGraiMenuOpen ? ' is-open' : ''}`}
@@ -362,6 +370,15 @@ function Header() {
               >
                 Backtest (soon)
               </span>
+            </li>
+            <li>
+              <NavLink
+                to="/affiliate"
+                className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+                onClick={() => setIsMobileNavOpen(false)}
+              >
+                AFFILIATES
+              </NavLink>
             </li>
             <li>
               <NavLink

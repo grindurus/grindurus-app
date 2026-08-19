@@ -11,12 +11,14 @@ import './App.css'
 const GraiPage = lazy(() => import('./pages/GraiPage'))
 const GrindersPage = lazy(() => import('./pages/GrindersPage'))
 const GrsPage = lazy(() => import('./pages/GrsPage'))
+const AffiliatesPage = lazy(() => import('./pages/AffiliatesPage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
 
 function titleFromPath(pathname: string): string {
   if (pathname.startsWith('/backtest')) return 'Backtest Simulator'
   if (pathname.startsWith('/grinders')) return 'Grinders'
   if (pathname.startsWith('/grs')) return 'GRS'
+  if (pathname.startsWith('/affiliate')) return 'Affiliates'
   if (pathname === '/grai/manage') return 'GRAI — Grinder management'
   return 'GRAI'
 }
@@ -74,6 +76,20 @@ function GrsRoute() {
   )
 }
 
+function AffiliatesRoute() {
+  return (
+    <Suspense
+      fallback={
+        <div className="App-main-loading" role="status">
+          Loading affiliates…
+        </div>
+      }
+    >
+      <AffiliatesPage />
+    </Suspense>
+  )
+}
+
 function BacktestRoute() {
   const { isEvmStackReady } = useWalletContext()
 
@@ -120,6 +136,8 @@ function App() {
           <Route path="/grai" element={<GraiRoute />} />
           <Route path="/grinders" element={<GrindersRoute />} />
           <Route path="/grs" element={<GrsRoute />} />
+          <Route path="/affiliate" element={<AffiliatesRoute />} />
+          <Route path="/affiliates" element={<Navigate to="/affiliate" replace />} />
           <Route path="/grai/manage" element={<GraiManageRedirect />} />
           <Route path="/backtest" element={<BacktestRoute />} />
           <Route path="*" element={<Navigate to="/grai" replace />} />
