@@ -24,9 +24,11 @@ import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { VaultBalanceTableValue, vaultBalanceUsdRaw } from '../components/VaultBalanceTableValue'
 import { GraiActionConnectWalletButton } from '../components/grai/GraiWalletAction'
 import { GraiLiquidateForm } from '../components/grai/GraiLiquidateForm'
+import { GraiConfirmForm } from '../components/grai/GraiConfirmForm'
 import { GraiMintCustodianForm } from '../components/grai/GraiMintCustodianForm'
 import { GraiRegisterCustodianForm } from '../components/grai/GraiRegisterCustodianForm'
 import { readGraiSectionFromHash, type GraiSection } from '../utils/graiNavigation'
+import { replaceAppHash } from '../utils/navigate'
 import './GraiPage.css'
 import './GraiManagePage.css'
 
@@ -139,7 +141,34 @@ const LIQUIDATE_OPS_ICON = (
   </svg>
 )
 
-type ManageActionView = 'allocate' | 'deallocate' | 'distribute' | 'liquidate' | 'mint' | 'register'
+const CONFIRM_OPS_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m9 12 2 2 4-4" />
+    <path d="M5 7h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z" />
+    <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+  </svg>
+)
+
+type ManageActionView = 'allocate' | 'deallocate' | 'distribute' | 'confirm' | 'liquidate' | 'mint' | 'register'
+
+function manageViewFromSection(section: GraiSection): ManageActionView | null {
+  if (
+    section === 'allocate' ||
+    section === 'deallocate' ||
+    section === 'distribute' ||
+    section === 'confirm' ||
+    section === 'liquidate' ||
+    section === 'register'
+  ) {
+    return section
+  }
+  if (section === 'custodian') return 'mint'
+  return null
+}
+
+function sectionFromManageView(view: ManageActionView): GraiSection {
+  return view === 'mint' ? 'custodian' : view
+}
 
 type CustodyHeldAssetRow = {
   asset: GraiAsset
@@ -751,13 +780,14 @@ export function GraiManageSection() {
     setAllocateAssetMenuOpen(false)
     setDistributeAssetMenuOpen(false)
     setDeallocateAssetMenuOpen(false)
+    const hash = `#${sectionFromManageView(view)}`
+    replaceAppHash('/grinders', hash)
   }, [])
 
   useEffect(() => {
     const applySection = (section: GraiSection) => {
-      if (section === 'allocate' || section === 'distribute' || section === 'deallocate') {
-        handleManageActionViewChange(section)
-      }
+      const view = manageViewFromSection(section)
+      if (view) handleManageActionViewChange(view)
     }
 
     const onSectionNav = (event: Event) => {
@@ -766,9 +796,9 @@ export function GraiManageSection() {
 
     const onHashChange = () => {
       const section = readGraiSectionFromHash()
-      if (section === 'allocate' || section === 'distribute' || section === 'deallocate') {
-        applySection(section)
-      }
+      if (!section) return
+      const view = manageViewFromSection(section)
+      if (view) applySection(section)
     }
 
     window.addEventListener('grai-section-nav', onSectionNav)
@@ -1333,6 +1363,18 @@ export function GraiManageSection() {
               <button
                 type="button"
                 role="tab"
+                aria-selected={manageActionView === 'confirm'}
+                className={`grai-action-switch-btn is-confirm ${manageActionView === 'confirm' ? 'is-active' : ''}`}
+                onClick={() => handleManageActionViewChange('confirm')}
+              >
+                <span className="grai-action-switch-icon" aria-hidden="true">
+                  {CONFIRM_OPS_ICON}
+                </span>
+                <span className="grai-action-switch-label">Confirm</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
                 aria-selected={manageActionView === 'liquidate'}
                 className={`grai-action-switch-btn is-liquidate ${manageActionView === 'liquidate' ? 'is-active' : ''}`}
                 onClick={() => handleManageActionViewChange('liquidate')}
@@ -1377,11 +1419,13 @@ export function GraiManageSection() {
                 ? 'Deallocate'
                 : manageActionView === 'distribute'
                   ? 'Distribute'
-                  : manageActionView === 'liquidate'
-                    ? 'Liquidate'
-                    : manageActionView === 'mint'
-                      ? 'Mint'
-                      : 'Register'}
+                  : manageActionView === 'confirm'
+                    ? 'Confirm'
+                    : manageActionView === 'liquidate'
+                      ? 'Liquidate'
+                      : manageActionView === 'mint'
+                        ? 'Mint'
+                        : 'Register'}
           </h2>
           <div className="grai-action-content">
             {manageActionView === 'allocate' ? (
@@ -1629,6 +1673,8 @@ export function GraiManageSection() {
             <GraiActionConnectWalletButton />
           )}
               </>
+            ) : manageActionView === 'confirm' ? (
+              <GraiConfirmForm />
             ) : manageActionView === 'liquidate' ? (
               <GraiLiquidateForm />
             ) : manageActionView === 'mint' ? (

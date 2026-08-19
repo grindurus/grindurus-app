@@ -132,7 +132,7 @@ export function GraiWalletActorRow({
 }
 
 /** Opens the same ChainSelectorModal as the header Connect Wallet button. */
-export function GraiActionConnectWalletButton() {
+export function GraiActionConnectWalletButton({ label }: { label?: string }) {
   const { isChainSelectorOpen, openChainSelector, warmEvmStack } = useWalletContext()
   const activeWallet = useActiveWallet()
   const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
@@ -178,7 +178,7 @@ export function GraiActionConnectWalletButton() {
       ) : (
         <>
           <WalletIcon />
-          <span className="connect-wallet-btn-label">Connect Wallet</span>
+          <span className="connect-wallet-btn-label">{label ?? 'Connect Wallet'}</span>
         </>
       )}
     </button>

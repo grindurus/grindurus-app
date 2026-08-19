@@ -5,6 +5,23 @@
   margin: 0;
 }
 
+.backtest-page .grai-page-dev-banner {
+  margin: 0 0 0.75rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: color-mix(in srgb, #ffb347 18%, transparent);
+  border: 1px solid color-mix(in srgb, #ffb347 45%, transparent);
+  box-sizing: border-box;
+}
+
 .backtest-layout {
   display: flex;
   flex-direction: column;

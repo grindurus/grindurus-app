@@ -1,10 +1,11 @@
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect, useLayoutEffect, lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import { useWalletContext } from './providers/AppWalletProvider'
 import { navigateToGraiSection } from './utils/graiNavigation'
+import { bindAppNavigate } from './utils/navigate'
 import { primeBullSound } from './utils/playBullSound'
 import './App.css'
 
@@ -108,6 +109,17 @@ function BacktestRoute() {
   )
 }
 
+function AppNavigateBinder() {
+  const navigate = useNavigate()
+
+  useLayoutEffect(() => {
+    bindAppNavigate(navigate)
+    return () => bindAppNavigate(null)
+  }, [navigate])
+
+  return null
+}
+
 function App() {
   const { pathname } = useLocation()
 
@@ -129,6 +141,7 @@ function App() {
 
   return (
     <div className="App">
+      <AppNavigateBinder />
       <Header />
       <main className={`App-main ${pathname.startsWith('/backtest') ? 'App-main--backtest' : ''}`}>
         <Routes>

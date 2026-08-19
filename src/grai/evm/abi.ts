@@ -519,6 +519,20 @@ export const grindersAbi = [
   },
   {
     type: 'function',
+    name: 'confirmed',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'confirm',
+    stateMutability: 'nonpayable',
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: 'function',
     name: 'grai',
     stateMutability: 'view',
     inputs: [],

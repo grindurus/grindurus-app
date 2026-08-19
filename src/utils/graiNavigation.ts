@@ -1,4 +1,5 @@
 import { isAtAppPath, toAppPath } from './appPaths'
+import { writeAppUrl } from './navigate'
 
 export type GraiSection =
   | 'mint'
@@ -14,6 +15,10 @@ export type GraiSection =
   | 'auctions'
   | 'vote'
   | 'bribe'
+  | 'liquidate'
+  | 'custodian'
+  | 'register'
+  | 'confirm'
 
 export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   mint: 'grai-actions-section',
@@ -29,6 +34,10 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   auctions: 'grai-liquidation-market',
   vote: 'grai-liquidation-market',
   bribe: 'grai-liquidation-market',
+  liquidate: 'grai-manage-section',
+  custodian: 'grai-manage-section',
+  register: 'grai-manage-section',
+  confirm: 'grai-manage-section',
 }
 
 export const GRAI_SECTION_HASHES: GraiSection[] = [
@@ -45,16 +54,33 @@ export const GRAI_SECTION_HASHES: GraiSection[] = [
   'auctions',
   'vote',
   'bribe',
+  'liquidate',
+  'custodian',
+  'register',
+  'confirm',
 ]
 
 const GRINDERS_PAGE_SECTIONS: ReadonlySet<GraiSection> = new Set([
   'allocate',
   'deallocate',
   'distribute',
+  'liquidate',
+  'custodian',
+  'register',
+  'confirm',
 ])
 
 export function isManageSectionHash(hash: string): boolean {
-  return hash === 'allocate' || hash === 'deallocate' || hash === 'distribute' || hash === 'manage'
+  return (
+    hash === 'allocate' ||
+    hash === 'deallocate' ||
+    hash === 'distribute' ||
+    hash === 'liquidate' ||
+    hash === 'custodian' ||
+    hash === 'register' ||
+    hash === 'confirm' ||
+    hash === 'manage'
+  )
 }
 
 export function readGraiSectionFromHash(): GraiSection | null {
@@ -70,6 +96,12 @@ function sectionAppPath(section: GraiSection): '/grai' | '/grinders' {
   return GRINDERS_PAGE_SECTIONS.has(section) ? '/grinders' : '/grai'
 }
 
+export const GRAI_MINT_FLOW_EVENT = 'grai-mint-flow'
+
+export function resetGraiMintToDeposit(): void {
+  window.dispatchEvent(new CustomEvent(GRAI_MINT_FLOW_EVENT, { detail: 'deposit' }))
+}
+
 export function navigateToGraiSection(
   section: GraiSection,
   onViewChange?: (view: 'grai' | 'grinders') => void,
@@ -80,11 +112,10 @@ export function navigateToGraiSection(
   const nextUrl = `${path}${hash}`
 
   if (!isAtAppPath(logicalPath)) {
-    window.history.pushState({}, '', nextUrl)
-    window.dispatchEvent(new PopStateEvent('popstate'))
+    writeAppUrl(nextUrl, 'push')
     onViewChange?.(logicalPath === '/grinders' ? 'grinders' : 'grai')
   } else if (`${window.location.pathname}${window.location.hash}` !== nextUrl) {
-    window.history.replaceState({}, '', nextUrl)
+    writeAppUrl(nextUrl, 'replace')
   }
 
   window.dispatchEvent(new CustomEvent<GraiSection>('grai-section-nav', { detail: section }))

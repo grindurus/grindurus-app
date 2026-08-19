@@ -55,40 +55,37 @@
   width: 100%;
 }
 
-.affiliates-page > .grai-referral-dash {
+.affiliates-page > .grai-content-row {
+  width: 100%;
+  justify-content: center;
+}
+
+.affiliates-page #affiliates-dashboard {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
   margin-top: 0.5rem;
+}
+
+.affiliates-page #affiliates-dashboard .grai-referral-dash,
+.affiliates-page #affiliates-dashboard .grai-referral-dash-body,
+.affiliates-page #affiliates-dashboard .grai-referral-dash-body-inner,
+.affiliates-page #affiliates-dashboard .grai-referral-dash-grid {
+  width: 100%;
+  max-width: 100%;
 }
 
 .affiliates-terms {
   width: 100%;
   max-width: 100%;
   margin: 1.25rem 0 0;
-  padding: 1.1rem 1.15rem 1.2rem;
-  border: 1px solid color-mix(in srgb, #fff 12%, transparent);
-  border-radius: 0.85rem;
+  padding: 0;
   box-sizing: border-box;
 }
 
 .affiliates-terms-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
   margin: 0 0 0.45rem;
-  font-size: 1.05rem;
-  font-weight: 650;
-  line-height: 1;
-  color: var(--text-primary);
-}
-
-.affiliates-terms-title .grai-referral-dash-collapse {
-  width: 1.05em;
-  height: 1.05em;
-}
-
-.affiliates-terms-title .grai-donut-legend-toggle-icon {
-  display: block;
-  width: 1.05em;
-  height: 1.05em;
 }
 
 .affiliates-terms.is-collapsed .affiliates-terms-title {
@@ -124,8 +121,9 @@
 }
 
 .affiliates-terms-code {
-  font-family: ui-monospace, 'Courier New', monospace;
-  font-size: 0.8em;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
   color: #ff69b4;
 }
 

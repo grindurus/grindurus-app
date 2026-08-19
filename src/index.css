@@ -57,10 +57,12 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  overflow-x: clip;
 }
 
 #root {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   width: 100%;
   min-height: 100vh;
   margin: 0 auto;

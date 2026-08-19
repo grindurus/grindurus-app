@@ -670,6 +670,14 @@ export function GraiReferralTree({
   const [isDashCollapsed, setIsDashCollapsed] = useState(false)
   const chartHostRef = useRef<HTMLDivElement | null>(null)
 
+  useEffect(() => {
+    const onAffiliatesNav = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === 'dashboard') setIsDashCollapsed(false)
+    }
+    window.addEventListener('affiliates-section-nav', onAffiliatesNav)
+    return () => window.removeEventListener('affiliates-section-nav', onAffiliatesNav)
+  }, [])
+
   const disarmChartFocus = useCallback(() => {
     const host = chartHostRef.current
     if (!host) return

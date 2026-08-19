@@ -120,7 +120,7 @@ export function useGraiAssetUsdLabel(
     if (!amountInput.trim()) return '$0.00'
     if (isLoading) return '…'
     if (usdRaw <= 0n) return '$0.00'
-    return `$${formatVaultBalanceDisplay(usdRaw, usdScale, 2)}`
+    return `$${formatVaultBalanceDisplay(usdRaw, usdScale, 6)}`
   }, [amountInput, isLoading, usdRaw, usdScale])
 
   return { usdLabel, usdRaw, isLoading }

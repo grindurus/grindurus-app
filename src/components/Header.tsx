@@ -1,11 +1,14 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { ConnectWalletButton } from './ConnectWalletButton'
 import { HeaderSettingsPopover } from './HeaderSettingsPopover'
 import { GraiUiCaret } from './grai/GraiUiCaret'
 import { navigateToGraiSection, type GraiSection } from '../utils/graiNavigation'
 import { navigateToGrsSection, type GrsSection } from '../utils/grsNavigation'
+import { navigateToAffiliatesSection, type AffiliatesSection } from '../utils/affiliatesNavigation'
+import { useHeaderNavClicks } from '../hooks/useHeaderNavClicks'
 import { assetUrl } from '../utils/appPaths'
 import './Header.css'
 
@@ -99,41 +102,174 @@ const SALE_NAV_ICON = (
 )
 
 const GRS_NAV_ITEMS: { section: GrsSection; label: string; icon: ReactNode }[] = [
+  { section: 'token-sale', label: 'Token Sale', icon: SALE_NAV_ICON },
   { section: 'bridge', label: 'Bridge', icon: BRIDGE_NAV_ICON },
   { section: 'sales', label: 'Sale', icon: SALE_NAV_ICON },
   { section: 'vesting', label: 'Release', icon: UNLOCK_NAV_ICON },
   { section: 'vest', label: 'Vest', icon: LOCK_NAV_ICON },
 ]
 
+const ALLOCATE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="6" cy="6" r="2" />
+    <circle cx="18" cy="6" r="2" />
+    <circle cx="12" cy="18" r="2" />
+    <path d="M8 6h8" />
+    <path d="M7.3 7.7l5.4 9.6" />
+    <path d="M16.7 7.7l-5.4 9.6" />
+  </svg>
+)
+
+const REGISTER_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6" />
+    <path d="m9 15 2 2 4-4" />
+  </svg>
+)
+
+const GRINDERS_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[] = [
+  { section: 'allocate', label: 'Allocate', icon: ALLOCATE_NAV_ICON },
+  { section: 'deallocate', label: 'Deallocate', icon: CLAIM_NAV_ICON },
+  { section: 'distribute', label: 'Distribute', icon: DISTRIBUTE_NAV_ICON },
+  { section: 'confirm', label: 'Confirm', icon: VOTE_NAV_ICON },
+  { section: 'liquidate', label: 'Liquidate', icon: LIQUIDATE_NAV_ICON },
+  { section: 'custodian', label: 'Mint', icon: MINT_NAV_ICON },
+  { section: 'register', label: 'Register', icon: REGISTER_NAV_ICON },
+]
+
+const LINK_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+)
+
+const DASHBOARD_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="7" height="9" rx="1" />
+    <rect x="14" y="3" width="7" height="5" rx="1" />
+    <rect x="14" y="12" width="7" height="9" rx="1" />
+    <rect x="3" y="16" width="7" height="5" rx="1" />
+  </svg>
+)
+
+const AFFILIATES_NAV_ITEMS: { section: AffiliatesSection; label: string; icon: ReactNode }[] = [
+  { section: 'link', label: 'Referral link', icon: LINK_NAV_ICON },
+  { section: 'dashboard', label: 'Dashboard', icon: DASHBOARD_NAV_ICON },
+  { section: 'program', label: 'Program', icon: REGISTER_NAV_ICON },
+]
+
+function HeaderNavPathButton({
+  path,
+  active,
+  children,
+  onClick,
+}: {
+  path: string
+  active: boolean
+  children: ReactNode
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void
+}) {
+  return (
+    <NavLink
+      to={{ pathname: path, search: '', hash: '' }}
+      data-app-path={path}
+      className={`header-nav-link${active ? ' is-current' : ''}`}
+      onClick={onClick}
+    >
+      {children}
+    </NavLink>
+  )
+}
+
 function Header() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const isBacktestActive = pathname.startsWith('/backtest')
+  const isAffiliatesActive = pathname.startsWith('/affiliate')
   const isGraiActive = pathname.startsWith('/grai')
+  const isGrindersActive = pathname.startsWith('/grinders')
   const isGrsActive = pathname.startsWith('/grs')
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [isAffiliatesMenuOpen, setIsAffiliatesMenuOpen] = useState(false)
   const [isGraiMenuOpen, setIsGraiMenuOpen] = useState(false)
+  const [isGrindersMenuOpen, setIsGrindersMenuOpen] = useState(false)
   const [isGrsMenuOpen, setIsGrsMenuOpen] = useState(false)
   const mobileNavId = useId()
+  const affiliatesMenuRef = useRef<HTMLLIElement>(null)
   const graiMenuRef = useRef<HTMLLIElement>(null)
+  const grindersMenuRef = useRef<HTMLLIElement>(null)
   const grsMenuRef = useRef<HTMLLIElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
+  const desktopNavTrackRef = useRef<HTMLDivElement>(null)
+  const [navIndicator, setNavIndicator] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    visible: false,
+  })
+  const [navIndicatorReady, setNavIndicatorReady] = useState(false)
 
   useEffect(() => {
     setIsMobileNavOpen(false)
+    setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
+    setIsGrindersMenuOpen(false)
     setIsGrsMenuOpen(false)
   }, [pathname])
 
+  useLayoutEffect(() => {
+    const track = desktopNavTrackRef.current
+    if (!track) return
+
+    const update = () => {
+      const currentLink = track.querySelector<HTMLElement>('.header-nav-link.is-current')
+      if (!currentLink) {
+        setNavIndicator((prev) => ({ ...prev, visible: false }))
+        return
+      }
+      const target = currentLink.closest('.header-nav-item--grai') ?? currentLink
+      const trackRect = track.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const padX = 8
+      const padY = 3
+      setNavIndicator({
+        left: targetRect.left - trackRect.left - padX,
+        top: targetRect.top - trackRect.top - padY,
+        width: targetRect.width + padX * 2,
+        height: targetRect.height + padY * 2,
+        visible: true,
+      })
+      requestAnimationFrame(() => setNavIndicatorReady(true))
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(track)
+    window.addEventListener('resize', update)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [pathname])
+
   useEffect(() => {
-    if (!isGraiMenuOpen && !isGrsMenuOpen) return
+    if (!isAffiliatesMenuOpen && !isGraiMenuOpen && !isGrindersMenuOpen && !isGrsMenuOpen) return
 
     const onDocumentClick = (event: MouseEvent) => {
       const target = event.target as Node
+      if (!affiliatesMenuRef.current?.contains(target)) setIsAffiliatesMenuOpen(false)
       if (!graiMenuRef.current?.contains(target)) setIsGraiMenuOpen(false)
+      if (!grindersMenuRef.current?.contains(target)) setIsGrindersMenuOpen(false)
       if (!grsMenuRef.current?.contains(target)) setIsGrsMenuOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        setIsAffiliatesMenuOpen(false)
         setIsGraiMenuOpen(false)
+        setIsGrindersMenuOpen(false)
         setIsGrsMenuOpen(false)
       }
     }
@@ -143,10 +279,19 @@ function Header() {
       document.removeEventListener('mousedown', onDocumentClick)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isGraiMenuOpen, isGrsMenuOpen])
+  }, [isAffiliatesMenuOpen, isGraiMenuOpen, isGrindersMenuOpen, isGrsMenuOpen])
 
-  const headerRef = useRef<HTMLElement>(null)
-  const [navLockSpacerHeight, setNavLockSpacerHeight] = useState(0)
+  const [navLockSpacerHeight, setNavLockSpacerHeight] = useState(74)
+
+  useLayoutEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const update = () => setNavLockSpacerHeight(el.offsetHeight)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [isMobileNavOpen])
 
   useLayoutEffect(() => {
     if (!isMobileNavOpen) return
@@ -157,8 +302,6 @@ function Header() {
     window.addEventListener('keydown', onKeyDown)
 
     const scrollY = window.scrollY
-    const headerHeight = headerRef.current?.offsetHeight ?? 0
-    setNavLockSpacerHeight(headerHeight)
 
     const { style } = document.body
     const previous = {
@@ -185,13 +328,24 @@ function Header() {
       style.left = previous.left
       style.right = previous.right
       style.width = previous.width
-      setNavLockSpacerHeight(0)
       window.scrollTo(0, scrollY)
     }
   }, [isMobileNavOpen])
 
+  const handleAffiliatesSectionClick = (section: AffiliatesSection) => {
+    setIsAffiliatesMenuOpen(false)
+    navigateToAffiliatesSection(section)
+  }
+
   const handleGraiSectionClick = (section: GraiSection) => {
     setIsGraiMenuOpen(false)
+    setIsGrindersMenuOpen(false)
+    setIsAffiliatesMenuOpen(false)
+    navigateToGraiSection(section)
+  }
+
+  const handleGrindersSectionClick = (section: GraiSection) => {
+    setIsGrindersMenuOpen(false)
     navigateToGraiSection(section)
   }
 
@@ -200,8 +354,31 @@ function Header() {
     navigateToGrsSection(section)
   }
 
+  const closeMenus = useCallback(() => {
+    setIsAffiliatesMenuOpen(false)
+    setIsGraiMenuOpen(false)
+    setIsGrindersMenuOpen(false)
+    setIsGrsMenuOpen(false)
+    setIsMobileNavOpen(false)
+  }, [])
+
+  const goToPath = useCallback(
+    (path: string) => {
+      closeMenus()
+      if (path === '/grai' && pathname.startsWith('/grai')) {
+        navigateToGraiSection('mint')
+        return
+      }
+      navigate({ pathname: path, search: '', hash: '' })
+    },
+    [closeMenus, navigate, pathname],
+  )
+
+  useHeaderNavClicks(headerRef, goToPath)
+
   return (
     <>
+    {createPortal(
     <header
       ref={headerRef}
       className={`header${isMobileNavOpen ? ' is-nav-open' : ''}`}
@@ -220,7 +397,18 @@ function Header() {
               GrindURUS
             </Link>
           </div>
+        </div>
           <nav className="header-nav header-nav--desktop" aria-label="Product sections">
+            <div className="header-nav-track" ref={desktopNavTrackRef}>
+              <span
+                className={`header-nav-indicator${navIndicator.visible ? ' is-visible' : ''}${navIndicatorReady ? ' is-ready' : ''}`}
+                style={{
+                  transform: `translate(${navIndicator.left}px, ${navIndicator.top}px)`,
+                  width: navIndicator.width,
+                  height: navIndicator.height,
+                }}
+                aria-hidden="true"
+              />
             <ul className="header-nav-list">
               <li>
                 <span
@@ -230,24 +418,70 @@ function Header() {
                   Backtest (soon)
                 </span>
               </li>
-              <li>
-                <NavLink
-                  to="/affiliate"
-                  className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+              <li
+                ref={affiliatesMenuRef}
+                className={`header-nav-item header-nav-item--grai${isAffiliatesMenuOpen ? ' is-open' : ''}`}
+              >
+                <HeaderNavPathButton
+                  path="/affiliate"
+                  active={isAffiliatesActive}
+                  onClick={closeMenus}
                 >
                   AFFILIATES
-                </NavLink>
+                </HeaderNavPathButton>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn${isAffiliatesMenuOpen ? ' is-open' : ''}`}
+                  aria-expanded={isAffiliatesMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="AFFILIATES sections"
+                  onClick={() => {
+                    setIsGraiMenuOpen(false)
+                    setIsGrindersMenuOpen(false)
+                    setIsGrsMenuOpen(false)
+                    setIsAffiliatesMenuOpen((open) => !open)
+                  }}
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+                <div
+                  className={`header-nav-dropdown${isAffiliatesMenuOpen ? ' is-open' : ''}`}
+                  role="menu"
+                  aria-label="AFFILIATES sections"
+                  aria-hidden={!isAffiliatesMenuOpen}
+                  hidden={!isAffiliatesMenuOpen}
+                >
+                  {AFFILIATES_NAV_ITEMS.map((item) => (
+                    <button
+                      key={item.section}
+                      type="button"
+                      role="menuitem"
+                      className="header-nav-dropdown-item"
+                      onClick={() => handleAffiliatesSectionClick(item.section)}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
               </li>
               <li
                 ref={graiMenuRef}
                 className={`header-nav-item header-nav-item--grai${isGraiMenuOpen ? ' is-open' : ''}`}
               >
-                <NavLink
-                  to="/grai"
-                  className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+                <HeaderNavPathButton
+                  path="/grai"
+                  active={isGraiActive}
+                  onClick={(event) => {
+                    closeMenus()
+                    if (pathname.startsWith('/grai')) {
+                      event.preventDefault()
+                      navigateToGraiSection('mint')
+                    }
+                  }}
                 >
                   GRAI
-                </NavLink>
+                </HeaderNavPathButton>
                 <button
                   type="button"
                   className={`header-nav-caret-btn${isGraiMenuOpen ? ' is-open' : ''}`}
@@ -255,7 +489,9 @@ function Header() {
                   aria-haspopup="menu"
                   aria-label="GRAI sections"
                   onClick={() => {
+                    setIsAffiliatesMenuOpen(false)
                     setIsGrsMenuOpen(false)
+                    setIsGrindersMenuOpen(false)
                     setIsGraiMenuOpen((open) => !open)
                   }}
                 >
@@ -266,6 +502,7 @@ function Header() {
                   role="menu"
                   aria-label="GRAI sections"
                   aria-hidden={!isGraiMenuOpen}
+                  hidden={!isGraiMenuOpen}
                 >
                   {GRAI_NAV_ITEMS.map((item) => (
                     <button
@@ -282,15 +519,63 @@ function Header() {
                 </div>
               </li>
               <li
+                ref={grindersMenuRef}
+                className={`header-nav-item header-nav-item--grai${isGrindersMenuOpen ? ' is-open' : ''}`}
+              >
+                <HeaderNavPathButton
+                  path="/grinders"
+                  active={isGrindersActive}
+                  onClick={closeMenus}
+                >
+                  GRINDERS
+                </HeaderNavPathButton>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn${isGrindersMenuOpen ? ' is-open' : ''}`}
+                  aria-expanded={isGrindersMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="GRINDERS sections"
+                  onClick={() => {
+                    setIsAffiliatesMenuOpen(false)
+                    setIsGraiMenuOpen(false)
+                    setIsGrsMenuOpen(false)
+                    setIsGrindersMenuOpen((open) => !open)
+                  }}
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+                <div
+                  className={`header-nav-dropdown${isGrindersMenuOpen ? ' is-open' : ''}`}
+                  role="menu"
+                  aria-label="GRINDERS sections"
+                  aria-hidden={!isGrindersMenuOpen}
+                  hidden={!isGrindersMenuOpen}
+                >
+                  {GRINDERS_NAV_ITEMS.map((item) => (
+                    <button
+                      key={item.section}
+                      type="button"
+                      role="menuitem"
+                      className="header-nav-dropdown-item"
+                      onClick={() => handleGrindersSectionClick(item.section)}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </li>
+              <li
                 ref={grsMenuRef}
                 className={`header-nav-item header-nav-item--grai${isGrsMenuOpen ? ' is-open' : ''}`}
               >
-                <NavLink
-                  to="/grs"
-                  className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
+                <HeaderNavPathButton
+                  path="/grs"
+                  active={isGrsActive}
+                  onClick={closeMenus}
                 >
                   GRS
-                </NavLink>
+                </HeaderNavPathButton>
                 <button
                   type="button"
                   className={`header-nav-caret-btn${isGrsMenuOpen ? ' is-open' : ''}`}
@@ -298,7 +583,9 @@ function Header() {
                   aria-haspopup="menu"
                   aria-label="GRS sections"
                   onClick={() => {
+                    setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
+                    setIsGrindersMenuOpen(false)
                     setIsGrsMenuOpen((open) => !open)
                   }}
                 >
@@ -309,6 +596,7 @@ function Header() {
                   role="menu"
                   aria-label="GRS sections"
                   aria-hidden={!isGrsMenuOpen}
+                  hidden={!isGrsMenuOpen}
                 >
                   {GRS_NAV_ITEMS.map((item) => (
                     <button
@@ -324,20 +612,9 @@ function Header() {
                   ))}
                 </div>
               </li>
-              <li className="header-nav-item header-nav-item--grinders">
-                <NavLink
-                  to="/grinders"
-                  className={({ isActive }) =>
-                    `header-nav-link header-nav-link--grinders${isActive ? ' is-current' : ''}`
-                  }
-                >
-                  GRINDERS
-                  <GraiUiCaret className="header-nav-caret header-nav-caret--right" />
-                </NavLink>
-              </li>
             </ul>
+            </div>
           </nav>
-        </div>
         <div className="header-actions">
           <div className="header-wallet-cluster">
             <ConnectWalletButton />
@@ -372,44 +649,64 @@ function Header() {
               </span>
             </li>
             <li>
-              <NavLink
-                to="/affiliate"
-                className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
-                onClick={() => setIsMobileNavOpen(false)}
+              <HeaderNavPathButton
+                path="/affiliate"
+                active={isAffiliatesActive}
+                onClick={closeMenus}
               >
                 AFFILIATES
-              </NavLink>
+              </HeaderNavPathButton>
             </li>
             <li>
-              <NavLink
-                to="/grai"
-                className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
-                onClick={() => setIsMobileNavOpen(false)}
+              <HeaderNavPathButton
+                path="/grai"
+                active={isGraiActive}
+                onClick={(event) => {
+                  closeMenus()
+                  if (pathname.startsWith('/grai')) {
+                    event.preventDefault()
+                    navigateToGraiSection('mint')
+                  }
+                }}
               >
                 GRAI
-              </NavLink>
+              </HeaderNavPathButton>
             </li>
             <li>
-              <NavLink
-                to="/grs"
-                className={({ isActive }) => `header-nav-link${isActive ? ' is-current' : ''}`}
-                onClick={() => setIsMobileNavOpen(false)}
-              >
-                GRS
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/grinders"
-                className={({ isActive }) =>
-                  `header-nav-link header-nav-link--grinders${isActive ? ' is-current' : ''}`
-                }
-                onClick={() => setIsMobileNavOpen(false)}
+              <HeaderNavPathButton
+                path="/grinders"
+                active={isGrindersActive}
+                onClick={closeMenus}
               >
                 GRINDERS
-                <GraiUiCaret className="header-nav-caret header-nav-caret--right" />
-              </NavLink>
+              </HeaderNavPathButton>
             </li>
+            <li>
+              <HeaderNavPathButton
+                path="/grs"
+                active={isGrsActive}
+                onClick={closeMenus}
+              >
+                GRS
+              </HeaderNavPathButton>
+            </li>
+            {isAffiliatesActive
+              ? AFFILIATES_NAV_ITEMS.map((item) => (
+                  <li key={item.section}>
+                    <button
+                      type="button"
+                      className="header-nav-link header-mobile-nav-sublink"
+                      onClick={() => {
+                        setIsMobileNavOpen(false)
+                        handleAffiliatesSectionClick(item.section)
+                      }}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                ))
+              : null}
             {isGraiActive
               ? GRAI_NAV_ITEMS.map((item) => (
                   <li key={item.section}>
@@ -419,6 +716,23 @@ function Header() {
                       onClick={() => {
                         setIsMobileNavOpen(false)
                         handleGraiSectionClick(item.section)
+                      }}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                ))
+              : null}
+            {isGrindersActive
+              ? GRINDERS_NAV_ITEMS.map((item) => (
+                  <li key={item.section}>
+                    <button
+                      type="button"
+                      className="header-nav-link header-mobile-nav-sublink"
+                      onClick={() => {
+                        setIsMobileNavOpen(false)
+                        handleGrindersSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
@@ -456,14 +770,14 @@ function Header() {
           onClick={() => setIsMobileNavOpen(false)}
         />
       ) : null}
-    </header>
-    {isMobileNavOpen ? (
-      <div
-        className="header-nav-lock-spacer"
-        style={{ height: navLockSpacerHeight }}
-        aria-hidden="true"
-      />
-    ) : null}
+    </header>,
+    document.body,
+    )}
+    <div
+      className="header-nav-lock-spacer"
+      style={{ height: navLockSpacerHeight }}
+      aria-hidden="true"
+    />
     </>
   )
 }

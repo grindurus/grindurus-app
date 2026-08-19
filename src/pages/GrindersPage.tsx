@@ -8,6 +8,9 @@ const GraiManageSection = lazy(() =>
 function GrindersPage() {
   return (
     <div className="grai-page grinders-page">
+      <p className="grai-page-dev-banner" role="status">
+        TESTNET DEVELOPMENT
+      </p>
       <Suspense fallback={null}>
         <GraiManageSection />
       </Suspense>

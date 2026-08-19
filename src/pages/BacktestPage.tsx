@@ -1094,6 +1094,9 @@ function BacktestPage() {
 
   return (
     <div className="backtest-page">
+      <p className="grai-page-dev-banner" role="status">
+        TESTNET DEVELOPMENT
+      </p>
       <div className="backtest-layout">
         <div className="backtest-panel-wrap">
           <aside className="backtest-panel">

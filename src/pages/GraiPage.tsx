@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { isManageSectionHash } from '../utils/graiNavigation'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { FloatingTokenBackground, STABLE_FLOATING_TOKENS } from '../components/FloatingTokenBackground'
 import { HowItWorksModal } from '../components/HowItWorksModal'
@@ -26,7 +27,7 @@ function GraiPage() {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.slice(1)
-      if (hash === 'allocate' || hash === 'distribute' || hash === 'manage') {
+      if (isManageSectionHash(hash)) {
         navigate(`/grinders#${hash === 'manage' ? 'allocate' : hash}`, { replace: true })
       }
     }

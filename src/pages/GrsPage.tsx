@@ -33,7 +33,10 @@ const GRS_TERM = (
   </GraiFieldInfoButton>
 )
 
+const BUY_NOTE = <>You buy {GRS_TERM} on token sale</>
+
 const NOTES: Record<GrsSection, ReactNode> = {
+  'token-sale': BUY_NOTE,
   bridge: <>Move {GRS_TERM} to the chain where you trade, via LayerZero OFT.</>,
   sales: (
     <>
@@ -44,8 +47,6 @@ const NOTES: Record<GrsSection, ReactNode> = {
   vesting: <>Release unlocked grants after cliff. Anyone may call release.</>,
   vest: <>Lock your own {GRS_TERM} into a cliff + linear schedule.</>,
 }
-
-const BUY_NOTE = <>You buy {GRS_TERM} on token sale</>
 
 const OPS_ICONS: Record<GrsOpsTab, ReactNode> = {
   bridge: (
@@ -84,7 +85,7 @@ function chainIdToEvmChain(chainId: number): EvmChain | null {
 }
 
 function opsTabFromHash(section: GrsSection | null): GrsOpsTab {
-  if (section && section !== 'sales') return section
+  if (section && section !== 'sales' && section !== 'token-sale') return section
   return 'bridge'
 }
 
@@ -146,7 +147,7 @@ function GrsPage() {
     const applySection = (section: GrsSection) => {
       setIsOpsCollapsed(false)
       setSalesActive(section === 'sales')
-      if (section === 'sales') return
+      if (section === 'sales' || section === 'token-sale') return
       setOpsView(section)
     }
     const onHash = () => {

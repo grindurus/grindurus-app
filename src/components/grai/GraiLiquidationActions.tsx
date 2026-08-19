@@ -32,6 +32,7 @@ import { estimateEvmClaimAll } from '../../grai/evm/estimateClaim'
 import { estimateSolanaClaimAll } from '../../grai/estimateSolanaClaim'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import { assetUrl } from '../../utils/appPaths'
+import { replaceAppHash } from '../../utils/navigate'
 import { navigateToGraiSection, readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
@@ -1139,17 +1140,16 @@ export function GraiLiquidationActions() {
         navigateToGraiSection('burn')
         return
       }
-      const hash =
+      replaceAppHash(
+        '/grai',
         view === 'claim'
           ? '#claim'
           : view === 'market'
             ? `#${marketView}`
             : view === 'liquidate'
               ? '#auctions'
-              : '#assets'
-      if (window.location.hash !== hash) {
-        window.history.replaceState({}, '', `${window.location.pathname}${hash}`)
-      }
+              : '#assets',
+      )
     },
     [marketView],
   )
@@ -1158,10 +1158,7 @@ export function GraiLiquidationActions() {
     setOpsView('market')
     setMarketView(view)
     if (view !== 'bribe') setBribeVotersOpen(false)
-    const hash = `#${view}`
-    if (window.location.hash !== hash) {
-      window.history.replaceState({}, '', `${window.location.pathname}${hash}`)
-    }
+    replaceAppHash('/grai', `#${view}`)
   }, [])
 
   const walletAddress =
@@ -1564,9 +1561,7 @@ export function GraiLiquidationActions() {
   useEffect(() => {
     if (isLoading || redeemAvailable || opsView !== 'redeem') return
     setOpsView('distribute')
-    if (window.location.hash === '#burn') {
-      window.history.replaceState({}, '', `${window.location.pathname}#assets`)
-    }
+    if (window.location.hash === '#burn') replaceAppHash('/grai', '#assets')
   }, [isLoading, opsView, redeemAvailable])
 
   const voteMightReceiveLabel = useMemo(() => {

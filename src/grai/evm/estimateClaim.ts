@@ -8,7 +8,7 @@ import { USD_SCALE_EVM } from './constants'
 import { isNativeEvmAsset, resolveEvmGraiAsset } from './knownAssets'
 
 const CLAIM_AMOUNT_MAX_FRACTION_DIGITS = 6
-const CLAIM_USD_MAX_FRACTION_DIGITS = 2
+const CLAIM_USD_MAX_FRACTION_DIGITS = 6
 
 export type EvmClaimEstimate = {
   assetAddress: `0x${string}`

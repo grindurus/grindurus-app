@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { flushSync } from 'react-dom'
+import { useLocation } from 'react-router-dom'
 import { Info } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
@@ -40,10 +42,11 @@ import { useWalletContext } from '../../providers/AppWalletProvider'
 import { assetUrl } from '../../utils/appPaths'
 import { FALLBACK_GRAI_ASSETS, isPlaceholderGraiAssetMint } from '../../grai/knownMints'
 import {
-  isValidGraiReferrer,
-  type GraiReferrerChain,
+  detectGraiReferrerChain,
+  readInitialGraiReferrer,
+  writeStoredGraiReferrer,
 } from '../../grai/referrer'
-import { readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
+import { GRAI_MINT_FLOW_EVENT, readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
 import { GraiMintSubtitleRotatingAsset } from './GraiMintSubtitleRotatingAsset'
 import { GraiNavDonut } from '../GraiNavDonut'
@@ -261,7 +264,7 @@ export function GraiMintBurnPanel({
   onOpenHowItWorks,
 }: Props) {
   const { chainKind, solana, staticSolana, evm, connection, explorerTxUrl } = useGraiDeployment()
-  const { selectedChainType } = useWalletContext()
+  const { setSelectedChainType } = useWalletContext()
   const activeWallet = useActiveWallet()
   const solanaWallet = useSolanaWallet()
   const evmWallet = useEvmWallet()
@@ -279,16 +282,14 @@ export function GraiMintBurnPanel({
   const { lock: lockGrai, unlock: unlockGrai, claim: claimGrai, claimAll: claimAllGrai, isPending: isLockPending } =
     useGraiLock()
 
+  const { search } = useLocation()
   const [amount, setAmount] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<GraiAmountAsset | null>(null)
   const [earnDividends, setEarnDividends] = useState(true)
-  const [referrerOpen, setReferrerOpen] = useState(false)
-  const [referrerInput, setReferrerInput] = useState('')
+  const [referrerInput, setReferrerInput] = useState(() => readInitialGraiReferrer())
+  const [referrerOpen, setReferrerOpen] = useState(() => Boolean(readInitialGraiReferrer()))
   const [claimAllDividends, setClaimAllDividends] = useState(false)
-  const [assetFlowView, setAssetFlowView] = useState<'deposit' | 'claim'>(() => {
-    const section = readGraiSectionFromHash()
-    return section === 'unlock' || section === 'claim' ? 'claim' : 'deposit'
-  })
+  const [assetFlowView, setAssetFlowView] = useState<'deposit' | 'claim'>('deposit')
   const [forcedDefaultAsset, setForcedDefaultAsset] = useState<string | null>(() => {
     const section = readGraiSectionFromHash()
     return section === 'lock' || section === 'unlock' ? 'GRAI' : null
@@ -315,6 +316,12 @@ export function GraiMintBurnPanel({
       setAssetSelectKey((key) => key + 1)
     }
 
+    const applyDepositFlow = () => {
+      setForcedDefaultAsset(null)
+      setAssetFlowView('deposit')
+      setAmount('')
+    }
+
     const onSectionNav = (event: Event) => {
       const section = (event as CustomEvent<GraiSection>).detail
       if (section === 'lock') {
@@ -326,24 +333,31 @@ export function GraiMintBurnPanel({
         return
       }
       if (section === 'mint') {
-        setForcedDefaultAsset(null)
-        setAssetFlowView('deposit')
-        setAmount('')
-        setAssetSelectKey((key) => key + 1)
-        return
-      }
-      if (section === 'claim') {
-        setForcedDefaultAsset(null)
-        setAssetFlowView('claim')
-        setEarnDividends(false)
-        setAmount('')
+        applyDepositFlow()
         setAssetSelectKey((key) => key + 1)
       }
     }
 
+    const onMintFlow = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== 'deposit') return
+      flushSync(applyDepositFlow)
+    }
+
     window.addEventListener('grai-section-nav', onSectionNav)
-    return () => window.removeEventListener('grai-section-nav', onSectionNav)
+    window.addEventListener(GRAI_MINT_FLOW_EVENT, onMintFlow)
+    return () => {
+      window.removeEventListener('grai-section-nav', onSectionNav)
+      window.removeEventListener(GRAI_MINT_FLOW_EVENT, onMintFlow)
+    }
   }, [])
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(search).get('ref')?.trim() ?? ''
+    if (!fromUrl) return
+    writeStoredGraiReferrer(fromUrl)
+    setReferrerInput(fromUrl)
+    setReferrerOpen(true)
+  }, [search])
   const isPreviewOpen = previewOpenByAction[actionView]
   const togglePreview = () => {
     setPreviewOpenByAction((current) => ({
@@ -393,16 +407,40 @@ export function GraiMintBurnPanel({
   const isGraiLock = isGraiSelected && assetFlowView === 'deposit'
   const isAssetClaim = actionView === 'mint' && !isGraiSelected && assetFlowView === 'claim'
   const referrerTrimmed = referrerInput.trim()
-  const referrerChain: GraiReferrerChain =
-    selectedChainType === 'evm' || activeWallet.chainType === 'evm' || evmWallet.isConnected
-      ? 'evm'
-      : selectedChainType === 'solana' || activeWallet.chainType === 'solana' || solanaWallet.isConnected
-        ? 'solana'
-        : chainKind === 'solana'
-          ? 'solana'
-          : 'evm'
-  const referrerIsInvalid =
-    referrerTrimmed.length > 0 && !isValidGraiReferrer(referrerTrimmed, referrerChain)
+  const detectedReferrerChain = detectGraiReferrerChain(referrerTrimmed)
+  const referrerIsInvalid = referrerTrimmed.length > 0 && detectedReferrerChain === null
+  const isDepositFlow = actionView === 'mint' && !isGraiSelected && assetFlowView === 'deposit'
+  const depositWalletReady =
+    detectedReferrerChain === 'evm'
+      ? evmWallet.isConnected
+      : detectedReferrerChain === 'solana'
+        ? solanaWallet.isConnected
+        : isWalletConnected
+  const mintSubmitWalletReady = isDepositFlow ? depositWalletReady : isWalletConnected
+  const mintConnectLabel =
+    detectedReferrerChain === 'evm' && !evmWallet.isConnected
+      ? 'Connect EVM Wallet'
+      : detectedReferrerChain === 'solana' && !solanaWallet.isConnected
+        ? 'Connect Solana Wallet'
+        : undefined
+
+  useEffect(() => {
+    if (!isDepositFlow || !detectedReferrerChain) return
+    if (detectedReferrerChain === 'evm' && evmWallet.isConnected) {
+      setSelectedChainType('evm')
+      return
+    }
+    if (detectedReferrerChain === 'solana' && solanaWallet.isConnected) {
+      setSelectedChainType('solana')
+    }
+  }, [
+    detectedReferrerChain,
+    evmWallet.isConnected,
+    isDepositFlow,
+    setSelectedChainType,
+    solanaWallet.isConnected,
+  ])
+
   const lockedGraiLabel = amount.trim() || '0.0'
   const {
     claims: unlockClaims,
@@ -725,7 +763,7 @@ export function GraiMintBurnPanel({
           graiDepositBook.totalValue,
         )
         if (usdRaw <= 0n) return '$0.00'
-        return `$${formatVaultBalanceDisplay(usdRaw, usdScale, 2)}`
+        return `$${formatVaultBalanceDisplay(usdRaw, usdScale, 6)}`
       } catch {
         return '$0.00'
       }
@@ -734,7 +772,7 @@ export function GraiMintBurnPanel({
     if (isEstimateLoading) return '…'
     const totalUsd = seniorShareUsdRaw + juniorShareUsdRaw
     if (totalUsd <= 0n) return '$0.00'
-    return `$${formatVaultBalanceDisplay(totalUsd, usdScale, 2)}`
+    return `$${formatVaultBalanceDisplay(totalUsd, usdScale, 6)}`
   }, [
     amount,
     assetClaim.amountRaw,
@@ -758,7 +796,7 @@ export function GraiMintBurnPanel({
     if (isBurnEstimateLoading) return '…'
     const totalUsd = burnOutputs.reduce((sum, output) => sum + output.usdRaw, 0n)
     if (totalUsd <= 0n) return '$0.00'
-    return `$${formatVaultBalanceDisplay(totalUsd, usdScale, 2)}`
+    return `$${formatVaultBalanceDisplay(totalUsd, usdScale, 6)}`
   }, [amount, burnOutputs, isBurnEstimateLoading, usdScale])
 
   const mintedGraiLabel = !amount.trim()
@@ -1288,11 +1326,7 @@ export function GraiMintBurnPanel({
                         inputMode="text"
                         autoComplete="off"
                         spellCheck={false}
-                        placeholder={
-                          referrerChain === 'solana'
-                            ? 'Solana wallet address…'
-                            : 'EVM wallet address (0x…)'
-                        }
+                        placeholder="EVM (0x…) or Solana address"
                         value={referrerInput}
                         aria-invalid={referrerIsInvalid}
                         aria-describedby={
@@ -1300,7 +1334,9 @@ export function GraiMintBurnPanel({
                         }
                         tabIndex={assetFlowView === 'deposit' ? 0 : -1}
                         onChange={(event) => {
-                          setReferrerInput(event.target.value)
+                          const next = event.target.value
+                          setReferrerInput(next)
+                          writeStoredGraiReferrer(next)
                         }}
                       />
                       {referrerIsInvalid ? (
@@ -1309,9 +1345,7 @@ export function GraiMintBurnPanel({
                           className="grai-mint-referrer-error"
                           role="alert"
                         >
-                          {referrerChain === 'solana'
-                            ? 'Enter a valid Solana wallet address'
-                            : 'Enter a valid EVM wallet address (0x + 40 hex)'}
+                          Enter a valid EVM (0x + 40 hex) or Solana wallet address
                         </p>
                       ) : null}
                     </div>
@@ -1393,7 +1427,7 @@ export function GraiMintBurnPanel({
                       />
                       <span className="grai-action-metric-label">Estimated APR</span>
                     </span>
-                    <span className="grai-action-metric-value is-yield">11%</span>
+                    <span className="grai-action-metric-value is-yield">51%</span>
                   </div>
                 </div>
               )}
@@ -1666,7 +1700,7 @@ export function GraiMintBurnPanel({
               </div>
             </div>
           ) : null}
-          {isWalletConnected ? (
+          {mintSubmitWalletReady ? (
             <div className="grai-action-submit">
               <button
                 type="button"
@@ -1712,7 +1746,7 @@ export function GraiMintBurnPanel({
               </button>
             </div>
           ) : (
-            <GraiActionConnectWalletButton />
+            <GraiActionConnectWalletButton label={mintConnectLabel} />
           )}
           {actionView === 'mint' ? (
             <div className="grai-action-deposit-notes">

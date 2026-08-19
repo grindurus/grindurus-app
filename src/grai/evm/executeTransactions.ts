@@ -481,6 +481,28 @@ export async function executeEvmGrindersLiquidate({
   return { hash }
 }
 
+/** Toggle Grinders-owner limb of GRAI liquidation via `Grinders.confirm`. */
+export async function executeEvmGrindersConfirm({
+  config,
+}: {
+  config: GraiEvmConfig
+}): Promise<{ hash: string }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) {
+    throw new Error('Connect an EVM wallet to confirm liquidation')
+  }
+
+  const grindersAddress = await resolveGrindersAddress(config)
+  const hash = await writeContract(wagmiConfig, {
+    address: grindersAddress,
+    abi: grindersAbi,
+    functionName: 'confirm',
+  })
+
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash }
+}
+
 export type ExecuteEvmGrindersMintParams = {
   config: GraiEvmConfig
   custodianKind: `0x${string}`

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { listConfiguredEvmChains } from '../grai/deployments'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { GRAI_DECIMALS_EVM } from '../grai/evm/constants'
@@ -9,6 +9,7 @@ import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { toAppPath } from '../utils/appPaths'
+import { readAffiliatesSectionFromHash, type AffiliatesSection } from '../utils/affiliatesNavigation'
 import './GraiPage.css'
 import './AffiliatesPage.css'
 
@@ -38,6 +39,26 @@ function AffiliatesPage() {
   const [copied, setCopied] = useState(false)
   const [termsCollapsed, setTermsCollapsed] = useState(false)
 
+  useEffect(() => {
+    const applySection = (section: AffiliatesSection) => {
+      if (section === 'program') setTermsCollapsed(false)
+    }
+    const onNav = (event: Event) => {
+      applySection((event as CustomEvent<AffiliatesSection>).detail)
+    }
+    const onHash = () => {
+      const section = readAffiliatesSectionFromHash()
+      if (section) applySection(section)
+    }
+    onHash()
+    window.addEventListener('affiliates-section-nav', onNav)
+    window.addEventListener('hashchange', onHash)
+    return () => {
+      window.removeEventListener('affiliates-section-nav', onNav)
+      window.removeEventListener('hashchange', onHash)
+    }
+  }, [])
+
   const graiBase = `${window.location.origin}${toAppPath('/grai')}`
   const referralHref = walletAddress
     ? `${graiBase}?ref=${encodeURIComponent(walletAddress)}`
@@ -60,7 +81,7 @@ function AffiliatesPage() {
         TESTNET DEVELOPMENT
       </p>
       <div className="grai-content-row">
-        <div className="affiliates-intro">
+        <div className="affiliates-intro" id="affiliates-link">
           <h1 className="grai-page-title affiliates-intro-title">
             {walletAddress ? 'Your referral link' : 'Connect wallet to generate referral link'}
           </h1>
@@ -84,6 +105,7 @@ function AffiliatesPage() {
         </div>
       </div>
 
+      <div id="affiliates-dashboard">
       <GraiReferralTree
         evmProtocol={chainKind === 'evm' ? evmProtocol : null}
         solana={chainKind === 'solana' ? solana : null}
@@ -91,9 +113,14 @@ function AffiliatesPage() {
         highlightAddress={walletAddress}
         graiDecimals={graiDecimals}
       />
+      </div>
 
-      <section className={`affiliates-terms${termsCollapsed ? ' is-collapsed' : ''}`} aria-labelledby="affiliates-terms-title">
-        <h2 id="affiliates-terms-title" className="affiliates-terms-title">
+      <section
+        className={`affiliates-terms${termsCollapsed ? ' is-collapsed' : ''}`}
+        id="affiliates-program"
+        aria-labelledby="affiliates-terms-title"
+      >
+        <h3 id="affiliates-terms-title" className="grai-referral-dash-title affiliates-terms-title">
           <button
             type="button"
             className={`grai-referral-dash-collapse${termsCollapsed ? ' is-collapsed' : ''}`}
@@ -116,7 +143,7 @@ function AffiliatesPage() {
             </svg>
           </button>
           Affiliate program
-        </h2>
+        </h3>
         <div
           className="affiliates-terms-body"
           id="affiliates-terms-body"

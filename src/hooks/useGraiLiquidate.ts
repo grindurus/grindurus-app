@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { executeConfirm } from '../grai/buildConfirmTransaction'
 import { executeLiquidate } from '../grai/buildLiquidateTransaction'
-import { executeEvmLiquidate } from '../grai/evm/executeTransactions'
+import { executeEvmGrindersConfirm, executeEvmLiquidate } from '../grai/evm/executeTransactions'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { useGraiEvmTransaction } from './useGraiEvmTransaction'
 import { useGraiTransaction, type GraiTransactionStatus } from './useGraiTransaction'
@@ -35,7 +35,14 @@ export function useGraiLiquidate() {
       const failureMessage = params?.failureMessage ?? 'Confirm transaction failed'
 
       if (chainKind === 'evm') {
-        throw new Error('Use Grinders.confirm on EVM (not yet wired in this hook)')
+        if (!evm) throw new Error('GRAI is not configured for this EVM network')
+        const { hash } = await runEvm({
+          connectMessage,
+          chainAction,
+          failureMessage,
+          execute: () => executeEvmGrindersConfirm({ config: evm }),
+        })
+        return hash
       }
 
       if (chainKind !== 'solana') {
@@ -56,7 +63,7 @@ export function useGraiLiquidate() {
       })
       return signature
     },
-    [chainKind, runSolana],
+    [chainKind, evm, runEvm, runSolana],
   )
 
   const liquidate = useCallback(

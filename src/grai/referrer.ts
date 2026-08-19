@@ -18,6 +18,15 @@ export function isValidGraiReferrer(value: string, chain: GraiReferrerChain): bo
   }
 }
 
+/** Infer referrer chain from the address itself. EVM `0x` is checked first. */
+export function detectGraiReferrerChain(value: string): GraiReferrerChain | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (isValidGraiReferrer(trimmed, 'evm')) return 'evm'
+  if (isValidGraiReferrer(trimmed, 'solana')) return 'solana'
+  return null
+}
+
 /** Strict address check for the active chain — only values safe to treat as a referrer. */
 export function normalizeGraiReferrerInput(
   value: string | null | undefined,

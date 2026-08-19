@@ -3,15 +3,16 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  overflow-x: clip;
 }
 
 .App-main {
+  position: relative;
   flex: 1;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 2rem 2rem 2rem;
   width: 100%;
+  overflow: hidden;
 }
 
 .App-main.App-main--backtest {
