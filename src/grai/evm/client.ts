@@ -1,6 +1,7 @@
-import { createPublicClient, http } from 'viem'
+import { createPublicClient } from 'viem'
 import { arbitrum, base, baseSepolia, mainnet, sepolia } from 'wagmi/chains'
 import type { GraiEvmConfig } from '../deployments'
+import { evmHttpTransport } from '../../providers/evmTransports'
 
 const CHAINS = [mainnet, base, arbitrum, sepolia, baseSepolia] as const
 
@@ -20,6 +21,6 @@ export function createGraiEvmPublicClient(config: GraiEvmConfig) {
 
   return createPublicClient({
     chain,
-    transport: http(),
+    transport: evmHttpTransport(chain.id),
   })
 }

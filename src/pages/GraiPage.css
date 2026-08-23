@@ -1228,6 +1228,47 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
 }
 
+.grai-page-ca-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.75rem;
+  padding: 0.15rem 0 0.35rem;
+}
+
+.grai-page-ca-bar .wallet-network-select.is-grai-compact {
+  flex: 0 0 auto;
+}
+
+.grai-page-ca-inline {
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+}
+
+.grai-page-ca-inline .grai-page-ca-link {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.grai-page-ca-inline .grai-page-ca-link-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(100%, 42rem);
+}
+
+.grai-page-ca-missing {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .grai-page-ca-label {
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -2005,6 +2046,16 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   background: transparent;
   padding: 0.15rem;
   box-sizing: border-box;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.wallet-network-select.is-grai-compact .network-icon-svg.solana img,
+.wallet-network-select.is-grai-compact .network-icon-svg.solana-devnet img,
+.wallet-network-select.is-grai-compact .network-icon-svg.solana-testnet img {
+  border-radius: 0;
+  clip-path: none;
+  overflow: visible;
 }
 
 .wallet-network-select.is-grai-compact .network-icon-svg svg {
@@ -9154,6 +9205,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   position: relative;
   display: flex;
   align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid color-mix(in srgb, #ff69b4 32%, transparent);
   border-radius: 12px;
   background: color-mix(in srgb, #ff69b4 18%, #100c10);
@@ -9189,6 +9243,30 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   flex: 0 0 auto;
   align-self: center;
   padding: 0 0.12rem 0 0.28rem;
+}
+
+.grai-amount-input-max.has-sub {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  align-self: center;
+}
+
+.grai-amount-input-max-sub {
+  max-width: 6.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.58rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+[data-theme='light'] .grai-amount-input-max-sub {
+  color: rgba(17, 17, 17, 0.55);
 }
 
 .grai-amount-input-max .grai-amount-preset-btn--field {
@@ -10294,6 +10372,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   text-align: left;
 }
 
+.grai-amount-input-field:has(.grai-amount-input-usd.has-trailing)
+  .grai-asset-select-vol-slot:not(.is-open) {
+  display: none;
+  padding: 0;
+  width: 0;
+  max-width: 0;
+}
+
 .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select-vol {
   display: block;
   width: max-content;
@@ -10327,12 +10413,28 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-amount-input-field .grai-asset-select {
   border-left: none;
+  flex: 0 1 auto;
+  max-width: 48%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select {
+  max-width: none;
+  width: auto !important;
+  justify-self: end;
+}
+
+.grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select-trigger {
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .grai-asset-select {
   position: relative;
   display: flex;
   align-items: stretch;
+  min-width: 0;
   border-left: 1px solid var(--border-color);
 }
 
@@ -10433,6 +10535,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-asset-select-vol {
   margin-left: 0;
   align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.15;
@@ -16716,6 +16821,11 @@ button.grai-referral-graph-node-addr.is-copied {
   min-width: 0;
 }
 
+.grai-liquidation-vote-amount .grai-amount-input-field,
+.grai-liquidation-bribe-amount .grai-amount-input-field {
+  width: 100%;
+}
+
 .grai-liquidation-vote-amount .grai-amount-input-fill-wrap,
 .grai-liquidation-vote-amount > .grai-amount-input {
   width: 100%;
@@ -16840,6 +16950,15 @@ button.grai-referral-graph-node-addr.is-copied {
 .grai-liquidation-vote-amount .grai-amount-input-usd {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-usd.has-trailing {
+  padding-right: 0.12rem;
+}
+
+.grai-liquidation-vote-amount .grai-amount-input-usd-trailing {
+  margin-right: 0;
+  padding-right: 0;
 }
 
 .grai-liquidation-field {

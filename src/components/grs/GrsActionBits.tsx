@@ -1,48 +1,38 @@
 import { toast } from 'react-toastify'
+import { PublicKey } from '@solana/web3.js'
+import { isAddress } from 'viem'
 import { GraiTransactionToast } from '../grai/GraiTransactionToast'
 import { GraiActionConnectWalletButton } from '../grai/GraiWalletAction'
-import { useActiveWallet } from '../../hooks/useActiveWallet'
-import { useEvmWallet } from '../../hooks/useEvmWallet'
-import { shortenAddress } from '../../utils/shortenAddress'
-import { grsExplorerTxUrl } from '../../grs/deployments'
+import { ActionTxFeedback, type ActionTxFeedbackProps } from '../ActionTxFeedback'
+import { grsExplorerTxUrl, type GrsConfig } from '../../grs/deployments'
 
-export function GrsFeedback({
-  isPending,
-  pendingLabel,
-  error,
-  hash,
-  chainId,
-  successLabel,
-}: {
-  isPending: boolean
-  pendingLabel: string
-  error: string | null
-  hash: string | null
-  chainId: number | undefined
-  successLabel: string
-}) {
-  if (isPending) {
-    return <p className="grai-manage-feedback is-pending">{pendingLabel}</p>
+export {
+  ActionTxFeedback,
+  ActionDepositNote,
+  usePersistedActionTx,
+  copyTextToClipboard,
+  extractTxHashFromText,
+} from '../ActionTxFeedback'
+export type { PersistedActionTx, ActionTxFeedbackProps } from '../ActionTxFeedback'
+
+/** @deprecated Prefer ActionTxFeedback — kept for existing GRS imports. */
+export function GrsFeedback(props: ActionTxFeedbackProps) {
+  return <ActionTxFeedback {...props} />
+}
+
+export function isGrsRecipient(value: string, kind: 'evm' | 'solana' | null | undefined): boolean {
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  if (kind === 'solana') {
+    try {
+      // eslint-disable-next-line no-new
+      new PublicKey(trimmed)
+      return true
+    } catch {
+      return false
+    }
   }
-  if (error) {
-    return <p className="grai-manage-feedback is-error">{error}</p>
-  }
-  if (hash) {
-    const href = chainId ? grsExplorerTxUrl(chainId, hash) : null
-    return (
-      <p className="grai-manage-feedback is-success">
-        {successLabel}{' '}
-        {href ? (
-          <a href={href} target="_blank" rel="noreferrer">
-            {shortenAddress(hash)}
-          </a>
-        ) : (
-          shortenAddress(hash)
-        )}
-      </p>
-    )
-  }
-  return null
+  return isAddress(trimmed)
 }
 
 export function GrsSubmit({
@@ -58,11 +48,7 @@ export function GrsSubmit({
   label: string
   onClick: () => void
 }) {
-  const evmWallet = useEvmWallet()
-  const activeWallet = useActiveWallet()
-  const headerWalletConnected =
-    evmWallet.isConnected || Boolean(evmWallet.address) || activeWallet.isConnected
-  if (!connected && !headerWalletConnected) return <GraiActionConnectWalletButton />
+  if (!connected) return <GraiActionConnectWalletButton />
   return (
     <div className="grai-action-submit">
       <button type="button" className="grai-mint-btn" disabled={disabled || pending} onClick={onClick}>
@@ -72,6 +58,17 @@ export function GrsSubmit({
   )
 }
 
-export function toastGrsSuccess(message: string, chainId: number, hash: string) {
-  toast.success(<GraiTransactionToast message={message} explorerHref={grsExplorerTxUrl(chainId, hash)} />)
+export function toastGrsSuccess(
+  message: string,
+  explorer: GrsConfig | number,
+  hash: string,
+  opts?: { href?: string | null; linkLabel?: string },
+) {
+  toast.success(
+    <GraiTransactionToast
+      message={message}
+      explorerHref={opts?.href ?? grsExplorerTxUrl(explorer, hash)}
+      linkLabel={opts?.linkLabel}
+    />,
+  )
 }

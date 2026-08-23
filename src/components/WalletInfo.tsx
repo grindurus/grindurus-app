@@ -6,6 +6,7 @@ import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import baseNetworkIcon from '../assets/base-network.svg'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
 import { SolanaLogomark } from './SolanaLogomark'
+import { EvmChainListIcon } from './WalletNetworkSelect'
 import { WalletExpandToggle } from './WalletExpandToggle'
 import './WalletStyles.css'
 
@@ -129,14 +130,7 @@ export function WalletInfo() {
       }
 
       if (evmWallet.chainId === 11155111) {
-        return (
-          <svg className="wallet-current-network-icon-svg sepolia" width="20" height="20" viewBox="0 0 256 417" fill="#9CA3AF">
-            <path d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z" fillOpacity="0.8"/>
-            <path d="M127.962 0L0 212.32l127.962 75.639V154.158z" fillOpacity="0.5"/>
-            <path d="M127.961 287.958l127.96-75.637-127.96-58.162z" fillOpacity="1"/>
-            <path d="M0 212.32l127.96 75.638v-133.8z" fillOpacity="0.6"/>
-          </svg>
-        )
+        return <EvmChainListIcon name="Sepolia" />
       }
 
       return (

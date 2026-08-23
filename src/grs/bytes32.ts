@@ -13,14 +13,26 @@ export const ZERO_BYTES32 = evmAddressToBytes32('0x00000000000000000000000000000
 
 export function parseSaleAsset(input: string): Hex {
   const trimmed = input.trim()
-  if (!trimmed || trimmed.toUpperCase() === 'ETH' || trimmed === '0' || /^0x0+$/i.test(trimmed)) {
+  const upper = trimmed.toUpperCase()
+  if (
+    !trimmed ||
+    upper === 'ETH' ||
+    upper === 'SOL' ||
+    trimmed === '0' ||
+    /^0x0+$/i.test(trimmed)
+  ) {
     return ZERO_BYTES32
   }
+  // Solana mint / pubkey as bytes32 (spoke sales priced in SPL / SOL).
+  if (isSolanaBase58Address(trimmed)) {
+    return bytesToHex(new PublicKey(trimmed).toBytes())
+  }
   if (!isAddress(trimmed)) {
-    throw new Error('Enter ETH or an ERC-20 address')
+    throw new Error('Enter ETH, SOL, USDC, an ERC-20 address, or a Solana mint')
   }
   return evmAddressToBytes32(trimmed)
 }
+
 
 export function isSolanaBase58Address(value: string): boolean {
   const trimmed = value.trim()

@@ -23,6 +23,8 @@ type Props = {
   /** Pulse the balance under the asset select while wallet / claim data loads. */
   balanceLoading?: boolean
   balanceTopLabel?: string
+  /** Caption under the in-field MAX button (e.g. bucket remaining). */
+  maxSubLabel?: string
   maxAmount: string
   decimals: number | null
   usdLabel?: string
@@ -37,6 +39,8 @@ type Props = {
    * escrow/balance above the card; label + presets above input inside the card.
    */
   presetsUnderLabel?: boolean
+  /** When false, hide the balance/detail line under the asset symbol. */
+  showAssetDetail?: boolean
   /** Rendered under the footer row inside the amount card. */
   afterFooter?: ReactNode
   /** Greys out amount + asset select and blocks interaction. */
@@ -61,6 +65,7 @@ export function GraiAmountInput({
   balancePrefix = 'Available:',
   balanceLoading = false,
   balanceTopLabel,
+  maxSubLabel,
   maxAmount,
   decimals,
   usdLabel,
@@ -69,6 +74,7 @@ export function GraiAmountInput({
   showPresets = true,
   showVolatility: _showVolatility = true,
   presetsUnderLabel = false,
+  showAssetDetail = true,
   afterFooter,
   disabled = false,
   selectMenuOptions,
@@ -126,7 +132,9 @@ export function GraiAmountInput({
   const isBalanceLoading = balanceLoading || balanceText === '…' || balanceLabel.trim() === '…'
   const showUsdSlot = Boolean(usdLabel || usdTrailingLabel)
   const usdCollapsed = Boolean(usdLabel) && !usdTrailingLabel && isGraiAsset
-  const assetSelectDetailLabel = isBalanceLoading ? null : balanceText
+  const assetSelectDetailLabel =
+    showAssetDetail && !isBalanceLoading ? balanceText : null
+  const assetSelectDetailLoading = showAssetDetail && isBalanceLoading
   const presetButtons = showPresets ? (
     <div className="grai-amount-preset-btns" aria-label="Amount presets">
       <button
@@ -185,7 +193,7 @@ export function GraiAmountInput({
             />
           </div>
           {showPresetsInField ? (
-            <div className="grai-amount-input-max" aria-label="Amount presets">
+            <div className={`grai-amount-input-max${maxSubLabel ? ' has-sub' : ''}`} aria-label="Amount presets">
               <button
                 type="button"
                 className="grai-amount-preset-btn grai-amount-preset-btn--field"
@@ -194,6 +202,11 @@ export function GraiAmountInput({
               >
                 MAX
               </button>
+              {maxSubLabel ? (
+                <span className="grai-amount-input-max-sub" title={maxSubLabel}>
+                  {maxSubLabel}
+                </span>
+              ) : null}
             </div>
           ) : null}
           {showUsdSlot ? (
@@ -228,11 +241,13 @@ export function GraiAmountInput({
           onSelect={(asset) => setSelectedSymbol(asset.symbol)}
           detailLabel={assetSelectDetailLabel}
           detailAriaLabel={
-            isBalanceLoading
+            assetSelectDetailLoading
               ? 'Loading balance'
-              : `${balancePrefix} ${balanceText}`.replace(/\s+/g, ' ').trim()
+              : assetSelectDetailLabel
+                ? `${balancePrefix} ${balanceText}`.replace(/\s+/g, ' ').trim()
+                : undefined
           }
-          detailLoading={isBalanceLoading}
+          detailLoading={assetSelectDetailLoading}
           disabled={disabled}
           ariaLabel={selectAriaLabel}
           menuOptions={selectMenuOptions}

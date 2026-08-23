@@ -14,7 +14,16 @@ export const grsAbi = [
   { type: 'error', name: 'SaleExceeded', inputs: [] },
   { type: 'error', name: 'InvalidPayment', inputs: [] },
   { type: 'error', name: 'PaymentFailed', inputs: [] },
-  { type: 'error', name: 'UnknownSale', inputs: [] },
+    { type: 'error', name: 'UnknownSale', inputs: [] },
+    { type: 'error', name: 'InsufficientInventory', inputs: [] },
+    { type: 'error', name: 'ComposeDisabled', inputs: [] },
+    { type: 'error', name: 'NoPeer', inputs: [{ name: 'eid', type: 'uint32' }] },
+  { type: 'error', name: 'SlippageExceeded', inputs: [{ name: 'amountLD', type: 'uint256' }, { name: 'minAmountLD', type: 'uint256' }] },
+  {
+    type: 'error',
+    name: 'LZ_ULN_InvalidWorkerOptions',
+    inputs: [{ name: 'workerIndex', type: 'uint256' }],
+  },
   {
     type: 'function',
     name: 'home',
@@ -52,9 +61,23 @@ export const grsAbi = [
   },
   {
     type: 'function',
-    name: 'saleCount',
+    name: 'vestingLocked',
     stateMutability: 'view',
     inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'spent',
+    stateMutability: 'view',
+    inputs: [{ name: 'bucket', type: 'uint8' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'capOf',
+    stateMutability: 'pure',
+    inputs: [{ name: 'bucket', type: 'uint8' }],
     outputs: [{ type: 'uint256' }],
   },
   {
@@ -98,13 +121,6 @@ export const grsAbi = [
       { name: 'to', type: 'address' },
     ],
     outputs: [{ name: 'cost', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'vestingCount',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ type: 'uint256' }],
   },
   {
     type: 'function',
@@ -198,6 +214,13 @@ export const grsAbi = [
   },
   {
     type: 'function',
+    name: 'owner',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    type: 'function',
     name: 'quoteBridge',
     stateMutability: 'view',
     inputs: [
@@ -206,6 +229,36 @@ export const grsAbi = [
       { name: 'amountLD', type: 'uint256' },
     ],
     outputs: [{ name: 'nativeFee', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'quoteGrant',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'to', type: 'bytes32' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'start', type: 'uint64' },
+      { name: 'cliffSeconds', type: 'uint64' },
+      { name: 'durationSeconds', type: 'uint64' },
+      { name: 'bucket', type: 'uint8' },
+      { name: 'dstEid', type: 'uint32' },
+    ],
+    outputs: [{ name: 'nativeFee', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'grant',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'bucket', type: 'uint8' },
+      { name: 'to', type: 'bytes32' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'start', type: 'uint64' },
+      { name: 'cliffSeconds', type: 'uint64' },
+      { name: 'durationSeconds', type: 'uint64' },
+      { name: 'dstEid', type: 'uint32' },
+    ],
+    outputs: [{ name: 'vestingId', type: 'uint256' }],
   },
   {
     type: 'function',

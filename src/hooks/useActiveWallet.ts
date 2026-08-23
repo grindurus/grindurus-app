@@ -21,24 +21,12 @@ export function useActiveWallet(): ActiveWalletState {
   const solanaWallet = useSolanaWallet()
 
   const activeWallet = useMemo((): ActiveWalletState => {
-    if (selectedChainType !== 'solana' && evmWallet.isConnected) {
-      const networkCaip2 = evmChainIdToCaip2(evmWallet.chainId)
-      return {
-        isConnected: true,
-        isConnecting: evmWallet.isConnecting,
-        address: evmWallet.address || '',
-        shortAddress: evmWallet.shortAddress,
-        chainType: 'evm',
-        networkName: evmWallet.chainName,
-        networkCaip2,
-        disconnect: async () => {
-          await Promise.resolve(evmWallet.disconnect())
-          contextDisconnect()
-        },
-      }
-    }
-
-    if (selectedChainType !== 'evm' && solanaWallet.isConnected) {
+    // Prefer the wallet that matches the GRAI / CA selection — but never hide a connected
+    // Solana session behind a stale EVM chain type, or an EVM session behind Solana.
+    if (
+      solanaWallet.isConnected &&
+      (selectedChainType === 'solana' || !evmWallet.isConnected)
+    ) {
       const networkCaip2 = solanaClusterToCaip2(solanaWallet.cluster)
       return {
         isConnected: true,
@@ -50,6 +38,26 @@ export function useActiveWallet(): ActiveWalletState {
         networkCaip2,
         disconnect: async () => {
           await solanaWallet.disconnect()
+          contextDisconnect()
+        },
+      }
+    }
+
+    if (
+      evmWallet.isConnected &&
+      (selectedChainType === 'evm' || !solanaWallet.isConnected)
+    ) {
+      const networkCaip2 = evmChainIdToCaip2(evmWallet.chainId)
+      return {
+        isConnected: true,
+        isConnecting: evmWallet.isConnecting,
+        address: evmWallet.address || '',
+        shortAddress: evmWallet.shortAddress,
+        chainType: 'evm',
+        networkName: evmWallet.chainName,
+        networkCaip2,
+        disconnect: async () => {
+          await Promise.resolve(evmWallet.disconnect())
           contextDisconnect()
         },
       }

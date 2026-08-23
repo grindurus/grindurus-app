@@ -1019,7 +1019,7 @@ html:has(body[data-scroll-locked]) body {
 }
 
 .sepolia-logo {
-  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  background: linear-gradient(135deg, #7c8cf8 0%, #627eea 55%, #3b4db8 100%);
   color: white;
 }
 
@@ -1074,7 +1074,10 @@ html:has(body[data-scroll-locked]) body {
 }
 
 .wallet-current-network-icon-svg.sepolia {
-  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  background: transparent;
+  padding: 0;
+  border-radius: 999px;
+  overflow: visible;
 }
 
 .wallet-current-network-icon-solana {
@@ -1616,8 +1619,19 @@ html:has(body[data-scroll-locked]) body {
 }
 
 .network-icon-svg.sepolia {
-  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
-  color: white;
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  overflow: visible;
+  padding: 0;
+}
+
+.network-logo-img--sepolia {
+  border-radius: 999px;
+  overflow: visible;
+  clip-path: none;
+  object-fit: contain;
+  display: block;
 }
 
 .network-icon-svg.solana,
@@ -1627,6 +1641,8 @@ html:has(body[data-scroll-locked]) body {
   color: inherit;
   padding: 0.12rem;
   box-sizing: border-box;
+  border-radius: 0;
+  overflow: visible;
 }
 
 .network-icon-svg.solana img,
@@ -1637,6 +1653,9 @@ html:has(body[data-scroll-locked]) body {
   height: 100%;
   object-fit: contain;
   display: block;
+  border-radius: 0;
+  overflow: visible;
+  clip-path: none;
 }
 
 .network-dropdown-item .network-name {

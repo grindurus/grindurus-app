@@ -3,6 +3,10 @@
 interface ImportMetaEnv {
   readonly VITE_MAIN_APP_URL?: string
   readonly VITE_WALLETCONNECT_PROJECT_ID?: string
+  readonly VITE_ETHEREUM_RPC_URL?: string
+  readonly VITE_BASE_RPC_URL?: string
+  readonly VITE_ARBITRUM_RPC_URL?: string
+  readonly VITE_SEPOLIA_RPC_URL?: string
   readonly VITE_SOLANA_RPC_URL?: string
   readonly VITE_SOLANA_DEVNET_RPC_URL?: string
   readonly VITE_SOLANA_MAINNET_RPC_URL?: string
@@ -30,6 +34,16 @@ interface ImportMetaEnv {
   readonly VITE_GRS_ARBITRUM_TOKEN?: string
   readonly VITE_GRS_SEPOLIA_TOKEN?: string
   readonly VITE_GRS_BASE_SEPOLIA_TOKEN?: string
+  readonly VITE_GRS_SOLANA_CLUSTER?: string
+  readonly VITE_GRS_SOLANA_MINT?: string
+  readonly VITE_GRS_DEVNET_MINT?: string
+  readonly VITE_GRS_DEVNET_PROGRAM_ID?: string
+  readonly VITE_GRS_DEVNET_ESCROW?: string
+  readonly VITE_GRS_DEVNET_OFT_STORE?: string
+  readonly VITE_GRS_MAINNET_MINT?: string
+  readonly VITE_GRS_PROGRAM_ID?: string
+  readonly VITE_GRS_ESCROW?: string
+  readonly VITE_GRS_OFT_STORE?: string
   readonly VITE_GRINDERS_PROGRAM_ID?: string
   readonly VITE_GRINDERS_DEVNET_PROGRAM_ID?: string
   readonly VITE_GRINDERS_MAINNET_PROGRAM_ID?: string

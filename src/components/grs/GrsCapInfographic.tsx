@@ -39,7 +39,11 @@ function usageCap(
   salesRemaining: bigint | null,
 ): { spent: bigint; cap: bigint } {
   const row = allocationRow(allocations, bucket)
-  if (row) return { spent: row.spent, cap: row.cap > 0n ? row.cap : millionsToRaw(millions, decimals) }
+  if (row) {
+    const cap =
+      bucket === 0 ? (row.cap > millionsToRaw(millions, decimals) ? millionsToRaw(millions, decimals) : row.cap) : row.cap
+    return { spent: row.spent, cap: cap > 0n ? cap : millionsToRaw(millions, decimals) }
+  }
   const cap = millionsToRaw(millions, decimals)
   if (bucket === 0 && salesRemaining != null) {
     return { spent: cap > salesRemaining ? cap - salesRemaining : 0n, cap }
@@ -50,7 +54,7 @@ function usageCap(
 export function GrsCapInfographic({ snapshot, isLoading }: Props) {
   const [focus, setFocus] = useState<Focus | null>(null)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const decimals = snapshot?.decimals ?? GRS_DECIMALS
+  const decimals = snapshot?.tokenSalesDecimals ?? snapshot?.decimals ?? GRS_DECIMALS
   const allocations = snapshot?.allocations ?? null
   const salesRemaining = snapshot?.tokenSalesRemaining ?? allocationRow(allocations, 0)?.remaining ?? null
 
@@ -58,13 +62,13 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
     if (allocations && allocations.length > 0) {
       return allocations.reduce((sum, row) => sum + row.spent, 0n)
     }
+    if (snapshot?.tokenSalesSpent != null) return snapshot.tokenSalesSpent
     if (salesRemaining == null) return 0n
-    const salesCap = millionsToRaw(
-      GRS_CAP_GROUPS[0]?.buckets[0]?.millions ?? 0,
-      decimals,
-    )
+    const salesCap =
+      snapshot?.tokenSalesCap ??
+      millionsToRaw(GRS_CAP_GROUPS[0]?.buckets[0]?.millions ?? 0, decimals)
     return salesCap > salesRemaining ? salesCap - salesRemaining : 0n
-  }, [allocations, decimals, salesRemaining])
+  }, [allocations, decimals, salesRemaining, snapshot?.tokenSalesCap, snapshot?.tokenSalesSpent])
 
   const totalRaw = millionsToRaw(GRS_CAP_SUPPLY_MILLIONS, decimals)
   const grantedUsed = formatUsedPercent(granted, totalRaw)
@@ -219,11 +223,7 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
 
       <div className="grs-cap-tge" aria-hidden="true">
         {GRS_TGE_SPLIT.map((slice) => (
-          <span
-            key={slice.id}
-            className={`grs-cap-tge-slice grs-cap-tge-slice--${slice.id}`}
-            style={{ flexGrow: slice.pct }}
-          >
+          <span key={slice.id} className={`grs-cap-tge-slice grs-cap-tge-slice--${slice.id}`}>
             {slice.pct}% · {slice.millions}M
           </span>
         ))}

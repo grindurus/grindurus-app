@@ -30,6 +30,7 @@ import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useGraiAssetUsdLabel } from '../../hooks/useGraiAssetUsdLabel'
 import { estimateEvmClaimAll } from '../../grai/evm/estimateClaim'
 import { estimateSolanaClaimAll } from '../../grai/estimateSolanaClaim'
+import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import { assetUrl } from '../../utils/appPaths'
 import { replaceAppHash } from '../../utils/navigate'
@@ -736,6 +737,7 @@ function GraiLiquidationVoterPicker({
         decimals={graiDecimals}
         showPresets
         usdLabel="$0.00"
+        usdTrailingLabel="vote:"
         disabled={!selectedVoter || disabled}
         selectAriaLabel="Select voter"
         selectMenuAriaLabel="Voters"
@@ -1029,14 +1031,14 @@ export function GraiLiquidationActions() {
   const canTransact =
     (chainKind === 'evm' && connectedEvm !== null && evmWallet.isConnected) ||
     (chainKind === 'solana' && solana !== null && solanaWallet.isConnected)
-  // Prefer the wallet that matches the GRAI deployment network (selectedChainType alone
-  // can stay null/stale after Phantom connect and hide action buttons).
+  // Prefer the wallet that matches the GRAI deployment network. A lone connected
+  // wallet also flips chainKind in GraiDeploymentProvider so this stays in sync.
   const isWalletConnected =
     chainKind === 'solana'
       ? solanaWallet.isConnected
       : chainKind === 'evm'
         ? evmWallet.isConnected
-        : activeWallet.isConnected
+        : solanaWallet.isConnected || evmWallet.isConnected || activeWallet.isConnected
   const { vote, isVoting } = useGraiVote()
   const { bribe, isBribing } = useGraiBribe()
   const { liquidate, confirmLiquidation, isLiquidating } = useGraiLiquidate()
@@ -1563,6 +1565,20 @@ export function GraiLiquidationActions() {
     setOpsView('distribute')
     if (window.location.hash === '#burn') replaceAppHash('/grai', '#assets')
   }, [isLoading, opsView, redeemAvailable])
+
+  const voteUsdLabel = useMemo(() => {
+    const trimmed = voteAmount.trim()
+    if (!trimmed || !state || state.totalSupply <= 0n) return '$0.00'
+    try {
+      const amountRaw = parseTokenAmount(trimmed, graiDecimals)
+      if (amountRaw <= 0n) return '$0.00'
+      const usdRaw = (amountRaw * state.totalValue) / state.totalSupply
+      if (usdRaw <= 0n) return '$0.00'
+      return `$${formatVaultBalanceDisplay(usdRaw, USD_DECIMALS, 6)}`
+    } catch {
+      return '$0.00'
+    }
+  }, [graiDecimals, state, voteAmount])
 
   const voteMightReceiveLabel = useMemo(() => {
     const trimmed = voteAmount.trim()
@@ -2497,7 +2513,8 @@ export function GraiLiquidationActions() {
                         maxAmount={liquidationBlocked ? '' : voteMaxAmount}
                         decimals={graiDecimals}
                         showPresets
-                        usdLabel="$0.00"
+                        usdLabel={voteUsdLabel}
+                        usdTrailingLabel="balance:"
                       />
                       <div className="grai-liquidation-bribe-amount-row">
                         <span className="grai-liquidation-bribe-amount-label">You vote</span>

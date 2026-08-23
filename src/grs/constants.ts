@@ -1,9 +1,24 @@
 export const GRS_DECIMALS = 18
+export const GRS_SOLANA_DECIMALS = 9
 export const GRS_MAX_SUPPLY = 1_000_000_000n * 10n ** 18n
-export const NATIVE_QUOTE = '0x0000000000000000000000000000000000000000' as const
+/** Soft TokenSales policy size in Solana local decimals (150M × 1e9). On-chain bucket is uncapped. */
+export const GRS_TOKEN_SALES_CAP_LD = 150_000_000n * 10n ** 9n
+/** Soft TokenSales policy size in EVM local decimals (150M × 1e18). `capOf(TokenSales)` is `type(uint256).max`. */
+export const GRS_TOKEN_SALES_SOFT_CAP = 150_000_000n * 10n ** 18n
 
 export const TOKEN_SALES_BUCKET = 0
 export const HOLDER_BUCKET = 11
+export const NATIVE_QUOTE = '0x0000000000000000000000000000000000000000' as const
+
+/** On-chain TokenSales `capOf` is uncapped (`type(uint256).max`); UI uses the 150M soft policy. */
+export function normalizeTokenSalesCap(cap: bigint, decimals: number = GRS_DECIMALS): bigint {
+  const soft =
+    decimals === GRS_SOLANA_DECIMALS ? GRS_TOKEN_SALES_CAP_LD : GRS_TOKEN_SALES_SOFT_CAP
+  // Anything above total supply is the uncapped sentinel, not a real listing budget.
+  const supply =
+    decimals === GRS_SOLANA_DECIMALS ? 1_000_000_000n * 10n ** 9n : GRS_MAX_SUPPLY
+  return cap > supply ? soft : cap
+}
 
 export const BUCKET_LABELS = [
   'Token sales',

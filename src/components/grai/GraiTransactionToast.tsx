@@ -4,9 +4,10 @@ import { playBullSound } from '../../utils/playBullSound'
 type Props = {
   message: string
   explorerHref?: string | null
+  linkLabel?: string
 }
 
-export function GraiTransactionToast({ message, explorerHref }: Props) {
+export function GraiTransactionToast({ message, explorerHref, linkLabel }: Props) {
   useEffect(() => {
     void playBullSound()
   }, [])
@@ -16,7 +17,7 @@ export function GraiTransactionToast({ message, explorerHref }: Props) {
       <span>{message}</span>
       {explorerHref ? (
         <a href={explorerHref} target="_blank" rel="noreferrer">
-          View on explorer
+          {linkLabel ?? 'View on explorer'}
         </a>
       ) : null}
     </span>

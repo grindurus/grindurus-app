@@ -23,6 +23,7 @@ import { useGrindersCustodyBalances } from '../hooks/useGrindersCustodyBalances'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { VaultBalanceTableValue, vaultBalanceUsdRaw } from '../components/VaultBalanceTableValue'
 import { GraiActionConnectWalletButton } from '../components/grai/GraiWalletAction'
+import { GraiCaNetworkSelect } from '../components/grai/GraiCaNetworkSelect'
 import { GraiLiquidateForm } from '../components/grai/GraiLiquidateForm'
 import { GraiConfirmForm } from '../components/grai/GraiConfirmForm'
 import { GraiMintCustodianForm } from '../components/grai/GraiMintCustodianForm'
@@ -718,9 +719,13 @@ export function GraiManageSection() {
     solscanTokenUrl,
     solscanTxUrl,
     solscanAccountUrl,
+    explorerTokenUrl,
     isConfigured,
     hasStaticConfig,
     protocolError,
+    chainKind,
+    solanaCluster,
+    evm,
   } = useGraiDeployment()
   const { assets, isLoading: assetsLoading, error: assetsError } = useGraiAssets()
   const { vaultBalances, isLoading: vaultBalancesLoading, refresh: refreshVaultBalances } =
@@ -767,8 +772,15 @@ export function GraiManageSection() {
   const [distributeYieldSplitBps, setDistributeYieldSplitBps] = useState<number | null>(null)
   const [manageActionView, setManageActionView] = useState<ManageActionView>('allocate')
 
-  const graiMintAddress = solana?.graiMint.toBase58() ?? staticSolana?.graiMint.toBase58() ?? null
-
+  const graiMintAddress =
+    chainKind === 'evm'
+      ? (evm?.graiToken ?? null)
+      : chainKind === 'solana'
+        ? (solana?.graiMint.toBase58() ?? staticSolana?.graiMint.toBase58() ?? null)
+        : (evm?.graiToken ?? solana?.graiMint.toBase58() ?? staticSolana?.graiMint.toBase58() ?? null)
+  const graiMintHref = graiMintAddress ? explorerTokenUrl(graiMintAddress) : null
+  const networkChainId = chainKind === 'evm' ? (evm?.chainId ?? null) : null
+  const networkSolanaCluster = chainKind === 'solana' ? solanaCluster : null
   const handleManageActionViewChange = useCallback((view: ManageActionView) => {
     setManageActionView(view)
     if (view === 'allocate' || view === 'distribute' || view === 'deallocate') {
@@ -2029,28 +2041,42 @@ export function GraiManageSection() {
 
       {(graiMintAddress || protocolAuthority || treasuryWallet) && (
         <div className="grai-manage-protocol-info-block">
-          {graiMintAddress && (
-            <p className="grai-page-ca grai-manage-protocol-info">
-              <span className="grai-page-ca-label grai-page-ca-label--with-icon">
-                <span className="grai-field-label-icon" aria-hidden="true">
-                  {CONTRACT_ICON}
-                </span>
-                CA:
-              </span>{' '}
-              <a
-                href={solscanTokenUrl(graiMintAddress)}
-                target="_blank"
-                rel="noreferrer"
-                className="grai-page-ca-link"
-                title={graiMintAddress}
-              >
-                <span className="grai-page-ca-link-text">{graiMintAddress}</span>
-                <span className="grai-page-ca-link-icon" aria-hidden="true">
-                  {MINT_ASSET_SOLSCAN_ICON}
-                </span>
-              </a>
-            </p>
-          )}
+          <div className="grai-page-ca-bar grai-manage-protocol-ca-bar">
+            <GraiCaNetworkSelect
+              chainKind={chainKind}
+              chainId={networkChainId}
+              solanaCluster={networkSolanaCluster}
+              ariaLabel="Select Grinders network"
+            />
+            {graiMintAddress ? (
+              <p className="grai-page-ca grai-page-ca-inline grai-manage-protocol-info">
+                <span className="grai-page-ca-label grai-page-ca-label--with-icon">
+                  <span className="grai-field-label-icon" aria-hidden="true">
+                    {CONTRACT_ICON}
+                  </span>
+                  GRINDERS CA:
+                </span>{' '}
+                {graiMintHref ? (
+                  <a
+                    href={graiMintHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="grai-page-ca-link"
+                    title={graiMintAddress}
+                  >
+                    <span className="grai-page-ca-link-text">{graiMintAddress}</span>
+                    <span className="grai-page-ca-link-icon" aria-hidden="true">
+                      {MINT_ASSET_SOLSCAN_ICON}
+                    </span>
+                  </a>
+                ) : (
+                  <span className="grai-page-ca-link-text" title={graiMintAddress}>
+                    {graiMintAddress}
+                  </span>
+                )}
+              </p>
+            ) : null}
+          </div>
           {protocolAuthority && (
             <p className="grai-page-ca grai-manage-protocol-info">
               <span className="grai-page-ca-label grai-page-ca-label--with-icon">

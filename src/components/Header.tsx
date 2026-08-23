@@ -101,12 +101,22 @@ const SALE_NAV_ICON = (
   </svg>
 )
 
+const GRANT_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="6.25" />
+    <circle cx="12" cy="12" r="2.25" fill="currentColor" stroke="none" />
+    <path d="M12 5.75v1.5M12 16.75v1.5M5.75 12h1.5M16.75 12h1.5" />
+  </svg>
+)
+
 const GRS_NAV_ITEMS: { section: GrsSection; label: string; icon: ReactNode }[] = [
   { section: 'token-sale', label: 'Token Sale', icon: SALE_NAV_ICON },
   { section: 'bridge', label: 'Bridge', icon: BRIDGE_NAV_ICON },
-  { section: 'sales', label: 'Sale', icon: SALE_NAV_ICON },
   { section: 'vesting', label: 'Release', icon: UNLOCK_NAV_ICON },
   { section: 'vest', label: 'Vest', icon: LOCK_NAV_ICON },
+  { section: 'grant', label: 'Grant', icon: GRANT_NAV_ICON },
+  { section: 'sales', label: 'Sale', icon: SALE_NAV_ICON },
 ]
 
 const ALLOCATE_NAV_ICON = (

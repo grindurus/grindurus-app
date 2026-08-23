@@ -6,7 +6,7 @@ import { GRS_DECIMALS } from '../constants'
 import { parseBridgeRecipient, parseSaleAsset, ZERO_BYTES32, evmAddressToBytes32 } from '../bytes32'
 import type { GrsEvmConfig } from '../deployments'
 import { grsAbi } from './abi'
-import { quoteGrsBridge, previewGrsBuy } from './readProtocol'
+import { quoteGrsBridge, quoteGrsGrant, previewGrsBuy } from './readProtocol'
 
 export type ExecuteGrsBridgeParams = {
   config: GrsEvmConfig
@@ -41,6 +41,77 @@ export async function executeGrsBridge({
     functionName: 'bridge',
     args: [dstEid, to, amount],
     value,
+  })
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return { hash, amount, amountLabel: formatTokenBalance(amount, decimals) }
+}
+
+export type ExecuteGrsGrantParams = {
+  config: GrsEvmConfig
+  bucket: number
+  destIsSolana: boolean
+  destName?: string
+  recipientInput: string
+  amountInput: string
+  start: bigint
+  cliffSeconds: number
+  durationSeconds: number
+  dstEid: number
+  decimals?: number
+}
+
+export async function executeGrsGrant({
+  config,
+  bucket,
+  destIsSolana,
+  destName,
+  recipientInput,
+  amountInput,
+  start,
+  cliffSeconds,
+  durationSeconds,
+  dstEid,
+  decimals = GRS_DECIMALS,
+}: ExecuteGrsGrantParams): Promise<{ hash: string; amount: bigint; amountLabel: string }> {
+  const account = getAccount(wagmiConfig)
+  if (!account.address) throw new Error('Connect an EVM wallet to grant GRS')
+
+  const amount = parseTokenAmount(amountInput, decimals)
+  const to =
+    dstEid === 0
+      ? evmAddressToBytes32(recipientInput)
+      : parseBridgeRecipient(recipientInput, destIsSolana, destName)
+
+  let value = 0n
+  if (dstEid !== 0) {
+    const nativeFee = await quoteGrsGrant(
+      config,
+      to,
+      amount,
+      start,
+      BigInt(cliffSeconds),
+      BigInt(durationSeconds),
+      bucket,
+      dstEid,
+    )
+    value = nativeFee + nativeFee / 10n
+  }
+
+  const hash = await writeContract(wagmiConfig, {
+    address: config.address,
+    abi: grsAbi,
+    functionName: 'grant',
+    args: [
+      bucket,
+      to,
+      amount,
+      start,
+      BigInt(cliffSeconds),
+      BigInt(durationSeconds),
+      dstEid,
+    ],
+    value,
+    account: account.address,
   })
   await waitForTransactionReceipt(wagmiConfig, { hash })
   return { hash, amount, amountLabel: formatTokenBalance(amount, decimals) }
@@ -162,6 +233,8 @@ export type ExecuteGrsSaleParams = {
   grsAmountInput: string
   recipientInput: string
   dstEid: number
+  destIsSolana?: boolean
+  destName?: string
   decimals?: number
 }
 
@@ -173,6 +246,8 @@ export async function executeGrsSale({
   grsAmountInput,
   recipientInput,
   dstEid,
+  destIsSolana = false,
+  destName,
   decimals = GRS_DECIMALS,
 }: ExecuteGrsSaleParams): Promise<{ hash: string; amount: bigint; amountLabel: string }> {
   const account = getAccount(wagmiConfig)
@@ -182,7 +257,7 @@ export async function executeGrsSale({
   const assetAmount = parseTokenAmount(assetAmountInput, assetDecimals)
   const asset = parseSaleAsset(assetInput)
   const recipient = recipientInput.trim()
-    ? evmAddressToBytes32(recipientInput)
+    ? parseBridgeRecipient(recipientInput, destIsSolana, destName)
     : ZERO_BYTES32
 
   let value = 0n

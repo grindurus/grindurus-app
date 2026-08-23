@@ -1,28 +1,32 @@
-import { useEffect, useMemo, useState } from 'react'
-import { isAddress } from 'viem'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { GraiAmountInput } from '../grai/GraiAmountInput'
 import { GraiFieldInfoButton } from '../grai/GraiFieldInfo'
 import { useEvmWallet } from '../../hooks/useEvmWallet'
+import { useSolanaWallet } from '../../hooks/useSolanaWallet'
 import { useGrsEvmTransaction } from '../../hooks/useGrsEvmTransaction'
+import { useGrsSolanaTransaction } from '../../hooks/useGrsSolanaTransaction'
 import { formatTokenBalance, normalizeDecimalInput } from '../../grai/onchain'
 import { assetUrl } from '../../utils/appPaths'
 import { shortenAddress } from '../../utils/shortenAddress'
 import { bucketLabel, GRS_DECIMALS, MAX_CLIFF_SECONDS, MAX_DURATION_SECONDS } from '../../grs/constants'
 import { mockGrsVestings, partyName } from '../../grs/preview'
 import { executeGrsRelease, executeGrsVest } from '../../grs/evm/executeTransactions'
-import type { GrsEvmConfig } from '../../grs/deployments'
+import { executeSolanaGrsRelease, executeSolanaGrsVest } from '../../grs/solana/executeTransactions'
+import { grsExplorerTxUrl, type GrsConfig } from '../../grs/deployments'
 import type { GrsSnapshot, GrsVesting } from '../../grs/evm/readProtocol'
 import { navigateToGrsSection } from '../../utils/grsNavigation'
-import { GrsFeedback, GrsSubmit, toastGrsSuccess } from './GrsActionBits'
+import { ActionDepositNote, usePersistedActionTx } from '../ActionTxFeedback'
+import { GrsSubmit, isGrsRecipient, toastGrsSuccess } from './GrsActionBits'
 
 type VestView = 'claim' | 'lock'
 
 type Props = {
-  config: GrsEvmConfig | null
+  config: GrsConfig | null
   snapshot: GrsSnapshot | null
   isLoading: boolean
   refresh: () => void
   view: VestView
+  note?: ReactNode
 }
 
 function formatTs(ts: number): string {
@@ -56,94 +60,207 @@ function vestProgress(row: GrsVesting): number {
   return Number((unlocked * 10_000n) / row.allocation) / 100
 }
 
-export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: Props) {
+export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view, note }: Props) {
   const evmWallet = useEvmWallet()
+  const solanaWallet = useSolanaWallet()
   const claimTx = useGrsEvmTransaction()
   const lockTx = useGrsEvmTransaction()
+  const solClaimTx = useGrsSolanaTransaction()
+  const solLockTx = useGrsSolanaTransaction()
+  const {
+    lastTx: lastClaimTx,
+    lastError: lastClaimError,
+    begin: beginClaim,
+    succeed: succeedClaim,
+    fail: failClaim,
+  } = usePersistedActionTx()
+  const {
+    lastTx: lastLockTx,
+    lastError: lastLockError,
+    begin: beginLock,
+    succeed: succeedLock,
+    fail: failLock,
+  } = usePersistedActionTx()
   const [amount, setAmount] = useState('')
   const [recipient, setRecipient] = useState('')
   const [cliffDays, setCliffDays] = useState('0')
   const [durationDays, setDurationDays] = useState('365')
   const [releasingId, setReleasingId] = useState<string | null>(null)
 
-  const decimals = snapshot?.decimals ?? GRS_DECIMALS
-  const owner = evmWallet.address?.toLowerCase()
-  const liveRows = (snapshot?.vestings ?? []).filter((row) =>
-    owner ? row.beneficiary.toLowerCase() === owner : true,
-  )
+  const chainKind = config?.kind ?? null
+  const decimals = snapshot?.decimals ?? (chainKind === 'solana' ? 9 : GRS_DECIMALS)
+  const owner =
+    chainKind === 'solana'
+      ? solanaWallet.address ?? undefined
+      : evmWallet.address?.toLowerCase()
+  const liveRows = (snapshot?.vestings ?? []).filter((row) => {
+    if (!owner) return true
+    if (chainKind === 'solana') {
+      return row.beneficiary === owner || row.funder === owner
+    }
+    return (
+      row.beneficiary.toLowerCase() === owner || row.funder.toLowerCase() === owner
+    )
+  })
   const previewRows = useMemo(() => mockGrsVestings(), [])
-  const isPreview = liveRows.length === 0
-  const rows = isPreview ? previewRows : liveRows
+  const isDemo = !config
+  const rows = isDemo ? previewRows : liveRows
+  const walletAddress =
+    chainKind === 'solana' ? solanaWallet.address ?? '' : evmWallet.address ?? ''
+  const walletConnected =
+    chainKind === 'solana' ? solanaWallet.isConnected : evmWallet.isConnected
 
   useEffect(() => {
-    if (evmWallet.address) {
-      setRecipient((current) => (current.trim() ? current : evmWallet.address ?? ''))
+    if (walletAddress) {
+      setRecipient((current) => (current.trim() ? current : walletAddress))
     }
-  }, [evmWallet.address])
+  }, [walletAddress])
 
+  const tokenAddress =
+    config?.kind === 'solana' ? config.mint.toBase58() : (config?.address ?? 'grs')
   const assets = useMemo(
-    () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: config?.address ?? 'grs' }],
-    [config?.address],
+    () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: tokenAddress }],
+    [tokenAddress],
   )
   const walletBalanceText =
     snapshot != null ? formatTokenBalance(snapshot.balance, decimals, 6) : '—'
   const maxAmount =
     snapshot != null && snapshot.balance > 0n
       ? formatTokenBalance(snapshot.balance, decimals)
-      : evmWallet.isConnected
+      : walletConnected
         ? '0'
         : ''
 
+  const claimPending = chainKind === 'solana' ? solClaimTx.isPending : claimTx.isPending
+  const claimLiveError = chainKind === 'solana' ? solClaimTx.error : claimTx.error
+  const claimError = claimLiveError ?? lastClaimError
+  const claimHash =
+    lastClaimTx?.hash ?? (chainKind === 'solana' ? solClaimTx.lastSignature : claimTx.lastHash)
+  const claimHref =
+    lastClaimTx?.href ?? (claimHash && config ? grsExplorerTxUrl(config, claimHash) : null)
+  const lockPending = chainKind === 'solana' ? solLockTx.isPending : lockTx.isPending
+  const lockLiveError = chainKind === 'solana' ? solLockTx.error : lockTx.error
+  const lockError = lockLiveError ?? lastLockError
+  const lockHash =
+    lastLockTx?.hash ?? (chainKind === 'solana' ? solLockTx.lastSignature : lockTx.lastHash)
+  const lockHref =
+    lastLockTx?.href ?? (lockHash && config ? grsExplorerTxUrl(config, lockHash) : null)
+  const explorerLinkLabel = config?.kind === 'solana' ? 'Solscan' : 'Etherscan'
+
   const handleRelease = async (id: bigint) => {
-    if (!config || isPreview) return
-    claimTx.reset()
+    if (!config || isDemo) return
     setReleasingId(id.toString())
+    beginClaim()
     try {
-      const result = await claimTx.run({
-        config,
-        connectMessage: 'Connect an EVM wallet to release vested GRS',
-        chainAction: 'release vested GRS',
-        failureMessage: 'Release failed',
-        execute: () => executeGrsRelease(config, id),
-      })
-      toastGrsSuccess(`Released vesting #${id.toString()}`, config.chainId, result.hash)
+      if (config.kind === 'solana') {
+        solClaimTx.reset()
+        const result = await solClaimTx.run({
+          connectMessage: 'Connect a Solana wallet to release vested GRS',
+          clusterAction: 'release vested GRS',
+          failureMessage: 'Release failed',
+          execute: (ctx) => executeSolanaGrsRelease({ ...ctx, vestingId: id }),
+        })
+        const href = grsExplorerTxUrl(config, result.signature)
+        succeedClaim({ hash: result.signature, href, linkLabel: 'Solscan', successLabel: 'Released.' })
+        toastGrsSuccess(`Released vesting #${id.toString()}`, config, result.signature, {
+          href,
+          linkLabel: 'Solscan',
+        })
+      } else {
+        claimTx.reset()
+        const result = await claimTx.run({
+          config,
+          connectMessage: 'Connect an EVM wallet to release vested GRS',
+          chainAction: 'release vested GRS',
+          failureMessage: 'Release failed',
+          execute: () => executeGrsRelease(config, id),
+        })
+        const href = grsExplorerTxUrl(config, result.hash)
+        succeedClaim({ hash: result.hash, href, linkLabel: 'Etherscan', successLabel: 'Released.' })
+        toastGrsSuccess(`Released vesting #${id.toString()}`, config, result.hash, {
+          href,
+          linkLabel: 'Etherscan',
+        })
+      }
       refresh()
-    } catch {
-      /* status captured */
+    } catch (releaseError) {
+      failClaim(releaseError, 'Release failed')
     } finally {
       setReleasingId(null)
     }
   }
 
   const handleVest = async () => {
-    if (!config || isPreview) return
-    lockTx.reset()
+    if (!config || isDemo) return
+    const to = recipient.trim() || walletAddress
+    if (!isGrsRecipient(to, config.kind)) return
+    beginLock()
     try {
-      const result = await lockTx.run({
-        config,
-        connectMessage: 'Connect an EVM wallet to vest GRS',
-        chainAction: 'vest GRS',
-        failureMessage: 'Vest failed',
-        amountInput: amount,
-        execute: () => {
-          const cliffSeconds = daysToSeconds(cliffDays, MAX_CLIFF_SECONDS, 'cliff')
-          const durationSeconds = daysToSeconds(durationDays, MAX_DURATION_SECONDS, 'linear duration')
-          return executeGrsVest({
-            config,
-            recipient: recipient.trim() || evmWallet.address || '',
-            amountInput: amount,
-            cliffSeconds,
-            durationSeconds,
-            decimals,
-          })
-        },
-      })
-      toastGrsSuccess(`Vested ${result.amountLabel} GRS`, config.chainId, result.hash)
+      const cliffSeconds = daysToSeconds(cliffDays, MAX_CLIFF_SECONDS, 'cliff')
+      const durationSeconds = daysToSeconds(durationDays, MAX_DURATION_SECONDS, 'linear duration')
+      if (config.kind === 'solana') {
+        solLockTx.reset()
+        const result = await solLockTx.run({
+          connectMessage: 'Connect a Solana wallet to vest GRS',
+          clusterAction: 'vest GRS',
+          failureMessage: 'Vest failed',
+          amountInput: amount,
+          execute: (ctx) =>
+            executeSolanaGrsVest({
+              ...ctx,
+              amountInput: amount,
+              beneficiary: to,
+              cliffSeconds,
+              durationSeconds,
+              decimals,
+            }),
+        })
+        const href = grsExplorerTxUrl(config, result.signature)
+        succeedLock({
+          hash: result.signature,
+          href,
+          linkLabel: 'Solscan',
+          successLabel: 'Vest created.',
+        })
+        toastGrsSuccess(`Vested ${result.amountLabel} GRS`, config, result.signature, {
+          href,
+          linkLabel: 'Solscan',
+        })
+      } else {
+        lockTx.reset()
+        const result = await lockTx.run({
+          config,
+          connectMessage: 'Connect an EVM wallet to vest GRS',
+          chainAction: 'vest GRS',
+          failureMessage: 'Vest failed',
+          amountInput: amount,
+          execute: () =>
+            executeGrsVest({
+              config,
+              recipient: to,
+              amountInput: amount,
+              cliffSeconds,
+              durationSeconds,
+              decimals,
+            }),
+        })
+        const href = grsExplorerTxUrl(config, result.hash)
+        succeedLock({
+          hash: result.hash,
+          href,
+          linkLabel: 'Etherscan',
+          successLabel: 'Vest created.',
+        })
+        toastGrsSuccess(`Vested ${result.amountLabel} GRS`, config, result.hash, {
+          href,
+          linkLabel: 'Etherscan',
+        })
+      }
       setAmount('')
       refresh()
       navigateToGrsSection('vesting')
-    } catch {
-      /* status captured */
+    } catch (vestError) {
+      failLock(vestError, 'Vest failed')
     }
   }
 
@@ -158,7 +275,7 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
               {rows.map((row) => {
                 const now = Date.now() / 1000
                 const beforeCliff = now < row.cliffEnd
-                const claimPending = releasingId === row.id.toString() && claimTx.isPending
+                const claimRowPending = releasingId === row.id.toString() && claimPending
                 return (
                   <li key={row.id.toString()} className="grs-vest-row">
                     <div className="grs-vest-row-top">
@@ -181,16 +298,16 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
                         type="button"
                         className="grai-mint-btn"
                         disabled={
-                          isPreview ||
-                          !evmWallet.isConnected ||
+                          isDemo ||
+                          !walletConnected ||
                           row.releasable === 0n ||
-                          claimTx.isPending
+                          claimPending
                         }
                         onClick={() => {
                           void handleRelease(row.id)
                         }}
                       >
-                        {claimPending
+                        {claimRowPending
                           ? 'Releasing…'
                           : row.releasable === 0n
                             ? beforeCliff
@@ -205,14 +322,23 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
             </ul>
           )}
 
-          <GrsFeedback
-            isPending={claimTx.isPending}
+          {rows.length === 0 && !isDemo && !isLoading ? (
+            <p className="grs-empty">No vesting schedules for this wallet.</p>
+          ) : null}
+
+          <ActionDepositNote
+            isPending={claimPending}
             pendingLabel="Releasing vested GRS…"
-            error={claimTx.error}
-            hash={claimTx.lastHash}
-            chainId={config?.chainId}
-            successLabel="Released."
-          />
+            error={claimError}
+            hash={claimHash}
+            config={config}
+            chainId={config?.kind === 'evm' ? config.chainId : undefined}
+            successLabel={lastClaimTx?.successLabel ?? 'Released.'}
+            txHref={claimHref}
+            linkLabel={lastClaimTx?.linkLabel ?? explorerLinkLabel}
+          >
+            {note}
+          </ActionDepositNote>
         </>
       ) : (
         <>
@@ -222,9 +348,8 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
             value={amount}
             onValueChange={(value) => {
               setAmount(normalizeDecimalInput(value, decimals))
-              lockTx.reset()
             }}
-            balanceLabel={evmWallet.isConnected ? walletBalanceText : '—'}
+            balanceLabel={walletConnected ? walletBalanceText : '—'}
             balanceLoading={isLoading && snapshot == null}
             usdTrailingLabel="balance"
             maxAmount={maxAmount}
@@ -266,32 +391,38 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view }: 
               className="grai-mint-referrer-input"
               value={recipient}
               spellCheck={false}
-              placeholder="0x…"
+              placeholder={chainKind === 'solana' ? 'Solana address' : '0x…'}
               onChange={(event) => {
                 setRecipient(event.target.value)
-                lockTx.reset()
               }}
             />
           </label>
-          <GrsFeedback
-            isPending={lockTx.isPending}
-            pendingLabel="Vesting GRS…"
-            error={lockTx.error}
-            hash={lockTx.lastHash}
-            chainId={config?.chainId}
-            successLabel="Vest created."
-          />
           <GrsSubmit
-            connected={evmWallet.isConnected}
+            connected={walletConnected}
             disabled={
-              isPreview || !amount.trim() || !isAddress(recipient.trim() || evmWallet.address || '')
+              isDemo ||
+              !amount.trim() ||
+              !isGrsRecipient(recipient.trim() || walletAddress, chainKind)
             }
-            pending={lockTx.isPending}
+            pending={lockPending}
             label="Vest GRS"
             onClick={() => {
               void handleVest()
             }}
           />
+          <ActionDepositNote
+            isPending={lockPending}
+            pendingLabel="Vesting GRS…"
+            error={lockError}
+            hash={lockHash}
+            config={config}
+            chainId={config?.kind === 'evm' ? config.chainId : undefined}
+            successLabel={lastLockTx?.successLabel ?? 'Vest created.'}
+            txHref={lockHref}
+            linkLabel={lastLockTx?.linkLabel ?? explorerLinkLabel}
+          >
+            {note}
+          </ActionDepositNote>
         </>
       )}
     </>

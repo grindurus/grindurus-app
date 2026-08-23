@@ -3,6 +3,7 @@ import {
   LZ_EID_META,
   NATIVE_QUOTE,
   TOKEN_SALES_BUCKET,
+  normalizeTokenSalesCap,
   isSolanaLzEid,
   lzEndpointLabel,
 } from '../constants'
@@ -30,6 +31,8 @@ export type GrsSale = {
   quoteDecimals: number
   quoteIcon: string
   native: boolean
+  /** Spoke sale priced with an EVM address packed as pubkey — Solana buy cannot pay. */
+  unpayableEvmAsset?: boolean
 }
 
 export type GrsVesting = {
@@ -59,10 +62,19 @@ export type GrsSnapshot = {
   home: boolean
   decimals: number
   maxSupply: bigint
+  /** TokenSales inventory on the home chain: contract GRS balance (uncapped bucket). */
   tokenSalesRemaining: bigint | null
+  /** Home TokenSales `spent[TokenSales]` (lifetime accounting). */
+  tokenSalesSpent: bigint | null
+  /** Home TokenSales soft policy size (`type(uint256).max` on-chain = uncapped). */
+  tokenSalesCap: bigint | null
+  /** Decimals for `tokenSalesRemaining` / spent / cap (home OFT decimals). */
+  tokenSalesDecimals: number | null
   allocations: GrsAllocation[] | null
   balance: bigint
   peers: GrsPeer[]
+  /** Peers from the home OFT (`getPeers`) — used for sale destinations. */
+  homePeers: GrsPeer[]
   sales: GrsSale[]
   vestings: GrsVesting[]
   vestingCount: bigint
@@ -112,21 +124,28 @@ async function readQuoteMeta(
 
 async function fetchAllSales(config: GrsEvmConfig): Promise<GrsSale[]> {
   const client = createGrsEvmPublicClient(config)
-  const count = await client.readContract({
-    address: config.address,
-    abi: grsAbi,
-    functionName: 'saleCount',
-  })
-  if (count === 0n) return []
-
   const listed: GrsSale[] = []
-  for (let offset = 0n; offset < count; offset += SALE_PAGE) {
-    const page = await client.readContract({
-      address: config.address,
-      abi: grsAbi,
-      functionName: 'getSales',
-      args: [offset, SALE_PAGE],
-    })
+
+  for (let offset = 0n; ; offset += SALE_PAGE) {
+    let page: readonly {
+      asset: `0x${string}`
+      assetAmount: bigint
+      grsAmount: bigint
+      recipient: `0x${string}`
+    }[]
+    try {
+      page = await client.readContract({
+        address: config.address,
+        abi: grsAbi,
+        functionName: 'getSales',
+        args: [offset, SALE_PAGE],
+      })
+    } catch {
+      // UnknownSale when offset is past the book (incl. empty book at offset 0).
+      break
+    }
+    if (page.length === 0) break
+
     const metas = await Promise.all(
       page.map(async (row) => {
         const native = isNativeQuote(row.asset)
@@ -153,6 +172,7 @@ async function fetchAllSales(config: GrsEvmConfig): Promise<GrsSale[]> {
         native: metas[index].native,
       })
     })
+    if (BigInt(page.length) < SALE_PAGE) break
   }
   return listed
 }
@@ -162,24 +182,37 @@ async function fetchWalletVestings(
   owner: `0x${string}` | undefined,
 ): Promise<{ vestings: GrsVesting[]; vestingCount: bigint }> {
   const client = createGrsEvmPublicClient(config)
-  const vestingCount = await client.readContract({
-    address: config.address,
-    abi: grsAbi,
-    functionName: 'vestingCount',
-  })
-  if (!owner || vestingCount === 0n) return { vestings: [], vestingCount }
+  if (!owner) return { vestings: [], vestingCount: 0n }
 
   const ownerLower = owner.toLowerCase()
   const vestings: GrsVesting[] = []
-  const scanTo = vestingCount > VESTING_SCAN_CAP ? VESTING_SCAN_CAP : vestingCount
+  let vestingCount = 0n
 
-  for (let offset = 0n; offset < scanTo; offset += VESTING_PAGE) {
-    const page = await client.readContract({
-      address: config.address,
-      abi: grsAbi,
-      functionName: 'getVestings',
-      args: [offset, VESTING_PAGE],
-    })
+  for (let offset = 0n; offset < VESTING_SCAN_CAP; offset += VESTING_PAGE) {
+    let page: readonly {
+      id: bigint
+      bucket: number | bigint
+      funder: `0x${string}`
+      beneficiary: `0x${string}`
+      allocation: bigint
+      released: bigint
+      start: bigint | number
+      cliffEnd: bigint | number
+      end: bigint | number
+    }[]
+    try {
+      page = await client.readContract({
+        address: config.address,
+        abi: grsAbi,
+        functionName: 'getVestings',
+        args: [offset, VESTING_PAGE],
+      })
+    } catch {
+      break
+    }
+    if (page.length === 0) break
+    vestingCount = offset + BigInt(page.length)
+
     const mine = page.filter(
       (row) =>
         row.beneficiary.toLowerCase() === ownerLower || row.funder.toLowerCase() === ownerLower,
@@ -208,6 +241,7 @@ async function fetchWalletVestings(
         releasable: amounts[index],
       })
     })
+    if (BigInt(page.length) < VESTING_PAGE) break
   }
 
   vestings.sort((a, b) => {
@@ -216,6 +250,31 @@ async function fetchWalletVestings(
   })
 
   return { vestings, vestingCount }
+}
+
+export type HomeTokenSalesInventory = {
+  remaining: bigint
+  spent: bigint
+  cap: bigint
+  decimals: number
+  homeChain: GrsEvmConfig
+}
+
+function mapPeersRaw(
+  peersRaw: readonly { eid: number | bigint; peer: `0x${string}` }[],
+): GrsPeer[] {
+  return peersRaw
+    .filter((row) => row.peer !== '0x0000000000000000000000000000000000000000000000000000000000000000')
+    .map((row) => {
+      const eid = Number(row.eid)
+      return {
+        eid,
+        peer: row.peer,
+        name: lzEndpointLabel(eid),
+        solana: isSolanaLzEid(eid),
+        chainId: LZ_EID_META[eid]?.chainId,
+      }
+    })
 }
 
 async function resolveHomeChain(current: GrsEvmConfig, isHome: boolean): Promise<GrsEvmConfig | null> {
@@ -239,6 +298,114 @@ async function resolveHomeChain(current: GrsEvmConfig, isHome: boolean): Promise
   return results.find((item): item is GrsEvmConfig => item !== null) ?? null
 }
 
+/** Prefer an explicit home config, else discover from configured EVM GRS deployments. */
+export async function resolveGrsHomeEvmConfig(
+  preferredHome?: GrsEvmConfig | null,
+): Promise<GrsEvmConfig | null> {
+  if (preferredHome) return preferredHome
+  const configured = listConfiguredGrsChains()
+  for (const item of configured) {
+    try {
+      const client = createGrsEvmPublicClient(item)
+      const isHome = await client.readContract({
+        address: item.address,
+        abi: grsAbi,
+        functionName: 'home',
+      })
+      if (isHome) return item
+    } catch {
+      /* try next */
+    }
+  }
+  return (
+    configured.find((item) => item.chainId === 11155111) ??
+    configured.find((item) => item.chainId === 1) ??
+    configured[0] ??
+    null
+  )
+}
+
+/** LayerZero peers registered on the home OFT (`getPeers`). */
+export async function fetchHomeGrsPeers(
+  preferredHome?: GrsEvmConfig | null,
+): Promise<{ peers: GrsPeer[]; homeChain: GrsEvmConfig | null }> {
+  const home = await resolveGrsHomeEvmConfig(preferredHome)
+  if (!home) return { peers: [], homeChain: null }
+  try {
+    const client = createGrsEvmPublicClient(home)
+    const peersRaw = await client.readContract({
+      address: home.address,
+      abi: grsAbi,
+      functionName: 'getPeers',
+    })
+    return { peers: mapPeersRaw(peersRaw), homeChain: home }
+  } catch {
+    return { peers: [], homeChain: home }
+  }
+}
+
+/** TokenSales on home: sellable float is `remaining()` (`balance − vestingLocked`), not `capOf − spent`
+ *  (`capOf(TokenSales)` is `type(uint256).max`). Soft UI cap is the 150M policy size. */
+export async function fetchHomeTokenSalesInventory(
+  preferredHome?: GrsEvmConfig | null,
+): Promise<HomeTokenSalesInventory | null> {
+  const home = await resolveGrsHomeEvmConfig(preferredHome)
+  if (!home) return null
+
+  const client = createGrsEvmPublicClient(home)
+  try {
+    const [remaining, spentAmt, capRaw, decimals] = await Promise.all([
+      client.readContract({
+        address: home.address,
+        abi: grsAbi,
+        functionName: 'remaining',
+        args: [TOKEN_SALES_BUCKET],
+      }),
+      client.readContract({
+        address: home.address,
+        abi: grsAbi,
+        functionName: 'spent',
+        args: [TOKEN_SALES_BUCKET],
+      }),
+      client.readContract({
+        address: home.address,
+        abi: grsAbi,
+        functionName: 'capOf',
+        args: [TOKEN_SALES_BUCKET],
+      }),
+      client
+        .readContract({ address: home.address, abi: grsAbi, functionName: 'decimals' })
+        .catch(() => 18),
+    ])
+    const decimalsN = Number(decimals)
+    return {
+      remaining,
+      spent: spentAmt,
+      cap: normalizeTokenSalesCap(capRaw, decimalsN),
+      decimals: decimalsN,
+      homeChain: home,
+    }
+  } catch {
+    try {
+      const remaining = await client.readContract({
+        address: home.address,
+        abi: grsAbi,
+        functionName: 'remaining',
+        args: [TOKEN_SALES_BUCKET],
+      })
+      return {
+        remaining,
+        spent: 0n,
+        cap: normalizeTokenSalesCap(0n, 18),
+        decimals: 18,
+        homeChain: home,
+      }
+    } catch {
+      return null
+    }
+  }
+}
+
 async function fetchAllocations(config: GrsEvmConfig): Promise<GrsAllocation[] | null> {
   const client = createGrsEvmPublicClient(config)
   try {
@@ -247,15 +414,20 @@ async function fetchAllocations(config: GrsEvmConfig): Promise<GrsAllocation[] |
       abi: grsAbi,
       functionName: 'getAllocations',
     })
-    return listed.map((row) => ({
-      bucket: Number(row.bucket),
-      cap: row.cap,
-      spent: row.spent,
-      remaining: row.remaining,
-      gate: Number(row.gate),
-      cliffMonths: Number(row.cliffMonths),
-      linearMonths: Number(row.linearMonths),
-    }))
+    return listed.map((row) => {
+      const bucket = Number(row.bucket)
+      const cap =
+        bucket === TOKEN_SALES_BUCKET ? normalizeTokenSalesCap(row.cap) : row.cap
+      return {
+        bucket,
+        cap,
+        spent: row.spent,
+        remaining: row.remaining,
+        gate: Number(row.gate),
+        cliffMonths: Number(row.cliffMonths),
+        linearMonths: Number(row.linearMonths),
+      }
+    })
   } catch {
     return null
   }
@@ -276,20 +448,22 @@ export async function fetchGrsSnapshot(
   ])
 
   const homeChain = await resolveHomeChain(config, home)
-  const allocationSource = home ? config : homeChain
-  const [tokenSalesRemaining, allocations] = await Promise.all([
-    client
-      .readContract({
-        address: config.address,
-        abi: grsAbi,
-        functionName: 'remaining',
-        args: [TOKEN_SALES_BUCKET],
-      })
-      .catch(() => null),
-    allocationSource ? fetchAllocations(allocationSource) : Promise.resolve(null),
+  const inventoryHome = home ? config : homeChain
+  const [inventory, allocations, homePeersPack] = await Promise.all([
+    fetchHomeTokenSalesInventory(inventoryHome),
+    inventoryHome ? fetchAllocations(inventoryHome) : Promise.resolve(null),
+    home ? Promise.resolve({ peers: mapPeersRaw(peersRaw), homeChain: config }) : fetchHomeGrsPeers(inventoryHome),
   ])
+  const salesCapRaw =
+    inventory?.cap ?? allocations?.find((row) => row.bucket === TOKEN_SALES_BUCKET)?.cap ?? null
+  const salesCap = salesCapRaw != null ? normalizeTokenSalesCap(salesCapRaw) : null
+  // Prefer live free float (`remaining`); never `capOf − spent` (TokenSales cap is uint256.max).
   const salesLeft =
-    tokenSalesRemaining ?? allocations?.find((row) => row.bucket === TOKEN_SALES_BUCKET)?.remaining ?? null
+    inventory?.remaining ??
+    allocations?.find((row) => row.bucket === TOKEN_SALES_BUCKET)?.remaining ??
+    null
+  const salesSpent =
+    inventory?.spent ?? allocations?.find((row) => row.bucket === TOKEN_SALES_BUCKET)?.spent ?? null
 
   const balance = owner
     ? await client.readContract({
@@ -300,31 +474,24 @@ export async function fetchGrsSnapshot(
       })
     : 0n
 
-  const peers: GrsPeer[] = peersRaw
-    .filter((row) => row.peer !== '0x0000000000000000000000000000000000000000000000000000000000000000')
-    .map((row) => {
-      const eid = Number(row.eid)
-      return {
-        eid,
-        peer: row.peer,
-        name: lzEndpointLabel(eid),
-        solana: isSolanaLzEid(eid),
-        chainId: LZ_EID_META[eid]?.chainId,
-      }
-    })
+  const peers = mapPeersRaw(peersRaw)
 
   return {
     home,
     decimals: Number(decimals),
     maxSupply,
     tokenSalesRemaining: salesLeft,
+    tokenSalesSpent: salesSpent,
+    tokenSalesCap: salesCap,
+    tokenSalesDecimals: inventory?.decimals ?? (salesLeft != null ? Number(decimals) : null),
     allocations,
     balance,
     peers,
+    homePeers: homePeersPack.peers,
     sales,
     vestings: vestingPack.vestings,
     vestingCount: vestingPack.vestingCount,
-    homeChain,
+    homeChain: inventory?.homeChain ?? homePeersPack.homeChain ?? homeChain,
   }
 }
 
@@ -349,12 +516,61 @@ export async function quoteGrsBridge(
   amountLD: bigint,
 ): Promise<bigint> {
   const client = createGrsEvmPublicClient(config)
-  return client.readContract({
-    address: config.address,
-    abi: grsAbi,
-    functionName: 'quoteBridge',
-    args: [dstEid, to, amountLD],
-  })
+  try {
+    return await client.readContract({
+      address: config.address,
+      abi: grsAbi,
+      functionName: 'quoteBridge',
+      args: [dstEid, to, amountLD],
+    })
+  } catch (error) {
+    throw new Error(formatGrsQuoteError(error))
+  }
+}
+
+export async function quoteGrsGrant(
+  config: GrsEvmConfig,
+  to: `0x${string}`,
+  amount: bigint,
+  start: bigint,
+  cliffSeconds: bigint,
+  durationSeconds: bigint,
+  bucket: number,
+  dstEid: number,
+): Promise<bigint> {
+  if (dstEid === 0) return 0n
+  const client = createGrsEvmPublicClient(config)
+  try {
+    return await client.readContract({
+      address: config.address,
+      abi: grsAbi,
+      functionName: 'quoteGrant',
+      args: [to, amount, start, cliffSeconds, durationSeconds, bucket, dstEid],
+    })
+  } catch (error) {
+    throw new Error(formatGrsQuoteError(error))
+  }
+}
+
+/** Map raw quoteBridge / quoteSale reverts to short UI copy. */
+export function formatGrsQuoteError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error)
+  if (/0x6592671c|LZ_ULN_InvalidWorkerOptions/i.test(raw)) {
+    return 'LayerZero pathway for this destination is not wired (ULN worker options). setPeer alone is not enough — configure send library / DVN / executor + enforced options for this eid.'
+  }
+  if (/NoPeer|0xf6ff4fb7/i.test(raw)) {
+    return 'No LayerZero peer for this destination. Run setPeer first.'
+  }
+  if (/SlippageExceeded|0x71c4efed/i.test(raw)) {
+    return 'Amount has OFT dust — use a multiple of 10^(localDecimals − sharedDecimals).'
+  }
+  if (/InvalidRecipient/i.test(raw)) {
+    return 'Recipient cannot be empty.'
+  }
+  const short = raw.match(/reverted with the following reason:\s*(.+)/i)?.[1]
+  if (short) return short.trim()
+  if (raw.length > 220) return `${raw.slice(0, 200).trim()}…`
+  return raw || 'Could not quote LayerZero fee'
 }
 
 export async function quoteGrsSale(

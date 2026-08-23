@@ -1556,6 +1556,11 @@
   text-align: left;
 }
 
+.grai-manage-protocol-ca-bar {
+  margin-top: 0;
+  padding-top: 0;
+}
+
 .grai-manage-protocol-info {
   margin: 0;
   text-align: left;

@@ -91,10 +91,21 @@ export function useGraiTransaction() {
         setStatus('success')
         return result
       } catch (txError) {
-        const message = txError instanceof Error ? txError.message : options.failureMessage
+        const raw =
+          txError instanceof Error
+            ? txError.message
+            : typeof txError === 'object' &&
+                txError &&
+                'message' in txError &&
+                typeof (txError as { message: unknown }).message === 'string'
+              ? (txError as { message: string }).message
+              : options.failureMessage
+        const message = /unexpected error/i.test(raw)
+          ? `${options.failureMessage}: wallet rejected or could not sign (check fee payer / tx size)`
+          : raw
         setError(message)
         setStatus('error')
-        throw txError
+        throw txError instanceof Error ? txError : new Error(message)
       }
     },
     [clusterMismatch, connection, solana, solanaWallet],

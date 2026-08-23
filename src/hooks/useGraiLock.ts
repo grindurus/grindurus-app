@@ -142,6 +142,7 @@ export function useGraiLock() {
               connection,
               config: runtime,
               holder,
+              payer: publicKey,
               assetMint: new PublicKey(params.assetAddress),
               amountInput: params.amountInput,
               assetDecimals: params.assetDecimals,
@@ -196,6 +197,7 @@ export function useGraiLock() {
               connection,
               config: runtime,
               holder,
+              payer: publicKey,
               assetMints,
               signTransaction,
             })

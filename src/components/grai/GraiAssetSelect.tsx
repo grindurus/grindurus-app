@@ -89,12 +89,29 @@ export function GraiAssetSelect({
     const root = rootRef.current
     if (!root) return
 
+    // Trailing USD layout sizes the select via CSS grid — fixed px width overflows the field.
+    const field = root.closest('.grai-amount-input-field')
+    if (field?.querySelector('.grai-amount-input-usd.has-trailing')) {
+      root.style.removeProperty('width')
+      root.style.removeProperty('transition')
+      widthPxRef.current = null
+      setSelectWidthPx(null)
+      setWidthReady(true)
+      return
+    }
+
+    // Keep the trigger inside the amount field — long balance text must not grow past ~half.
+    const fieldWidth = field?.getBoundingClientRect().width ?? 0
+    const maxAllowed =
+      fieldWidth > 0 ? Math.max(88, Math.floor(fieldWidth * 0.48)) : Number.POSITIVE_INFINITY
+
     root.style.transition = 'none'
     const from =
       widthPxRef.current ?? Math.ceil(root.getBoundingClientRect().width)
 
     root.style.width = 'max-content'
-    const to = Math.ceil(root.getBoundingClientRect().width)
+    const natural = Math.ceil(root.getBoundingClientRect().width)
+    const to = Math.min(natural, maxAllowed)
 
     root.style.width = `${from}px`
     void root.offsetWidth
@@ -203,28 +220,25 @@ export function GraiAssetSelect({
               <span className="grai-asset-select-symbol">{selected.symbol}</span>
               {hasChoices ? <GraiUiCaret className="grai-asset-select-caret" /> : null}
             </span>
-            <span className={`grai-asset-select-vol-slot${showDetail ? ' is-open' : ''}`}>
-              <span
-                className={`grai-asset-select-vol${detailLoading ? ' is-loading' : ''}`}
-                aria-hidden={!showDetail}
-                aria-busy={detailLoading || undefined}
-                aria-label={
-                  detailLoading
-                    ? 'Loading balance'
-                    : showDetail
-                      ? detailAriaLabel ?? detailLabel ?? undefined
-                      : undefined
-                }
-              >
-                {detailLoading ? (
-                  <span className="grai-asset-select-vol-skeleton" aria-hidden="true" />
-                ) : showDetail ? (
-                  detailLabel
-                ) : (
-                  '\u00a0'
-                )}
+            {showDetail ? (
+              <span className="grai-asset-select-vol-slot is-open">
+                <span
+                  className={`grai-asset-select-vol${detailLoading ? ' is-loading' : ''}`}
+                  aria-busy={detailLoading || undefined}
+                  aria-label={
+                    detailLoading
+                      ? 'Loading balance'
+                      : detailAriaLabel ?? detailLabel ?? undefined
+                  }
+                >
+                  {detailLoading ? (
+                    <span className="grai-asset-select-vol-skeleton" aria-hidden="true" />
+                  ) : (
+                    detailLabel
+                  )}
+                </span>
               </span>
-            </span>
+            ) : null}
           </span>
         ) : (
           <span className="grai-asset-select-symbol">—</span>

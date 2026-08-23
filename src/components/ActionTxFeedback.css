@@ -1,0 +1,172 @@
+.grai-action-deposit-note.is-pending,
+.grai-action-deposit-note.is-error,
+.grai-action-deposit-note.is-success {
+  margin: 0;
+}
+
+.grai-action-deposit-note.is-pending {
+  color: var(--text-secondary);
+}
+
+.grai-action-deposit-note.is-error {
+  color: #e25555;
+}
+
+.grai-action-deposit-note.is-success {
+  color: var(--text-secondary);
+}
+
+.action-tx-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.55rem;
+}
+
+.action-tx-feedback-label {
+  color: var(--text-secondary);
+}
+
+.action-tx-feedback-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.action-tx-feedback-hash {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.action-tx-feedback-hash:hover,
+.action-tx-feedback-hash:focus-visible {
+  color: #ff69b4;
+}
+
+.action-tx-feedback-hash.is-copied,
+.action-tx-feedback-hash.is-copied:hover {
+  color: #7dffb2;
+}
+
+.action-tx-feedback-explorer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #ff69b4;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.action-tx-feedback-explorer:hover,
+.action-tx-feedback-explorer:focus-visible {
+  color: #ff9ad0;
+}
+
+.action-tx-feedback-error-text {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 550;
+  text-align: center;
+  cursor: pointer;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.action-tx-feedback-error-text:hover,
+.action-tx-feedback-error-text:focus-visible {
+  color: #ff8a8a;
+}
+
+.action-tx-feedback-error-text.is-copied {
+  color: #7dffb2;
+}
+
+/* Back-compat aliases used by older className references */
+.grs-tx-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.55rem;
+}
+
+.grs-tx-feedback-label {
+  color: var(--text-secondary);
+}
+
+.grs-tx-feedback-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.grs-tx-feedback-hash {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.grs-tx-feedback-hash:hover,
+.grs-tx-feedback-hash:focus-visible {
+  color: #ff69b4;
+}
+
+.grs-tx-feedback-hash.is-copied,
+.grs-tx-feedback-hash.is-copied:hover {
+  color: #7dffb2;
+}
+
+.grs-tx-feedback-explorer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #ff69b4;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.grs-tx-feedback-explorer:hover,
+.grs-tx-feedback-explorer:focus-visible {
+  color: #ff9ad0;
+}
+
+.grs-tx-feedback-error-text {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 550;
+  text-align: center;
+  cursor: pointer;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.grs-tx-feedback-error-text:hover,
+.grs-tx-feedback-error-text:focus-visible {
+  color: #ff8a8a;
+}
+
+.grs-tx-feedback-error-text.is-copied {
+  color: #7dffb2;
+}

@@ -1,7 +1,8 @@
-import { createConfig, http } from 'wagmi'
+import { createConfig } from 'wagmi'
 import { mainnet, base, arbitrum, sepolia } from 'wagmi/chains'
 import { connectorsForWallets } from '@rainbow-me/rainbowkit'
 import { metaMaskWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
+import { evmHttpTransport } from './evmTransports'
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'demo-project-id'
 
@@ -29,9 +30,9 @@ export const wagmiConfig = createConfig({
   connectors,
   chains: [mainnet, base, arbitrum, sepolia],
   transports: {
-    [mainnet.id]: http(),
-    [base.id]: http(),
-    [arbitrum.id]: http(),
-    [sepolia.id]: http(),
+    [mainnet.id]: evmHttpTransport(mainnet.id),
+    [base.id]: evmHttpTransport(base.id),
+    [arbitrum.id]: evmHttpTransport(arbitrum.id),
+    [sepolia.id]: evmHttpTransport(sepolia.id),
   },
 })

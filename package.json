@@ -16,6 +16,7 @@
     "preview:pages": "GITHUB_PAGES=true npm run build:pages && vite preview"
   },
   "dependencies": {
+    "@layerzerolabs/lz-solana-sdk-v2": "^3.0.168",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",

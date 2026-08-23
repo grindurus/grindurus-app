@@ -51,6 +51,7 @@ import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
 import { GraiMintSubtitleRotatingAsset } from './GraiMintSubtitleRotatingAsset'
 import { GraiNavDonut } from '../GraiNavDonut'
 import { GraiTransactionToast } from './GraiTransactionToast'
+import { ActionDepositNote, usePersistedActionTx } from '../ActionTxFeedback'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiUiCaret } from './GraiUiCaret'
@@ -277,10 +278,17 @@ export function GraiMintBurnPanel({
   const { assets: graiAssets } = useGraiAssets()
   const { vaultBalances, refresh: refreshVaultBalances } = useGraiVaultBalances()
   const chartTheme = useDocumentChartTheme()
-  const { mint: mintGrai, isMinting } = useGraiMint()
-  const { burn: burnGrai, isBurning } = useGraiBurn()
-  const { lock: lockGrai, unlock: unlockGrai, claim: claimGrai, claimAll: claimAllGrai, isPending: isLockPending } =
-    useGraiLock()
+  const { mint: mintGrai, isMinting, error: mintError, lastSignature: mintSignature } = useGraiMint()
+  const { burn: burnGrai, isBurning, error: burnError, lastSignature: burnSignature } = useGraiBurn()
+  const {
+    lock: lockGrai,
+    unlock: unlockGrai,
+    claim: claimGrai,
+    claimAll: claimAllGrai,
+    isPending: isLockPending,
+    error: lockError,
+    lastHash: lockSignature,
+  } = useGraiLock()
 
   const { search } = useLocation()
   const [amount, setAmount] = useState('')
@@ -290,6 +298,8 @@ export function GraiMintBurnPanel({
   const [referrerOpen, setReferrerOpen] = useState(() => Boolean(readInitialGraiReferrer()))
   const [claimAllDividends, setClaimAllDividends] = useState(false)
   const [assetFlowView, setAssetFlowView] = useState<'deposit' | 'claim'>('deposit')
+  const { lastTx: lastActionTx, lastError: lastActionError, begin, succeed, fail, clear } =
+    usePersistedActionTx()
   const [forcedDefaultAsset, setForcedDefaultAsset] = useState<string | null>(() => {
     const section = readGraiSectionFromHash()
     return section === 'lock' || section === 'unlock' ? 'GRAI' : null
@@ -724,7 +734,8 @@ export function GraiMintBurnPanel({
 
   useEffect(() => {
     setAmount('')
-  }, [actionView])
+    clear()
+  }, [actionView, clear])
 
   const wasGraiSelectedRef = useRef(isGraiSelected)
   useEffect(() => {
@@ -816,6 +827,46 @@ export function GraiMintBurnPanel({
   )
 
   const isPending = actionView === 'mint' ? isMinting || isLockPending : isBurning
+  const liveActionError =
+    actionView === 'burn'
+      ? burnError
+      : isGraiSelected || isAssetClaim
+        ? lockError
+        : mintError
+  const actionError = liveActionError ?? lastActionError
+  const liveActionHash =
+    actionView === 'burn'
+      ? burnSignature
+      : isGraiSelected || isAssetClaim
+        ? lockSignature
+        : mintSignature
+  const actionHash = lastActionTx?.hash ?? liveActionHash
+  const actionTxHref =
+    lastActionTx?.href ?? (actionHash ? explorerTxUrl(actionHash) : null)
+  const actionPendingLabel =
+    actionView === 'burn'
+      ? 'Redeeming GRAI…'
+      : isGraiUnlock
+        ? 'Unlocking GRAI…'
+        : isGraiLock
+          ? 'Locking GRAI…'
+          : isAssetClaim
+            ? claimAllDividends
+              ? 'Claiming all dividends…'
+              : 'Claiming dividends…'
+            : 'Depositing…'
+  const actionSuccessLabel =
+    lastActionTx?.successLabel ??
+    (actionView === 'burn'
+      ? 'Redeem successful.'
+      : isGraiUnlock
+        ? 'Unlock successful.'
+        : isGraiLock
+          ? 'Lock successful.'
+          : isAssetClaim
+            ? 'Claim successful.'
+            : 'Deposit successful.')
+  const explorerLinkLabel = chainKind === 'solana' ? 'Solscan' : 'Explorer'
 
   const unlockAmountIsEmptyOrZero = useMemo(() => {
     const trimmed = amount.trim()
@@ -832,6 +883,18 @@ export function GraiMintBurnPanel({
     const isGraiEscrow = isMint && selectedAsset?.symbol.toUpperCase() === 'GRAI'
     const escrowAction = isGraiEscrow ? (assetFlowView === 'claim' ? 'unlock' : 'lock') : null
     const isClaimAsset = isMint && !isGraiEscrow && assetFlowView === 'claim'
+    const successLabel = isMint
+      ? escrowAction === 'unlock'
+        ? 'Unlock successful.'
+        : escrowAction === 'lock'
+          ? 'Lock successful.'
+          : isClaimAsset
+            ? claimAllDividends
+              ? 'Claim all successful.'
+              : 'Claim successful.'
+            : 'Deposit successful.'
+      : 'Redeem successful.'
+    begin()
     const toastId = toast.loading(
       isMint
         ? escrowAction === 'unlock'
@@ -871,23 +934,15 @@ export function GraiMintBurnPanel({
                   referrer: referrerInput,
                 })
         : await burnGrai({ amountInput: amount, graiDecimals: decimals ?? undefined })
+      const href = signature ? explorerTxUrl(signature) : null
+      if (signature) {
+        succeed({ hash: signature, href, successLabel })
+      }
       toast.update(toastId, {
         render: (
           <GraiTransactionToast
-            message={
-              isMint
-                ? escrowAction === 'unlock'
-                  ? 'Unlock successful'
-                  : escrowAction === 'lock'
-                    ? 'Lock successful'
-                    : isClaimAsset
-                      ? claimAllDividends
-                        ? 'Claim all successful'
-                        : 'Claim successful'
-                      : 'Deposit successful'
-                : 'Redeem successful'
-            }
-            explorerHref={signature ? explorerTxUrl(signature) : null}
+            message={successLabel.replace(/\.$/, '')}
+            explorerHref={href}
           />
         ),
         type: 'success',
@@ -900,8 +955,10 @@ export function GraiMintBurnPanel({
       refreshUnlockEstimate()
       refreshClaimEstimate()
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Transaction failed'
+      fail(error, 'Transaction failed')
       toast.update(toastId, {
-        render: error instanceof Error ? error.message : 'Transaction failed',
+        render: message,
         type: 'error',
         isLoading: false,
         autoClose: 8000,
@@ -913,6 +970,7 @@ export function GraiMintBurnPanel({
     amount,
     assetClaim.decimals,
     assetFlowView,
+    begin,
     burnGrai,
     claimAllGrai,
     claimAllDividends,
@@ -920,6 +978,7 @@ export function GraiMintBurnPanel({
     decimals,
     earnDividends,
     explorerTxUrl,
+    fail,
     lockGrai,
     mintGrai,
     refreshClaimEstimate,
@@ -928,6 +987,7 @@ export function GraiMintBurnPanel({
     referrerInput,
     selectedAsset?.address,
     selectedAsset?.symbol,
+    succeed,
     unlockGrai,
   ])
 
@@ -1748,45 +1808,53 @@ export function GraiMintBurnPanel({
           ) : (
             <GraiActionConnectWalletButton label={mintConnectLabel} />
           )}
-          {actionView === 'mint' ? (
-            <div className="grai-action-deposit-notes">
-              <p className="grai-action-deposit-note">
-                {isGraiUnlock ? (
-                  <>Unlock GRAI from escrow.</>
-                ) : isGraiLock ? (
-                  <>Lock GRAI to earn protocol dividends.</>
-                ) : isAssetClaim ? (
-                  <>
-                    {claimAllDividends
-                      ? 'Claim all accrued yield dividends across listed assets.'
-                      : 'Claim accrued yield dividends for the selected asset.'}
-                  </>
-                ) : (
-                  <>
-                    Deposit assets goes to{' '}
-                    <GraiFieldInfoButton
-                      className="grai-action-deposit-term"
-                      tooltipClassName="grai-action-deposit-term-tooltip"
-                      ariaLabel="What Grinders are"
-                      hint="An automated bookkeeping program with buy-low → sell-high signals that harvests price volatility."
-                    >
-                      <span className="grai-action-deposit-term-label">Grinders</span>
-                    </GraiFieldInfoButton>{' '}
-                    and their{' '}
-                    <GraiFieldInfoButton
-                      className="grai-action-deposit-term"
-                      tooltipClassName="grai-action-deposit-term-tooltip"
-                      ariaLabel="What custodians are"
-                      hint="Protected smart contracts that hold deposited funds in custody."
-                    >
-                      <span className="grai-action-deposit-term-label">custodians</span>
-                    </GraiFieldInfoButton>{' '}
-                    to generate volatility yield, receiving GRAI as your share in the fund.
-                  </>
-                )}
-              </p>
-            </div>
-          ) : null}
+          <ActionDepositNote
+            isPending={isPending}
+            pendingLabel={actionPendingLabel}
+            error={actionError}
+            hash={actionHash}
+            successLabel={actionSuccessLabel}
+            txHref={actionTxHref}
+            linkLabel={explorerLinkLabel}
+          >
+            {actionView === 'mint' ? (
+              isGraiUnlock ? (
+                <>Unlock GRAI from escrow.</>
+              ) : isGraiLock ? (
+                <>Lock GRAI to earn protocol dividends.</>
+              ) : isAssetClaim ? (
+                <>
+                  {claimAllDividends
+                    ? 'Claim all accrued yield dividends across listed assets.'
+                    : 'Claim accrued yield dividends for the selected asset.'}
+                </>
+              ) : (
+                <>
+                  Deposit assets goes to{' '}
+                  <GraiFieldInfoButton
+                    className="grai-action-deposit-term"
+                    tooltipClassName="grai-action-deposit-term-tooltip"
+                    ariaLabel="What Grinders are"
+                    hint="An automated bookkeeping program with buy-low → sell-high signals that harvests price volatility."
+                  >
+                    <span className="grai-action-deposit-term-label">Grinders</span>
+                  </GraiFieldInfoButton>{' '}
+                  and their{' '}
+                  <GraiFieldInfoButton
+                    className="grai-action-deposit-term"
+                    tooltipClassName="grai-action-deposit-term-tooltip"
+                    ariaLabel="What custodians are"
+                    hint="Protected smart contracts that hold deposited funds in custody."
+                  >
+                    <span className="grai-action-deposit-term-label">custodians</span>
+                  </GraiFieldInfoButton>{' '}
+                  to generate volatility yield, receiving GRAI as your share in the fund.
+                </>
+              )
+            ) : (
+              <>Redeem GRAI for your share of vault assets after a liquidation opens.</>
+            )}
+          </ActionDepositNote>
           </div>
         </div>
       </div>

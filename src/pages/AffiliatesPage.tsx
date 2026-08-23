@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listConfiguredEvmChains } from '../grai/deployments'
+import { zeroAddress } from 'viem'
+import {
+  getDefaultGraiSolanaCluster,
+  listConfiguredEvmChains,
+  resolveGraiEvmConfig,
+} from '../grai/deployments'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
+import { graiAbi } from '../grai/evm/abi'
+import { createGraiEvmPublicClient, resolveGraiContractAddress } from '../grai/evm/client'
 import { GRAI_DECIMALS_EVM } from '../grai/evm/constants'
+import { fetchGraiProtocol } from '../grai/fetchGraiProtocol'
 import { GRAI_DECIMALS } from '../grai/tokenomics'
+import { GraiCaNetworkSelect } from '../components/grai/GraiCaNetworkSelect'
 import { GraiReferralTree } from '../components/grai/GraiReferralTree'
 import { GraiActionConnectWalletButton } from '../components/grai/GraiWalletAction'
+import { MINT_ASSET_SOLSCAN_ICON } from '../components/grai/graiPageIcons'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { useWalletContext } from '../providers/AppWalletProvider'
 import { toAppPath } from '../utils/appPaths'
 import { readAffiliatesSectionFromHash, type AffiliatesSection } from '../utils/affiliatesNavigation'
 import './GraiPage.css'
@@ -22,9 +33,23 @@ function firstAddress(...candidates: Array<string | null | undefined>) {
 }
 
 function AffiliatesPage() {
-  const { chainKind, evm: connectedEvm, connection, solana } = useGraiDeployment()
+  const {
+    chainKind,
+    evm: connectedEvm,
+    connection,
+    solana,
+    solanaCluster,
+    explorerAccountUrl,
+  } = useGraiDeployment()
+  const { evmChain } = useWalletContext()
   const configuredEvmChains = useMemo(() => listConfiguredEvmChains(), [])
-  const evmProtocol = connectedEvm ?? configuredEvmChains[0] ?? null
+  const contextChainId =
+    evmChain === 'ethereum' ? 1 : evmChain === 'arbitrum' ? 42161 : evmChain === 'sepolia' ? 11155111 : 8453
+  const evmProtocol =
+    connectedEvm ??
+    (chainKind === 'evm' ? resolveGraiEvmConfig(contextChainId) : null) ??
+    configuredEvmChains[0] ??
+    null
   const activeWallet = useActiveWallet()
   const solanaWallet = useSolanaWallet()
   const evmWallet = useEvmWallet()
@@ -38,6 +63,14 @@ function AffiliatesPage() {
   const graiDecimals = chainKind === 'evm' ? GRAI_DECIMALS_EVM : GRAI_DECIMALS
   const [copied, setCopied] = useState(false)
   const [termsCollapsed, setTermsCollapsed] = useState(false)
+  const [treasuryCa, setTreasuryCa] = useState<string | null>(null)
+
+  const networkChainId =
+    chainKind === 'evm'
+      ? (evmWallet.isConnected && evmWallet.chainId ? evmWallet.chainId : evmProtocol?.chainId ?? contextChainId)
+      : null
+  const networkSolanaCluster =
+    chainKind === 'solana' ? (solanaCluster ?? getDefaultGraiSolanaCluster()) : null
 
   useEffect(() => {
     const applySection = (section: AffiliatesSection) => {
@@ -58,6 +91,42 @@ function AffiliatesPage() {
       window.removeEventListener('hashchange', onHash)
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        if (chainKind === 'evm' && evmProtocol?.protocolAddress) {
+          const client = createGraiEvmPublicClient(evmProtocol)
+          const address = await client.readContract({
+            address: resolveGraiContractAddress(evmProtocol),
+            abi: graiAbi,
+            functionName: 'treasury',
+          })
+          if (!cancelled) {
+            setTreasuryCa(
+              address && address !== zeroAddress ? address : null,
+            )
+          }
+          return
+        }
+        if (chainKind === 'solana' && connection && solana) {
+          const protocol = await fetchGraiProtocol(connection, solana.graiMint)
+          if (!cancelled) setTreasuryCa(protocol.treasury.toBase58())
+          return
+        }
+        if (!cancelled) setTreasuryCa(null)
+      } catch {
+        if (!cancelled) setTreasuryCa(null)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [chainKind, connection, evmProtocol, solana])
+
+  const treasuryHref = treasuryCa ? explorerAccountUrl(treasuryCa) : null
 
   const graiBase = `${window.location.origin}${toAppPath('/grai')}`
   const referralHref = walletAddress
@@ -190,6 +259,40 @@ function AffiliatesPage() {
         </p>
         </div>
       </section>
+
+      <div className="grai-page-ca-bar">
+        <GraiCaNetworkSelect
+          chainKind={chainKind}
+          chainId={networkChainId}
+          solanaCluster={networkSolanaCluster}
+          ariaLabel="Select Treasury network"
+        />
+        <p className="grai-page-ca grai-page-ca-inline">
+          <span className="grai-page-ca-label">Treasury CA:</span>{' '}
+          {treasuryCa ? (
+            treasuryHref ? (
+              <a
+                href={treasuryHref}
+                target="_blank"
+                rel="noreferrer"
+                className="grai-page-ca-link"
+                title={treasuryCa}
+              >
+                <span className="grai-page-ca-link-text">{treasuryCa}</span>
+                <span className="grai-page-ca-link-icon" aria-hidden="true">
+                  {MINT_ASSET_SOLSCAN_ICON}
+                </span>
+              </a>
+            ) : (
+              <span className="grai-page-ca-link-text" title={treasuryCa}>
+                {treasuryCa}
+              </span>
+            )
+          ) : (
+            <span className="grai-page-ca-missing">—</span>
+          )}
+        </p>
+      </div>
     </div>
   )
 }
