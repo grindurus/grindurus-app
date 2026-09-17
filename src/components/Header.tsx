@@ -8,9 +8,52 @@ import { GraiUiCaret } from './grai/GraiUiCaret'
 import { navigateToGraiSection, type GraiSection } from '../utils/graiNavigation'
 import { navigateToGrsSection, type GrsSection } from '../utils/grsNavigation'
 import { navigateToAffiliatesSection, type AffiliatesSection } from '../utils/affiliatesNavigation'
+import { navigateToBacktestSection, type BacktestSection } from '../utils/backtestNavigation'
 import { useHeaderNavClicks } from '../hooks/useHeaderNavClicks'
 import { assetUrl } from '../utils/appPaths'
 import './Header.css'
+
+const CREATE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 8v8" />
+    <path d="M8 12h8" />
+  </svg>
+)
+
+const PRIORITY_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7L12 16.8 5.7 20.6 8 13.6 2 9.2h7.6L12 2z" />
+  </svg>
+)
+
+const QUEUE_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="6" cy="7" r="2.25" />
+    <circle cx="6" cy="12" r="2.25" />
+    <circle cx="6" cy="17" r="2.25" />
+    <path d="M11 7h9" />
+    <path d="M11 12h9" />
+    <path d="M11 17h9" />
+  </svg>
+)
+
+const RESULTS_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 19V5" />
+    <path d="M4 19h16" />
+    <path d="M8 15v-4" />
+    <path d="M12 15V8" />
+    <path d="M16 15v-6" />
+  </svg>
+)
+
+const BACKTEST_NAV_ITEMS: { section: BacktestSection; label: string; icon: ReactNode }[] = [
+  { section: 'create', label: 'Create', icon: CREATE_NAV_ICON },
+  { section: 'priority', label: 'Priority', icon: PRIORITY_NAV_ICON },
+  { section: 'queue', label: 'Queue', icon: QUEUE_NAV_ICON },
+  { section: 'results', label: 'Results', icon: RESULTS_NAV_ICON },
+]
 
 const MINT_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -202,11 +245,13 @@ function Header() {
   const isGrindersActive = pathname.startsWith('/grinders')
   const isGrsActive = pathname.startsWith('/grs')
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [isBacktestMenuOpen, setIsBacktestMenuOpen] = useState(false)
   const [isAffiliatesMenuOpen, setIsAffiliatesMenuOpen] = useState(false)
   const [isGraiMenuOpen, setIsGraiMenuOpen] = useState(false)
   const [isGrindersMenuOpen, setIsGrindersMenuOpen] = useState(false)
   const [isGrsMenuOpen, setIsGrsMenuOpen] = useState(false)
   const mobileNavId = useId()
+  const backtestMenuRef = useRef<HTMLLIElement>(null)
   const affiliatesMenuRef = useRef<HTMLLIElement>(null)
   const graiMenuRef = useRef<HTMLLIElement>(null)
   const grindersMenuRef = useRef<HTMLLIElement>(null)
@@ -224,6 +269,7 @@ function Header() {
 
   useEffect(() => {
     setIsMobileNavOpen(false)
+    setIsBacktestMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
     setIsGrindersMenuOpen(false)
@@ -266,10 +312,19 @@ function Header() {
   }, [pathname])
 
   useEffect(() => {
-    if (!isAffiliatesMenuOpen && !isGraiMenuOpen && !isGrindersMenuOpen && !isGrsMenuOpen) return
+    if (
+      !isBacktestMenuOpen &&
+      !isAffiliatesMenuOpen &&
+      !isGraiMenuOpen &&
+      !isGrindersMenuOpen &&
+      !isGrsMenuOpen
+    ) {
+      return
+    }
 
     const onDocumentClick = (event: globalThis.MouseEvent) => {
       const target = event.target as Node
+      if (!backtestMenuRef.current?.contains(target)) setIsBacktestMenuOpen(false)
       if (!affiliatesMenuRef.current?.contains(target)) setIsAffiliatesMenuOpen(false)
       if (!graiMenuRef.current?.contains(target)) setIsGraiMenuOpen(false)
       if (!grindersMenuRef.current?.contains(target)) setIsGrindersMenuOpen(false)
@@ -277,6 +332,7 @@ function Header() {
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        setIsBacktestMenuOpen(false)
         setIsAffiliatesMenuOpen(false)
         setIsGraiMenuOpen(false)
         setIsGrindersMenuOpen(false)
@@ -289,7 +345,7 @@ function Header() {
       document.removeEventListener('mousedown', onDocumentClick)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isAffiliatesMenuOpen, isGraiMenuOpen, isGrindersMenuOpen, isGrsMenuOpen])
+  }, [isBacktestMenuOpen, isAffiliatesMenuOpen, isGraiMenuOpen, isGrindersMenuOpen, isGrsMenuOpen])
 
   const [navLockSpacerHeight, setNavLockSpacerHeight] = useState(74)
 
@@ -347,6 +403,15 @@ function Header() {
     navigateToAffiliatesSection(section)
   }
 
+  const handleBacktestSectionClick = (section: BacktestSection) => {
+    setIsBacktestMenuOpen(false)
+    setIsGraiMenuOpen(false)
+    setIsGrindersMenuOpen(false)
+    setIsAffiliatesMenuOpen(false)
+    setIsGrsMenuOpen(false)
+    navigateToBacktestSection(section)
+  }
+
   const handleGraiSectionClick = (section: GraiSection) => {
     setIsGraiMenuOpen(false)
     setIsGrindersMenuOpen(false)
@@ -365,6 +430,7 @@ function Header() {
   }
 
   const closeMenus = useCallback(() => {
+    setIsBacktestMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
     setIsGrindersMenuOpen(false)
@@ -377,6 +443,10 @@ function Header() {
       closeMenus()
       if (path === '/grai' && pathname.startsWith('/grai')) {
         navigateToGraiSection('mint')
+        return
+      }
+      if (path === '/backtest' && pathname.startsWith('/backtest')) {
+        navigateToBacktestSection('create')
         return
       }
       navigate({ pathname: path, search: '', hash: '' })
@@ -420,13 +490,59 @@ function Header() {
                 aria-hidden="true"
               />
             <ul className="header-nav-list">
-              <li>
-                <span
-                  className={`header-nav-link is-disabled${isBacktestActive ? ' is-current' : ''}`}
-                  aria-disabled="true"
+              <li
+                ref={backtestMenuRef}
+                className={`header-nav-item header-nav-item--grai${isBacktestMenuOpen ? ' is-open' : ''}`}
+              >
+                <HeaderNavPathButton
+                  path="/backtest"
+                  active={isBacktestActive}
+                  onClick={(event) => {
+                    closeMenus()
+                    if (pathname.startsWith('/backtest')) {
+                      event.preventDefault()
+                      navigateToBacktestSection('create')
+                    }
+                  }}
                 >
-                  Backtest (soon)
-                </span>
+                  BACKTEST
+                </HeaderNavPathButton>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn${isBacktestMenuOpen ? ' is-open' : ''}`}
+                  aria-expanded={isBacktestMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="BACKTEST sections"
+                  onClick={() => {
+                    setIsAffiliatesMenuOpen(false)
+                    setIsGraiMenuOpen(false)
+                    setIsGrindersMenuOpen(false)
+                    setIsGrsMenuOpen(false)
+                    setIsBacktestMenuOpen((open) => !open)
+                  }}
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+                <div
+                  className={`header-nav-dropdown${isBacktestMenuOpen ? ' is-open' : ''}`}
+                  role="menu"
+                  aria-label="BACKTEST sections"
+                  aria-hidden={!isBacktestMenuOpen}
+                  hidden={!isBacktestMenuOpen}
+                >
+                  {BACKTEST_NAV_ITEMS.map((item) => (
+                    <button
+                      key={item.section}
+                      type="button"
+                      role="menuitem"
+                      className="header-nav-dropdown-item"
+                      onClick={() => handleBacktestSectionClick(item.section)}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
               </li>
               <li
                 ref={affiliatesMenuRef}
@@ -446,6 +562,7 @@ function Header() {
                   aria-haspopup="menu"
                   aria-label="AFFILIATES sections"
                   onClick={() => {
+                    setIsBacktestMenuOpen(false)
                     setIsGraiMenuOpen(false)
                     setIsGrindersMenuOpen(false)
                     setIsGrsMenuOpen(false)
@@ -499,6 +616,7 @@ function Header() {
                   aria-haspopup="menu"
                   aria-label="GRAI sections"
                   onClick={() => {
+                    setIsBacktestMenuOpen(false)
                     setIsAffiliatesMenuOpen(false)
                     setIsGrsMenuOpen(false)
                     setIsGrindersMenuOpen(false)
@@ -546,6 +664,7 @@ function Header() {
                   aria-haspopup="menu"
                   aria-label="GRINDERS sections"
                   onClick={() => {
+                    setIsBacktestMenuOpen(false)
                     setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
                     setIsGrsMenuOpen(false)
@@ -593,6 +712,7 @@ function Header() {
                   aria-haspopup="menu"
                   aria-label="GRS sections"
                   onClick={() => {
+                    setIsBacktestMenuOpen(false)
                     setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
                     setIsGrindersMenuOpen(false)
@@ -651,12 +771,19 @@ function Header() {
         <nav aria-label="Product sections">
           <ul className="header-mobile-nav-list">
             <li>
-              <span
-                className={`header-nav-link is-disabled${isBacktestActive ? ' is-current' : ''}`}
-                aria-disabled="true"
+              <HeaderNavPathButton
+                path="/backtest"
+                active={isBacktestActive}
+                onClick={(event) => {
+                  closeMenus()
+                  if (pathname.startsWith('/backtest')) {
+                    event.preventDefault()
+                    navigateToBacktestSection('create')
+                  }
+                }}
               >
-                Backtest (soon)
-              </span>
+                BACKTEST
+              </HeaderNavPathButton>
             </li>
             <li>
               <HeaderNavPathButton
@@ -700,6 +827,23 @@ function Header() {
                 GRS
               </HeaderNavPathButton>
             </li>
+            {isBacktestActive
+              ? BACKTEST_NAV_ITEMS.map((item) => (
+                  <li key={item.section}>
+                    <button
+                      type="button"
+                      className="header-nav-link header-mobile-nav-sublink"
+                      onClick={() => {
+                        handleBacktestSectionClick(item.section)
+                        setIsMobileNavOpen(false)
+                      }}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                ))
+              : null}
             {isAffiliatesActive
               ? AFFILIATES_NAV_ITEMS.map((item) => (
                   <li key={item.section}>

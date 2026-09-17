@@ -143,6 +143,11 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
     if (!layout) return
 
     const rect = container.getBoundingClientRect()
+    const occluders = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        '.grai-actions-block, .grai-action-card, .grai-page-meta',
+      ),
+    ).map((el) => el.getBoundingClientRect())
 
     tokenRefs.current.forEach((el, index) => {
       if (!el) return
@@ -151,16 +156,23 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
 
       const tokenWrap = el.parentElement
       const fits = tokenWithinBounds(token, layout.width, layout.height)
-      tokenWrap?.classList.toggle('is-clipped', !fits)
+      const centerX = rect.left + tokenCenterX(token.x, layout.width)
+      const centerY = rect.top + tokenCenterY(token.y)
+      const half = token.size / 2 + TOKEN_MIST_BLEED_PX * 0.35
+      const behindForm = occluders.some(
+        (box) =>
+          centerX + half >= box.left &&
+          centerX - half <= box.right &&
+          centerY + half >= box.top &&
+          centerY - half <= box.bottom,
+      )
+      tokenWrap?.classList.toggle('is-clipped', !fits || behindForm)
 
-      if (!fits) {
+      if (!fits || behindForm) {
         el.style.setProperty('--reveal', '0')
         el.classList.remove('is-revealed')
         return
       }
-
-      const centerX = rect.left + tokenCenterX(token.x, layout.width)
-      const centerY = rect.top + tokenCenterY(token.y)
 
       let reveal = 0
       if (mouse) {

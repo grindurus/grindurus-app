@@ -27,8 +27,8 @@ export type BuildLiquidateTransactionParams = {
 }
 
 /**
- * Builds `liquidate` — open liquidation when Grinders.confirmed + quorum (EVM `liquidate`).
- * Scoops dead GRAI from the vault to the caller. Arm via Grinders `confirm` first.
+ * Builds `liquidate` — open liquidation when vote quorum + stale Grinders heartbeat
+ * (`!grinders.grinding()`, same 2-of-2 as EVM). Scoops dead GRAI from the vault to the caller.
  */
 export async function buildLiquidateTransaction({
   caller,

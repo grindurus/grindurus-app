@@ -154,6 +154,7 @@ function buildProjectedAnnualYieldHint(
   symbol?: string,
   metrics?: GraiAssetYieldMetrics | null,
 ): ReactNode {
+  const assetLabel = symbol?.toUpperCase() || 'Asset'
   const volatilityLabel = metrics ? formatVolatilityPct(metrics.volatilityPct) : '—'
   const yieldLabel = metrics ? formatProjectedYieldPct(metrics.projectedAnnualYieldPct) : '—'
 
@@ -166,37 +167,23 @@ function buildProjectedAnnualYieldHint(
         volatility usually means more swing-trading opportunity.
       </span>
       <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">
-          {symbol ? `For ${symbol}` : 'For selected asset'}
-        </span>
-        <span className="grai-field-info-tooltip-flow">
-          <span className="grai-field-info-tooltip-flow-item">
-            <span className="grai-field-info-tooltip-flow-label">Price Volatility</span>
-            <span className="grai-field-info-tooltip-flow-value">{volatilityLabel}</span>
+        <span className="grai-field-info-tooltip-section-label">Volatility → APR</span>
+        <span className="grai-field-info-tooltip-flow grai-field-info-tooltip-flow--inline">
+          <span className="grai-field-info-tooltip-flow-inline-source">
+            {assetLabel} {volatilityLabel}
           </span>
-          <span className="grai-field-info-tooltip-flow-arrow">
-            <svg viewBox="0 0 120 8" preserveAspectRatio="none" fill="none">
-              <path
-                d="M1 4 H106"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeDasharray="4 3"
-                strokeLinecap="round"
-              />
-              <path
-                d="M106 1.5 L114 4 L106 6.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          <span className="grai-field-info-tooltip-flow-inline-arrow" aria-hidden="true">
+            →
           </span>
-          <span className="grai-field-info-tooltip-flow-item">
-            <span className="grai-field-info-tooltip-flow-label">Expected APR</span>
+          <span className="grai-field-info-tooltip-flow-inline-target">
+            Expected APR{' '}
             <span className="grai-field-info-tooltip-flow-value is-yield">{yieldLabel}</span>
           </span>
         </span>
+      </span>
+      <span className="grai-field-info-tooltip-section">
+        <span className="grai-field-info-tooltip-section-label">What it covers</span>
+        Calculated from the assets you receive from the index into your wallet.
       </span>
       <p className="grai-field-info-tooltip-note">
         Indicative only — not guaranteed. Actual returns can be higher or lower.
@@ -1133,20 +1120,14 @@ export function GraiMintBurnPanel({
           <div className="grai-page-subtitle-wrap">
             <button
               type="button"
-              className="header-nav-link header-nav-info grai-page-how-it-works-hint"
+              className="grai-page-how-it-works-hint"
               onClick={onOpenHowItWorks}
               aria-haspopup="dialog"
             >
-              <Info className="header-nav-info-icon" aria-hidden="true" />
-              How it works?
+              how it works
             </button>
             <div className="grai-page-subtitle-head">
-              <button
-                type="button"
-                className="grai-page-subtitle is-fit-width is-clickable"
-                onClick={onOpenHowItWorks}
-                aria-haspopup="dialog"
-              >
+              <p className="grai-page-subtitle is-fit-width">
                   <span
                     className={`grai-page-subtitle-mode-swap is-${
                       isGraiLock ? 'lock' : isGraiUnlock ? 'unlock' : isAssetClaim ? 'claim' : 'deposit'
@@ -1223,8 +1204,7 @@ export function GraiMintBurnPanel({
                       </>
                     ) : null}
                   </span>
-                <GraiUiCaret className="grai-page-subtitle-caret" />
-              </button>
+              </p>
             </div>
           </div>
           )}
@@ -1245,6 +1225,9 @@ export function GraiMintBurnPanel({
                   if (assetFlowView === 'deposit') return
                   setAssetFlowView('deposit')
                   setAmount('')
+                  if (isPreviewOpen) {
+                    setPreviewOpenByAction((current) => ({ ...current, mint: false }))
+                  }
                 }}
               >
                 {isGraiSelected ? 'Lock' : 'Deposit'}
@@ -1261,6 +1244,7 @@ export function GraiMintBurnPanel({
                   setAssetFlowView('claim')
                   setAmount('')
                   setEarnDividends(false)
+                  setReferrerOpen(false)
                   if (isPreviewOpen) {
                     setPreviewOpenByAction((current) => ({ ...current, mint: false }))
                   }
@@ -1317,13 +1301,33 @@ export function GraiMintBurnPanel({
             disabled={isClaimAllAssetDividends}
           />
           {actionView === 'mint' && !isGraiSelected ? (
-            <div className="grai-mint-flow-options">
+            <div className="grai-mint-flow-options grai-mint-flow-options--asset">
               <div
                 className={`grai-mint-flow-options-panel is-deposit${
                   assetFlowView === 'deposit' ? ' is-active' : ''
                 }`}
                 aria-hidden={assetFlowView !== 'deposit'}
               >
+                <div className="grai-action-metrics grai-action-metrics--under-amount" aria-live="polite">
+                  <div className="grai-action-metric-row">
+                    <span className="grai-action-metric-label-wrap">
+                      <GraiFieldInfoButton
+                        className="grai-action-metric-label-info"
+                        hint={projectedAnnualYieldHint}
+                        ariaLabel="About expected APR"
+                        structured
+                      />
+                      <span className="grai-action-metric-label">Expected APR</span>
+                    </span>
+                    <span className="grai-action-metric-value is-yield">
+                      {!earnDividends
+                        ? '0%'
+                        : assetYieldMetrics
+                          ? formatProjectedYieldPct(assetYieldMetrics.projectedAnnualYieldPct)
+                          : '—'}
+                    </span>
+                  </div>
+                </div>
                 <div className="grai-mint-deposit-options">
                   <div
                     className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
@@ -1418,12 +1422,59 @@ export function GraiMintBurnPanel({
                 }`}
                 aria-hidden={assetFlowView !== 'claim'}
               >
+                <div className="grai-action-result grai-action-result--claim-summary" aria-live="polite">
+                  <span className="grai-action-result-label-wrap is-toggle-hidden">
+                    <span className="grai-action-result-label">You claim:</span>
+                  </span>
+                  <span className="grai-action-result-value">
+                    {claimAllDividends ? (
+                      unlockDividendsUsdLabel
+                    ) : (
+                      <>
+                        {amount.trim() || '0.0'}
+                        {selectedAsset ? (
+                          <img
+                            src={selectedAsset.icon}
+                            alt=""
+                            width={18}
+                            height={18}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : null}
+                        {selectedAsset?.symbol ?? ''}
+                      </>
+                    )}
+                  </span>
+                </div>
                 <div
                   className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
                     claimAllDividends ? ' is-active' : ''
-                  }`}
+                  }${isPreviewOpen && claimAllDividends ? ' is-preview-open' : ''}`}
                 >
-                  <span className="grai-mint-dividends-toggle-label">
+                  <span
+                    className={`grai-mint-dividends-toggle-label${
+                      claimAllDividends ? '' : ' is-toggle-hidden'
+                    }`}
+                  >
+                    <span
+                      className="grai-action-result-preview-toggle-slot"
+                      aria-hidden={!claimAllDividends}
+                    >
+                      <button
+                        type="button"
+                        className="grai-action-result-preview-toggle"
+                        aria-expanded={isPreviewOpen}
+                        aria-label={
+                          isPreviewOpen ? 'Hide detailed preview' : 'Show detailed preview'
+                        }
+                        tabIndex={assetFlowView === 'claim' && claimAllDividends ? 0 : -1}
+                        disabled={!claimAllDividends}
+                        onClick={togglePreview}
+                      >
+                        <GraiUiCaret className="grai-detailed-preview-chevron" />
+                      </button>
+                    </span>
                     <span className="grai-mint-dividends-toggle-label-text">
                       Claim all dividends:
                     </span>
@@ -1445,6 +1496,41 @@ export function GraiMintBurnPanel({
                     </span>
                     <span className="grai-mint-dividends-toggle-option is-no">No</span>
                   </button>
+                </div>
+                <div
+                  className={`grai-detailed-preview grai-detailed-preview--inline${
+                    isPreviewOpen && claimAllDividends ? ' is-open' : ''
+                  }`}
+                >
+                  <div className="grai-detailed-preview-collapse">
+                    <div className="grai-detailed-preview-body">
+                      {unlockClaims.length === 0 ? (
+                        <div className="grai-detailed-preview-row grai-detailed-preview-row--value-only">
+                          <span className="grai-detailed-preview-empty">No dividends to claim</span>
+                        </div>
+                      ) : (
+                        unlockClaims.map((claim) => (
+                          <div
+                            key={claim.assetAddress}
+                            className="grai-detailed-preview-row grai-detailed-preview-row--value-only"
+                          >
+                            <span className="grai-detailed-preview-value">
+                              + {claim.amountLabel}
+                              <img
+                                src={claim.icon}
+                                alt=""
+                                width={16}
+                                height={16}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              {claim.symbol}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1493,14 +1579,13 @@ export function GraiMintBurnPanel({
               )}
             </div>
           ) : null}
-          {amount.trim() || isClaimAllAssetDividends || actionView === 'burn' ? (
+          {(actionView === 'burn' || (Boolean(amount.trim()) && !isAssetClaim)) ? (
           <div className="grai-action-result-group">
             <div
               className={`grai-action-result${
                 isPreviewOpen &&
                 (actionView === 'burn' ||
-                  (actionView === 'mint' && !isGraiSelected && !isAssetClaim) ||
-                  (isAssetClaim && claimAllDividends))
+                  (actionView === 'mint' && !isGraiSelected && !isAssetClaim))
                   ? ' is-preview-open'
                   : ''
               }`}
@@ -1508,15 +1593,7 @@ export function GraiMintBurnPanel({
             >
               {actionView === 'mint' ? (
                 <>
-                  {isAssetClaim ? (
-                    <GraiActionResultLabel
-                      isPreviewOpen={isPreviewOpen}
-                      onTogglePreview={togglePreview}
-                      showToggle={claimAllDividends}
-                    >
-                      You claim:
-                    </GraiActionResultLabel>
-                  ) : isGraiUnlock ? (
+                  {isAssetClaim ? null : isGraiUnlock ? (
                     <span className="grai-action-result-label-wrap">
                       <span className="grai-action-result-label">You unlock:</span>
                     </span>
@@ -1552,27 +1629,9 @@ export function GraiMintBurnPanel({
                       </span>
                     </GraiActionResultLabel>
                   )}
+                  {isAssetClaim ? null : (
                   <span className="grai-action-result-value">
-                    {isAssetClaim ? (
-                      claimAllDividends ? (
-                        unlockDividendsUsdLabel
-                      ) : (
-                        <>
-                          {amount.trim() || '0.0'}
-                          {selectedAsset ? (
-                            <img
-                              src={selectedAsset.icon}
-                              alt=""
-                              width={18}
-                              height={18}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          ) : null}
-                          {selectedAsset?.symbol ?? ''}
-                        </>
-                      )
-                    ) : isGraiLock ? (
+                    {isGraiLock ? (
                       <>
                         {lockedGraiLabel}
                         <img
@@ -1614,6 +1673,7 @@ export function GraiMintBurnPanel({
                       </>
                     )}
                   </span>
+                  )}
                 </>
               ) : (
                 <>
@@ -1632,8 +1692,7 @@ export function GraiMintBurnPanel({
               className={`grai-detailed-preview grai-detailed-preview--inline${
                 isPreviewOpen &&
                 (actionView === 'burn' ||
-                  (actionView === 'mint' && !isGraiSelected && !isAssetClaim) ||
-                  (isAssetClaim && claimAllDividends))
+                  (actionView === 'mint' && !isGraiSelected && !isAssetClaim))
                   ? ' is-open'
                   : ''
               }`}
@@ -1641,33 +1700,7 @@ export function GraiMintBurnPanel({
               <div className="grai-detailed-preview-collapse">
                 <div className="grai-detailed-preview-body">
                   {actionView === 'mint' ? (
-                    isAssetClaim && claimAllDividends ? (
-                      unlockClaims.length === 0 ? (
-                        <div className="grai-detailed-preview-row grai-detailed-preview-row--value-only">
-                          <span className="grai-detailed-preview-empty">No dividends to claim</span>
-                        </div>
-                      ) : (
-                        unlockClaims.map((claim) => (
-                          <div
-                            key={claim.assetAddress}
-                            className="grai-detailed-preview-row grai-detailed-preview-row--value-only"
-                          >
-                            <span className="grai-detailed-preview-value">
-                              + {claim.amountLabel}
-                              <img
-                                src={claim.icon}
-                                alt=""
-                                width={16}
-                                height={16}
-                                loading="lazy"
-                                decoding="async"
-                              />
-                              {claim.symbol}
-                            </span>
-                          </div>
-                        ))
-                      )
-                    ) : isGraiSelected || isAssetClaim ? null : (
+                    isGraiSelected || isAssetClaim ? null : (
                       <>
                         <div className="grai-detailed-preview-row">
                           <GraiDetailedPreviewVaultLabel
@@ -1739,26 +1772,6 @@ export function GraiMintBurnPanel({
               </div>
             </div>
           </div>
-          ) : null}
-          {actionView === 'mint' && !isGraiSelected && !isAssetClaim ? (
-            <div className="grai-action-metrics" aria-live="polite">
-              <div className="grai-action-metric-row">
-                <span className="grai-action-metric-label-wrap">
-                  <GraiFieldInfoButton
-                    className="grai-action-metric-label-info"
-                    hint={projectedAnnualYieldHint}
-                    ariaLabel="About expected APR"
-                    structured
-                  />
-                  <span className="grai-action-metric-label">Expected APR</span>
-                </span>
-                <span className="grai-action-metric-value is-yield">
-                  {assetYieldMetrics
-                    ? formatProjectedYieldPct(assetYieldMetrics.projectedAnnualYieldPct)
-                    : '—'}
-                </span>
-              </div>
-            </div>
           ) : null}
           {mintSubmitWalletReady ? (
             <div className="grai-action-submit">
@@ -1848,7 +1861,7 @@ export function GraiMintBurnPanel({
                   >
                     <span className="grai-action-deposit-term-label">custodians</span>
                   </GraiFieldInfoButton>{' '}
-                  to generate volatility yield, receiving GRAI as your share in the fund.
+                  to generate volatility yield. You receive GRAI as your share in the fund.
                 </>
               )
             ) : (

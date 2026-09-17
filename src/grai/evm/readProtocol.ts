@@ -4,7 +4,7 @@ import type { GraiAsset } from '../knownMints'
 import { formatTokenBalance } from '../onchain'
 import type { GraiAssetVaultBalances } from '../fetchVaultBalances'
 import { depositValue } from '../tokenomics'
-import { graiAbi, priceOracleAbi } from './abi'
+import { graiAbi, grindersAbi, priceOracleAbi } from './abi'
 import { createGraiEvmPublicClient, resolveGraiContractAddress } from './client'
 import { GRAI_DECIMALS_EVM, USD_SCALE_EVM } from './constants'
 import { isNativeEvmAsset, resolveEvmGraiAsset } from './knownAssets'
@@ -349,6 +349,12 @@ export type EvmLiquidationVoteState = {
   totalSupply: bigint
   totalValue: bigint
   hasQuorum: boolean
+  /** Grinders operational heartbeat is still active (`grinders.grinding()`). */
+  grinding: boolean
+  /**
+   * @deprecated Prefer `!grinding` (stale heartbeat). Kept as liquidate-ready alias for older UI.
+   * True when Grinders health check fails (stale) — second limb of 2-of-2 open.
+   */
   confirmed: boolean
   liquidationOpen: boolean
   settlementAsset: `0x${string}`
@@ -374,7 +380,6 @@ export async function fetchEvmLiquidationVoteState(
     totalSupply,
     totalValue,
     hasQuorum,
-    confirmed,
     liquidationOpen,
     settlementAsset,
     protocolConfig,
@@ -382,13 +387,13 @@ export async function fetchEvmLiquidationVoteState(
     listedAssets,
     walletGrai,
     escrowEntry,
+    grindersAddress,
   ] = await Promise.all([
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'decimals' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalVoted' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalSupply' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalValue' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'hasQuorum' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'confirmed' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidation' }),
     readBribeOrSettlementAsset(config, graiAddress),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'config' }),
@@ -423,7 +428,21 @@ export async function fetchEvmLiquidationVoteState(
           0,
           0,
         ] as const),
+    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'grinders' }),
   ])
+
+  let grinding = true
+  if (grindersAddress && grindersAddress !== '0x0000000000000000000000000000000000000000') {
+    try {
+      grinding = await client.readContract({
+        address: grindersAddress,
+        abi: grindersAbi,
+        functionName: 'grinding',
+      })
+    } catch {
+      grinding = true
+    }
+  }
 
   const settlementDecimals = await readAssetDecimals(config, settlementAsset)
   const settlementMeta = resolveEvmGraiAsset(settlementAsset)
@@ -441,7 +460,8 @@ export async function fetchEvmLiquidationVoteState(
     totalSupply,
     totalValue,
     hasQuorum,
-    confirmed,
+    grinding,
+    confirmed: !grinding,
     liquidationOpen,
     settlementAsset,
     settlementDecimals,

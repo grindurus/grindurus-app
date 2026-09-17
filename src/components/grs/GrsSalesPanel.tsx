@@ -13,7 +13,6 @@ import { assetUrl } from '../../utils/appPaths'
 import { GRS_DECIMALS } from '../../grs/constants'
 import {
   MOCK_GRS_SALES,
-  MOCK_TOKEN_SALES_REMAINING,
   mockQuoteSaleCost,
 } from '../../grs/preview'
 import { executeGrsBuy } from '../../grs/evm/executeTransactions'
@@ -76,12 +75,6 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
   const [bookRows, setBookRows] = useState<GrsSaleBookRow[]>([])
   const [bookLoading, setBookLoading] = useState(false)
   const [bookError, setBookError] = useState<string | null>(null)
-  const [bookInventory, setBookInventory] = useState<{
-    remaining: bigint | null
-    spent: bigint | null
-    cap: bigint | null
-    decimals: number | null
-  }>({ remaining: null, spent: null, cap: null, decimals: null })
   const [bookTick, setBookTick] = useState(0)
 
   const configured = isGrsConfiguredAnywhere()
@@ -109,12 +102,6 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
   useEffect(() => {
     if (isDemo) {
       setBookRows(mockBookRows())
-      setBookInventory({
-        remaining: MOCK_TOKEN_SALES_REMAINING,
-        spent: null,
-        cap: null,
-        decimals: GRS_DECIMALS,
-      })
       setBookError(null)
       setBookLoading(false)
       return
@@ -135,12 +122,6 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
         const rows = [...pack.rows].sort((a, b) => Number(a.id - b.id))
         setBookRows(rows)
         setBookError(pack.solanaError)
-        setBookInventory({
-          remaining: pack.tokenSalesRemaining,
-          spent: pack.tokenSalesSpent,
-          cap: pack.tokenSalesCap,
-          decimals: pack.tokenSalesDecimals,
-        })
         setSaleKey((current) => {
           if (!current) return current
           const stillThere = rows.some((row) => row.key === current)
@@ -267,18 +248,6 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
     }
   }, [amount, decimals, isDemo, saleConfig, selected])
 
-  const remaining = isDemo ? MOCK_TOKEN_SALES_REMAINING : bookInventory.remaining
-  const remainingDecimals = isDemo
-    ? GRS_DECIMALS
-    : (bookInventory.decimals ?? snapshot?.tokenSalesDecimals ?? snapshot?.decimals ?? GRS_DECIMALS)
-  const remainingLabel =
-    remaining == null ? null : formatTokenBalance(remaining, remainingDecimals, 2)
-  const spent = isDemo ? null : bookInventory.spent
-  const cap = isDemo ? null : bookInventory.cap
-  const soldPct =
-    spent != null && cap != null && cap > 0n
-      ? Number((spent * 10_000n) / cap) / 100
-      : null
   const tokenAddress =
     saleConfig?.kind === 'solana'
       ? saleConfig.mint.toBase58()
@@ -396,24 +365,6 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
 
   const catalog = (
     <div className="grs-sales-catalog-panel">
-      {remaining != null ? (
-        <div className="grai-action-metrics">
-          <div className="grai-action-metric-row">
-            <span className="grai-action-metric-label-wrap">
-              <GraiFieldInfoButton
-                className="grai-action-metric-label-info"
-                hint="Home TokenSales inventory: GRS held on the home OFT (uncapped — buybacks can re-enter). Same book whether you buy on home or a spoke."
-              />
-              <span className="grai-action-metric-label">For sale</span>
-            </span>
-            <span className="grai-action-metric-value">
-              {remainingLabel} GRS
-              {soldPct != null ? ` · ${soldPct.toFixed(soldPct < 10 ? 2 : 1)}% sold` : ''}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
       <div className="grs-book" role="list">
         {bookError ? (
           <p className="grai-manage-feedback is-error" role="alert">
@@ -442,7 +393,7 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
                 className={`grs-book-row${active ? ' is-active' : ''}${sale.unpayableEvmAsset ? ' is-blocked' : ''}`}
                 onClick={() => selectSale(sale)}
               >
-                <span className="grs-book-row-header">
+                <span className="grs-book-row-top">
                   <span className="grs-book-sale-id">#{sale.id.toString()}</span>
                   <span className="grs-book-network">
                     <span className="grs-book-network-icon" aria-hidden="true">
@@ -452,16 +403,17 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
                   </span>
                 </span>
 
-                <span className="grs-book-unit">
-                  <span className="grs-book-unit-value">{unitValue}</span>
-                  <span className="grs-book-unit-suffix">{unitSuffix || `${sale.quoteSymbol} / GRS`}</span>
+                <span className="grs-book-price-block">
+                  <span className="grs-book-price-value">{unitValue}</span>
+                  <span className="grs-book-price-unit">
+                    {unitSuffix || `${sale.quoteSymbol} / GRS`}
+                  </span>
                 </span>
 
-                <span className="grs-book-stats" aria-label="Sale size">
-                  <span className="grs-book-stat">
-                    <span className="grs-book-meta-label">Left</span>
+                <span className="grs-book-foot" aria-label="Sale size">
+                  <span className="grs-book-foot-cell">
+                    <span className="grs-book-meta-label">Available</span>
                     <span className="grs-book-meta-value">
-                      {formatTokenBalance(sale.grsAmount, sale.decimals, 2)}
                       <img
                         className="grs-book-ticker-icon"
                         src={assetUrl('logo.png')}
@@ -469,13 +421,13 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
                         width={14}
                         height={14}
                       />
-                      GRS
+                      {formatTokenBalance(sale.grsAmount, sale.decimals, 2)}
+                      <span className="grs-book-ticker-sym">GRS</span>
                     </span>
                   </span>
-                  <span className="grs-book-stat">
-                    <span className="grs-book-meta-label">Ask</span>
+                  <span className="grs-book-foot-cell">
+                    <span className="grs-book-meta-label">Total ask</span>
                     <span className="grs-book-meta-value">
-                      {formatTokenBalance(sale.assetAmount, sale.quoteDecimals, 4)}
                       <img
                         className="grs-book-ticker-icon"
                         src={sale.quoteIcon}
@@ -483,7 +435,8 @@ export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Pr
                         width={14}
                         height={14}
                       />
-                      {sale.quoteSymbol}
+                      {formatTokenBalance(sale.assetAmount, sale.quoteDecimals, 4)}
+                      <span className="grs-book-ticker-sym">{sale.quoteSymbol}</span>
                     </span>
                   </span>
                 </span>

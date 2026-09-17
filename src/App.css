@@ -15,10 +15,6 @@
   overflow: hidden;
 }
 
-.App-main.App-main--backtest {
-  max-width: 1280px;
-}
-
 @media (max-width: 768px) {
   .App-main {
     padding: 0 1rem 1.5rem;

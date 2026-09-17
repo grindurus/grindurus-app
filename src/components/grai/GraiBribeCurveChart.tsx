@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Area,
   CartesianGrid,
@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { GraiFieldInfoButton } from './GraiFieldInfo'
 
 const BPS = 10_000
 const SAMPLE_COUNT = 200
@@ -38,6 +39,7 @@ type Props = {
   totalSupply: bigint
   totalValue: bigint
   title?: string
+  titleHint?: ReactNode
 }
 
 function clamp(n: number, min: number, max: number): number {
@@ -122,6 +124,7 @@ export function GraiBribeCurveChart({
   totalSupply,
   totalValue,
   title = 'Vote',
+  titleHint,
 }: Props) {
   const gradientId = useId().replace(/:/g, '')
   const plotRef = useRef<HTMLDivElement>(null)
@@ -207,7 +210,17 @@ export function GraiBribeCurveChart({
       className="grai-bribe-curve-chart"
       aria-label="Bribe ask versus voted share of supply"
     >
-      <h3 className="grai-bribe-curve-chart-title">{title}</h3>
+      {titleHint ? (
+        <GraiFieldInfoButton
+          className="grai-liquidation-distribute-title-info"
+          ariaLabel={`About ${title}`}
+          hint={titleHint}
+        >
+          <h3 className="grai-bribe-curve-chart-title">{title}</h3>
+        </GraiFieldInfoButton>
+      ) : (
+        <h3 className="grai-bribe-curve-chart-title">{title}</h3>
+      )}
       <header className="grai-bribe-curve-chart-head">
         <div className="grai-bribe-curve-chart-meta">
           <span className="grai-bribe-curve-chart-meta-col">

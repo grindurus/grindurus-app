@@ -11,14 +11,60 @@ import { stripTrailingSlash } from '../utils/urlUtils'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { InventoryHistoryChart, type InventoryHistoryPoint } from '../components/InventoryHistoryChart'
 import { YieldChart, type YieldHistoryPoint } from '../components/YieldChart'
+import { GraiUiCaret } from '../components/grai/GraiUiCaret'
+import { consumeCompleteSseEvents } from '../boss/sseParser'
+import {
+  BACKTEST_SECTION_IDS,
+  readBacktestSectionFromHash,
+} from '../utils/backtestNavigation'
 import './BacktestPage.css'
 
 const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
 const DEFAULT_QUOTE_ASSETS = ['USDC', 'USDT', 'USD', 'SOL'] as const
 const DEFAULT_BASE_ASSET = 'SOL'
+const USDC_ICON_URL = 'https://assets.coingecko.com/coins/images/6319/small/usdc.png'
+
+const ASSET_ICON_URLS: Record<string, string> = {
+  ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+  BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+  SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+  ARB: 'https://assets.coingecko.com/coins/images/16547/small/photo_2023-03-29_21.47.00.jpeg',
+  MATIC: 'https://assets.coingecko.com/coins/images/4713/small/polygon.png',
+  USDC: USDC_ICON_URL,
+  USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+  USD: USDC_ICON_URL,
+}
+
+function BacktestUsdcTickerIcon({ size = 14 }: { size?: number }) {
+  return (
+    <img
+      className="backtest-usdc-ticker-icon"
+      src={USDC_ICON_URL}
+      alt=""
+      width={size}
+      height={size}
+      loading="lazy"
+      decoding="async"
+    />
+  )
+}
 
 function normalizeAssetQuery(value: string) {
   return value.trim().toUpperCase()
+}
+
+function assetIconUrl(symbol: string): string | null {
+  return ASSET_ICON_URLS[normalizeAssetQuery(symbol)] ?? null
+}
+
+function BacktestAssetIcon({ symbol, size = 24 }: { symbol: string; size?: number }) {
+  const src = assetIconUrl(symbol)
+  if (!src) return null
+  return (
+    <span className="backtest-pair-asset-icon" aria-hidden="true">
+      <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" />
+    </span>
+  )
 }
 
 function assetMatchesOption(value: string, options: readonly string[]) {
@@ -32,11 +78,10 @@ function filterAssetOptions(options: readonly string[], query: string) {
   return options.filter((option) => option.includes(normalized))
 }
 
-const PAY_METHODS = ['x402', 'kirapay', 'promocode'] as const
+const PAY_METHODS = ['x402', 'promocode'] as const
 type PayMethod = (typeof PAY_METHODS)[number]
 const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   x402: 'x402',
-  kirapay: 'kirapay',
   promocode: 'promocode',
 }
 
@@ -86,13 +131,6 @@ const PAY_METHOD_CAPTION_ICON = (
   </svg>
 )
 
-const MAX_PERIOD_NOTE_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-)
-
 type BacktestQueueItem = {
   id: string
   base: string
@@ -104,6 +142,7 @@ type BacktestQueueItem = {
   /** Full creator wallet address (EVM-style demo) */
   creatorAddress: string
   usdcPaid: string
+  status?: string
 }
 
 type ApiQueueItem = {
@@ -116,6 +155,7 @@ type ApiQueueItem = {
   quote_balance_start: string | number
   priority_usdc: string | number
   creator_address: string
+  status?: string
 }
 
 type ApiHistoryItem = {
@@ -141,6 +181,7 @@ type BacktestHistoryItem = {
 type ApiHealth = {
   status: string
   backtest_price?: string
+  grinder_id?: string
 }
 
 type ApiSymbols = {
@@ -412,6 +453,50 @@ function buildBacktestChartHistory(
   return { inventoryHistory, yieldHistory }
 }
 
+function logEventToChartPoints(raw: unknown): {
+  inventory?: InventoryHistoryPoint
+  yieldPoint?: YieldHistoryPoint
+} {
+  if (!raw || typeof raw !== 'object') return {}
+  const o = raw as Record<string, unknown>
+  const timeRaw = o.time
+  let t = Date.now()
+  if (typeof timeRaw === 'string') {
+    const parsed = Date.parse(timeRaw)
+    if (Number.isFinite(parsed)) t = parsed
+  } else if (typeof timeRaw === 'number' && Number.isFinite(timeRaw)) {
+    t = timeRaw > 1e12 ? timeRaw : timeRaw * 1000
+  }
+  const base = Number(o.balance_base)
+  const quote = Number(o.balance_quote)
+  const spot = Number(o.spot_price)
+  const pnlQuote = Number(o.pnl_quote)
+  const pnlBase = Number(o.pnl_base)
+  const inventory =
+    Number.isFinite(base) && Number.isFinite(quote)
+      ? {
+          t,
+          base,
+          quote,
+          spot: Number.isFinite(spot) && spot > 0 ? spot : undefined,
+        }
+      : undefined
+  const price = Number.isFinite(spot) && spot > 0 ? spot : 1
+  const yieldPoint =
+    Number.isFinite(pnlQuote) || Number.isFinite(pnlBase)
+      ? {
+          t,
+          pnlQuote: Number.isFinite(pnlQuote) ? pnlQuote : 0,
+          pnlBase: Number.isFinite(pnlBase) ? pnlBase : 0,
+          price,
+          totalPnl:
+            (Number.isFinite(pnlQuote) ? pnlQuote : 0) +
+            (Number.isFinite(pnlBase) ? pnlBase : 0) * price,
+        }
+      : undefined
+  return { inventory, yieldPoint }
+}
+
 function BacktestPage() {
   const { openChainSelector } = useWalletContext()
   const end = new Date()
@@ -448,6 +533,14 @@ function BacktestPage() {
   const [queueView, setQueueView] = useState<'queue' | 'history'>('queue')
   const [queueLoading, setQueueLoading] = useState(false)
   const [queueError, setQueueError] = useState('')
+  const [priorityTotals, setPriorityTotals] = useState({
+    queue_usdc: 0,
+    stack_usdc: 0,
+    total_usdc: 0,
+  })
+  const [liveInventoryHistory, setLiveInventoryHistory] = useState<InventoryHistoryPoint[]>([])
+  const [liveYieldHistory, setLiveYieldHistory] = useState<YieldHistoryPoint[]>([])
+  const [backtestGrinderId, setBacktestGrinderId] = useState('1')
   const [historyItems, setHistoryItems] = useState<BacktestHistoryItem[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
@@ -600,6 +693,7 @@ function BacktestPage() {
           : `Backtest queued (${PAY_METHOD_LABEL[payMethod]}).`
       )
       await loadQueue()
+      await loadPriority()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to enqueue backtest'
       const lowerMessage = message.toLowerCase()
@@ -682,6 +776,7 @@ function BacktestPage() {
       setQueueBidValues((prev) => ({ ...prev, [id]: '' }))
       setQueueBidCustomOpen((prev) => ({ ...prev, [id]: false }))
       await loadQueue()
+      await loadPriority()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit bid'
       setQueueError(message)
@@ -707,7 +802,6 @@ function BacktestPage() {
     setPayError('')
     setPaySuccess('')
     setShowX402NetworkSwitch(false)
-    setPayMethod('kirapay')
   }
 
   const baseValue = baseAsset.trim() || baseAssets[0] || DEFAULT_BASE_ASSET
@@ -834,20 +928,23 @@ function BacktestPage() {
         if (!Array.isArray(payload)) {
           throw new Error('Queue response is not an array')
         }
-        const mapped = payload.map((item) => {
-          const q = item as ApiQueueItem
-          return {
-            id: q.id,
-            base: q.base_asset,
-            quote: q.quote_asset,
-            dateFrom: toDateOnly(q.period_start),
-            dateTo: toDateOnly(q.period_end),
-            baseAmount: toAmountString(q.base_balance_start),
-            quoteAmount: toAmountString(q.quote_balance_start),
-            creatorAddress: q.creator_address,
-            usdcPaid: toAmountString(q.priority_usdc, 2),
-          } satisfies BacktestQueueItem
-        })
+        const mapped = payload
+          .map((item) => {
+            const q = item as ApiQueueItem
+            return {
+              id: q.id,
+              base: q.base_asset,
+              quote: q.quote_asset,
+              dateFrom: toDateOnly(q.period_start),
+              dateTo: toDateOnly(q.period_end),
+              baseAmount: toAmountString(q.base_balance_start),
+              quoteAmount: toAmountString(q.quote_balance_start),
+              creatorAddress: q.creator_address,
+              usdcPaid: toAmountString(q.priority_usdc, 2),
+              status: q.status,
+            } satisfies BacktestQueueItem
+          })
+          .filter((item) => item.status === 'pending' || item.status === 'processing')
         if (signal?.aborted) return
         setQueueItems(mapped)
       } catch (err) {
@@ -903,14 +1000,107 @@ function BacktestPage() {
     [backtestApiOrigin]
   )
 
+  const loadPriority = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const response = await fetch(`${backtestApiOrigin}/priority`, { signal })
+        if (!response.ok) return
+        const payload = (await response.json()) as {
+          queue_usdc?: string | number
+          stack_usdc?: string | number
+          total_usdc?: string | number
+        }
+        if (signal?.aborted) return
+        setPriorityTotals({
+          queue_usdc: Number(payload.queue_usdc ?? 0) || 0,
+          stack_usdc: Number(payload.stack_usdc ?? 0) || 0,
+          total_usdc: Number(payload.total_usdc ?? 0) || 0,
+        })
+      } catch {
+        // Keep last known totals when priority endpoint is unavailable.
+      }
+    },
+    [backtestApiOrigin]
+  )
+
   useEffect(() => {
     void loadQueue()
-  }, [backtestApiOrigin, loadQueue])
+    void loadPriority()
+  }, [backtestApiOrigin, loadQueue, loadPriority])
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void loadQueue()
+      void loadPriority()
+    }, 15_000)
+    return () => window.clearInterval(id)
+  }, [loadQueue, loadPriority])
 
   useEffect(() => {
     if (queueView !== 'history') return
     void loadHistory()
   }, [loadHistory, queueView])
+
+  useEffect(() => {
+    const loadHealth = async () => {
+      try {
+        const response = await fetch(`${backtestApiOrigin}/health`)
+        if (!response.ok) return
+        const payload = (await response.json()) as ApiHealth & { grinder_id?: string }
+        if (typeof payload.grinder_id === 'string' && payload.grinder_id.trim()) {
+          setBacktestGrinderId(payload.grinder_id.trim())
+        }
+        setDefaultBidPrice(normalizeUsdcAmount(payload.backtest_price, '1'))
+      } catch {
+        // Keep defaults if health endpoint unavailable.
+      }
+    }
+    void loadHealth()
+  }, [backtestApiOrigin])
+
+  useEffect(() => {
+    const ac = new AbortController()
+    let buffer = ''
+
+    const run = async () => {
+      try {
+        const response = await fetch(
+          `${backtestApiOrigin}/grinder/${encodeURIComponent(backtestGrinderId)}/logs/stream`,
+          {
+            signal: ac.signal,
+            headers: { Accept: 'text/event-stream' },
+          }
+        )
+        if (!response.ok || !response.body) return
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        while (!ac.signal.aborted) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          buffer = consumeCompleteSseEvents(buffer, (raw) => {
+            try {
+              const parsed = JSON.parse(raw) as unknown
+              const { inventory, yieldPoint } = logEventToChartPoints(parsed)
+              if (inventory) {
+                setLiveInventoryHistory((prev) => [...prev.slice(-4999), inventory])
+              }
+              if (yieldPoint) {
+                setLiveYieldHistory((prev) => [...prev.slice(-4999), yieldPoint])
+              }
+            } catch {
+              // Ignore malformed SSE frames.
+            }
+          })
+        }
+      } catch (err) {
+        if ((err as DOMException)?.name === 'AbortError') return
+      }
+    }
+
+    void run()
+    return () => ac.abort()
+  }, [backtestApiOrigin, backtestGrinderId])
 
   useEffect(() => {
     const loadSymbols = async () => {
@@ -942,18 +1132,17 @@ function BacktestPage() {
   }, [backtestApiOrigin])
 
   useEffect(() => {
-    const loadHealth = async () => {
-      try {
-        const response = await fetch(`${backtestApiOrigin}/health`)
-        if (!response.ok) return
-        const payload = (await response.json()) as ApiHealth
-        setDefaultBidPrice(normalizeUsdcAmount(payload.backtest_price, '1'))
-      } catch {
-        // Keep default "1" if health endpoint unavailable.
-      }
+    const scrollToSection = () => {
+      const section = readBacktestSectionFromHash()
+      if (!section) return
+      document
+        .getElementById(BACKTEST_SECTION_IDS[section])
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    void loadHealth()
-  }, [backtestApiOrigin])
+    window.addEventListener('hashchange', scrollToSection)
+    window.setTimeout(scrollToSection, 80)
+    return () => window.removeEventListener('hashchange', scrollToSection)
+  }, [])
 
   useEffect(() => {
     if (!payMenuOpen) return
@@ -1041,15 +1230,9 @@ function BacktestPage() {
     })
   }, [queueItems, queueSearch])
   const isQueueSearchActive = queueSearch.trim().length > 0
-  const queuePriorityRaw = useMemo(
-    () => visibleQueue.reduce((acc, item) => acc + Number(item.usdcPaid || 0), 0),
-    [visibleQueue]
-  )
-  const stackPriorityRaw = useMemo(
-    () => historyItems.reduce((acc, item) => acc + Number(item.pnlQuote || 0), 0),
-    [historyItems]
-  )
-  const totalPriorityRaw = useMemo(() => queuePriorityRaw + stackPriorityRaw, [queuePriorityRaw, stackPriorityRaw])
+  const queuePriorityRaw = priorityTotals.queue_usdc
+  const stackPriorityRaw = priorityTotals.stack_usdc
+  const totalPriorityRaw = priorityTotals.total_usdc
   const formatUsdc = (value: number) =>
     Number.isFinite(value)
       ? value.toLocaleString(undefined, {
@@ -1074,7 +1257,7 @@ function BacktestPage() {
     () => daysInclusive(featuredBacktest.dateFrom, featuredBacktest.dateTo),
     [featuredBacktest.dateFrom, featuredBacktest.dateTo]
   )
-  const backtestChartHistory = useMemo(
+  const fallbackChartHistory = useMemo(
     () =>
       buildBacktestChartHistory(
         featuredBacktest.dateFrom,
@@ -1091,6 +1274,13 @@ function BacktestPage() {
       featuredRangeDays,
     ]
   )
+  const backtestChartHistory = useMemo(
+    () =>
+      liveInventoryHistory.length > 0 || liveYieldHistory.length > 0
+        ? { inventoryHistory: liveInventoryHistory, yieldHistory: liveYieldHistory }
+        : fallbackChartHistory,
+    [fallbackChartHistory, liveInventoryHistory, liveYieldHistory]
+  )
 
   return (
     <div className="backtest-page">
@@ -1099,16 +1289,12 @@ function BacktestPage() {
       </p>
       <div className="backtest-layout">
         <div className="backtest-panel-wrap">
-          <aside className="backtest-panel">
+          <aside className="backtest-panel" id={BACKTEST_SECTION_IDS.create}>
           <p className="backtest-panel-heading">Create Backtest</p>
 
           <div className="backtest-field">
             <p className="backtest-date-limit-note">
-              <span className="backtest-date-limit-note-label">
-                <span className="backtest-date-limit-note-icon">{MAX_PERIOD_NOTE_ICON}</span>
-                Max period:
-              </span>
-              <span className="backtest-date-limit-note-leader" aria-hidden="true" />
+              <span className="backtest-date-limit-note-label">Max period:</span>
               <span className="backtest-date-limit-note-value">5 days</span>
             </p>
             <div className="backtest-dates" role="group" aria-label="Backtest date range">
@@ -1175,66 +1361,69 @@ function BacktestPage() {
                           setBaseAssetMenuOpen(true)
                         }}
                       >
-                        <input
-                          id="backtest-base"
-                          type="text"
-                          className={`backtest-amount-input backtest-pair-asset-input ${isBaseSelected ? 'is-selected' : ''} ${isBaseUnmatched ? 'is-unmatched' : ''}`}
-                          value={baseAsset}
-                          size={Math.max(baseAsset.length, 3)}
-                          autoComplete="off"
-                          spellCheck={false}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const v = e.target.value.toUpperCase()
-                            setBaseAsset(v)
-                            if (v === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
-                            setQuoteAssetMenuOpen(false)
-                            setBaseAssetListAll(false)
-                            setBaseAssetMenuOpen(true)
-                          }}
-                          onFocus={(e) => {
-                            e.stopPropagation()
-                            setQuoteAssetMenuOpen(false)
-                            setBaseAssetListAll(false)
-                            setBaseAssetMenuOpen(true)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Escape') {
-                              setBaseAssetMenuOpen(false)
-                              return
-                            }
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const query = normalizeAssetQuery(e.currentTarget.value)
-                              const exact = visibleBaseAssets.find((a) => a === query)
-                              const match =
-                                exact ?? (visibleBaseAssets.length === 1 ? visibleBaseAssets[0] : undefined)
-                              if (match) {
-                                setBaseAsset(match)
-                                if (match === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
+                        <span className="backtest-pair-asset-token">
+                          <BacktestAssetIcon symbol={baseAsset} />
+                          <input
+                            id="backtest-base"
+                            type="text"
+                            className={`backtest-amount-input backtest-pair-asset-input ${isBaseSelected ? 'is-selected' : ''} ${isBaseUnmatched ? 'is-unmatched' : ''}`}
+                            value={baseAsset}
+                            size={Math.max(baseAsset.length, 3)}
+                            autoComplete="off"
+                            spellCheck={false}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const v = e.target.value.toUpperCase()
+                              setBaseAsset(v)
+                              if (v === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
+                              setQuoteAssetMenuOpen(false)
+                              setBaseAssetListAll(false)
+                              setBaseAssetMenuOpen(true)
+                            }}
+                            onFocus={(e) => {
+                              e.stopPropagation()
+                              setQuoteAssetMenuOpen(false)
+                              setBaseAssetListAll(false)
+                              setBaseAssetMenuOpen(true)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
                                 setBaseAssetMenuOpen(false)
+                                return
                               }
-                            }
-                          }}
-                          aria-haspopup="listbox"
-                          aria-expanded={baseAssetMenuOpen}
-                          aria-invalid={isBaseUnmatched}
-                          aria-label="Base asset"
-                        />
-                        <button
-                          type="button"
-                          className="backtest-pair-asset-caret-btn"
-                          tabIndex={-1}
-                          aria-hidden="true"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setQuoteAssetMenuOpen(false)
-                            setBaseAssetListAll(true)
-                            setBaseAssetMenuOpen((open) => !open)
-                          }}
-                        >
-                          ▾
-                        </button>
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                const query = normalizeAssetQuery(e.currentTarget.value)
+                                const exact = visibleBaseAssets.find((a) => a === query)
+                                const match =
+                                  exact ?? (visibleBaseAssets.length === 1 ? visibleBaseAssets[0] : undefined)
+                                if (match) {
+                                  setBaseAsset(match)
+                                  if (match === 'SOL' && quoteAsset === 'SOL') setQuoteAsset('USDC')
+                                  setBaseAssetMenuOpen(false)
+                                }
+                              }
+                            }}
+                            aria-haspopup="listbox"
+                            aria-expanded={baseAssetMenuOpen}
+                            aria-invalid={isBaseUnmatched}
+                            aria-label="Base asset"
+                          />
+                          <button
+                            type="button"
+                            className="backtest-pair-asset-caret-btn"
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setQuoteAssetMenuOpen(false)
+                              setBaseAssetListAll(true)
+                              setBaseAssetMenuOpen((open) => !open)
+                            }}
+                          >
+                            <GraiUiCaret className="backtest-pair-asset-caret" />
+                          </button>
+                        </span>
                       </div>
                       {baseAssetMenuOpen && (
                         <div className="backtest-pair-asset-list" role="listbox" aria-label="Base asset">
@@ -1252,6 +1441,7 @@ function BacktestPage() {
                                   setBaseAssetMenuOpen(false)
                                 }}
                               >
+                                <BacktestAssetIcon symbol={a} size={20} />
                                 {a}
                               </button>
                             ))
@@ -1293,63 +1483,66 @@ function BacktestPage() {
                           setQuoteAssetMenuOpen(true)
                         }}
                       >
-                        <input
-                          id="backtest-quote"
-                          type="text"
-                          className={`backtest-amount-input backtest-pair-asset-input ${isQuoteSelected ? 'is-selected' : ''} ${isQuoteUnmatched ? 'is-unmatched' : ''}`}
-                          value={quoteAsset}
-                          size={Math.max(quoteAsset.length, 3)}
-                          autoComplete="off"
-                          spellCheck={false}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            setQuoteAsset(e.target.value.toUpperCase())
-                            setBaseAssetMenuOpen(false)
-                            setQuoteAssetListAll(false)
-                            setQuoteAssetMenuOpen(true)
-                          }}
-                          onFocus={(e) => {
-                            e.stopPropagation()
-                            setBaseAssetMenuOpen(false)
-                            setQuoteAssetListAll(false)
-                            setQuoteAssetMenuOpen(true)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Escape') {
-                              setQuoteAssetMenuOpen(false)
-                              return
-                            }
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const query = normalizeAssetQuery(e.currentTarget.value)
-                              const exact = visibleQuoteAssets.find((a) => a === query)
-                              const match =
-                                exact ?? (visibleQuoteAssets.length === 1 ? visibleQuoteAssets[0] : undefined)
-                              if (match) {
-                                setQuoteAsset(match)
+                        <span className="backtest-pair-asset-token">
+                          <BacktestAssetIcon symbol={quoteAsset} />
+                          <input
+                            id="backtest-quote"
+                            type="text"
+                            className={`backtest-amount-input backtest-pair-asset-input ${isQuoteSelected ? 'is-selected' : ''} ${isQuoteUnmatched ? 'is-unmatched' : ''}`}
+                            value={quoteAsset}
+                            size={Math.max(quoteAsset.length, 3)}
+                            autoComplete="off"
+                            spellCheck={false}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              setQuoteAsset(e.target.value.toUpperCase())
+                              setBaseAssetMenuOpen(false)
+                              setQuoteAssetListAll(false)
+                              setQuoteAssetMenuOpen(true)
+                            }}
+                            onFocus={(e) => {
+                              e.stopPropagation()
+                              setBaseAssetMenuOpen(false)
+                              setQuoteAssetListAll(false)
+                              setQuoteAssetMenuOpen(true)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
                                 setQuoteAssetMenuOpen(false)
+                                return
                               }
-                            }
-                          }}
-                          aria-haspopup="listbox"
-                          aria-expanded={quoteAssetMenuOpen}
-                          aria-invalid={isQuoteUnmatched}
-                          aria-label="Quote asset"
-                        />
-                        <button
-                          type="button"
-                          className="backtest-pair-asset-caret-btn"
-                          tabIndex={-1}
-                          aria-hidden="true"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setBaseAssetMenuOpen(false)
-                            setQuoteAssetListAll(true)
-                            setQuoteAssetMenuOpen((open) => !open)
-                          }}
-                        >
-                          ▾
-                        </button>
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                const query = normalizeAssetQuery(e.currentTarget.value)
+                                const exact = visibleQuoteAssets.find((a) => a === query)
+                                const match =
+                                  exact ?? (visibleQuoteAssets.length === 1 ? visibleQuoteAssets[0] : undefined)
+                                if (match) {
+                                  setQuoteAsset(match)
+                                  setQuoteAssetMenuOpen(false)
+                                }
+                              }
+                            }}
+                            aria-haspopup="listbox"
+                            aria-expanded={quoteAssetMenuOpen}
+                            aria-invalid={isQuoteUnmatched}
+                            aria-label="Quote asset"
+                          />
+                          <button
+                            type="button"
+                            className="backtest-pair-asset-caret-btn"
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setBaseAssetMenuOpen(false)
+                              setQuoteAssetListAll(true)
+                              setQuoteAssetMenuOpen((open) => !open)
+                            }}
+                          >
+                            <GraiUiCaret className="backtest-pair-asset-caret" />
+                          </button>
+                        </span>
                       </div>
                       {quoteAssetMenuOpen && (
                         <div className="backtest-pair-asset-list" role="listbox" aria-label="Quote asset">
@@ -1366,6 +1559,7 @@ function BacktestPage() {
                                   setQuoteAssetMenuOpen(false)
                                 }}
                               >
+                                <BacktestAssetIcon symbol={a} size={20} />
                                 {a}
                               </button>
                             ))
@@ -1444,9 +1638,7 @@ function BacktestPage() {
                       <span className="backtest-pay-method-label">
                         {PAY_METHOD_LABEL[payMethod]}
                       </span>
-                      <span className="backtest-pay-method-caret" aria-hidden="true">
-                        ▾
-                      </span>
+                      <GraiUiCaret className="backtest-pay-method-caret" />
                     </button>
                     {payMethod === 'promocode' && (
                       <div className="backtest-promocode-inline-wrap backtest-promocode-inline-wrap--in-actions">
@@ -1536,10 +1728,17 @@ function BacktestPage() {
             )}
           </div>
           </aside>
-          <section className="backtest-payments-summary" aria-label="Payments summary">
+          <section
+            className="backtest-payments-summary"
+            id={BACKTEST_SECTION_IDS.priority}
+            aria-label="Payments summary"
+          >
             <div className="backtest-payments-summary-head">
               <span className="backtest-payments-summary-title">Total priority</span>
-              <span className="backtest-payments-summary-value">{totalPaymentsUsdc} USDC</span>
+              <span className="backtest-payments-summary-value">
+                {totalPaymentsUsdc} <BacktestUsdcTickerIcon />
+                USDC
+              </span>
             </div>
             <div className="backtest-payments-infographic">
               <div className="backtest-payments-bar" aria-hidden="true">
@@ -1559,7 +1758,8 @@ function BacktestPage() {
                     QUEUE
                   </span>
                   <span className="backtest-payments-priority-amount">
-                    {queuePriorityUsdc} USDC ({queuePriorityPct.toFixed(1)}%)
+                    {queuePriorityUsdc} <BacktestUsdcTickerIcon size={12} />
+                    USDC ({queuePriorityPct.toFixed(1)}%)
                   </span>
                 </span>
                 <span className="backtest-payments-priority-line">
@@ -1568,13 +1768,18 @@ function BacktestPage() {
                     STACK
                   </span>
                   <span className="backtest-payments-priority-amount">
-                    {stackPriorityUsdc} USDC ({stackPriorityPct.toFixed(1)}%)
+                    {stackPriorityUsdc} <BacktestUsdcTickerIcon size={12} />
+                    USDC ({stackPriorityPct.toFixed(1)}%)
                   </span>
                 </span>
               </div>
             </div>
           </section>
-          <section className="backtest-main" aria-label="Backtest results">
+          <section
+            className="backtest-main"
+            id={BACKTEST_SECTION_IDS.queue}
+            aria-label="Backtest results"
+          >
           <div
             className="backtest-queue-wrap"
             role="region"
@@ -1627,8 +1832,19 @@ function BacktestPage() {
                     aria-label="Search queue"
                     tabIndex={queueView === 'queue' ? 0 : -1}
                   >
-                    <span aria-hidden="true">🔍</span>
-                    <span>Search</span>
+                    <svg
+                      className="backtest-queue-search-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m20 20-3.5-3.5" />
+                    </svg>
                   </button>
                 </div>
                 <div className="backtest-queue-sort-switch" role="group" aria-label="Sort queue by">
@@ -1881,7 +2097,11 @@ function BacktestPage() {
           </div>
           </section>
         </div>
-        <section className="backtest-results-card" aria-label="Backtest output">
+        <section
+          className="backtest-results-card"
+          id={BACKTEST_SECTION_IDS.results}
+          aria-label="Backtest output"
+        >
           <h1 className="backtest-main-title">Backtest</h1>
           <p className="backtest-main-subtitle">
             Pair <strong>{featuredBacktest.base}</strong> / <strong>{featuredBacktest.quote}</strong>,{' '}

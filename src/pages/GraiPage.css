@@ -1355,6 +1355,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-content-row .grai-actions-block {
   position: relative;
   z-index: 1;
+  isolation: isolate;
+  background: var(--bg-primary);
+  border-radius: 14px;
 }
 
 .grai-assets-chart-card {
@@ -3338,6 +3341,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   overflow: clip;
 }
 
+.grai-actions-block:has(.grai-field-info-wrap:hover),
+.grai-actions-block:has(.grai-field-info-wrap:focus-within),
+.grai-actions-block:has(.grai-field-info-wrap.is-open),
+.grai-actions-block:has(.grai-asset-select-dropdown) {
+  overflow: visible;
+}
+
 .grai-actions-block .grai-page-subtitle {
   display: inline-flex;
   align-items: center;
@@ -3493,12 +3503,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 
-.grai-actions-block .grai-page-subtitle.is-clickable:hover,
-.grai-actions-block .grai-page-subtitle.is-clickable:focus-visible {
-  color: #ff69b4;
-  outline: none;
-}
-
 .grai-actions-block .grai-page-subtitle.is-fit-width {
   letter-spacing: -0.01em;
 }
@@ -3611,6 +3615,50 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: none;
 }
 
+.grai-page-subtitle-wrap > .grai-page-how-it-works-hint {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 0.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ff69b4;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.18em;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+}
+
+.grai-page-subtitle-wrap > .grai-page-how-it-works-hint:hover,
+.grai-page-subtitle-wrap > .grai-page-how-it-works-hint:focus-visible {
+  color: #ff8ac8;
+  text-decoration-style: solid;
+  outline: none;
+}
+
+[data-theme='light'] .grai-page-subtitle-wrap > .grai-page-how-it-works-hint {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-page-subtitle-wrap > .grai-page-how-it-works-hint:hover,
+[data-theme='light'] .grai-page-subtitle-wrap > .grai-page-how-it-works-hint:focus-visible {
+  color: #c2186a;
+}
+
 @container (max-width: 520px) {
   .grai-actions-block .grai-page-subtitle {
     white-space: nowrap;
@@ -3619,36 +3667,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   .grai-actions-block .grai-page-subtitle.is-fit-width {
     font-size: clamp(1.12rem, 5.4cqi, 1.55rem) !important;
     letter-spacing: -0.01em;
-  }
-}
-
-@media (max-width: 1100px) {
-  .grai-page-how-it-works-hint {
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 0.35rem);
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    padding: 0;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translate(-50%, 6px);
-    transition:
-      opacity 0.28s ease,
-      transform 0.28s ease,
-      visibility 0.28s ease;
-  }
-
-  .grai-page-subtitle-wrap:hover .grai-page-how-it-works-hint,
-  .grai-page-subtitle-wrap:focus-within .grai-page-how-it-works-hint {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translate(-50%, 0);
   }
 }
 
@@ -5859,6 +5877,39 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   align-items: center;
   gap: 0.45rem;
   margin-top: 0.15rem;
+}
+
+.grai-field-info-tooltip-flow--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.45rem;
+  margin-top: 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.grai-field-info-tooltip-flow-inline-source {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.grai-field-info-tooltip-flow-inline-arrow {
+  color: rgba(255, 105, 180, 0.95);
+  font-weight: 700;
+}
+
+.grai-field-info-tooltip-flow-inline-target {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.grai-field-info-tooltip-flow-inline-target .grai-field-info-tooltip-flow-value {
+  font-size: inherit;
 }
 
 .grai-field-info-tooltip-flow-item {
@@ -8889,7 +8940,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-action-card.grai-mint .grai-action-content-shell:has(.grai-asset-select-dropdown),
-.grai-action-card.grai-mint .grai-action-content-shell.is-animating:has(.grai-asset-select-dropdown) {
+.grai-action-card.grai-mint .grai-action-content-shell.is-animating:has(.grai-asset-select-dropdown),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-action-metric-label-wrap .grai-field-info-wrap:hover),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-action-metric-label-wrap .grai-field-info-wrap:focus-within),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-mint-referrer-info:hover),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-mint-referrer-info:focus-within),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-mint-referrer-info.is-open) {
   overflow: visible;
 }
 
@@ -9793,6 +9850,69 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
 }
 
+/* Keep Deposit/Claim middle rows in one height slot so Connect Wallet doesn't jump. */
+.grai-action-card.grai-mint .grai-amount-input + .grai-mint-flow-options--asset {
+  margin-top: calc(0.35rem - var(--grai-action-content-gap, 1rem));
+}
+
+.grai-mint-flow-options--asset {
+  display: grid;
+}
+
+.grai-mint-flow-options--asset > .grai-mint-flow-options-panel {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-mint-flow-options--asset > .grai-mint-flow-options-panel:not(.is-active) {
+  position: relative;
+  inset: auto;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Inactive claim preview must not reserve height under Deposit. */
+.grai-mint-flow-options--asset > .grai-mint-flow-options-panel:not(.is-active) .grai-detailed-preview {
+  display: none;
+}
+
+.grai-mint-flow-options--asset > .grai-mint-flow-options-panel.is-active {
+  position: relative;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.grai-mint-flow-options--asset .grai-action-metrics--under-amount,
+.grai-mint-flow-options--asset .grai-action-result--claim-summary {
+  margin-top: 0;
+}
+
+.grai-mint-flow-options--asset .grai-mint-dividends-toggle.is-below-amount {
+  margin-top: 0.4rem;
+  padding-top: 0.15rem;
+}
+
+.grai-mint-flow-options--asset .grai-mint-dividends-toggle + .grai-detailed-preview.is-open {
+  margin-top: 0.35rem;
+}
+
+.grai-action-card.grai-mint .grai-mint-flow-options--asset + .grai-action-result-group {
+  margin-top: calc(var(--grai-action-metric-stack-gap, 0.55rem) - var(--grai-action-content-gap, 1rem));
+}
+
+.grai-action-card.grai-mint .grai-mint-flow-options--asset + .grai-action-submit,
+.grai-action-card.grai-mint .grai-mint-flow-options--asset + .connect-wallet-btn {
+  margin-top: calc(0.45rem - var(--grai-action-content-gap, 1rem));
+}
+
 .grai-mint-flow-options-panel {
   width: 100%;
   min-width: 0;
@@ -9901,8 +10021,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-size: 0.78rem;
   font-weight: 600;
   line-height: 1.2;
-  color: var(--text-secondary);
+  color: #fff;
   letter-spacing: 0.01em;
+}
+
+[data-theme='light'] .grai-mint-referrer-label {
+  color: var(--text-primary);
 }
 
 .grai-mint-referrer-info .grai-field-info-btn {
@@ -10948,6 +11072,40 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   transform: rotate(0deg);
 }
 
+.grai-mint-dividends-toggle.is-preview-open .grai-action-result-preview-toggle .grai-detailed-preview-chevron {
+  transform: rotate(0deg);
+}
+
+.grai-mint-dividends-toggle-label .grai-action-result-preview-toggle-slot {
+  width: 1.35rem;
+}
+
+.grai-mint-dividends-toggle-label .grai-action-result-preview-toggle {
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0 0.1rem 0 0;
+}
+
+.grai-mint-dividends-toggle-label .grai-action-result-preview-toggle .grai-detailed-preview-chevron {
+  width: 0.75rem;
+  height: 0.45rem;
+}
+
+.grai-mint-dividends-toggle-label.is-toggle-hidden .grai-action-result-preview-toggle-slot {
+  width: 0;
+  opacity: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.grai-mint-dividends-toggle-label {
+  gap: var(--grai-action-label-lead-gap, 0.4rem);
+}
+
+.grai-mint-dividends-toggle-label.is-toggle-hidden {
+  gap: 0;
+}
+
 .grai-action-result-label {
   display: inline-flex;
   align-items: center;
@@ -11029,6 +11187,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-action-card.grai-mint .grai-action-metrics {
   gap: var(--grai-action-metric-stack-gap, 0.55rem);
+}
+
+.grai-action-card.grai-mint .grai-amount-input + .grai-action-metrics--under-amount {
+  margin-top: calc(0.35rem - var(--grai-action-content-gap, 1rem));
 }
 
 .grai-action-metrics + .grai-action-result-group {
@@ -11130,6 +11292,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(255, 105, 180, 0.22);
+}
+
+/* Under-amount APR sits near the top of the card — open tooltip downward so it isn't clipped. */
+.grai-action-metrics--under-amount .grai-action-metric-label-wrap .grai-field-info-tooltip {
+  top: calc(100% + 10px);
+  bottom: auto;
 }
 
 [data-theme='light'] .grai-action-metric-row .grai-action-metric-label-wrap .grai-field-info-tooltip {
@@ -11723,10 +11891,113 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   margin: 0;
   text-align: left;
   padding: 0.72rem 0.5rem 0.72rem 0.65rem;
-  border-radius: 0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
   white-space: normal;
   line-height: 1.25;
   box-sizing: border-box;
+  background: transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn,
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-liquidate-slot,
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn {
+  margin-top: 0.4rem;
+}
+
+.grai-action-switch-liquidate-slot {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.72rem 0.5rem 0.72rem 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.grai-action-switch-liquidate-slot:hover {
+  border-color: rgba(255, 105, 180, 0.45);
+}
+
+.grai-action-switch-liquidate-slot.is-active {
+  border-color: #ff69b4;
+  background: rgba(255, 105, 180, 0.08);
+}
+
+.grai-action-switch-liquidate-slot.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: #ff69b4;
+  pointer-events: none;
+}
+
+.grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate,
+.grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate.is-active {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  transform: none;
+}
+
+.grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate.is-active::before {
+  display: none;
+}
+
+.grai-action-switch-liquidate-slot > .grai-liquidation-liquidate-view-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+[data-theme='light'] .grai-action-switch-liquidate-slot {
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme='light'] .grai-action-switch-liquidate-slot:hover {
+  border-color: rgba(233, 30, 140, 0.45);
+}
+
+[data-theme='light'] .grai-action-switch-liquidate-slot.is-active {
+  border-color: #e91e8c;
+  background: rgba(233, 30, 140, 0.06);
+}
+
+[data-theme='light'] .grai-action-switch-liquidate-slot.is-active::before {
+  background: #e91e8c;
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover {
+  border-color: rgba(255, 105, 180, 0.45);
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
+  border-color: #ff69b4;
+  background: rgba(255, 105, 180, 0.08);
 }
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
@@ -11735,10 +12006,23 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   left: 0;
   top: 0.45rem;
   bottom: 0.45rem;
-  width: 2px;
-  border-radius: 1px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
   background: #ff69b4;
   pointer-events: none;
+}
+
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn {
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover {
+  border-color: rgba(233, 30, 140, 0.45);
+}
+
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
+  border-color: #e91e8c;
+  background: rgba(233, 30, 140, 0.06);
 }
 
 [data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
@@ -11827,10 +12111,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     border: 0;
   }
 
-  .grai-liquidation-ops-tabs .grai-action-switch--ops.has-redeem {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
   .grai-action-switch--ops::after {
     display: none;
   }
@@ -11844,23 +12124,92 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     gap: 0.22rem;
     width: 100%;
     min-width: 0;
-    padding: 0.35rem 0.02rem 0.5rem;
+    margin-top: 0;
+    padding: 0.4rem 0.15rem 0.45rem;
     font-size: clamp(0.48rem, 2.35vw, 0.58rem);
     font-weight: 600;
     line-height: 1.1;
     letter-spacing: 0.01em;
     text-align: center;
     white-space: normal;
-    border-radius: 0;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 8px;
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-liquidate-slot,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn {
+    margin-top: 0;
+  }
+
+  .grai-action-switch-liquidate-slot {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.22rem;
+    width: 100%;
+    min-width: 0;
+    margin-top: 0;
+    padding: 0.4rem 0.15rem 0.45rem;
+    border-radius: 8px;
+  }
+
+  .grai-action-switch-liquidate-slot.is-active::before {
+    top: 0.3rem;
+    bottom: 0.3rem;
+    width: 2px;
+    border-radius: 0 1px 1px 0;
+  }
+
+  .grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate,
+  .grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate.is-active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.22rem;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    font-size: clamp(0.48rem, 2.35vw, 0.58rem);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    text-align: center;
+    border: 0;
+    background: transparent;
+    transform: none;
+  }
+
+  .grai-action-switch-liquidate-slot > .grai-liquidation-liquidate-view-toggle {
+    position: absolute;
+    top: 0.15rem;
+    right: 0.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-left: 0;
+  }
+
+  .grai-action-switch-liquidate-slot > .grai-liquidation-liquidate-view-toggle svg {
+    width: 0.7rem;
+    height: 0.7rem;
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
+    border-color: #ff69b4;
+    background: rgba(255, 105, 180, 0.08);
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
-    left: 0.2rem;
-    right: 0.2rem;
-    top: auto;
-    bottom: 0;
-    width: auto;
-    height: 2px;
+    content: '';
+    left: 0;
+    top: 0.3rem;
+    bottom: 0.3rem;
+    width: 2px;
+    border-radius: 0 1px 1px 0;
+    background: #ff69b4;
   }
 
   .grai-action-switch--ops .grai-action-switch-icon {
@@ -11885,7 +12234,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
   .grai-action-switch--ops .grai-action-switch-btn.is-distribute,
   .grai-action-switch--ops .grai-action-switch-btn.is-bribe {
-    border-radius: 0;
+    border-radius: 8px;
   }
 }
 
@@ -11944,6 +12293,87 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #fff;
+}
+
+.grai-liquidation-distribute-title-info {
+  align-self: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.grai-liquidation-distribute-title-info .grai-field-info-trigger {
+  display: inline-flex;
+  cursor: help;
+}
+
+.grai-liquidation-distribute-title-info .grai-liquidation-distribute-title {
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.55);
+  padding-bottom: 0.05rem;
+}
+
+.grai-liquidation-distribute-title-info .grai-bribe-curve-chart-title {
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.55);
+  padding-bottom: 0.05rem;
+}
+
+[data-theme='light'] .grai-liquidation-distribute-title-info .grai-liquidation-distribute-title,
+[data-theme='light'] .grai-liquidation-distribute-title-info .grai-bribe-curve-chart-title {
+  border-bottom-color: rgba(15, 23, 42, 0.4);
+}
+
+.grai-liquidation-distribute-title-info .grai-field-info-trigger:hover .grai-liquidation-distribute-title,
+.grai-liquidation-distribute-title-info.is-open .grai-liquidation-distribute-title,
+.grai-liquidation-distribute-title-info .grai-field-info-trigger:hover .grai-bribe-curve-chart-title,
+.grai-liquidation-distribute-title-info.is-open .grai-bribe-curve-chart-title {
+  border-bottom-color: #ff69b4;
+}
+
+[data-theme='light'] .grai-liquidation-distribute-title-info .grai-field-info-trigger:hover .grai-liquidation-distribute-title,
+[data-theme='light'] .grai-liquidation-distribute-title-info.is-open .grai-liquidation-distribute-title,
+[data-theme='light'] .grai-liquidation-distribute-title-info .grai-field-info-trigger:hover .grai-bribe-curve-chart-title,
+[data-theme='light'] .grai-liquidation-distribute-title-info.is-open .grai-bribe-curve-chart-title {
+  border-bottom-color: #e91e8c;
+}
+
+.grai-liquidation-distribute-title-info .grai-field-info-tooltip {
+  left: 50%;
+  right: auto;
+  top: calc(100% + 8px);
+  bottom: auto;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(22rem, 80vw);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: left;
+}
+
+.grai-liquidation-distribute-title-info .grai-field-info-tooltip .grai-note-accent {
+  color: #ff69b4;
+  font-weight: 600;
+}
+
+.grai-liquidation-distribute-title-info .grai-field-info-tooltip .grai-note-accent.is-claims {
+  color: #22c55e;
+}
+
+.grai-liquidation-distribute-title-info .grai-field-info-tooltip .grai-note-accent.is-treasury {
+  color: #c9a227;
+}
+
+[data-theme='light'] .grai-liquidation-distribute-title-info .grai-field-info-tooltip .grai-note-accent {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-liquidation-distribute-title-info .grai-field-info-tooltip .grai-note-accent.is-claims {
+  color: #15803d;
+}
+
+[data-theme='light'] .grai-liquidation-distribute-title-info .grai-field-info-tooltip .grai-note-accent.is-treasury {
+  color: #a16207;
 }
 
 .grai-claim-lockers-block {
@@ -12018,6 +12448,66 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-sizing: border-box;
 }
 
+.grai-liquidation-liquidate-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.grai-liquidation-liquidate-header > .grai-liquidation-distribute-title-info {
+  align-self: center;
+  justify-content: center;
+}
+
+.grai-liquidation-liquidate-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.grai-liquidation-liquidate-view-toggle svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  transition: transform 0.2s ease;
+}
+
+.grai-liquidation-liquidate-view-toggle.is-redeem svg {
+  transform: rotate(180deg);
+}
+
+.grai-liquidation-liquidate-view-toggle:hover,
+.grai-liquidation-liquidate-view-toggle:focus-visible {
+  color: #ff69b4;
+  border-color: rgba(255, 105, 180, 0.55);
+  outline: none;
+}
+
+.grai-liquidation-liquidate-view-toggle.is-redeem {
+  color: #ff69b4;
+  border-color: rgba(255, 105, 180, 0.55);
+}
+
+[data-theme='light'] .grai-liquidation-liquidate-view-toggle:hover,
+[data-theme='light'] .grai-liquidation-liquidate-view-toggle:focus-visible,
+[data-theme='light'] .grai-liquidation-liquidate-view-toggle.is-redeem {
+  color: #e91e8c;
+  border-color: rgba(233, 30, 140, 0.5);
+}
+
 .grai-liquidation-liquidate-screen > .grai-liquidation-quorum-infographic {
   width: min(100%, 25.3125rem);
   max-width: 100%;
@@ -12027,6 +12517,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-liquidation-liquidate-screen > .grai-liquidation-ops-row {
   width: min(100%, 25.3125rem);
+}
+
+.grai-liquidation-liquidate-screen.is-redeem > .grai-liquidation-ops-row {
+  width: min(100%, 25.3125rem);
+}
+
+.grai-liquidation-liquidate-screen.is-redeem .grai-action-card.grai-mint {
+  width: 100%;
 }
 
 .grai-liquidation-redeem-screen {
@@ -13607,6 +14105,15 @@ button.grai-referral-graph-node-addr.is-copied {
   height: auto;
   min-height: 0;
   box-sizing: border-box;
+}
+
+.grai-liquidation-escrow-body .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label,
+.grai-liquidation-escrow-body .grai-mint-dividends-toggle.is-below-amount.is-active .grai-mint-dividends-toggle-label,
+.grai-liquidation-escrow-body .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
 }
 
 .grai-liquidation-escrow-body > .grai-amount-input {
@@ -15462,6 +15969,37 @@ button.grai-referral-graph-node-addr.is-copied {
     padding-top: 0;
     padding-bottom: 0;
     box-sizing: border-box;
+  }
+
+  .grai-claim-screen {
+    align-items: stretch;
+  }
+
+  .grai-claim-screen > .grai-liquidation-ops-row {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+
+  .grai-claim-screen > .grai-referral-dash-graph-embed {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .grai-liquidation-liquidate-screen > .grai-liquidation-ops-row,
+  .grai-liquidation-liquidate-screen.is-redeem > .grai-liquidation-ops-row,
+  .grai-liquidation-redeem-screen > .grai-liquidation-ops-row {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+
+  .grai-liquidation-liquidate-screen.is-redeem .grai-actions-row,
+  .grai-liquidation-liquidate-screen.is-redeem .grai-action-card.grai-mint,
+  .grai-liquidation-redeem-screen .grai-actions-row,
+  .grai-liquidation-redeem-screen .grai-action-card.grai-mint {
+    width: 100%;
+    max-width: 100%;
   }
 
   .grai-liquidation-buyback-screen {

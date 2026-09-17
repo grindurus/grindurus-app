@@ -51,6 +51,12 @@ export type GraiProtocolSnapshot = {
   /** @deprecated Depositor allowlist removed — always 0. */
   totalDepositors: bigint
   liquidation: boolean
+  /** Grinders heartbeat still active (`grinding()`). */
+  grinding: boolean
+  /**
+   * Liquidate-ready limb: Grinders heartbeat stale (`!grinding`).
+   * @deprecated Prefer `!grinding`.
+   */
   confirmed: boolean
   liquidationAt: bigint
   config: GraiProtocolConfig
@@ -121,12 +127,21 @@ function readU128LE(data: Buffer, offset: number): bigint {
 
 /**
  * GrindersState: disc(8) + owner(32) + pending_owner(32) + grai_program(32) +
- * next_custodian_id(8) + collection_mint(32) + confirmed(1) + bump(1).
+ * next_custodian_id(8) + collection_mint(32) + heartbeat_at(i64) + grinding_period(u32) + bump.
+ * Mirrors on-chain `Grinders.grinding()`: `now <= heartbeat_at + grinding_period`.
  */
+export function decodeGrindersGrinding(data: Buffer, nowSec = Math.floor(Date.now() / 1000)): boolean {
+  const heartbeatOffset = 8 + 32 + 32 + 32 + 8 + 32
+  const periodOffset = heartbeatOffset + 8
+  if (data.length < periodOffset + 4) return true
+  const heartbeatAt = Number(data.readBigInt64LE(heartbeatOffset))
+  const grindingPeriod = data.readUInt32LE(periodOffset)
+  return nowSec <= heartbeatAt + grindingPeriod
+}
+
+/** @deprecated Use `decodeGrindersGrinding`; confirmed arm was replaced by heartbeat health. */
 export function decodeGrindersConfirmed(data: Buffer): boolean {
-  const offset = 8 + 32 + 32 + 32 + 8 + 32
-  if (data.length <= offset) return false
-  return data[offset] !== 0
+  return !decodeGrindersGrinding(data)
 }
 
 function decodeGraiStateConfig(data: Buffer): GraiProtocolConfig {
@@ -158,6 +173,7 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
   totalVoted: bigint
   liquidation: boolean
   confirmed: boolean
+  grinding: boolean
   liquidationAt: bigint
   config: GraiProtocolConfig
   royaltyBps: number
@@ -188,6 +204,7 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
     liquidation: data[200] !== 0,
     /** Populated by callers from GrindersState; GraiState no longer stores the arm. */
     confirmed: false,
+    grinding: true,
     liquidationAt: data.readBigInt64LE(201),
     config: decodeGraiStateConfig(data),
     royaltyBps: data.readUInt16LE(configEnd),
@@ -317,12 +334,12 @@ export async function fetchGraiProtocol(
     const voters = decodePubkeyVecAt(stateData, lockers.nextOffset)
     const referrers = decodePubkeyVecAt(stateData, voters.nextOffset)
 
-    // EVM `Grinders.confirmed` — owner arm lives on GrindersState, not GraiState.
-    let confirmed = false
+    // EVM `Grinders.grinding()` — liquidation open needs stale heartbeat (`!grinding`).
+    let grinding = true
     if (!fixed.grinders.equals(PublicKey.default)) {
       const grindersInfo = await connection.getAccountInfo(fixed.grinders)
       if (grindersInfo?.data) {
-        confirmed = decodeGrindersConfirmed(Buffer.from(grindersInfo.data))
+        grinding = decodeGrindersGrinding(Buffer.from(grindersInfo.data))
       }
     }
 
@@ -347,7 +364,8 @@ export async function fetchGraiProtocol(
       totalVoted: fixed.totalVoted,
       totalDepositors: 0n,
       liquidation: fixed.liquidation,
-      confirmed,
+      confirmed: !grinding,
+      grinding,
       liquidationAt: fixed.liquidationAt,
       config: fixed.config,
       royaltyBps: fixed.royaltyBps,

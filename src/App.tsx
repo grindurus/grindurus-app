@@ -16,7 +16,7 @@ const AffiliatesPage = lazy(() => import('./pages/AffiliatesPage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
 
 function titleFromPath(pathname: string): string {
-  if (pathname.startsWith('/backtest')) return 'Backtest Simulator'
+  if (pathname.startsWith('/backtest')) return 'Backtest'
   if (pathname.startsWith('/grinders')) return 'Grinders'
   if (pathname.startsWith('/grs')) return 'GRS'
   if (pathname.startsWith('/affiliate')) return 'Affiliates'
@@ -143,7 +143,7 @@ function App() {
     <div className="App">
       <AppNavigateBinder />
       <Header />
-      <main className={`App-main ${pathname.startsWith('/backtest') ? 'App-main--backtest' : ''}`}>
+      <main className="App-main">
         <Routes>
           <Route path="/" element={<Navigate to="/grai" replace />} />
           <Route path="/grai" element={<GraiRoute />} />

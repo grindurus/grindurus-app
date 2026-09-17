@@ -28,7 +28,8 @@ function decodeTokenAmount(data: Buffer): bigint {
 }
 
 function hasQuorum(totalVoted: bigint, totalSupply: bigint, quorumBps: number): boolean {
-  return totalVoted * BPS >= totalSupply * BigInt(quorumBps)
+  // Match on-chain / EVM: `total_voted * BPS > supply * quorum_bps` (false when supply is 0).
+  return totalVoted * BPS > totalSupply * BigInt(quorumBps)
 }
 
 /**
@@ -126,6 +127,7 @@ export async function fetchSolanaLiquidationVoteState(
     totalSupply,
     totalValue: protocol.totalValue,
     hasQuorum: hasQuorum(totalVoted, totalSupply, quorumBps),
+    grinding: protocol.grinding ?? !protocol.confirmed,
     confirmed: protocol.confirmed,
     liquidationOpen: protocol.liquidation,
     settlementAsset: bribeAsset.toBase58() as `0x${string}`,

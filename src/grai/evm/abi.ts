@@ -526,6 +526,27 @@ export const grindersAbi = [
   },
   {
     type: 'function',
+    name: 'grinding',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'heartbeatAt',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint48' }],
+  },
+  {
+    type: 'function',
+    name: 'grindPeriod',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint32' }],
+  },
+  {
+    type: 'function',
     name: 'confirm',
     stateMutability: 'nonpayable',
     inputs: [],

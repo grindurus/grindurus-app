@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ResponsiveContainer, Sankey, Tooltip } from 'recharts'
 import type { SankeyLinkProps, SankeyNodeProps } from 'recharts'
 
-/** Colors: Money in, Claim, Treasury, Revenue share */
+/** Colors: Money in, Dividends, Treasury, Revenue share */
 const NODE_COLORS = ['#ff69b4', '#22c55e', '#c9a227', '#e8c547'] as const
 const PRIMARY_SHARE_COUNT = 2
 /** Share of the Treasury leg that continues to Revenue share. */
@@ -41,9 +41,11 @@ function formatCompactAmount(value: number): string {
   if (value >= 1000) {
     return value.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 2 })
   }
+  // Strip trailing fractional zeros only (do not touch integer trailing zeros: "100" must stay "100").
   return value
-    .toLocaleString('en-US', { maximumFractionDigits: 6 })
-    .replace(/\.?0+$/, '')
+    .toLocaleString('en-US', { maximumFractionDigits: 6, useGrouping: false })
+    .replace(/(\.\d*?)0+$/, '$1')
+    .replace(/\.$/, '')
 }
 
 function formatAmountWithSymbol(value: number, symbol?: string): string {
@@ -193,7 +195,7 @@ function SankeyLink(props: SankeyLinkProps) {
   )
 }
 
-/** Sankey: input splits to Claim / Treasury; 10% of Treasury → Revenue share. */
+/** Sankey: input splits to Dividends / Treasury; 10% of Treasury → Revenue share. */
 export function GraiDistributeMoneyFlow({ amountLabel, assetSymbol }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [chartWidth, setChartWidth] = useState(0)
@@ -234,7 +236,7 @@ export function GraiDistributeMoneyFlow({ amountLabel, assetSymbol }: Props) {
     return {
       nodes: [
         { name: sourceName },
-        { name: 'Claim', amountLabel: formatAmountWithSymbol(primaryShare, assetSymbol) },
+        { name: 'Dividends', amountLabel: formatAmountWithSymbol(primaryShare, assetSymbol) },
         { name: 'Treasury', amountLabel: formatAmountWithSymbol(treasuryKept, assetSymbol) },
         {
           name: 'Referrers\nRevenue Share',
