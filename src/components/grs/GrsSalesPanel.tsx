@@ -59,7 +59,7 @@ function mockBookRows(): GrsSaleBookRow[] {
   }))
 }
 
-export function GrsSalesPanel({ config, snapshot, isLoading, refresh, note }: Props) {
+export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh, note }: Props) {
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
   const activeWallet = useActiveWallet()
