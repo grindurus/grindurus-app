@@ -22,9 +22,14 @@ import './BacktestPage.css'
 const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
 const DEFAULT_QUOTE_ASSETS = ['USDC', 'USDT', 'USD', 'SOL'] as const
 const DEFAULT_BASE_ASSET = 'SOL'
+/** Inclusive calendar-day cap for From–To (matches UI “Max period”). */
+const MAX_BACKTEST_PERIOD_DAYS = 5
+const QUEUE_VISIBLE_OPTIONS = [4, 6, 9, 12] as const
+const QUEUE_VISIBLE_DEFAULT = QUEUE_VISIBLE_OPTIONS[0]
 const USDC_ICON_URL = 'https://assets.coingecko.com/coins/images/6319/small/usdc.png'
 
-const ASSET_ICON_URLS: Record<string, string> = {
+/** Fallback when `/symbols` has not loaded icons yet. */
+const FALLBACK_ASSET_ICON_URLS: Record<string, string> = {
   ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
   BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
   SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
@@ -53,12 +58,22 @@ function normalizeAssetQuery(value: string) {
   return value.trim().toUpperCase()
 }
 
-function assetIconUrl(symbol: string): string | null {
-  return ASSET_ICON_URLS[normalizeAssetQuery(symbol)] ?? null
+function assetIconUrl(symbol: string, icons?: Record<string, string>): string | null {
+  const key = normalizeAssetQuery(symbol)
+  if (!key) return null
+  return icons?.[key] ?? FALLBACK_ASSET_ICON_URLS[key] ?? null
 }
 
-function BacktestAssetIcon({ symbol, size = 24 }: { symbol: string; size?: number }) {
-  const src = assetIconUrl(symbol)
+function BacktestAssetIcon({
+  symbol,
+  size = 24,
+  icons,
+}: {
+  symbol: string
+  size?: number
+  icons?: Record<string, string>
+}) {
+  const src = assetIconUrl(symbol, icons)
   if (!src) return null
   return (
     <span className="backtest-pair-asset-icon" aria-hidden="true">
@@ -164,17 +179,32 @@ type ApiHistoryItem = {
   quote_asset: string
   period_start: string
   period_end: string
+  base_balance_start: string | number
+  base_balance_end: string | number
+  quote_balance_start: string | number
+  quote_balance_end: string | number
   pnl_base: string | number
   pnl_quote: string | number
+  priority_usdc?: string | number
   creator_address: string
 }
 
 type BacktestHistoryItem = {
   id: string
   pair: string
+  baseAsset: string
+  quoteAsset: string
   period: string
+  periodDuration: string
+  baseStart: string
+  baseEnd: string
+  quoteStart: string
+  quoteEnd: string
   pnlBase: string
   pnlQuote: string
+  pnlBasePct: string
+  pnlQuotePct: string
+  priorityUsdc: string
   creatorAddress: string
 }
 
@@ -187,6 +217,7 @@ type ApiHealth = {
 type ApiSymbols = {
   base_assets?: unknown
   quote_assets?: unknown
+  icons?: unknown
 }
 
 function shortenCreatorAddress(addr: string, head = 6, tail = 4) {
@@ -211,6 +242,42 @@ function toAmountString(value: string | number, fractionDigits = 8) {
     })
   }
   return String(value)
+}
+
+/** Compact amount for tight history-card cells. */
+function toCompactAmount(value: string | number) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return String(value)
+  const abs = Math.abs(n)
+  const digits = abs >= 1000 ? 2 : abs >= 1 ? 4 : abs >= 0.01 ? 4 : 6
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits,
+  })
+}
+
+function pnlToneClass(value: string | number) {
+  const n = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''))
+  if (!Number.isFinite(n) || n <= 0) return ''
+  return 'is-pnl-pos'
+}
+
+function parseAmount(value: string | number) {
+  return typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''))
+}
+
+/** PnL as % of end balance for that asset. */
+function pnlPctOfEnd(pnl: string | number, endBalance: string | number) {
+  const p = parseAmount(pnl)
+  const end = parseAmount(endBalance)
+  if (!Number.isFinite(p) || !Number.isFinite(end) || end === 0) return '—'
+  const pct = (p / Math.abs(end)) * 100
+  const formatted = pct.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
+  if (pct > 0) return `+${formatted}%`
+  return `${formatted}%`
 }
 
 function normalizeUsdcAmount(raw: string | undefined, fallback = '1') {
@@ -357,20 +424,25 @@ const DEMO_BACKTEST_QUEUE: BacktestQueueItem[] = [
 ]
 
 function toInputDateValue(d: Date) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+/** Calendar day at 00:00 UTC (date-only math for the backtest picker). */
+function utcDay(d = new Date()) {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
 }
 
 function parseInputDate(s: string) {
   const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, (m || 1) - 1, d || 1)
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1))
 }
 
 function addDays(date: Date, days: number) {
   const out = new Date(date)
-  out.setDate(out.getDate() + days)
+  out.setUTCDate(out.getUTCDate() + days)
   return out
 }
 
@@ -499,14 +571,16 @@ function logEventToChartPoints(raw: unknown): {
 
 function BacktestPage() {
   const { openChainSelector } = useWalletContext()
-  const end = new Date()
-  const start = new Date()
-  start.setDate(end.getDate() - 29)
-
-  const [dateFrom, setDateFrom] = useState(() => toInputDateValue(start))
-  const [dateTo, setDateTo] = useState(() => toInputDateValue(end))
+  const [dateFrom, setDateFrom] = useState(() => {
+    // Last completed UTC day (today UTC is often incomplete / still "future" vs server).
+    const end = addDays(utcDay(), -1)
+    return toInputDateValue(addDays(end, -(MAX_BACKTEST_PERIOD_DAYS - 1)))
+  })
+  const [dateTo, setDateTo] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
   const [baseAssets, setBaseAssets] = useState<string[]>([...DEFAULT_BASE_ASSETS])
   const [quoteAssets, setQuoteAssets] = useState<string[]>([...DEFAULT_QUOTE_ASSETS])
+  const [assetIcons, setAssetIcons] = useState<Record<string, string>>({})
+
   const [baseAsset, setBaseAsset] = useState<string>(DEFAULT_BASE_ASSET)
   const [quoteAsset, setQuoteAsset] = useState<string>(DEFAULT_QUOTE_ASSETS[0])
   const [baseAmount, setBaseAmount] = useState('')
@@ -522,15 +596,16 @@ function BacktestPage() {
   const [quoteAssetListAll, setQuoteAssetListAll] = useState(true)
   const [promocode, setPromocode] = useState('')
   const [appliedPromocode, setAppliedPromocode] = useState('')
-  const [queueColumns, setQueueColumns] = useState(4)
+  const [queueColumns, setQueueColumns] = useState(2)
   const [queueBidValues, setQueueBidValues] = useState<Record<string, string>>({})
   const [queueBidCustomOpen, setQueueBidCustomOpen] = useState<Record<string, boolean>>({})
   const [queueBidBusy, setQueueBidBusy] = useState<Record<string, boolean>>({})
   const [defaultBidPrice, setDefaultBidPrice] = useState('1')
   const [queueItems, setQueueItems] = useState<BacktestQueueItem[]>([])
-  const [queueSortBy, setQueueSortBy] = useState<'priority' | 'created_at'>('priority')
   const [queueSearch, setQueueSearch] = useState('')
   const [queueView, setQueueView] = useState<'queue' | 'history'>('queue')
+  const [queueVisibleCount, setQueueVisibleCount] =
+    useState<(typeof QUEUE_VISIBLE_OPTIONS)[number]>(QUEUE_VISIBLE_DEFAULT)
   const [queueLoading, setQueueLoading] = useState(false)
   const [queueError, setQueueError] = useState('')
   const [priorityTotals, setPriorityTotals] = useState({
@@ -540,8 +615,12 @@ function BacktestPage() {
   })
   const [liveInventoryHistory, setLiveInventoryHistory] = useState<InventoryHistoryPoint[]>([])
   const [liveYieldHistory, setLiveYieldHistory] = useState<YieldHistoryPoint[]>([])
-  const [backtestGrinderId, setBacktestGrinderId] = useState('1')
+  /** Once live SSE has been used, keep showing live series (incl. empty after run ends). */
+  const [useLiveCharts, setUseLiveCharts] = useState(false)
+  const [copiedHistoryId, setCopiedHistoryId] = useState('')
+  const [copiedCreatorKey, setCopiedCreatorKey] = useState('')
   const [historyItems, setHistoryItems] = useState<BacktestHistoryItem[]>([])
+  const [historyPage, setHistoryPage] = useState(0)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
   const [showX402NetworkSwitch, setShowX402NetworkSwitch] = useState(false)
@@ -590,7 +669,7 @@ function BacktestPage() {
   const onFromChange = (v: string) => {
     const nextFrom = parseInputDate(v)
     const currentTo = parseInputDate(dateTo)
-    const maxTo = addDays(nextFrom, 4)
+    const maxTo = addDays(nextFrom, MAX_BACKTEST_PERIOD_DAYS - 1)
     setDateFrom(v)
     if (nextFrom > currentTo) {
       setDateTo(v)
@@ -604,7 +683,7 @@ function BacktestPage() {
   const onToChange = (v: string) => {
     const nextTo = parseInputDate(v)
     const currentFrom = parseInputDate(dateFrom)
-    const minFrom = addDays(nextTo, -4)
+    const minFrom = addDays(nextTo, -(MAX_BACKTEST_PERIOD_DAYS - 1))
     if (nextTo < currentFrom) {
       setDateTo(v)
       setDateFrom(v)
@@ -642,7 +721,7 @@ function BacktestPage() {
     }
     setPayBusy(true)
     try {
-      const endpoint = `${backtestApiOrigin}/backtest`
+      const endpoint = `${backtestApiOrigin}/create`
       const body = JSON.stringify({
         owner_address: solanaWallet.address || walletClient?.account?.address || '0x0000000000000000000000000000000000000001',
         params: {
@@ -652,8 +731,8 @@ function BacktestPage() {
           quote_asset: quoteValue,
           base_amount: baseAmount.trim() || '0',
           quote_amount: quoteAmount.trim() || '0',
-          date_from: `${dateFrom}T00:00:00`,
-          date_to: `${dateTo}T23:59:59.999`,
+          date_from: `${dateFrom}T00:00:00Z`,
+          date_to: `${dateTo}T23:59:59.999Z`,
           priority_usdc: '1',
         },
       })
@@ -817,6 +896,7 @@ function BacktestPage() {
     solanaWalletWalletSignerReady(solanaWallet.signTransaction)
   const x402NeedsWalletConnection =
     payMethod === 'x402' && !hasEvmSigner && !hasSvmSigner
+  const payStatusMessage = payError || paySuccess
   const payButtonLabel =
     x402NeedsWalletConnection
       ? 'Connect wallet'
@@ -825,7 +905,9 @@ function BacktestPage() {
       : `Pay 1 ${quoteValue}`
   const payButtonAriaLabel = payBusy
     ? 'Processing payment'
-    : x402NeedsWalletConnection
+    : payStatusMessage
+      ? payStatusMessage
+      : x402NeedsWalletConnection
       ? 'Connect wallet to pay with x402'
       : payMethod === 'promocode'
       ? 'Run backtest with promocode'
@@ -916,7 +998,7 @@ function BacktestPage() {
       try {
         const params = new URLSearchParams({
           limit: '1000',
-          sort_by: queueSortBy,
+          sort_by: 'priority',
           sort_order: 'desc',
         })
         const response = await fetch(`${backtestApiOrigin}/queue?${params.toString()}`, { signal })
@@ -945,6 +1027,12 @@ function BacktestPage() {
             } satisfies BacktestQueueItem
           })
           .filter((item) => item.status === 'pending' || item.status === 'processing')
+          // Keep currently executing job at #1; rest already match worker order from API.
+          .sort((a, b) => {
+            if (a.status === 'processing' && b.status !== 'processing') return -1
+            if (b.status === 'processing' && a.status !== 'processing') return 1
+            return 0
+          })
         if (signal?.aborted) return
         setQueueItems(mapped)
       } catch (err) {
@@ -957,7 +1045,7 @@ function BacktestPage() {
         setQueueLoading(false)
       }
     },
-    [backtestApiOrigin, queueSortBy]
+    [backtestApiOrigin]
   )
 
   const loadHistory = useCallback(
@@ -965,7 +1053,7 @@ function BacktestPage() {
       setHistoryLoading(true)
       setHistoryError('')
       try {
-        const response = await fetch(`${backtestApiOrigin}/history?limit=200`, { signal })
+        const response = await fetch(`${backtestApiOrigin}/stack?limit=200`, { signal })
         const raw = await response.text()
         const payload = raw ? (JSON.parse(raw) as unknown) : []
         if (!response.ok) {
@@ -976,12 +1064,25 @@ function BacktestPage() {
         }
         const mapped = payload.map((item) => {
           const h = item as ApiHistoryItem
+          const periodStart = toDateOnly(h.period_start)
+          const periodEnd = toDateOnly(h.period_end)
+          const days = daysInclusive(periodStart, periodEnd)
           return {
             id: String(h.id),
             pair: `${h.base_asset} / ${h.quote_asset}`,
-            period: `${toDateOnly(h.period_start)} - ${toDateOnly(h.period_end)}`,
-            pnlBase: toAmountString(h.pnl_base),
-            pnlQuote: toAmountString(h.pnl_quote),
+            baseAsset: String(h.base_asset || ''),
+            quoteAsset: String(h.quote_asset || ''),
+            period: `${periodStart} - ${periodEnd}`,
+            periodDuration: days === 1 ? '1 day' : `${days} days`,
+            baseStart: toCompactAmount(h.base_balance_start),
+            baseEnd: toCompactAmount(h.base_balance_end),
+            quoteStart: toCompactAmount(h.quote_balance_start),
+            quoteEnd: toCompactAmount(h.quote_balance_end),
+            pnlBase: toCompactAmount(h.pnl_base),
+            pnlQuote: toCompactAmount(h.pnl_quote),
+            pnlBasePct: pnlPctOfEnd(h.pnl_base, h.base_balance_end),
+            pnlQuotePct: pnlPctOfEnd(h.pnl_quote, h.quote_balance_end),
+            priorityUsdc: toAmountString(h.priority_usdc ?? 0, 2),
             creatorAddress: h.creator_address,
           } satisfies BacktestHistoryItem
         })
@@ -1046,10 +1147,7 @@ function BacktestPage() {
       try {
         const response = await fetch(`${backtestApiOrigin}/health`)
         if (!response.ok) return
-        const payload = (await response.json()) as ApiHealth & { grinder_id?: string }
-        if (typeof payload.grinder_id === 'string' && payload.grinder_id.trim()) {
-          setBacktestGrinderId(payload.grinder_id.trim())
-        }
+        const payload = (await response.json()) as ApiHealth
         setDefaultBidPrice(normalizeUsdcAmount(payload.backtest_price, '1'))
       } catch {
         // Keep defaults if health endpoint unavailable.
@@ -1061,46 +1159,111 @@ function BacktestPage() {
   useEffect(() => {
     const ac = new AbortController()
     let buffer = ''
+    let sawGrinding = false
+
+    const clearLiveCharts = () => {
+      setLiveInventoryHistory([])
+      setLiveYieldHistory([])
+      setUseLiveCharts(true)
+      sawGrinding = false
+    }
+
+    const appendLivePoint = <T extends { t: number }>(prev: T[], point: T, replace: boolean): T[] => {
+      if (replace) return [point]
+      const last = prev[prev.length - 1]
+      if (
+        last &&
+        last.t === point.t &&
+        JSON.stringify(last) === JSON.stringify(point)
+      ) {
+        return prev
+      }
+      return [...prev.slice(-4999), point]
+    }
+
+    const applyLogPayload = (parsed: unknown) => {
+      if (!parsed || typeof parsed !== 'object') return
+      const o = parsed as Record<string, unknown>
+      const status = typeof o.status === 'string' ? o.status : ''
+
+      // Protocol: grind ends GRINDING → INITIALIZED; deconstruct → NOT_INITIALIZED / {}.
+      if (sawGrinding && (status === 'INITIALIZED' || status === 'NOT_INITIALIZED')) {
+        clearLiveCharts()
+        return
+      }
+      if (Object.keys(o).length === 0) {
+        if (sawGrinding) clearLiveCharts()
+        return
+      }
+
+      const startingRun = status === 'GRINDING' && !sawGrinding
+      if (status === 'GRINDING') sawGrinding = true
+
+      const { inventory, yieldPoint } = logEventToChartPoints(parsed)
+      if (!inventory && !yieldPoint) return
+
+      setUseLiveCharts(true)
+      if (inventory) {
+        setLiveInventoryHistory((prev) => appendLivePoint(prev, inventory, startingRun))
+      } else if (startingRun) {
+        setLiveInventoryHistory([])
+      }
+      if (yieldPoint) {
+        setLiveYieldHistory((prev) => appendLivePoint(prev, yieldPoint, startingRun))
+      } else if (startingRun) {
+        setLiveYieldHistory([])
+      }
+    }
 
     const run = async () => {
-      try {
-        const response = await fetch(
-          `${backtestApiOrigin}/grinder/${encodeURIComponent(backtestGrinderId)}/logs/stream`,
-          {
+      while (!ac.signal.aborted) {
+        try {
+          const latest = await fetch(`${backtestApiOrigin}/logs`, {
+            signal: ac.signal,
+            headers: { Accept: 'application/json' },
+          })
+          if (latest.ok) {
+            try {
+              applyLogPayload(await latest.json())
+            } catch {
+              // Ignore malformed latest snapshot.
+            }
+          }
+
+          const response = await fetch(`${backtestApiOrigin}/logs/stream?interval=1`, {
             signal: ac.signal,
             headers: { Accept: 'text/event-stream' },
-          }
-        )
-        if (!response.ok || !response.body) return
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        while (!ac.signal.aborted) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          buffer = consumeCompleteSseEvents(buffer, (raw) => {
-            try {
-              const parsed = JSON.parse(raw) as unknown
-              const { inventory, yieldPoint } = logEventToChartPoints(parsed)
-              if (inventory) {
-                setLiveInventoryHistory((prev) => [...prev.slice(-4999), inventory])
-              }
-              if (yieldPoint) {
-                setLiveYieldHistory((prev) => [...prev.slice(-4999), yieldPoint])
-              }
-            } catch {
-              // Ignore malformed SSE frames.
-            }
           })
+          if (!response.ok || !response.body) {
+            await new Promise((r) => setTimeout(r, 1000))
+            continue
+          }
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          buffer = ''
+          while (!ac.signal.aborted) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+            buffer = consumeCompleteSseEvents(buffer, (raw) => {
+              try {
+                applyLogPayload(JSON.parse(raw) as unknown)
+              } catch {
+                // Ignore malformed SSE frames.
+              }
+            })
+          }
+        } catch (err) {
+          if ((err as DOMException)?.name === 'AbortError') return
         }
-      } catch (err) {
-        if ((err as DOMException)?.name === 'AbortError') return
+        if (ac.signal.aborted) return
+        await new Promise((r) => setTimeout(r, 1000))
       }
     }
 
     void run()
     return () => ac.abort()
-  }, [backtestApiOrigin, backtestGrinderId])
+  }, [backtestApiOrigin])
 
   useEffect(() => {
     const loadSymbols = async () => {
@@ -1124,6 +1287,20 @@ function BacktestPage() {
         const nextQuoteAssets = normalizeSymbols(payload.quote_assets)
         if (nextBaseAssets.length > 0) setBaseAssets(nextBaseAssets)
         if (nextQuoteAssets.length > 0) setQuoteAssets(nextQuoteAssets)
+
+        const rawIcons = payload.icons
+        if (rawIcons && typeof rawIcons === 'object' && !Array.isArray(rawIcons)) {
+          const nextIcons: Record<string, string> = {}
+          for (const [key, value] of Object.entries(rawIcons as Record<string, unknown>)) {
+            const symbol = normalizeAssetQuery(key)
+            const url = typeof value === 'string' ? value.trim() : ''
+            if (!symbol || !url) continue
+            nextIcons[symbol] = url.startsWith('http')
+              ? url
+              : `${backtestApiOrigin}${url.startsWith('/') ? url : `/${url}`}`
+          }
+          if (Object.keys(nextIcons).length > 0) setAssetIcons(nextIcons)
+        }
       } catch {
         // Keep default symbol lists when symbols endpoint is unavailable.
       }
@@ -1197,20 +1374,24 @@ function BacktestPage() {
   }, [baseAssetMenuOpen, quoteAssetMenuOpen])
 
   useEffect(() => {
+    if (queueView !== 'queue') return
     const el = queueScrollerRef.current
     if (!el) return
 
     const updateColumns = () => {
-      const cardMin = 190
-      const gap = 10
-      const cols = Math.max(1, Math.floor((el.clientWidth + gap) / (cardMin + gap)))
-      setQueueColumns(Math.min(3, cols))
+      // Snake needs 2 columns on desktop; collapse only on very narrow scroller.
+      setQueueColumns(el.clientWidth >= 420 ? 2 : 1)
     }
 
     updateColumns()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateColumns) : null
+    ro?.observe(el)
     window.addEventListener('resize', updateColumns)
-    return () => window.removeEventListener('resize', updateColumns)
-  }, [])
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', updateColumns)
+    }
+  }, [queueView])
 
   const visibleQueue = useMemo(() => {
     const query = queueSearch.trim().toLowerCase()
@@ -1229,6 +1410,23 @@ function BacktestPage() {
       return haystack.includes(query)
     })
   }, [queueItems, queueSearch])
+  const visibleHistory = useMemo(() => {
+    const query = queueSearch.trim().toLowerCase()
+    if (!query) return historyItems
+    return historyItems.filter((item) => {
+      const haystack = [
+        item.id,
+        item.creatorAddress,
+        item.baseAsset,
+        item.quoteAsset,
+        item.pair,
+        item.period,
+      ]
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(query)
+    })
+  }, [historyItems, queueSearch])
   const isQueueSearchActive = queueSearch.trim().length > 0
   const queuePriorityRaw = priorityTotals.queue_usdc
   const stackPriorityRaw = priorityTotals.stack_usdc
@@ -1251,8 +1449,41 @@ function BacktestPage() {
     () => (totalPriorityRaw > 0 ? (stackPriorityRaw / totalPriorityRaw) * 100 : 0),
     [stackPriorityRaw, totalPriorityRaw]
   )
-  const queueRows = useMemo(() => chunkArray(visibleQueue, queueColumns), [visibleQueue, queueColumns])
-  const featuredBacktest = visibleQueue[0] ?? DEMO_BACKTEST_QUEUE[0]
+  const displayQueue = useMemo(
+    () => visibleQueue.slice(0, queueVisibleCount),
+    [visibleQueue, queueVisibleCount]
+  )
+  const queueRows = useMemo(
+    () => chunkArray(displayQueue, queueColumns),
+    [displayQueue, queueColumns]
+  )
+  const historyCols = queueVisibleCount > 4 ? 3 : 2
+  const historyPageCount = Math.max(1, Math.ceil(visibleHistory.length / queueVisibleCount))
+  const pagedHistoryItems = useMemo(() => {
+    const start = historyPage * queueVisibleCount
+    return visibleHistory.slice(start, start + queueVisibleCount)
+  }, [visibleHistory, historyPage, queueVisibleCount])
+  const historyRangeStart = visibleHistory.length === 0 ? 0 : historyPage * queueVisibleCount + 1
+  const historyRangeEnd = Math.min((historyPage + 1) * queueVisibleCount, visibleHistory.length)
+  const showHistoryPagination = visibleHistory.length > queueVisibleCount
+
+  useEffect(() => {
+    setHistoryPage((page) => Math.min(page, historyPageCount - 1))
+  }, [visibleHistory.length, historyPageCount, queueVisibleCount])
+
+  useEffect(() => {
+    setHistoryPage(0)
+  }, [queueSearch])
+
+  useEffect(() => {
+    if (queueView === 'history') setHistoryPage(0)
+  }, [queueView])
+
+  const runningBacktest = useMemo(
+    () => queueItems.find((item) => item.status === 'processing') ?? null,
+    [queueItems]
+  )
+  const featuredBacktest = runningBacktest ?? visibleQueue[0] ?? DEMO_BACKTEST_QUEUE[0]
   const featuredRangeDays = useMemo(
     () => daysInclusive(featuredBacktest.dateFrom, featuredBacktest.dateTo),
     [featuredBacktest.dateFrom, featuredBacktest.dateTo]
@@ -1276,26 +1507,48 @@ function BacktestPage() {
   )
   const backtestChartHistory = useMemo(
     () =>
-      liveInventoryHistory.length > 0 || liveYieldHistory.length > 0
+      useLiveCharts
         ? { inventoryHistory: liveInventoryHistory, yieldHistory: liveYieldHistory }
         : fallbackChartHistory,
-    [fallbackChartHistory, liveInventoryHistory, liveYieldHistory]
+    [fallbackChartHistory, liveInventoryHistory, liveYieldHistory, useLiveCharts]
   )
 
   return (
     <div className="backtest-page">
-      <p className="grai-page-dev-banner" role="status">
-        TESTNET DEVELOPMENT
-      </p>
       <div className="backtest-layout">
         <div className="backtest-panel-wrap">
+          <div className="backtest-side-column">
           <aside className="backtest-panel" id={BACKTEST_SECTION_IDS.create}>
-          <p className="backtest-panel-heading">Create Backtest</p>
+          <p className="backtest-panel-heading" tabIndex={0}>
+            <span className="backtest-panel-heading-label">Create Backtest</span>
+            <span className="backtest-panel-heading-tip" role="tooltip">
+              <span className="backtest-panel-heading-tip-title">How to run</span>
+              <ul className="backtest-panel-heading-tip-list">
+                <li>
+                  <span className="backtest-panel-heading-tip-key">Period</span>
+                  UTC dates, max {MAX_BACKTEST_PERIOD_DAYS} days
+                </li>
+                <li>
+                  <span className="backtest-panel-heading-tip-key">Balances</span>
+                  base &amp; quote starting amounts
+                </li>
+                <li>
+                  <span className="backtest-panel-heading-tip-key">Pay</span>
+                  x402 or promocode to enqueue
+                </li>
+                <li>
+                  <span className="backtest-panel-heading-tip-key">Runtime</span>
+                  ~5 min typical
+                </li>
+              </ul>
+            </span>
+          </p>
 
           <div className="backtest-field">
             <p className="backtest-date-limit-note">
               <span className="backtest-date-limit-note-label">Max period:</span>
-              <span className="backtest-date-limit-note-value">5 days</span>
+              <span className="backtest-date-limit-note-value">{MAX_BACKTEST_PERIOD_DAYS} days</span>
+              <span className="backtest-date-limit-note-label">· UTC</span>
             </p>
             <div className="backtest-dates" role="group" aria-label="Backtest date range">
               <div className="backtest-date-col">
@@ -1362,7 +1615,7 @@ function BacktestPage() {
                         }}
                       >
                         <span className="backtest-pair-asset-token">
-                          <BacktestAssetIcon symbol={baseAsset} />
+                          <BacktestAssetIcon symbol={baseAsset} icons={assetIcons} />
                           <input
                             id="backtest-base"
                             type="text"
@@ -1441,7 +1694,7 @@ function BacktestPage() {
                                   setBaseAssetMenuOpen(false)
                                 }}
                               >
-                                <BacktestAssetIcon symbol={a} size={20} />
+                                <BacktestAssetIcon symbol={a} size={20} icons={assetIcons} />
                                 {a}
                               </button>
                             ))
@@ -1484,7 +1737,7 @@ function BacktestPage() {
                         }}
                       >
                         <span className="backtest-pair-asset-token">
-                          <BacktestAssetIcon symbol={quoteAsset} />
+                          <BacktestAssetIcon symbol={quoteAsset} icons={assetIcons} />
                           <input
                             id="backtest-quote"
                             type="text"
@@ -1559,7 +1812,7 @@ function BacktestPage() {
                                   setQuoteAssetMenuOpen(false)
                                 }}
                               >
-                                <BacktestAssetIcon symbol={a} size={20} />
+                                <BacktestAssetIcon symbol={a} size={20} icons={assetIcons} />
                                 {a}
                               </button>
                             ))
@@ -1579,9 +1832,118 @@ function BacktestPage() {
             <div className="backtest-pay-actions-wrap" ref={payMethodWrapRef}>
               <div className="backtest-pay-actions-row">
                 <div className="backtest-pay-actions">
+                  <div className="backtest-pay-method-wrap">
+                    <span className="backtest-pay-method-caption backtest-pay-method-caption--with-icon">
+                      <span className="backtest-pay-method-caption-icon">{PAY_METHOD_CAPTION_ICON}</span>
+                      Payment method
+                    </span>
+                    <div className="backtest-pay-method-control">
+                      <button
+                        type="button"
+                        className={`backtest-pay-method-btn ${payMenuOpen ? 'is-open' : ''}`}
+                        onClick={() => {
+                          if (!payBusy) setPayMenuOpen((o) => !o)
+                        }}
+                        disabled={payBusy}
+                        title={`Payment method: ${PAY_METHOD_LABEL[payMethod]}`}
+                        aria-label={`Payment method: ${PAY_METHOD_LABEL[payMethod]}. Open options.`}
+                        aria-expanded={payMenuOpen}
+                        aria-haspopup="listbox"
+                      >
+                        <span className="backtest-pay-method-label">
+                          {PAY_METHOD_LABEL[payMethod]}
+                        </span>
+                        <GraiUiCaret className="backtest-pay-method-caret" />
+                      </button>
+                      {payMenuOpen && (
+                        <div
+                          className="backtest-pay-method-list"
+                          role="listbox"
+                          aria-label="Payment method"
+                        >
+                          {PAY_METHODS.map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              role="option"
+                              aria-selected={payMethod === m}
+                              className={`backtest-pay-method-list-item ${
+                                payMethod === m ? 'is-active' : ''
+                              }`}
+                              onClick={() => {
+                                setPayMethod(m)
+                                setPayError('')
+                                setPaySuccess('')
+                                setPayMenuOpen(false)
+                              }}
+                            >
+                              {PAY_METHOD_LABEL[m]}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {payMethod === 'promocode' ? (
+                    <div className="backtest-promocode-inline-wrap backtest-promocode-inline-wrap--in-actions">
+                      <div className="backtest-promocode-inline">
+                        <input
+                          id="backtest-promocode-inline"
+                          type="text"
+                          className="backtest-promo-input"
+                          value={promocode}
+                          onChange={(e) => {
+                            setPromocode(e.target.value)
+                            setAppliedPromocode('')
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && promocode.trim()) {
+                              e.preventDefault()
+                              handlePromoApply()
+                            }
+                          }}
+                          placeholder="Enter promocode"
+                          autoComplete="off"
+                          spellCheck={false}
+                          aria-label="Promocode"
+                        />
+                        {appliedPromocode ? (
+                          <span className="backtest-promocode-inline-action">
+                            <span
+                              className="backtest-promo-checkmark"
+                              aria-live="polite"
+                              aria-label="Promocode applied"
+                              title="Promocode applied"
+                            >
+                              ✓ applied
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="backtest-promocode-inline-action">
+                            <button
+                              type="button"
+                              className="backtest-promo-apply"
+                              onClick={handlePromoApply}
+                              disabled={!promocode.trim()}
+                            >
+                              Apply
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                   <button
                     type="button"
-                    className="backtest-pay-btn"
+                    className={`backtest-pay-btn${
+                      payBusy
+                        ? ''
+                        : payError
+                          ? ' is-status is-error'
+                          : paySuccess
+                            ? ' is-status is-success'
+                            : ''
+                    }`}
                     onClick={() => {
                       if (x402NeedsWalletConnection) {
                         setPayError('')
@@ -1592,9 +1954,12 @@ function BacktestPage() {
                     }}
                     disabled={payBusy}
                     aria-label={payButtonAriaLabel}
+                    aria-live="polite"
                   >
                     {payBusy ? (
                       'Processing…'
+                    ) : payStatusMessage ? (
+                      <span className="backtest-pay-btn-status">{payStatusMessage}</span>
                     ) : x402NeedsWalletConnection ? (
                       <>
                         <svg
@@ -1618,103 +1983,9 @@ function BacktestPage() {
                     )}
                   </button>
                   <p className="backtest-time-estimate-note">Est. backtest time ~ 5 min</p>
-                  <div className="backtest-pay-method-wrap">
-                    <span className="backtest-pay-method-caption backtest-pay-method-caption--with-icon">
-                      <span className="backtest-pay-method-caption-icon">{PAY_METHOD_CAPTION_ICON}</span>
-                      Payment method
-                    </span>
-                    <button
-                      type="button"
-                      className={`backtest-pay-method-btn ${payMenuOpen ? 'is-open' : ''}`}
-                      onClick={() => {
-                        if (!payBusy) setPayMenuOpen((o) => !o)
-                      }}
-                      disabled={payBusy}
-                      title={`Payment method: ${PAY_METHOD_LABEL[payMethod]}`}
-                      aria-label={`Payment method: ${PAY_METHOD_LABEL[payMethod]}. Open options.`}
-                      aria-expanded={payMenuOpen}
-                      aria-haspopup="listbox"
-                    >
-                      <span className="backtest-pay-method-label">
-                        {PAY_METHOD_LABEL[payMethod]}
-                      </span>
-                      <GraiUiCaret className="backtest-pay-method-caret" />
-                    </button>
-                    {payMethod === 'promocode' && (
-                      <div className="backtest-promocode-inline-wrap backtest-promocode-inline-wrap--in-actions">
-                        <div className="backtest-promocode-inline">
-                          <input
-                            id="backtest-promocode-inline"
-                            type="text"
-                            className="backtest-promo-input"
-                            value={promocode}
-                            onChange={(e) => {
-                              setPromocode(e.target.value)
-                              setAppliedPromocode('')
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && promocode.trim()) {
-                                e.preventDefault()
-                                handlePromoApply()
-                              }
-                            }}
-                            placeholder="Enter promocode"
-                            autoComplete="off"
-                            spellCheck={false}
-                            aria-label="Promocode"
-                          />
-                          <button
-                            type="button"
-                            className="backtest-promo-apply"
-                            onClick={handlePromoApply}
-                            disabled={!promocode.trim()}
-                          >
-                            Apply
-                          </button>
-                        </div>
-                        {appliedPromocode && (
-                          <p className="backtest-promocode-inline-status" aria-live="polite">
-                            Promocode applied. Now click Queue Backtest.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {payMenuOpen && (
-                      <div
-                        className="backtest-pay-method-list"
-                        role="listbox"
-                        aria-label="Payment method"
-                      >
-                        {PAY_METHODS.map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            role="option"
-                            aria-selected={payMethod === m}
-                            className={`backtest-pay-method-list-item ${
-                              payMethod === m ? 'is-active' : ''
-                            }`}
-                            onClick={() => {
-                              setPayMethod(m)
-                              setPayError('')
-                              setPaySuccess('')
-                              setPayMenuOpen(false)
-                            }}
-                          >
-                            {PAY_METHOD_LABEL[m]}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
-            {(payError || paySuccess) && (
-              <p className={`backtest-pay-status ${payError ? 'is-error' : 'is-success'}`} aria-live="polite">
-                {payError || paySuccess}
-              </p>
-            )}
             {showX402NetworkSwitch && payMethod === 'x402' && (
               <div className="backtest-network-switch" aria-live="polite">
                 <span className="backtest-network-switch-label">Switch network to:</span>
@@ -1775,17 +2046,19 @@ function BacktestPage() {
               </div>
             </div>
           </section>
+          </div>
           <section
             className="backtest-main"
             id={BACKTEST_SECTION_IDS.queue}
             aria-label="Backtest results"
           >
           <div
-            className="backtest-queue-wrap"
+            className={`backtest-queue-wrap ${queueView === 'history' ? 'is-history' : ''}`}
             role="region"
             aria-label={queueView === 'queue' ? 'Queue' : 'Stack'}
           >
             <div className="backtest-queue-head">
+              <div className="backtest-queue-head-start">
               <div className="backtest-queue-view-switch" role="tablist" aria-label="Queue data view">
                 <button
                   type="button"
@@ -1806,11 +2079,33 @@ function BacktestPage() {
                   Stack
                 </button>
               </div>
-              <div
-                className={`backtest-queue-sort ${queueView === 'queue' ? '' : 'is-hidden'}`}
-                aria-label="Queue sorting"
-                aria-hidden={queueView !== 'queue'}
-              >
+              <label className="backtest-queue-size" title="Cards visible">
+                <span className="backtest-queue-size-meta">
+                  <span className="backtest-queue-size-label">Show:</span>
+                  <span className="backtest-queue-size-value" aria-hidden="true">
+                    {queueVisibleCount}
+                  </span>
+                </span>
+                <input
+                  type="range"
+                  className="backtest-queue-size-slider"
+                  min={0}
+                  max={QUEUE_VISIBLE_OPTIONS.length - 1}
+                  step={1}
+                  value={Math.max(0, QUEUE_VISIBLE_OPTIONS.indexOf(queueVisibleCount))}
+                  onChange={(e) => {
+                    const next = QUEUE_VISIBLE_OPTIONS[Number(e.target.value)]
+                    if (next != null) setQueueVisibleCount(next)
+                  }}
+                  aria-label="Number of cards visible"
+                  aria-valuemin={QUEUE_VISIBLE_OPTIONS[0]}
+                  aria-valuemax={QUEUE_VISIBLE_OPTIONS[QUEUE_VISIBLE_OPTIONS.length - 1]}
+                  aria-valuenow={queueVisibleCount}
+                  aria-valuetext={`${queueVisibleCount} cards`}
+                />
+              </label>
+              </div>
+              <div className="backtest-queue-sort" aria-label="Search">
                 <div className="backtest-queue-search-wrap">
                   <input
                     ref={queueSearchInputRef}
@@ -1819,8 +2114,7 @@ function BacktestPage() {
                     value={queueSearch}
                     onChange={(e) => setQueueSearch(e.target.value)}
                     placeholder="ID / Creator Address"
-                    aria-label="Search in queue"
-                    tabIndex={queueView === 'queue' ? 0 : -1}
+                    aria-label={queueView === 'queue' ? 'Search in queue' : 'Search in stack'}
                   />
                   <button
                     type="button"
@@ -1829,8 +2123,7 @@ function BacktestPage() {
                       setQueueSearch((prev) => prev.trim())
                       queueSearchInputRef.current?.focus()
                     }}
-                    aria-label="Search queue"
-                    tabIndex={queueView === 'queue' ? 0 : -1}
+                    aria-label={queueView === 'queue' ? 'Search queue' : 'Search stack'}
                   >
                     <svg
                       className="backtest-queue-search-icon"
@@ -1847,26 +2140,6 @@ function BacktestPage() {
                     </svg>
                   </button>
                 </div>
-                <div className="backtest-queue-sort-switch" role="group" aria-label="Sort queue by">
-                  <button
-                    type="button"
-                    className={`backtest-queue-sort-btn ${queueSortBy === 'priority' ? 'is-active' : ''}`}
-                    onClick={() => setQueueSortBy('priority')}
-                    aria-pressed={queueSortBy === 'priority'}
-                    tabIndex={queueView === 'queue' ? 0 : -1}
-                  >
-                    ★ Priority
-                  </button>
-                  <button
-                    type="button"
-                    className={`backtest-queue-sort-btn ${queueSortBy === 'created_at' ? 'is-active' : ''}`}
-                    onClick={() => setQueueSortBy('created_at')}
-                    aria-pressed={queueSortBy === 'created_at'}
-                    tabIndex={queueView === 'queue' ? 0 : -1}
-                  >
-                    📅 Date
-                  </button>
-                </div>
               </div>
             </div>
             {queueView === 'queue' ? (
@@ -1879,14 +2152,15 @@ function BacktestPage() {
               >
                 <div
                   className={`backtest-queue-grid-rows ${
-                    queueSortBy === 'created_at' || isQueueSearchActive ? 'is-no-connectors' : ''
+                    isQueueSearchActive ? 'is-no-connectors' : ''
                   }`}
+                  style={{ ['--queue-cols' as string]: String(queueColumns) }}
                   role="list"
                 >
                   {queueRows.map((row, rowIdx) => {
                     const isReverse = rowIdx % 2 === 1
                     const visualRow = row
-                    const showConnectors = queueSortBy !== 'created_at' && !isQueueSearchActive
+                    const showConnectors = !isQueueSearchActive
                     return (
                       <div
                         key={`queue-row-${rowIdx}`}
@@ -1897,7 +2171,7 @@ function BacktestPage() {
                       >
                         {visualRow.map((item, visualIdx) => {
                           const originalIdx = visibleQueue.findIndex((q) => q.id === item.id)
-                          const isPriorityView = queueSortBy === 'priority' && !isQueueSearchActive
+                          const isPriorityView = !isQueueSearchActive
                           return (
                             <div
                               key={item.id}
@@ -1938,11 +2212,17 @@ function BacktestPage() {
                                 ID: {shortenCreatorAddress(item.id, 6, 4)}
                               </span>
                               <div className="backtest-queue-grid">
-                                <span className="backtest-queue-date-start">{item.dateFrom}</span>
+                                <span className="backtest-queue-date-start">
+                                  <span className="backtest-queue-date-label">from</span>
+                                  {item.dateFrom}
+                                </span>
                                 <span className="backtest-queue-amt-base">
                                   {item.baseAmount} {item.base}
                                 </span>
-                                <span className="backtest-queue-date-end">{item.dateTo}</span>
+                                <span className="backtest-queue-date-end">
+                                  <span className="backtest-queue-date-label">to</span>
+                                  {item.dateTo}
+                                </span>
                                 <span className="backtest-queue-amt-quote">
                                   {item.quoteAmount} {item.quote}
                                 </span>
@@ -1977,6 +2257,12 @@ function BacktestPage() {
                                   </span>
                                 </div>
                               </div>
+                              {originalIdx === 0 ? (
+                                <div className="backtest-queue-executing" role="status">
+                                  <span className="backtest-queue-executing-dot" aria-hidden />
+                                  <span className="backtest-queue-executing-label">Executing…</span>
+                                </div>
+                              ) : (
                               <div
                                 className={`backtest-queue-bid-row ${
                                   queueBidCustomOpen[item.id] ? 'is-custom' : ''
@@ -2048,6 +2334,7 @@ function BacktestPage() {
                                   </>
                                 )}
                               </div>
+                              )}
                               </div>
                             </div>
                           )
@@ -2058,34 +2345,272 @@ function BacktestPage() {
                 </div>
               </div>
             ) : (
-              <div className="backtest-history-list" aria-label="Backtest history PnL list">
-                {historyItems.map((item) => (
-                  <article key={item.id} className="backtest-history-card">
+              <>
+              <div
+                className={`backtest-history-list${historyCols > 2 ? ' is-compact' : ''}`}
+                style={{ ['--history-cols' as string]: String(historyCols) }}
+                aria-label="Backtest history PnL list"
+              >
+                {pagedHistoryItems.map((item, index) => {
+                  const col = index % historyCols
+                  const isReverseRow = Math.floor(index / historyCols) % 2 === 1
+                  const hasConnector = col > 0
+                  const hasNextRow = index + historyCols < pagedHistoryItems.length
+                  const hasNextLink = isReverseRow
+                    ? col === 0 && hasNextRow
+                    : col === historyCols - 1 && hasNextRow
+                  return (
+                  <div
+                    key={item.id}
+                    className={[
+                      'backtest-history-item',
+                      hasConnector ? 'has-connector' : '',
+                      isReverseRow && hasConnector ? 'is-reverse' : '',
+                      hasNextLink ? 'has-next-link' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                  <article className="backtest-history-card">
                     <div className="backtest-history-main">
-                      <div className="backtest-history-pair">{item.pair}</div>
-                      <div className="backtest-history-period">{item.period}</div>
-                      <div className="backtest-history-creator" title={item.creatorAddress}>
-                        {shortenCreatorAddress(item.creatorAddress)}
+                      <div className="backtest-history-headline">
+                        <div className="backtest-history-id-row">
+                          <button
+                            type="button"
+                            className="backtest-history-id"
+                            title={copiedHistoryId === item.id ? 'Copied' : `Copy ${item.id}`}
+                            aria-label={
+                              copiedHistoryId === item.id
+                                ? 'Copied history id'
+                                : `Copy history id ${item.id}`
+                            }
+                            onClick={() => {
+                              void navigator.clipboard.writeText(item.id).then(() => {
+                                setCopiedHistoryId(item.id)
+                                window.setTimeout(() => {
+                                  setCopiedHistoryId((cur) => (cur === item.id ? '' : cur))
+                                }, 1500)
+                              })
+                            }}
+                          >
+                            ID: {shortenCreatorAddress(item.id, 6, 4)}
+                          </button>
+                        </div>
+                        <div className="backtest-history-period-meta">
+                          <span className="backtest-history-index">
+                            #{historyPage * queueVisibleCount + index + 1}
+                          </span>
+                        </div>
+                        <div className="backtest-history-period-range">
+                          {(() => {
+                            const [from, to] = item.period.split(' - ')
+                            return (
+                              <>
+                                <span>
+                                  <span className="backtest-history-period-label">FROM</span>
+                                  <span>{from}</span>
+                                </span>
+                                <span>
+                                  <span className="backtest-history-period-label">TO</span>
+                                  <span>{to ?? from}</span>
+                                </span>
+                                <div className="backtest-history-period-duration">
+                                  <span className="backtest-history-period-label">PERIOD</span>
+                                  <span>{item.periodDuration}</span>
+                                </div>
+                              </>
+                            )
+                          })()}
+                        </div>
+                        <div className="backtest-history-pair">
+                          <span>
+                            <span className="backtest-history-pair-amount">{item.baseStart}</span>
+                            <span className="backtest-history-pair-asset">{item.baseAsset}</span>
+                          </span>
+                          <span>
+                            <span className="backtest-history-pair-amount">{item.quoteStart}</span>
+                            <span className="backtest-history-pair-asset">{item.quoteAsset}</span>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="backtest-history-meta">
+                        <button
+                          type="button"
+                          className="backtest-history-creator"
+                          title={
+                            copiedCreatorKey === item.id
+                              ? 'Copied'
+                              : `Copy ${item.creatorAddress}`
+                          }
+                          aria-label={
+                            copiedCreatorKey === item.id
+                              ? 'Copied creator address'
+                              : `Copy creator address ${item.creatorAddress}`
+                          }
+                          onClick={() => {
+                            void navigator.clipboard.writeText(item.creatorAddress).then(() => {
+                              setCopiedCreatorKey(item.id)
+                              window.setTimeout(() => {
+                                setCopiedCreatorKey((cur) => (cur === item.id ? '' : cur))
+                              }, 1500)
+                            })
+                          }}
+                        >
+                          {copiedCreatorKey === item.id
+                            ? 'Copied'
+                            : shortenCreatorAddress(item.creatorAddress)}
+                        </button>
+                        <div className="backtest-history-priority" title="Priority paid">
+                          <span className="backtest-history-priority-value">{item.priorityUsdc}</span>
+                          <BacktestUsdcTickerIcon size={11} />
+                          <span className="backtest-history-priority-unit">USDC</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="backtest-history-pnl">
-                      <div className="backtest-history-pnl-row">
-                        <span className="backtest-history-pnl-label">PnL base</span>
-                        <span className="backtest-history-pnl-value">{item.pnlBase}</span>
-                      </div>
-                      <div className="backtest-history-pnl-row">
-                        <span className="backtest-history-pnl-label">PnL quote</span>
-                        <span className="backtest-history-pnl-value">{item.pnlQuote}</span>
+                    <div className="backtest-history-stats">
+                      <div className="backtest-history-balances" aria-label="Balances end and PnL">
+                        <div className="backtest-history-balances-head" aria-hidden="true">
+                          <span />
+                          <span>End balance</span>
+                          <span
+                            className="backtest-history-pnl-head"
+                            tabIndex={0}
+                            aria-label="PnL percent equals PnL divided by absolute end balance times 100, per asset"
+                          >
+                            PnL
+                            <span className="backtest-history-pnl-tip" role="tooltip">
+                              <span className="backtest-history-pnl-tip-label">Share of end balance</span>
+                              <span className="backtest-history-pnl-tip-formula" aria-hidden="true">
+                                <span className="backtest-history-pnl-tip-lhs">PnL%</span>
+                                <span className="backtest-history-pnl-tip-eq">=</span>
+                                <span className="backtest-history-pnl-tip-frac">
+                                  <span className="backtest-history-pnl-tip-num">PnL</span>
+                                  <span className="backtest-history-pnl-tip-den">|end balance|</span>
+                                </span>
+                                <span className="backtest-history-pnl-tip-times">× 100</span>
+                              </span>
+                              <span className="backtest-history-pnl-tip-note">
+                                Per asset · same row as the End balance column
+                              </span>
+                            </span>
+                          </span>
+                        </div>
+                        <div className="backtest-history-balances-row">
+                          <span className="backtest-history-balances-asset">{item.baseAsset}</span>
+                          <span className="backtest-history-balances-num">{item.baseEnd}</span>
+                          <span
+                            className={`backtest-history-balances-num backtest-history-pnl-cell ${pnlToneClass(item.pnlBase)}`}
+                            title={`${item.pnlBase} (${item.pnlBasePct})`}
+                          >
+                            <span className="backtest-history-pnl-amt">{item.pnlBase}</span>
+                            <span className="backtest-history-pnl-pct">{item.pnlBasePct}</span>
+                          </span>
+                        </div>
+                        <div className="backtest-history-balances-row">
+                          <span className="backtest-history-balances-asset">{item.quoteAsset}</span>
+                          <span className="backtest-history-balances-num">{item.quoteEnd}</span>
+                          <span
+                            className={`backtest-history-balances-num backtest-history-pnl-cell ${pnlToneClass(item.pnlQuote)}`}
+                            title={`${item.pnlQuote} (${item.pnlQuotePct})`}
+                          >
+                            <span className="backtest-history-pnl-amt">{item.pnlQuote}</span>
+                            <span className="backtest-history-pnl-pct">{item.pnlQuotePct}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </article>
-                ))}
+                  </div>
+                  )
+                })}
               </div>
+              {showHistoryPagination ? (
+                <div
+                  className="backtest-history-pagination"
+                  role="navigation"
+                  aria-label="History pagination"
+                >
+                  <button
+                    type="button"
+                    className="backtest-history-pagination-btn"
+                    onClick={() => setHistoryPage((page) => Math.max(0, page - 1))}
+                    disabled={historyPage === 0}
+                    aria-label="Previous history page"
+                  >
+                    Prev
+                  </button>
+                  <span className="backtest-history-pagination-status" aria-live="polite">
+                    {historyRangeStart}–{historyRangeEnd} of {visibleHistory.length}
+                  </span>
+                  <button
+                    type="button"
+                    className="backtest-history-pagination-btn"
+                    onClick={() =>
+                      setHistoryPage((page) => Math.min(historyPageCount - 1, page + 1))
+                    }
+                    disabled={historyPage >= historyPageCount - 1}
+                    aria-label="Next history page"
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+              </>
             )}
             {queueView === 'queue' && queueLoading && <div className="backtest-queue-end-hint">Loading queue…</div>}
             {queueView === 'queue' && !queueLoading && queueError && <div className="backtest-queue-end-hint">{queueError}</div>}
             {queueView === 'queue' && !queueLoading && !queueError && visibleQueue.length === 0 && (
-              <div className="backtest-queue-end-hint">Queue is empty.</div>
+              isQueueSearchActive ? (
+                <div className="backtest-queue-end-hint">No matches in queue.</div>
+              ) : (
+                <div className="backtest-queue-empty" aria-label="Queue is empty">
+                  <svg
+                    className="backtest-queue-empty-art"
+                    viewBox="0 0 420 168"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      className="backtest-queue-empty-path"
+                      d="M48 42 H168 M168 42 H288 M288 42 H372 V84 H288 M288 84 H168 M168 84 H48"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <g className="backtest-queue-empty-card is-a">
+                      <rect x="28" y="22" width="88" height="40" rx="8" />
+                      <path d="M42 36 H86 M42 48 H74" />
+                    </g>
+                    <g className="backtest-queue-empty-card is-b">
+                      <rect x="148" y="22" width="88" height="40" rx="8" />
+                      <path d="M162 36 H206 M162 48 H194" />
+                    </g>
+                    <g className="backtest-queue-empty-card is-c">
+                      <rect x="268" y="22" width="88" height="40" rx="8" />
+                      <path d="M282 36 H326 M282 48 H314" />
+                    </g>
+                    <g className="backtest-queue-empty-card is-d">
+                      <rect x="268" y="64" width="88" height="40" rx="8" />
+                      <path d="M282 78 H326 M282 90 H314" />
+                    </g>
+                    <g className="backtest-queue-empty-card is-e">
+                      <rect x="148" y="64" width="88" height="40" rx="8" />
+                      <path d="M162 78 H206 M162 90 H194" />
+                    </g>
+                    <g className="backtest-queue-empty-card is-f">
+                      <rect x="28" y="64" width="88" height="40" rx="8" />
+                      <path d="M42 78 H86 M42 90 H74" />
+                    </g>
+                    <circle className="backtest-queue-empty-dot" cx="48" cy="126" r="3.5" />
+                    <circle className="backtest-queue-empty-dot is-mid" cx="72" cy="126" r="3.5" />
+                    <circle className="backtest-queue-empty-dot is-late" cx="96" cy="126" r="3.5" />
+                  </svg>
+                  <p className="backtest-queue-empty-title">Queue is clear</p>
+                  <p className="backtest-queue-empty-copy">
+                    Create a backtest on the left — it lands here in priority order.
+                  </p>
+                </div>
+              )
             )}
             {queueView === 'history' && historyLoading && <div className="backtest-queue-end-hint">Loading history…</div>}
             {queueView === 'history' && !historyLoading && historyError && (
@@ -2093,6 +2618,13 @@ function BacktestPage() {
             )}
             {queueView === 'history' && !historyLoading && !historyError && historyItems.length === 0 && (
               <div className="backtest-queue-end-hint">History is empty.</div>
+            )}
+            {queueView === 'history' &&
+              !historyLoading &&
+              !historyError &&
+              historyItems.length > 0 &&
+              visibleHistory.length === 0 && (
+              <div className="backtest-queue-end-hint">No matches in stack.</div>
             )}
           </div>
           </section>
@@ -2103,12 +2635,44 @@ function BacktestPage() {
           aria-label="Backtest output"
         >
           <h1 className="backtest-main-title">Backtest</h1>
+          {runningBacktest ? (
+            <div className="backtest-main-running-row">
+              <p className="backtest-main-running-id">
+                <button
+                  type="button"
+                  className="backtest-main-running-id-btn"
+                  title={copiedHistoryId === runningBacktest.id ? 'Copied' : `Copy ${runningBacktest.id}`}
+                  aria-label={
+                    copiedHistoryId === runningBacktest.id
+                      ? 'Copied running backtest id'
+                      : `Copy running backtest id ${runningBacktest.id}`
+                  }
+                  onClick={() => {
+                    void navigator.clipboard.writeText(runningBacktest.id).then(() => {
+                      setCopiedHistoryId(runningBacktest.id)
+                      window.setTimeout(() => {
+                        setCopiedHistoryId((cur) => (cur === runningBacktest.id ? '' : cur))
+                      }, 1500)
+                    })
+                  }}
+                >
+                  ID: {shortenCreatorAddress(runningBacktest.id, 8, 6)}
+                </button>
+              </p>
+            </div>
+          ) : null}
           <p className="backtest-main-subtitle">
-            Pair <strong>{featuredBacktest.base}</strong> / <strong>{featuredBacktest.quote}</strong>,{' '}
-            <strong>
-              {featuredBacktest.dateFrom} – {featuredBacktest.dateTo}
-            </strong>{' '}
-            ({featuredRangeDays} days).
+            {runningBacktest ? (
+              <>
+                Pair <strong>{featuredBacktest.base}</strong> / <strong>{featuredBacktest.quote}</strong>,{' '}
+                <strong>
+                  {featuredBacktest.dateFrom} – {featuredBacktest.dateTo}
+                </strong>{' '}
+                ({featuredRangeDays} days).
+              </>
+            ) : (
+              'Live inventory & yield while a backtest is grinding.'
+            )}
           </p>
           <div className="grinder-adapter-tab-main-grid" aria-label="Backtest charts">
             <div className="adapter-tab-content adapter-tab-content--inventory grinder-adapter-tab-main__inventory backtest-chart-panel">
@@ -2133,9 +2697,10 @@ function BacktestPage() {
                 <span className="grinder-adapter-tab-main-panel-head-title">Inventory</span>
               </div>
               <InventoryHistoryChart
-                history={backtestChartHistory.inventoryHistory}
+                history={runningBacktest ? backtestChartHistory.inventoryHistory : []}
                 baseAsset={featuredBacktest.base}
                 quoteAsset={featuredBacktest.quote}
+                emptyMessage={runningBacktest ? undefined : 'no intime grinding'}
               />
             </div>
             <div className="adapter-tab-content grinder-adapter-tab-main__yield backtest-chart-panel">
@@ -2158,9 +2723,10 @@ function BacktestPage() {
                 <span className="grinder-adapter-tab-main-panel-head-title">Yield</span>
               </div>
               <YieldChart
-                history={backtestChartHistory.yieldHistory}
+                history={runningBacktest ? backtestChartHistory.yieldHistory : []}
                 baseAsset={featuredBacktest.base}
                 quoteAsset={featuredBacktest.quote}
+                emptyMessage={runningBacktest ? undefined : 'no intime grinding'}
               />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { createChart, LineSeries, type IChartApi, type ISeriesApi } from 'lightweight-charts'
+import { createChart, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts'
 import { toUniqueUtcLineData } from '../chart/chartTimeUtils'
 import { buildGrindurusChartOptions, buildLineSeriesOptions } from '../chart/grindurusChartTheme'
 import { useDocumentChartTheme } from '../chart/useDocumentChartTheme'
@@ -18,9 +18,15 @@ interface YieldChartProps {
   history: YieldHistoryPoint[]
   baseAsset: string
   quoteAsset: string
+  emptyMessage?: string
 }
 
-export function YieldChart({ history, baseAsset, quoteAsset }: YieldChartProps) {
+export function YieldChart({
+  history,
+  baseAsset,
+  quoteAsset,
+  emptyMessage = 'No yield history yet',
+}: YieldChartProps) {
   const theme = useDocumentChartTheme()
   const hostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -36,8 +42,8 @@ export function YieldChart({ history, baseAsset, quoteAsset }: YieldChartProps) 
 
     const chart = createChart(host, {
       ...buildGrindurusChartOptions(theme),
-      width: host.clientWidth,
-      height: host.clientHeight,
+      width: Math.max(host.clientWidth, 1),
+      height: Math.max(host.clientHeight, 1),
     })
 
     const quoteSeries = chart.addSeries(LineSeries, buildLineSeriesOptions(theme, 'yieldQuote'))
@@ -71,6 +77,8 @@ export function YieldChart({ history, baseAsset, quoteAsset }: YieldChartProps) 
       baseSeriesRef.current = null
       totalSeriesRef.current = null
     }
+    // theme applied in a separate effect; create once per mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -87,12 +95,25 @@ export function YieldChart({ history, baseAsset, quoteAsset }: YieldChartProps) 
     const chart = chartRef.current
     if (!quoteSeries || !baseSeries || !totalSeries || !chart) return
 
+    if (points.length === 0) {
+      const now = Math.floor(Date.now() / 1000) as UTCTimestamp
+      const placeholder = [
+        { time: ((now as number) - 86_400) as UTCTimestamp, value: 0 },
+        { time: now, value: 0 },
+      ]
+      quoteSeries.setData(placeholder)
+      baseSeries.setData([])
+      totalSeries.setData([])
+      chart.timeScale().fitContent()
+      return
+    }
+
     quoteSeries.setData(toUniqueUtcLineData(points, (p) => p.t, (p) => p.pnlQuote))
     baseSeries.setData(
       toUniqueUtcLineData(points, (p) => p.t, (p) => p.pnlBase * p.price)
     )
     totalSeries.setData(toUniqueUtcLineData(points, (p) => p.t, (p) => p.totalPnl))
-    if (points.length > 1) chart.timeScale().fitContent()
+    chart.timeScale().fitContent()
   }, [points])
 
   const baseLegend = `${(baseAsset || 'BASE').toUpperCase()}×px`
@@ -101,18 +122,18 @@ export function YieldChart({ history, baseAsset, quoteAsset }: YieldChartProps) 
     <div className="yield-history-chart">
       <div className="yield-history-plot lwc-yield-layout">
         <div className="yield-plot-main lwc-yield-main lwc-chart-frame">
+          {points.length > 0 ? (
+            <div className="inventory-hover-values inventory-lwc-legend yield-lwc-legend">
+              <span className="quote">{(quoteAsset || 'QUOTE').toUpperCase()}</span>
+              <span className="base">{baseLegend}</span>
+              <span className="total">Total</span>
+            </div>
+          ) : null}
+          {/* Host must stay mounted: createChart runs once; toggling empty↔data used to orphan the canvas. */}
+          <div ref={hostRef} className="lwc-chart-host" />
           {points.length === 0 ? (
-            <div className="lwc-chart-empty">No yield history yet</div>
-          ) : (
-            <>
-              <div className="inventory-hover-values inventory-lwc-legend yield-lwc-legend">
-                <span className="quote">{(quoteAsset || 'QUOTE').toUpperCase()}</span>
-                <span className="base">{baseLegend}</span>
-                <span className="total">Total</span>
-              </div>
-              <div ref={hostRef} className="lwc-chart-host" />
-            </>
-          )}
+            <div className="lwc-chart-empty">{emptyMessage}</div>
+          ) : null}
         </div>
       </div>
     </div>

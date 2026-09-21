@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { createChart, LineSeries, type IChartApi, type ISeriesApi } from 'lightweight-charts'
+import { createChart, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts'
 import { toUniqueUtcLineData } from '../chart/chartTimeUtils'
 import { buildInventoryChartOptions, buildLineSeriesOptions, nonNegativeAutoscaleInfoProvider } from '../chart/grindurusChartTheme'
 import { useDocumentChartTheme } from '../chart/useDocumentChartTheme'
@@ -33,9 +33,15 @@ interface InventoryHistoryChartProps {
   history: InventoryHistoryPoint[]
   baseAsset: string
   quoteAsset: string
+  emptyMessage?: string
 }
 
-export function InventoryHistoryChart({ history, baseAsset, quoteAsset }: InventoryHistoryChartProps) {
+export function InventoryHistoryChart({
+  history,
+  baseAsset,
+  quoteAsset,
+  emptyMessage = 'No inventory history yet',
+}: InventoryHistoryChartProps) {
   const theme = useDocumentChartTheme()
   const hostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -55,8 +61,8 @@ export function InventoryHistoryChart({ history, baseAsset, quoteAsset }: Invent
 
     const chart = createChart(host, {
       ...buildInventoryChartOptions(theme),
-      width: host.clientWidth,
-      height: host.clientHeight,
+      width: Math.max(host.clientWidth, 1),
+      height: Math.max(host.clientHeight, 1),
     })
 
     const quoteSeries = chart.addSeries(
@@ -93,6 +99,8 @@ export function InventoryHistoryChart({ history, baseAsset, quoteAsset }: Invent
       navSeriesRef.current = null
       baseSeriesRef.current = null
     }
+    // theme applied in a separate effect; create once per mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -111,6 +119,20 @@ export function InventoryHistoryChart({ history, baseAsset, quoteAsset }: Invent
     const chart = chartRef.current
     if (!quoteSeries || !navSeries || !baseSeries || !chart) return
 
+    if (points.length === 0) {
+      // Placeholder points so price/time axes render while idle (overlay covers the line).
+      const now = Math.floor(Date.now() / 1000) as UTCTimestamp
+      const placeholder = [
+        { time: ((now as number) - 86_400) as UTCTimestamp, value: 0 },
+        { time: now, value: 0 },
+      ]
+      quoteSeries.setData(placeholder)
+      baseSeries.setData([])
+      navSeries.setData([])
+      chart.timeScale().fitContent()
+      return
+    }
+
     quoteSeries.setData(toUniqueUtcLineData(points, (p) => p.t, (p) => Math.max(0, p.quote)))
     baseSeries.setData(
       toUniqueUtcLineData(spotPoints, (p) => p.t, (p) => inventoryBaseQuote(p) as number)
@@ -118,7 +140,7 @@ export function InventoryHistoryChart({ history, baseAsset, quoteAsset }: Invent
     navSeries.setData(
       toUniqueUtcLineData(spotPoints, (p) => p.t, (p) => inventoryNav(p) as number)
     )
-    if (points.length > 1) chart.timeScale().fitContent()
+    chart.timeScale().fitContent()
   }, [points, spotPoints])
 
   const baseLegend = `${(baseAsset || 'BASE').toUpperCase()}×px`
@@ -127,18 +149,18 @@ export function InventoryHistoryChart({ history, baseAsset, quoteAsset }: Invent
     <div className="inventory-history-chart">
       <div className="inventory-history-plot lwc-inventory-layout">
         <div className="inventory-plot-main lwc-inventory-main lwc-chart-frame">
+          {points.length > 0 ? (
+            <div className="inventory-hover-values inventory-lwc-legend">
+              <span className="quote">{(quoteAsset || 'QUOTE').toUpperCase()}</span>
+              <span className="base">{baseLegend}</span>
+              <span className="nav">NAV</span>
+            </div>
+          ) : null}
+          {/* Host must stay mounted: createChart runs once; toggling empty↔data used to orphan the canvas. */}
+          <div ref={hostRef} className="lwc-chart-host" />
           {points.length === 0 ? (
-            <div className="lwc-chart-empty">No inventory history yet</div>
-          ) : (
-            <>
-              <div className="inventory-hover-values inventory-lwc-legend">
-                <span className="quote">{(quoteAsset || 'QUOTE').toUpperCase()}</span>
-                <span className="base">{baseLegend}</span>
-                <span className="nav">NAV</span>
-              </div>
-              <div ref={hostRef} className="lwc-chart-host" />
-            </>
-          )}
+            <div className="lwc-chart-empty">{emptyMessage}</div>
+          ) : null}
         </div>
       </div>
     </div>

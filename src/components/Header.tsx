@@ -162,17 +162,6 @@ const GRS_NAV_ITEMS: { section: GrsSection; label: string; icon: ReactNode }[] =
   { section: 'sales', label: 'Sale', icon: SALE_NAV_ICON },
 ]
 
-const ALLOCATE_NAV_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="6" cy="6" r="2" />
-    <circle cx="18" cy="6" r="2" />
-    <circle cx="12" cy="18" r="2" />
-    <path d="M8 6h8" />
-    <path d="M7.3 7.7l5.4 9.6" />
-    <path d="M16.7 7.7l-5.4 9.6" />
-  </svg>
-)
-
 const REGISTER_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -180,16 +169,6 @@ const REGISTER_NAV_ICON = (
     <path d="m9 15 2 2 4-4" />
   </svg>
 )
-
-const GRINDERS_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[] = [
-  { section: 'allocate', label: 'Allocate', icon: ALLOCATE_NAV_ICON },
-  { section: 'deallocate', label: 'Deallocate', icon: CLAIM_NAV_ICON },
-  { section: 'distribute', label: 'Distribute', icon: DISTRIBUTE_NAV_ICON },
-  { section: 'confirm', label: 'Confirm', icon: VOTE_NAV_ICON },
-  { section: 'liquidate', label: 'Liquidate', icon: LIQUIDATE_NAV_ICON },
-  { section: 'custodian', label: 'Mint', icon: MINT_NAV_ICON },
-  { section: 'register', label: 'Register', icon: REGISTER_NAV_ICON },
-]
 
 const LINK_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -242,19 +221,16 @@ function Header() {
   const isBacktestActive = pathname.startsWith('/backtest')
   const isAffiliatesActive = pathname.startsWith('/affiliate')
   const isGraiActive = pathname.startsWith('/grai')
-  const isGrindersActive = pathname.startsWith('/grinders')
   const isGrsActive = pathname.startsWith('/grs')
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isBacktestMenuOpen, setIsBacktestMenuOpen] = useState(false)
   const [isAffiliatesMenuOpen, setIsAffiliatesMenuOpen] = useState(false)
   const [isGraiMenuOpen, setIsGraiMenuOpen] = useState(false)
-  const [isGrindersMenuOpen, setIsGrindersMenuOpen] = useState(false)
   const [isGrsMenuOpen, setIsGrsMenuOpen] = useState(false)
   const mobileNavId = useId()
   const backtestMenuRef = useRef<HTMLLIElement>(null)
   const affiliatesMenuRef = useRef<HTMLLIElement>(null)
   const graiMenuRef = useRef<HTMLLIElement>(null)
-  const grindersMenuRef = useRef<HTMLLIElement>(null)
   const grsMenuRef = useRef<HTMLLIElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const desktopNavTrackRef = useRef<HTMLDivElement>(null)
@@ -272,7 +248,6 @@ function Header() {
     setIsBacktestMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
-    setIsGrindersMenuOpen(false)
     setIsGrsMenuOpen(false)
   }, [pathname])
 
@@ -316,7 +291,6 @@ function Header() {
       !isBacktestMenuOpen &&
       !isAffiliatesMenuOpen &&
       !isGraiMenuOpen &&
-      !isGrindersMenuOpen &&
       !isGrsMenuOpen
     ) {
       return
@@ -327,7 +301,6 @@ function Header() {
       if (!backtestMenuRef.current?.contains(target)) setIsBacktestMenuOpen(false)
       if (!affiliatesMenuRef.current?.contains(target)) setIsAffiliatesMenuOpen(false)
       if (!graiMenuRef.current?.contains(target)) setIsGraiMenuOpen(false)
-      if (!grindersMenuRef.current?.contains(target)) setIsGrindersMenuOpen(false)
       if (!grsMenuRef.current?.contains(target)) setIsGrsMenuOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -335,7 +308,6 @@ function Header() {
         setIsBacktestMenuOpen(false)
         setIsAffiliatesMenuOpen(false)
         setIsGraiMenuOpen(false)
-        setIsGrindersMenuOpen(false)
         setIsGrsMenuOpen(false)
       }
     }
@@ -345,7 +317,7 @@ function Header() {
       document.removeEventListener('mousedown', onDocumentClick)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isBacktestMenuOpen, isAffiliatesMenuOpen, isGraiMenuOpen, isGrindersMenuOpen, isGrsMenuOpen])
+  }, [isBacktestMenuOpen, isAffiliatesMenuOpen, isGraiMenuOpen, isGrsMenuOpen])
 
   const [navLockSpacerHeight, setNavLockSpacerHeight] = useState(74)
 
@@ -406,7 +378,6 @@ function Header() {
   const handleBacktestSectionClick = (section: BacktestSection) => {
     setIsBacktestMenuOpen(false)
     setIsGraiMenuOpen(false)
-    setIsGrindersMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGrsMenuOpen(false)
     navigateToBacktestSection(section)
@@ -414,13 +385,7 @@ function Header() {
 
   const handleGraiSectionClick = (section: GraiSection) => {
     setIsGraiMenuOpen(false)
-    setIsGrindersMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
-    navigateToGraiSection(section)
-  }
-
-  const handleGrindersSectionClick = (section: GraiSection) => {
-    setIsGrindersMenuOpen(false)
     navigateToGraiSection(section)
   }
 
@@ -433,7 +398,6 @@ function Header() {
     setIsBacktestMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
-    setIsGrindersMenuOpen(false)
     setIsGrsMenuOpen(false)
     setIsMobileNavOpen(false)
   }, [])
@@ -516,7 +480,6 @@ function Header() {
                   onClick={() => {
                     setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
-                    setIsGrindersMenuOpen(false)
                     setIsGrsMenuOpen(false)
                     setIsBacktestMenuOpen((open) => !open)
                   }}
@@ -564,7 +527,6 @@ function Header() {
                   onClick={() => {
                     setIsBacktestMenuOpen(false)
                     setIsGraiMenuOpen(false)
-                    setIsGrindersMenuOpen(false)
                     setIsGrsMenuOpen(false)
                     setIsAffiliatesMenuOpen((open) => !open)
                   }}
@@ -619,7 +581,6 @@ function Header() {
                     setIsBacktestMenuOpen(false)
                     setIsAffiliatesMenuOpen(false)
                     setIsGrsMenuOpen(false)
-                    setIsGrindersMenuOpen(false)
                     setIsGraiMenuOpen((open) => !open)
                   }}
                 >
@@ -639,54 +600,6 @@ function Header() {
                       role="menuitem"
                       className="header-nav-dropdown-item"
                       onClick={() => handleGraiSectionClick(item.section)}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </li>
-              <li
-                ref={grindersMenuRef}
-                className={`header-nav-item header-nav-item--grai${isGrindersMenuOpen ? ' is-open' : ''}`}
-              >
-                <HeaderNavPathButton
-                  path="/grinders"
-                  active={isGrindersActive}
-                  onClick={closeMenus}
-                >
-                  GRINDERS
-                </HeaderNavPathButton>
-                <button
-                  type="button"
-                  className={`header-nav-caret-btn${isGrindersMenuOpen ? ' is-open' : ''}`}
-                  aria-expanded={isGrindersMenuOpen}
-                  aria-haspopup="menu"
-                  aria-label="GRINDERS sections"
-                  onClick={() => {
-                    setIsBacktestMenuOpen(false)
-                    setIsAffiliatesMenuOpen(false)
-                    setIsGraiMenuOpen(false)
-                    setIsGrsMenuOpen(false)
-                    setIsGrindersMenuOpen((open) => !open)
-                  }}
-                >
-                  <GraiUiCaret className="header-nav-caret" />
-                </button>
-                <div
-                  className={`header-nav-dropdown${isGrindersMenuOpen ? ' is-open' : ''}`}
-                  role="menu"
-                  aria-label="GRINDERS sections"
-                  aria-hidden={!isGrindersMenuOpen}
-                  hidden={!isGrindersMenuOpen}
-                >
-                  {GRINDERS_NAV_ITEMS.map((item) => (
-                    <button
-                      key={item.section}
-                      type="button"
-                      role="menuitem"
-                      className="header-nav-dropdown-item"
-                      onClick={() => handleGrindersSectionClick(item.section)}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
                       <span>{item.label}</span>
@@ -715,7 +628,6 @@ function Header() {
                     setIsBacktestMenuOpen(false)
                     setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
-                    setIsGrindersMenuOpen(false)
                     setIsGrsMenuOpen((open) => !open)
                   }}
                 >
@@ -811,15 +723,6 @@ function Header() {
             </li>
             <li>
               <HeaderNavPathButton
-                path="/grinders"
-                active={isGrindersActive}
-                onClick={closeMenus}
-              >
-                GRINDERS
-              </HeaderNavPathButton>
-            </li>
-            <li>
-              <HeaderNavPathButton
                 path="/grs"
                 active={isGrsActive}
                 onClick={closeMenus}
@@ -870,23 +773,6 @@ function Header() {
                       onClick={() => {
                         setIsMobileNavOpen(false)
                         handleGraiSectionClick(item.section)
-                      }}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  </li>
-                ))
-              : null}
-            {isGrindersActive
-              ? GRINDERS_NAV_ITEMS.map((item) => (
-                  <li key={item.section}>
-                    <button
-                      type="button"
-                      className="header-nav-link header-mobile-nav-sublink"
-                      onClick={() => {
-                        setIsMobileNavOpen(false)
-                        handleGrindersSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>

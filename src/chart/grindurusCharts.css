@@ -63,13 +63,16 @@
 }
 
 .lwc-chart-empty {
-  flex: 1;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 120px;
   font-size: 0.85rem;
   color: var(--text-muted);
+  pointer-events: none;
 }
 
 .inventory-lwc-legend {

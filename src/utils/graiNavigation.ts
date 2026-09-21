@@ -18,7 +18,6 @@ export type GraiSection =
   | 'liquidate'
   | 'custodian'
   | 'register'
-  | 'confirm'
 
 export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   mint: 'grai-actions-section',
@@ -37,7 +36,6 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   liquidate: 'grai-manage-section',
   custodian: 'grai-manage-section',
   register: 'grai-manage-section',
-  confirm: 'grai-manage-section',
 }
 
 export const GRAI_SECTION_HASHES: GraiSection[] = [
@@ -57,7 +55,6 @@ export const GRAI_SECTION_HASHES: GraiSection[] = [
   'liquidate',
   'custodian',
   'register',
-  'confirm',
 ]
 
 const GRINDERS_PAGE_SECTIONS: ReadonlySet<GraiSection> = new Set([
@@ -67,7 +64,6 @@ const GRINDERS_PAGE_SECTIONS: ReadonlySet<GraiSection> = new Set([
   'liquidate',
   'custodian',
   'register',
-  'confirm',
 ])
 
 export function isManageSectionHash(hash: string): boolean {
@@ -78,7 +74,6 @@ export function isManageSectionHash(hash: string): boolean {
     hash === 'liquidate' ||
     hash === 'custodian' ||
     hash === 'register' ||
-    hash === 'confirm' ||
     hash === 'manage'
   )
 }

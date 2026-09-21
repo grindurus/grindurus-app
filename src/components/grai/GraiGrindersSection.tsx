@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Settings } from 'lucide-react'
 import { WalletNetworkSelect } from '../WalletNetworkSelect'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
@@ -31,6 +32,7 @@ const BossEndpointsTable = lazy(() =>
 const GRINDERS_TABLE_PAGE_SIZE = 10
 
 export function GraiGrindersSection() {
+  const navigate = useNavigate()
   const { openChainSelector } = useWalletContext()
   const activeWallet = useActiveWallet()
   const [isGrindersTableHidden, setIsGrindersTableHidden] = useState(true)
@@ -45,8 +47,6 @@ export function GraiGrindersSection() {
     isLive: isBossGrinderLive,
     isBootstrapped: isBossGrinderBootstrapped,
     isBossUnavailable,
-    isRefreshing: isBossGrinderRefreshing,
-    refresh: refreshBossGrinders,
   } = useBossGrinderTable(bossEndpoints.activeUrls, bossEndpoints.isMetadataReady)
   const walletNetworkCaip2 = activeWallet.networkCaip2
   const isGrindersNetworkFilterActive =
@@ -334,14 +334,11 @@ export function GraiGrindersSection() {
                     <button
                       type="button"
                       className="grai-grinders-col-grinder-link"
-                      title="Re-fetch /grinders"
-                      aria-label="Update grinders table from Boss"
-                      disabled={!bossEndpoints.isMetadataReady || isBossGrinderRefreshing}
-                      onClick={() => void refreshBossGrinders()}
+                      title="Open Grinders"
+                      aria-label="Open Grinders page"
+                      onClick={() => navigate('/grinders')}
                     >
-                      <span className="grai-grinders-col-head-label">
-                        {isBossGrinderRefreshing ? '…' : 'GRINDERS'}
-                      </span>
+                      <span className="grai-grinders-col-head-label">GRINDERS</span>
                     </button>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-head is-last-action">

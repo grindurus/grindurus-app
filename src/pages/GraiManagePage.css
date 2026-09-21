@@ -78,14 +78,83 @@
   color: #ff9ed3;
 }
 
+.grai-manage-ops-block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 1.25rem;
+}
+
+.grai-manage-ops-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  text-align: left;
+}
+
+.grai-manage-ops-heading .grai-referral-dash-collapse .grai-donut-legend-toggle-icon {
+  transition: transform 0.2s ease;
+}
+
+.grai-manage-ops-heading .grai-referral-dash-collapse.is-collapsed .grai-donut-legend-toggle-icon {
+  transform: rotate(-90deg);
+}
+
+[data-theme='light'] .grai-manage-ops-heading {
+  color: var(--text-primary);
+}
+
+.grai-manage-ops-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-manage-ops-body.is-open {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
+}
+
+.grai-manage-ops-body-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grai-manage-ops-body.is-open .grai-manage-ops-body-inner {
+  overflow: visible;
+}
+
+.grai-manage-ops-block:has(.grai-manage-ops-body:not(.is-open)) .grai-manage-ops-heading {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-manage-ops-body {
+    transition: none;
+  }
+}
+
 .grai-manage-cards {
   width: 100%;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0;
 }
 
 .grai-manage-ops-layout {
   display: grid;
-  grid-template-columns: 12.5rem minmax(0, 1fr);
+  grid-template-columns: 16rem minmax(0, 1fr);
   column-gap: 1.25rem;
   align-items: start;
   justify-content: start;
@@ -108,18 +177,6 @@
   align-self: start;
   justify-self: start;
   border-right: 1px solid var(--border-color);
-}
-
-.grai-manage-ops-heading {
-  margin: 0 0 0.85rem;
-  padding: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  text-align: left;
 }
 
 .grai-manage-ops-tabs .grai-action-switch--ops {
@@ -153,10 +210,26 @@
   margin: 0;
   text-align: left;
   padding: 0.72rem 0.5rem 0.72rem 0.65rem;
-  border-radius: 0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
   white-space: normal;
   line-height: 1.25;
   box-sizing: border-box;
+  background: transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn {
+  margin-top: 0.4rem;
+}
+
+.grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover {
+  border-color: rgba(255, 105, 180, 0.45);
+}
+
+.grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
+  border-color: #ff69b4;
+  background: rgba(255, 105, 180, 0.08);
 }
 
 .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
@@ -165,10 +238,23 @@
   left: 0;
   top: 0.45rem;
   bottom: 0.45rem;
-  width: 2px;
-  border-radius: 1px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
   background: #ff69b4;
   pointer-events: none;
+}
+
+[data-theme='light'] .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn {
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme='light'] .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover {
+  border-color: rgba(233, 30, 140, 0.45);
+}
+
+[data-theme='light'] .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
+  border-color: #e91e8c;
+  background: rgba(233, 30, 140, 0.06);
 }
 
 [data-theme='light'] .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
@@ -179,6 +265,35 @@
   flex: 0 1 auto;
   min-width: 0;
   text-align: left;
+}
+
+.grai-manage-ops-tab-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.grai-manage-ops-owner-badge {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  padding: 0.08rem 0.38rem;
+  border: 1px solid #ff69b4;
+  border-radius: 999px;
+  color: #ff69b4;
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+[data-theme='light'] .grai-manage-ops-owner-badge {
+  color: #e91e8c;
+  border-color: #e91e8c;
 }
 
 .grai-manage-ops-tabs .grai-action-switch-icon {
@@ -836,6 +951,16 @@
   text-align: left;
 }
 
+.grai-manage-custody-vault-table .grai-balance-table-cell--head.is-asset,
+.grai-manage-custody-vault-table .grai-balance-table-cell--head.is-asset .grai-balance-table-col-icon {
+  color: #fff;
+}
+
+[data-theme='light'] .grai-manage-custody-vault-table .grai-balance-table-cell--head.is-asset,
+[data-theme='light'] .grai-manage-custody-vault-table .grai-balance-table-cell--head.is-asset .grai-balance-table-col-icon {
+  color: var(--text-primary);
+}
+
 .grai-manage-custody-vault-table .grai-balance-table-cell--head.is-yield,
 .grai-manage-custody-vault-table .grai-balance-table-cell--head.is-yield .grai-balance-table-col-icon {
   color: #7dffb2;
@@ -848,6 +973,84 @@
 
 .grai-manage-custody-vault-table .grai-balance-table-row:not(.grai-balance-table-row--head) .grai-balance-table-cell.grai-asset-cell:first-child {
   overflow: visible;
+}
+
+.grai-manage-custody-vault .grai-manage-vault-table-shell {
+  overflow: visible;
+}
+
+.grai-manage-custody-vault .grai-manage-vault-table-scroll {
+  overflow: visible;
+  width: 100%;
+  margin-inline: 0;
+}
+
+.grai-manage-custody-vault .grai-vault-balance-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.grai-manage-custody-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border-top: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
+
+.grai-manage-custody-pagination-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.grai-manage-custody-pagination-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 0.28rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.grai-manage-custody-pagination-btn:hover:not(:disabled) {
+  border-color: rgba(255, 105, 180, 0.55);
+  background: rgba(255, 105, 180, 0.1);
+}
+
+.grai-manage-custody-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.grai-manage-custody-vault .grai-vault-balance-body-panel.is-open,
+.grai-manage-custody-vault .grai-vault-balance-body-panel.is-open .grai-vault-balance-body-panel-inner,
+.grai-manage-custody-vault-body-grid {
+  overflow: visible;
+}
+
+.grai-manage-custody-vault .grai-mint-asset-full-address {
+  color: #fff;
+  z-index: 80;
+  bottom: auto;
+  top: calc(100% + 6px);
+  max-width: none;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
 }
 
 .grai-manage-custody-held-assets {
@@ -927,11 +1130,13 @@
 
   .grai-manage-ops-tabs .grai-action-switch--ops {
     flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
   .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn,
   .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
-    flex: 1 1 0;
+    flex: 1 1 calc(33.333% - 0.3rem);
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
@@ -939,15 +1144,21 @@
     padding: 0.45rem 0.15rem 0.55rem;
     font-size: 0.68rem;
     text-align: center;
+    border-radius: 10px;
+  }
+
+  .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn {
+    margin-top: 0;
   }
 
   .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
-    left: 0.2rem;
-    right: 0.2rem;
+    left: 0.35rem;
+    right: 0.35rem;
     top: auto;
     bottom: 0;
     width: auto;
-    height: 2px;
+    height: 3px;
+    border-radius: 2px 2px 0 0;
   }
 
   .grai-manage-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn .grai-action-switch-label {
