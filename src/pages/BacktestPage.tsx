@@ -902,7 +902,7 @@ function BacktestPage() {
       ? 'Connect wallet'
       : payMethod === 'promocode'
       ? 'QUEUE BACKTEST'
-      : `Pay 1 ${quoteValue}`
+      : `Pay ${defaultBidPrice} USDC`
   const payButtonAriaLabel = payBusy
     ? 'Processing payment'
     : payStatusMessage
@@ -911,10 +911,14 @@ function BacktestPage() {
       ? 'Connect wallet to pay with x402'
       : payMethod === 'promocode'
       ? 'Run backtest with promocode'
-      : `Pay 1 ${quoteValue} and run backtest`
+      : `Pay ${defaultBidPrice} USDC and run backtest`
 
   const backtestApiOrigin = useMemo(
-    () => stripTrailingSlash(import.meta.env.VITE_BACKTEST_API_URL ?? 'http://localhost:8001'),
+    () =>
+      stripTrailingSlash(
+        (import.meta.env.VITE_BACKTEST_API_URL || 'http://localhost:8001').trim() ||
+          'http://localhost:8001'
+      ),
     []
   )
   const paidFetch = useMemo(() => {
