@@ -7,9 +7,25 @@ import { GraiDataProvider } from './providers/GraiDataProvider'
 import { stripBasePath } from './utils/appPaths'
 import './index.css'
 
-// Start fetching GRAI page chunk in parallel with the main bundle.
-if (stripBasePath(window.location.pathname) !== '/backtest') {
+const logicalPath = stripBasePath(window.location.pathname)
+// Warm the primary chunk for the current entry route.
+if (logicalPath === '/') {
+  void import('./pages/LandingPage')
+} else if (logicalPath !== '/backtest') {
   void import('./pages/GraiPage')
+}
+
+// Keep Tailwind `dark:` in sync with app `data-theme` (landing uses class strategy).
+{
+  const root = document.documentElement
+  const syncDarkClass = () => {
+    root.classList.toggle('dark', root.getAttribute('data-theme') !== 'light')
+  }
+  syncDarkClass()
+  new MutationObserver(syncDarkClass).observe(root, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

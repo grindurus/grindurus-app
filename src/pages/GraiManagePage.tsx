@@ -695,7 +695,6 @@ export function GraiManageSection() {
     isConfigured,
     hasStaticConfig,
     protocolError,
-    chainKind,
   } = useGraiDeployment()
   const { assets, isLoading: assetsLoading, error: assetsError } = useGraiAssets()
   const { vaultBalances, isLoading: vaultBalancesLoading, refresh: refreshVaultBalances } =

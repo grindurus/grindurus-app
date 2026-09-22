@@ -1,0 +1,20 @@
+{
+  "name": "Grinders Artificial Index",
+  "symbol": "GRAI",
+  "description": "Passive access to the GrindURUS volatility harvesting strategy.",
+  "image": "https://grindurus.xyz/logo.png",
+  "external_url": "https://app.grindurus.xyz/grai",
+  "app": "https://app.grindurus.xyz/grai",
+  "properties": {
+    "category": "fungible",
+    "bosses": [
+      "https://boss.localhost",
+      "https://boss.grindurus.xyz"
+    ],
+    "docs": "https://docs.grindurus.xyz",
+    "social": {
+      "twitter": "https://x.com/grindurus",
+      "github": "https://github.com/grindurus"
+    }
+  }
+}

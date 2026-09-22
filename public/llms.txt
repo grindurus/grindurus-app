@@ -1,0 +1,31 @@
+# GRINDURUS
+
+> Volatility harvesting protocol: GrindURUS strategies, GRAI fund shares, Grinders custodians, Treasury affiliate NFTs, and GRS protocol equity.
+
+Grindurus runs automated market-taking / volatility harvesting grinders across CEX and on-chain terminals (Binance, CoW Protocol, Jupiter, LiFi, and others), with on-chain fund accounting on Solana and EVM chains.
+
+## Products
+
+- [GRAI](https://grindurus.xyz/grai.json): Grinders Artificial Index — passive fund share for GrindURUS strategies
+- [GRS](https://grindurus.xyz/grs.json): Grindurus Token — fixed-supply protocol equity and governance (1B max)
+- [Treasury NFT](https://grindurus.xyz/treasury.json): GRAI-TREASURY locker NFT — affiliate fee share and claim ownership
+
+## Sites
+
+- [Landing](https://grindurus.xyz/): Product overview
+- [App](https://app.grindurus.xyz/): Protocol app (GRAI mint/burn, allocate, auctions)
+- [GRAI app](https://app.grindurus.xyz/grai): GRAI management surface
+- [Docs](https://docs.grindurus.xyz/): Protocol documentation
+- [GitHub](https://github.com/grindurus): Source repositories
+
+## Token metadata
+
+- [grai.json](https://grindurus.xyz/grai.json): ERC-1046 / Metaplex URI for GRAI
+- [grs.json](https://grindurus.xyz/grs.json): ERC-1046 target URI for GRS
+- [treasury.json](https://grindurus.xyz/treasury.json): Metadata URI for Treasury locker NFTs
+- [logo.png](https://grindurus.xyz/logo.png): Brand image used by token metadata
+
+## Social
+
+- [X / Twitter](https://x.com/grindurus)
+- [GitHub org](https://github.com/grindurus)

@@ -1,8 +1,12 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import { bossRemoteProxyPlugin } from './vite/bossRemoteProxy'
 import { bossLocalProxyPlugin } from './vite/bossLocalProxy'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const bossApiTarget =
   process.env.BOSS_API_TARGET ||
@@ -55,6 +59,7 @@ export default defineConfig({
   resolve: {
     alias: {
       buffer: 'buffer',
+      '@landing': path.resolve(__dirname, 'src/landing'),
     },
   },
   optimizeDeps: {

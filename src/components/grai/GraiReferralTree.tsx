@@ -29,8 +29,18 @@ import {
 } from 'recharts'
 import type { Connection } from '@solana/web3.js'
 import { toast } from 'react-toastify'
-import type { GraiEvmConfig, GraiSolanaRuntime } from '../../grai/deployments'
+import {
+  getDefaultGraiSolanaCluster,
+  listConfiguredEvmChains,
+  resolveGraiEvmConfig,
+  type GraiEvmConfig,
+  type GraiSolanaRuntime,
+} from '../../grai/deployments'
+import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
+import { useEvmWallet } from '../../hooks/useEvmWallet'
+import { useWalletContext } from '../../providers/AppWalletProvider'
+import { GraiCaNetworkSelect } from './GraiCaNetworkSelect'
 import {
   buildExampleReferralForest,
   buildReferralForest,
@@ -638,6 +648,28 @@ export function GraiReferralTree({
   claimUsdByLocker,
 }: Props) {
   const { run: runSolanaTx } = useGraiTransaction()
+  const {
+    chainKind,
+    solanaCluster,
+  } = useGraiDeployment()
+  const { evmChain } = useWalletContext()
+  const evmWallet = useEvmWallet()
+  const configuredEvmChains = useMemo(() => listConfiguredEvmChains(), [])
+  const contextChainId =
+    evmChain === 'ethereum' ? 1 : evmChain === 'arbitrum' ? 42161 : evmChain === 'sepolia' ? 11155111 : 8453
+  const networkEvmProtocol =
+    evmProtocol ??
+    (chainKind === 'evm' ? resolveGraiEvmConfig(contextChainId) : null) ??
+    configuredEvmChains[0] ??
+    null
+  const networkChainId =
+    chainKind === 'evm'
+      ? (evmWallet.isConnected && evmWallet.chainId
+          ? evmWallet.chainId
+          : networkEvmProtocol?.chainId ?? contextChainId)
+      : null
+  const networkSolanaCluster =
+    chainKind === 'solana' ? (solanaCluster ?? getDefaultGraiSolanaCluster()) : null
   const isSelectionControlled = onSelectLocker != null
   const [forest, setForest] = useState<GraiReferralTreeNode[]>([])
   const [isExample, setIsExample] = useState(true)
@@ -1144,6 +1176,14 @@ export function GraiReferralTree({
             >
               Referrers dashboard
             </button>
+            <span className="grai-referral-dash-network">
+              <GraiCaNetworkSelect
+                chainKind={chainKind}
+                chainId={networkChainId}
+                solanaCluster={networkSolanaCluster}
+                ariaLabel="Select referrers map network"
+              />
+            </span>
           </h3>
         </div>
       </header>

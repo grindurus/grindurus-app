@@ -12970,6 +12970,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 }
 
+.grai-referral-dash-network {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.grai-referral-dash-network .wallet-network-select.is-grai-compact {
+  max-width: none;
+}
+
 .grai-referral-dash-title-action {
   margin: 0;
   padding: 0;

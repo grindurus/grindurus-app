@@ -14,14 +14,30 @@ const GrindersPage = lazy(() => import('./pages/GrindersPage'))
 const GrsPage = lazy(() => import('./pages/GrsPage'))
 const AffiliatesPage = lazy(() => import('./pages/AffiliatesPage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 
 function titleFromPath(pathname: string): string {
+  if (pathname === '/') return 'GrindURUS'
   if (pathname.startsWith('/backtest')) return 'Backtest'
   if (pathname.startsWith('/grinders')) return 'Grinders'
   if (pathname.startsWith('/grs')) return 'GRS'
   if (pathname.startsWith('/affiliate')) return 'Affiliates'
   if (pathname === '/grai/manage') return 'GRAI — Grinder management'
   return 'GRAI'
+}
+
+function LandingRoute() {
+  return (
+    <Suspense
+      fallback={
+        <div className="App-main-loading" role="status">
+          Loading…
+        </div>
+      }
+    >
+      <LandingPage />
+    </Suspense>
+  )
 }
 
 function GraiManageRedirect() {
@@ -122,6 +138,7 @@ function AppNavigateBinder() {
 
 function App() {
   const { pathname } = useLocation()
+  const isLanding = pathname === '/'
 
   useEffect(() => {
     document.title = titleFromPath(pathname)
@@ -140,12 +157,12 @@ function App() {
   }, [])
 
   return (
-    <div className="App">
+    <div className={`App${isLanding ? ' App--landing' : ''}`}>
       <AppNavigateBinder />
-      <Header />
-      <main className="App-main">
+      {isLanding ? null : <Header />}
+      <main className={isLanding ? 'App-main App-main--landing' : 'App-main'}>
         <Routes>
-          <Route path="/" element={<Navigate to="/grai" replace />} />
+          <Route path="/" element={<LandingRoute />} />
           <Route path="/grai" element={<GraiRoute />} />
           <Route path="/grinders" element={<GrindersRoute />} />
           <Route path="/grs" element={<GrsRoute />} />
@@ -153,10 +170,10 @@ function App() {
           <Route path="/affiliates" element={<Navigate to="/affiliate" replace />} />
           <Route path="/grai/manage" element={<GraiManageRedirect />} />
           <Route path="/backtest" element={<BacktestRoute />} />
-          <Route path="*" element={<Navigate to="/grai" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      <Footer />
+      {isLanding ? null : <Footer />}
       <ToastContainer position="bottom-right" newestOnTop />
     </div>
   )

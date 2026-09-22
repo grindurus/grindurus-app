@@ -1,0 +1,18 @@
+{
+  "name": "Grindurus Token",
+  "symbol": "GRS",
+  "description": "Fixed-supply Grindurus protocol equity and governance token. Economic claim on treasury fee income.",
+  "image": "https://grindurus.xyz/logo.png",
+  "external_url": "https://app.grindurus.xyz",
+  "app": "https://app.grindurus.xyz",
+  "properties": {
+    "category": "fungible",
+    "decimals": 18,
+    "max_supply": "1000000000",
+    "docs": "https://docs.grindurus.xyz",
+    "social": {
+      "twitter": "https://x.com/grindurus",
+      "github": "https://github.com/grindurus"
+    }
+  }
+}

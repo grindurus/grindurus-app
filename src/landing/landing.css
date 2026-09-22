@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scoped landing surface — avoid fighting app chrome CSS outside /. */
+@layer base {
+  .landing-root {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer utilities {
+  .bg-shimmer-size {
+    background-size: 300% 100%;
+  }
+
+  .marquee-mask {
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-100% / 4));
+  }
+}
