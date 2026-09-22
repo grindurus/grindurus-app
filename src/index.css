@@ -26,12 +26,13 @@
 }
 
 [data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-tertiary: #eeeeee;
-  --border-color: #dddddd;
+  /* Soft gray page + slightly elevated panels — avoid pure-white pops. */
+  --bg-primary: #e8e8e8;
+  --bg-secondary: #f0f0f0;
+  --bg-tertiary: #f6f6f6;
+  --border-color: #cfcfcf;
   --text-primary: #1a1a1a;
-  --text-secondary: #666666;
+  --text-secondary: #5a5a5a;
   --grai-donut-track-fill: rgba(0, 0, 0, 0.1);
   --grai-donut-sector-stroke: rgba(0, 0, 0, 0.35);
   --grai-donut-empty-segment-opacity: 0.38;

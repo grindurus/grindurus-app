@@ -14,7 +14,8 @@ type Theme = 'light' | 'dark'
 
 function readSavedTheme(): Theme {
   const saved = localStorage.getItem('theme')
-  if (saved === 'light' || saved === 'dark') return saved
+  if (saved === 'light') return 'light'
+  // Default dark (also migrates legacy "system").
   return 'dark'
 }
 

@@ -22,7 +22,7 @@
 }
 
 [data-theme="light"] .header {
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
 }
 
 .header-container {

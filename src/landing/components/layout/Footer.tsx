@@ -16,7 +16,7 @@ function SocialIcons() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={label}
-          className="w-9 h-9 rounded-full bg-black/10 dark:bg-white text-black flex items-center justify-center transition-all duration-200 hover:opacity-90 hover:scale-105"
+          className="w-9 h-9 rounded-full bg-black/10 dark:bg-white/90 text-black flex items-center justify-center transition-all duration-200 hover:opacity-90 hover:scale-105"
         >
           {icon === 'x' && (
             <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor">
@@ -48,7 +48,7 @@ const FOOTER_CHART_STROKE_ID = 'grindurus-footer-yield-stroke'
 
 export default function Footer() {
   return (
-    <footer className="relative mt-auto overflow-hidden border-t border-black/15 bg-white py-10 dark:border-white/15 dark:bg-black">
+    <footer className="relative mt-auto overflow-hidden border-t border-black/15 bg-[#e8e8e8] py-10 dark:border-white/15 dark:bg-black">
       <div
         className="pointer-events-none absolute bottom-0 left-0 hidden h-[300px] w-full xl:block"
         aria-hidden

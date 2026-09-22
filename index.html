@@ -1,10 +1,22 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" class="dark" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="%BASE_URL%logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GRINDURUS</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme')
+          // Default dark; treat legacy "system" as dark.
+          var isLight = saved === 'light'
+          if (saved === 'system') localStorage.setItem('theme', 'dark')
+          document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark')
+          document.documentElement.classList.toggle('dark', !isLight)
+        } catch (_) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

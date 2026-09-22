@@ -2652,6 +2652,22 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   background: rgba(255, 255, 255, 0.28);
 }
 
+[data-theme='light'] .grai-grinders-filter-toggle.is-active .grai-grinders-filter-toggle-track {
+  border-color: rgba(0, 0, 0, 0.28);
+  background: rgba(0, 0, 0, 0.08);
+  box-shadow: none;
+}
+
+[data-theme='light'] .grai-grinders-filter-toggle.is-active .grai-grinders-filter-toggle-thumb {
+  background: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme='light'] .grai-grinders-filter-toggle.is-active:hover .grai-grinders-filter-toggle-track {
+  border-color: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.12);
+}
+
 .grai-grinders-row--summary > span + span {
   border-left: none;
   padding-left: var(--grai-grinders-cell-pad);
@@ -11453,7 +11469,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 [data-theme='light'] .grai-detailed-preview {
-  background: #ffffff;
+  background: var(--bg-secondary);
 }
 
 .grai-detailed-preview--inline {

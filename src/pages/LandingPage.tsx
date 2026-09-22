@@ -12,9 +12,9 @@ import '@landing/landing.css'
 
 export default function LandingPage() {
   return (
-    <div className="landing-root flex flex-col min-h-screen bg-white dark:bg-black">
+    <div className="landing-root flex flex-col min-h-screen bg-[#e8e8e8] dark:bg-black">
       <Header />
-      <div className="flex-1 relative bg-white dark:bg-black">
+      <div className="flex-1 relative bg-[#e8e8e8] dark:bg-black">
         <HeroSection />
         <StrategySection />
         <GraiProductSection />
