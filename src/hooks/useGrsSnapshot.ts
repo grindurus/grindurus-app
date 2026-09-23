@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useEvmWallet } from './useEvmWallet'
 import { useSolanaWallet } from './useSolanaWallet'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
 import {
   createGrsSolanaConnection,
   getDefaultGrsSolanaCluster,
@@ -16,9 +16,11 @@ import { fetchGrsSnapshot, type GrsSnapshot } from '../grs/evm/readProtocol'
 import { fetchSolanaGrsSnapshot } from '../grs/solana/readProtocol'
 import { resolveGrsSolanaConfigPreferringDevnet } from '../grs/fetchSalesBooks'
 
-function contextChainId(evmChain: 'ethereum' | 'arbitrum' | 'sepolia'): number {
+function contextChainId(evmChain: EvmChain): number {
   if (evmChain === 'ethereum') return 1
+  if (evmChain === 'base') return 8453
   if (evmChain === 'arbitrum') return 42161
+  if (evmChain === 'polygon') return 137
   return 11155111
 }
 
