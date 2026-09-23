@@ -15,9 +15,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
     "paths": {
-      "@landing/*": ["src/landing/*"]
+      "@landing/*": ["./src/landing/*"]
     }
   },
   "include": ["src"],

@@ -462,6 +462,64 @@
   box-shadow: none;
 }
 
+.backtest-pair-field.is-invalid .backtest-sublabel {
+  color: #ff5c7a;
+}
+
+.backtest-pair-input-row.is-invalid {
+  border-bottom-color: #ff5c7a;
+  background: rgba(255, 92, 122, 0.1);
+  border-radius: 6px 6px 0 0;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  animation: backtest-amount-invalid-pulse 1.1s ease-in-out 2;
+}
+
+.backtest-pair-input-row.is-invalid:focus-within {
+  border-bottom-color: #ff7a93;
+  background: rgba(255, 92, 122, 0.14);
+}
+
+.backtest-pair-input-row .backtest-amount-input.is-invalid:not(.backtest-pair-asset-input) {
+  color: #ff5c7a;
+}
+
+.backtest-pair-input-row .backtest-amount-input.is-invalid:not(.backtest-pair-asset-input)::placeholder {
+  color: rgba(255, 92, 122, 0.55);
+}
+
+@keyframes backtest-amount-invalid-pulse {
+  0%,
+  100% {
+    background: rgba(255, 92, 122, 0.08);
+  }
+  50% {
+    background: rgba(255, 92, 122, 0.2);
+  }
+}
+
+[data-theme='light'] .backtest-pair-field.is-invalid .backtest-sublabel {
+  color: #d81b60;
+}
+
+[data-theme='light'] .backtest-pair-input-row.is-invalid {
+  border-bottom-color: #d81b60;
+  background: rgba(216, 27, 96, 0.08);
+}
+
+[data-theme='light'] .backtest-pair-input-row.is-invalid:focus-within {
+  border-bottom-color: #e91e63;
+  background: rgba(216, 27, 96, 0.12);
+}
+
+[data-theme='light'] .backtest-pair-input-row .backtest-amount-input.is-invalid:not(.backtest-pair-asset-input) {
+  color: #d81b60;
+}
+
+[data-theme='light'] .backtest-pair-input-row .backtest-amount-input.is-invalid:not(.backtest-pair-asset-input)::placeholder {
+  color: rgba(216, 27, 96, 0.5);
+}
+
 .backtest-pair-input-row .backtest-amount-input:not(.backtest-pair-asset-input)::placeholder {
   color: rgba(255, 105, 180, 0.45);
 }
@@ -976,7 +1034,9 @@
 }
 
 .backtest-pay-method-list-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
   margin: 0;
   padding: 0.5rem 0.55rem;
@@ -1032,6 +1092,34 @@
   white-space: nowrap;
   font-size: 0.88rem;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.backtest-pay-method-option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+}
+
+.backtest-pay-method-option-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.backtest-pay-method-brand-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  border-radius: 3px;
+  object-fit: cover;
+}
   letter-spacing: 0.01em;
   line-height: 1.2;
   text-align: left;

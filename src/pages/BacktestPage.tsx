@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch'
 import { registerExactEvmScheme } from '@x402/evm/exact/client'
 import { ExactSvmScheme } from '@x402/svm/exact/client'
@@ -17,6 +17,7 @@ import {
   BACKTEST_SECTION_IDS,
   readBacktestSectionFromHash,
 } from '../utils/backtestNavigation'
+import { purchaseAifpReceiptForCreate } from '../backtest/aifinpayPay'
 import './BacktestPage.css'
 
 const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
@@ -93,11 +94,45 @@ function filterAssetOptions(options: readonly string[], query: string) {
   return options.filter((option) => option.includes(normalized))
 }
 
-const PAY_METHODS = ['x402', 'promocode'] as const
+const PAY_METHODS = ['x402', 'aifinpay', 'promocode'] as const
 type PayMethod = (typeof PAY_METHODS)[number]
 const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   x402: 'x402',
+  aifinpay: 'AiFinPay',
   promocode: 'promocode',
+}
+
+const AIFINPAY_METHOD_ICON = (
+  <img
+    src="https://aifinpay.io/favicon.ico"
+    alt=""
+    width={16}
+    height={16}
+    className="backtest-pay-method-brand-icon"
+    decoding="async"
+  />
+)
+
+const PAY_METHOD_ICON: Record<PayMethod, ReactNode> = {
+  x402: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2v4" />
+      <path d="M12 18v4" />
+      <path d="m4.93 4.93 2.83 2.83" />
+      <path d="m16.24 16.24 2.83 2.83" />
+      <path d="M2 12h4" />
+      <path d="M18 12h4" />
+      <path d="m4.93 19.07 2.83-2.83" />
+      <path d="m16.24 7.76 2.83-2.83" />
+    </svg>
+  ),
+  aifinpay: AIFINPAY_METHOD_ICON,
+  promocode: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+      <path d="M9 12h6" />
+    </svg>
+  ),
 }
 
 const PAIR_FIELD_ICONS = {
@@ -632,7 +667,7 @@ function BacktestPage() {
   const { isConnected: isEvmConnected } = useAccount()
   const solanaWallet = useSolanaWallet()
   const chainId = useChainId()
-  const { switchChain } = useSwitchChain()
+  const { switchChain, switchChainAsync } = useSwitchChain()
   const { data: walletClient } = useWalletClient()
   const solanaWalletNetwork = useMemo(() => {
     if (!solanaWallet.cluster) return null
@@ -701,18 +736,31 @@ function BacktestPage() {
     return dec !== undefined ? `${int}.${dec.slice(0, 12)}` : int
   }
 
+  const hasPositiveAmount = (raw: string) => {
+    const n = Number(raw.trim())
+    return Number.isFinite(n) && n > 0
+  }
+
   const handlePay = async () => {
     setPayMenuOpen(false)
     setPayError('')
     setPaySuccess('')
     setAppliedPromocode('')
     setShowX402NetworkSwitch(false)
+    if (!hasPositiveAmount(baseAmount) && !hasPositiveAmount(quoteAmount)) {
+      setPayError('Enter a base or quote starting amount.')
+      return
+    }
     if (payMethod === 'x402' && !isEvmConnected && !solanaWallet.isConnected) {
       setPayError('Connect an EVM or Solana wallet to pay with x402.')
       return
     }
     if (payMethod === 'x402' && !paidFetch) {
       setPayError('Unable to initialize x402 payment client.')
+      return
+    }
+    if (payMethod === 'aifinpay' && !(isEvmConnected && walletClient?.account?.address)) {
+      setPayError('Connect an EVM wallet on Polygon to pay with AiFinPay.')
       return
     }
     if (payMethod === 'promocode' && !appliedPromocode) {
@@ -726,7 +774,7 @@ function BacktestPage() {
         owner_address: solanaWallet.address || walletClient?.account?.address || '0x0000000000000000000000000000000000000001',
         params: {
           payment_method: payMethod,
-          wallet_network: walletNetwork,
+          wallet_network: payMethod === 'aifinpay' ? 'eip155:137' : walletNetwork,
           base_asset: baseValue,
           quote_asset: quoteValue,
           base_amount: baseAmount.trim() || '0',
@@ -736,20 +784,53 @@ function BacktestPage() {
           priority_usdc: '1',
         },
       })
+
+      let aifpReceipt = ''
+      if (payMethod === 'aifinpay') {
+        if (!walletClient?.account?.address) {
+          throw new Error('Connect an EVM wallet to pay with AiFinPay.')
+        }
+        const healthRes = await fetch(`${backtestApiOrigin}/health`)
+        const healthJson = (await healthRes.json().catch(() => null)) as {
+          aifinpay?: { enabled?: boolean; merchant_id?: string | null }
+        } | null
+        const merchantId = healthJson?.aifinpay?.merchant_id?.trim()
+        if (!healthJson?.aifinpay?.enabled || !merchantId) {
+          throw new Error('AiFinPay is not enabled on the backtest service.')
+        }
+        const paid = await purchaseAifpReceiptForCreate({
+          walletClient: walletClient as Parameters<typeof purchaseAifpReceiptForCreate>[0]['walletClient'],
+          chainId,
+          switchChainAsync: async ({ chainId: next }) => switchChainAsync({ chainId: next }),
+          merchantId,
+          resource: '/create',
+          tier: 'premium',
+        })
+        aifpReceipt = paid.receipt
+      }
+
       const requestWithPayment = payMethod === 'x402' ? paidFetch : fetch
       if (!requestWithPayment) {
         throw new Error('Unable to initialize payment transport.')
       }
+      const payHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Payment-Method': payMethod,
+      }
+      if (payMethod === 'promocode' && appliedPromocode) {
+        payHeaders['X-Promocode'] = appliedPromocode
+      }
+      if (payMethod === 'aifinpay' && aifpReceipt) {
+        payHeaders['AIFP-Receipt'] = aifpReceipt
+      }
+      if (payMethod === 'aifinpay') {
+        payHeaders['X-Wallet-Network'] = 'eip155:137'
+      } else if (walletNetwork) {
+        payHeaders['X-Wallet-Network'] = walletNetwork
+      }
       const response = await requestWithPayment(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Payment-Method': payMethod,
-          ...(payMethod === 'promocode' && appliedPromocode
-            ? { 'X-Promocode': appliedPromocode }
-            : {}),
-          ...(walletNetwork ? { 'X-Wallet-Network': walletNetwork } : {}),
-        },
+        headers: payHeaders,
         body,
       })
       const rawText = await response.text()
@@ -787,6 +868,10 @@ function BacktestPage() {
 
       if (payMethod === 'x402' && isUserRejectedSignature) {
         setPayError('Signature request was cancelled.')
+        return
+      }
+      if (payMethod === 'aifinpay' && isUserRejectedSignature) {
+        setPayError('AiFinPay signature or transaction was cancelled.')
         return
       }
 
@@ -896,21 +981,34 @@ function BacktestPage() {
     solanaWalletWalletSignerReady(solanaWallet.signTransaction)
   const x402NeedsWalletConnection =
     payMethod === 'x402' && !hasEvmSigner && !hasSvmSigner
+  const aifinpayNeedsWalletConnection =
+    payMethod === 'aifinpay' && !hasEvmSigner
+  const needsWalletConnection = x402NeedsWalletConnection || aifinpayNeedsWalletConnection
   const payStatusMessage = payError || paySuccess
+  const amountsMissing =
+    payError === 'Enter a base or quote starting amount.' &&
+    !hasPositiveAmount(baseAmount) &&
+    !hasPositiveAmount(quoteAmount)
   const payButtonLabel =
-    x402NeedsWalletConnection
+    needsWalletConnection
       ? 'Connect wallet'
       : payMethod === 'promocode'
       ? 'QUEUE BACKTEST'
+      : payMethod === 'aifinpay'
+      ? 'Pay AiFinPay'
       : `Pay ${defaultBidPrice} USDC`
   const payButtonAriaLabel = payBusy
     ? 'Processing payment'
     : payStatusMessage
       ? payStatusMessage
-      : x402NeedsWalletConnection
-      ? 'Connect wallet to pay with x402'
+      : needsWalletConnection
+      ? payMethod === 'aifinpay'
+        ? 'Connect EVM wallet to pay with AiFinPay'
+        : 'Connect wallet to pay with x402'
       : payMethod === 'promocode'
       ? 'Run backtest with promocode'
+      : payMethod === 'aifinpay'
+      ? 'Pay with AiFinPay and run backtest'
       : `Pay ${defaultBidPrice} USDC and run backtest`
 
   const backtestApiOrigin = useMemo(
@@ -1535,11 +1633,11 @@ function BacktestPage() {
                 </li>
                 <li>
                   <span className="backtest-panel-heading-tip-key">Balances</span>
-                  base &amp; quote starting amounts
+                  at least one starting amount
                 </li>
                 <li>
                   <span className="backtest-panel-heading-tip-key">Pay</span>
-                  x402 or promocode to enqueue
+                  x402, AiFinPay or promocode to enqueue
                 </li>
                 <li>
                   <span className="backtest-panel-heading-tip-key">Runtime</span>
@@ -1591,20 +1689,24 @@ function BacktestPage() {
           <div className="backtest-pair-card" role="group" aria-label="Trading pair">
             <div className="backtest-pair-row">
               <div className="backtest-pair-col">
-                <div className="backtest-pair-field">
+                <div className={`backtest-pair-field${amountsMissing ? ' is-invalid' : ''}`}>
                   <label className="backtest-sublabel backtest-sublabel--with-icon is-base" htmlFor="backtest-base-amt">
                     <span className="backtest-sublabel-icon">{PAIR_FIELD_ICONS.base}</span>
                     Base
                   </label>
-                  <div className="backtest-pair-input-row">
+                  <div className={`backtest-pair-input-row${amountsMissing ? ' is-invalid' : ''}`}>
                     <input
                       id="backtest-base-amt"
                       type="text"
                       inputMode="decimal"
-                      className="backtest-amount-input"
+                      className={`backtest-amount-input${amountsMissing ? ' is-invalid' : ''}`}
                       placeholder="0"
                       value={baseAmount}
-                      onChange={(e) => setBaseAmount(sanitizeDecimal(e.target.value))}
+                      onChange={(e) => {
+                        setBaseAmount(sanitizeDecimal(e.target.value))
+                        if (payError === 'Enter a base or quote starting amount.') setPayError('')
+                      }}
+                      aria-invalid={amountsMissing}
                       aria-label={`Amount, ${baseAsset}`}
                     />
                     <div
@@ -1713,20 +1815,24 @@ function BacktestPage() {
                 </div>
               </div>
               <div className="backtest-pair-col">
-                <div className="backtest-pair-field">
+                <div className={`backtest-pair-field${amountsMissing ? ' is-invalid' : ''}`}>
                   <label className="backtest-sublabel backtest-sublabel--with-icon is-quote" htmlFor="backtest-quote-amt">
                     <span className="backtest-sublabel-icon">{PAIR_FIELD_ICONS.quote}</span>
                     Quote
                   </label>
-                  <div className="backtest-pair-input-row">
+                  <div className={`backtest-pair-input-row${amountsMissing ? ' is-invalid' : ''}`}>
                     <input
                       id="backtest-quote-amt"
                       type="text"
                       inputMode="decimal"
-                      className="backtest-amount-input"
+                      className={`backtest-amount-input${amountsMissing ? ' is-invalid' : ''}`}
                       placeholder="0"
                       value={quoteAmount}
-                      onChange={(e) => setQuoteAmount(sanitizeDecimal(e.target.value))}
+                      onChange={(e) => {
+                        setQuoteAmount(sanitizeDecimal(e.target.value))
+                        if (payError === 'Enter a base or quote starting amount.') setPayError('')
+                      }}
+                      aria-invalid={amountsMissing}
                       aria-label={`Amount, ${quoteAsset}`}
                     />
                     <div
@@ -1856,6 +1962,9 @@ function BacktestPage() {
                         aria-haspopup="listbox"
                       >
                         <span className="backtest-pay-method-label">
+                          <span className="backtest-pay-method-option-icon" aria-hidden="true">
+                            {PAY_METHOD_ICON[payMethod]}
+                          </span>
                           {PAY_METHOD_LABEL[payMethod]}
                         </span>
                         <GraiUiCaret className="backtest-pay-method-caret" />
@@ -1882,6 +1991,9 @@ function BacktestPage() {
                                 setPayMenuOpen(false)
                               }}
                             >
+                              <span className="backtest-pay-method-option-icon" aria-hidden="true">
+                                {PAY_METHOD_ICON[m]}
+                              </span>
                               {PAY_METHOD_LABEL[m]}
                             </button>
                           ))}
@@ -1950,7 +2062,7 @@ function BacktestPage() {
                             : ''
                     }`}
                     onClick={() => {
-                      if (x402NeedsWalletConnection) {
+                      if (needsWalletConnection) {
                         setPayError('')
                         openChainSelector()
                         return
@@ -1965,7 +2077,7 @@ function BacktestPage() {
                       'Processing…'
                     ) : payStatusMessage ? (
                       <span className="backtest-pay-btn-status">{payStatusMessage}</span>
-                    ) : x402NeedsWalletConnection ? (
+                    ) : needsWalletConnection ? (
                       <>
                         <svg
                           className="backtest-pay-btn-icon"
