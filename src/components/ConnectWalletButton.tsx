@@ -1,47 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronRight, LogOut } from 'lucide-react'
-import baseNetworkIcon from '../assets/base-network.svg'
-import ethereumNetworkIcon from '../assets/ethereum-network.svg'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
 import { GraiUiCaret } from './grai/GraiUiCaret'
 import { SolanaClusterIcon } from './SolanaClusterIcon'
+import { EvmChainListIcon } from './WalletNetworkSelect'
 import { WalletIcon } from './WalletIcon'
 import './WalletStyles.css'
 import './HeaderSettingsPopover.css'
-
-function EvmChainIcon({ name }: { name: string }) {
-  if (name === 'Ethereum') {
-    return <img src={ethereumNetworkIcon} alt="" width={20} height={20} />
-  }
-  if (name === 'Arbitrum') {
-    return (
-      <img
-        src="https://cryptologos.cc/logos/arbitrum-arb-logo.png?v=040"
-        alt=""
-        width={20}
-        height={20}
-      />
-    )
-  }
-  if (name === 'Sepolia') {
-    return (
-      <svg width="20" height="20" viewBox="0 0 256 417" fill="#9CA3AF" aria-hidden="true">
-        <path d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z" fillOpacity="0.8" />
-        <path d="M127.962 0L0 212.32l127.962 75.639V154.158z" fillOpacity="0.5" />
-        <path d="M127.961 287.958l127.96-75.637-127.96-58.162z" fillOpacity="1" />
-        <path d="M0 212.32l127.96 75.638v-133.8z" fillOpacity="0.6" />
-      </svg>
-    )
-  }
-  if (name === 'Base' || name === 'Base Sepolia') {
-    return <img src={baseNetworkIcon} alt="" width={20} height={20} />
-  }
-  return null
-}
 
 function SolanaClusterIconWrap({ clusterId }: { clusterId: 'mainnet-beta' | 'devnet' }) {
   return (
@@ -51,8 +20,17 @@ function SolanaClusterIconWrap({ clusterId }: { clusterId: 'mainnet-beta' | 'dev
   )
 }
 
+function chainIdToEvmChain(chainId: number): EvmChain | null {
+  if (chainId === 1) return 'ethereum'
+  if (chainId === 8453) return 'base'
+  if (chainId === 42161) return 'arbitrum'
+  if (chainId === 137) return 'polygon'
+  if (chainId === 11155111) return 'sepolia'
+  return null
+}
+
 export function ConnectWalletButton() {
-  const { isChainSelectorOpen, openChainSelector, warmEvmStack } = useWalletContext()
+  const { isChainSelectorOpen, openChainSelector, warmEvmStack, setEvmChain } = useWalletContext()
   const activeWallet = useActiveWallet()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
@@ -122,9 +100,11 @@ export function ConnectWalletButton() {
   const handleNetworkSelect = useCallback(
     (chainId: number) => {
       evmWallet.switchToChain(chainId)
+      const next = chainIdToEvmChain(chainId)
+      if (next) setEvmChain(next)
       setIsNetworkOpen(false)
     },
-    [evmWallet],
+    [evmWallet, setEvmChain],
   )
 
   const handleClusterSelect = useCallback(
@@ -138,7 +118,7 @@ export function ConnectWalletButton() {
   const currentNetworkIcon =
     activeWallet.chainType === 'evm' ? (
       <span className="header-settings-network-icon">
-        <EvmChainIcon name={activeWallet.networkName} />
+        <EvmChainListIcon name={activeWallet.networkName} />
       </span>
     ) : activeWallet.chainType === 'solana' ? (
       <SolanaClusterIconWrap clusterId={solanaWallet.cluster} />
@@ -247,7 +227,7 @@ export function ConnectWalletButton() {
                     title={evmChainIdToCaip2(chain.id)}
                   >
                     <span className="header-settings-network-icon">
-                      <EvmChainIcon name={chain.name} />
+                      <EvmChainListIcon name={chain.name} />
                     </span>
                     <span className="header-settings-network-text">
                       <span className="header-settings-network-name">{chain.name}</span>

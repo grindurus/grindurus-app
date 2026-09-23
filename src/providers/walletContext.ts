@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 
 export type ChainType = 'evm' | 'solana' | null
-export type EvmChain = 'ethereum' | 'arbitrum' | 'sepolia'
+export type EvmChain = 'ethereum' | 'base' | 'arbitrum' | 'polygon' | 'sepolia'
 export type SolanaCluster = 'mainnet-beta' | 'testnet' | 'devnet'
 
 export interface WalletContextType {

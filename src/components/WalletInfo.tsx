@@ -12,6 +12,7 @@ import './WalletStyles.css'
 
 const BASE_CHAIN_ID = 8453
 const BASE_SEPOLIA_CHAIN_ID = 84532
+const POLYGON_CHAIN_ID = 137
 
 export function WalletInfo() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -105,6 +106,18 @@ export function WalletInfo() {
         )
       }
 
+      if (evmWallet.chainId === POLYGON_CHAIN_ID) {
+        return (
+          <img
+            className="wallet-current-network-icon"
+            src="https://cryptologos.cc/logos/polygon-matic-logo.png?v=040"
+            alt="Polygon"
+            width={20}
+            height={20}
+          />
+        )
+      }
+
       if (evmWallet.chainId === BASE_CHAIN_ID) {
         return (
           <img
@@ -174,6 +187,14 @@ export function WalletInfo() {
             <img
               src="https://cryptologos.cc/logos/arbitrum-arb-logo.png?v=040"
               alt="Arbitrum"
+              width={20}
+              height={20}
+            />
+          )}
+          {currentChain.name === 'Polygon' && (
+            <img
+              src="https://cryptologos.cc/logos/polygon-matic-logo.png?v=040"
+              alt="Polygon"
               width={20}
               height={20}
             />

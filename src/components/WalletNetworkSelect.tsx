@@ -20,6 +20,7 @@ function shortNetworkLabel(name: string, chainType: 'evm' | 'solana' | null): st
   if (chainType === 'evm') {
     if (key === 'ethereum') return 'ETH'
     if (key === 'arbitrum') return 'ARB'
+    if (key === 'polygon') return 'POL'
     if (key === 'sepolia') return 'SEP'
     if (key === 'base') return 'BASE'
     if (key === 'base sepolia') return 'BSEP'
@@ -34,7 +35,9 @@ function shortNetworkLabel(name: string, chainType: 'evm' | 'solana' | null): st
 
 function chainIdToEvmChain(chainId: number): EvmChain | null {
   if (chainId === 1) return 'ethereum'
+  if (chainId === 8453) return 'base'
   if (chainId === 42161) return 'arbitrum'
+  if (chainId === 137) return 'polygon'
   if (chainId === 11155111) return 'sepolia'
   return null
 }
@@ -60,6 +63,17 @@ export function EvmChainListIcon({ name }: { name: string }) {
         width={20}
         height={20}
         className="network-logo-img network-logo-img--arbitrum"
+      />
+    )
+  }
+  if (name === 'Polygon') {
+    return (
+      <img
+        src="https://cryptologos.cc/logos/polygon-matic-logo.png?v=040"
+        alt=""
+        width={20}
+        height={20}
+        className="network-logo-img network-logo-img--polygon"
       />
     )
   }

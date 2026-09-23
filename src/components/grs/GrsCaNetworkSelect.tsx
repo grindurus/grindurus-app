@@ -20,7 +20,9 @@ type GrsNetworkOption =
 
 function chainIdToEvmChain(chainId: number): EvmChain | null {
   if (chainId === 1) return 'ethereum'
+  if (chainId === 8453) return 'base'
   if (chainId === 42161) return 'arbitrum'
+  if (chainId === 137) return 'polygon'
   if (chainId === 11155111) return 'sepolia'
   return null
 }
@@ -29,6 +31,7 @@ function shortEvmLabel(name: string): string {
   const key = name.trim().toLowerCase()
   if (key === 'ethereum') return 'ETH'
   if (key === 'arbitrum') return 'ARB'
+  if (key === 'polygon') return 'POL'
   if (key === 'sepolia') return 'SEP'
   if (key === 'base') return 'BASE'
   if (key === 'base sepolia') return 'BSEP'

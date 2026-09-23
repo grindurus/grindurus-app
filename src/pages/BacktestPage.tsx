@@ -19,7 +19,6 @@ import {
   BACKTEST_SECTION_IDS,
   readBacktestSectionFromHash,
 } from '../utils/backtestNavigation'
-import { purchaseAifpReceiptForCreate } from '../backtest/aifinpayPay'
 import './BacktestPage.css'
 
 const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
@@ -96,24 +95,12 @@ function filterAssetOptions(options: readonly string[], query: string) {
   return options.filter((option) => option.includes(normalized))
 }
 
-const PAY_METHODS = ['x402', 'aifinpay', 'promocode'] as const
+const PAY_METHODS = ['x402', 'promocode'] as const
 type PayMethod = (typeof PAY_METHODS)[number]
 const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   x402: 'x402',
-  aifinpay: 'AiFinPay',
   promocode: 'promocode',
 }
-
-const AIFINPAY_METHOD_ICON = (
-  <img
-    src="https://aifinpay.io/favicon.ico"
-    alt=""
-    width={16}
-    height={16}
-    className="backtest-pay-method-brand-icon"
-    decoding="async"
-  />
-)
 
 const X402_METHOD_ICON = (
   <img
@@ -128,7 +115,6 @@ const X402_METHOD_ICON = (
 
 const PAY_METHOD_ICON: Record<PayMethod, ReactNode> = {
   x402: X402_METHOD_ICON,
-  aifinpay: AIFINPAY_METHOD_ICON,
   promocode: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
@@ -671,7 +657,6 @@ function BacktestPage() {
   const evmAccountAddress = evmWallet.address
   const chainId = evmWallet.chainId
   const switchChain = evmWallet.switchToChain
-  const switchChainAsync = evmWallet.switchToChainAsync
 
   useEffect(() => {
     warmEvmStack()
@@ -771,10 +756,6 @@ function BacktestPage() {
       setPayError('Unable to initialize x402 payment client.')
       return
     }
-    if (payMethod === 'aifinpay' && !(hasEvmSigner && walletClient?.account?.address)) {
-      setPayError('Connect an EVM wallet on Polygon to pay with AiFinPay.')
-      return
-    }
     if (payMethod === 'promocode' && !appliedPromocode) {
       setPayError('Apply promocode first.')
       return
@@ -783,9 +764,7 @@ function BacktestPage() {
     setPayBusyLabel(
       payMethod === 'x402'
         ? 'Confirm payment in wallet…'
-        : payMethod === 'aifinpay'
-          ? 'Confirm AiFinPay in wallet…'
-          : 'Processing…'
+        : 'Processing…'
     )
     try {
       const endpoint = `${backtestApiOrigin}/create`
@@ -798,7 +777,7 @@ function BacktestPage() {
           '0x0000000000000000000000000000000000000001',
         params: {
           payment_method: payMethod,
-          wallet_network: payMethod === 'aifinpay' ? 'eip155:137' : walletNetwork,
+          wallet_network: walletNetwork,
           base_asset: baseValue,
           quote_asset: quoteValue,
           base_amount: baseAmount.trim() || '0',
@@ -808,34 +787,6 @@ function BacktestPage() {
           priority_usdc: '1',
         },
       })
-
-      let aifpReceipt = ''
-      if (payMethod === 'aifinpay') {
-        if (!walletClient?.account?.address) {
-          throw new Error('Connect an EVM wallet to pay with AiFinPay.')
-        }
-        setPayBusyLabel('Fetching AiFinPay quote…')
-        const healthRes = await fetch(`${backtestApiOrigin}/health`)
-        const healthJson = (await healthRes.json().catch(() => null)) as {
-          aifinpay?: { enabled?: boolean; merchant_id?: string | null }
-        } | null
-        const merchantId = healthJson?.aifinpay?.merchant_id?.trim()
-        if (!healthJson?.aifinpay?.enabled || !merchantId) {
-          throw new Error('AiFinPay is not enabled on the backtest service.')
-        }
-        setPayBusyLabel('Confirm AiFinPay in wallet…')
-        const paid = await purchaseAifpReceiptForCreate({
-          walletClient: walletClient as Parameters<typeof purchaseAifpReceiptForCreate>[0]['walletClient'],
-          chainId,
-          switchChainAsync: async ({ chainId: next }) => {
-            await switchChainAsync(next)
-          },
-          merchantId,
-          resource: '/create',
-          tier: 'premium',
-        })
-        aifpReceipt = paid.receipt
-      }
 
       const requestWithPayment = payMethod === 'x402' ? paidFetch : fetch
       if (!requestWithPayment) {
@@ -848,18 +799,11 @@ function BacktestPage() {
       if (payMethod === 'promocode' && appliedPromocode) {
         payHeaders['X-Promocode'] = appliedPromocode
       }
-      if (payMethod === 'aifinpay' && aifpReceipt) {
-        payHeaders['AIFP-Receipt'] = aifpReceipt
-      }
-      if (payMethod === 'aifinpay') {
-        payHeaders['X-Wallet-Network'] = 'eip155:137'
-      } else if (walletNetwork) {
+      if (walletNetwork) {
         payHeaders['X-Wallet-Network'] = walletNetwork
       }
       if (payMethod === 'x402') {
         setPayBusyLabel('Confirm payment in wallet…')
-      } else if (payMethod === 'aifinpay') {
-        setPayBusyLabel('Submitting backtest…')
       } else {
         setPayBusyLabel('Queuing backtest…')
       }
@@ -905,11 +849,6 @@ function BacktestPage() {
         setPayError('Signature request was cancelled.')
         return
       }
-      if (payMethod === 'aifinpay' && isUserRejectedSignature) {
-        setPayError('AiFinPay signature or transaction was cancelled.')
-        return
-      }
-
       if (
         payMethod === 'x402' &&
         (message.includes('No scheme registered') ||
@@ -1032,17 +971,20 @@ function BacktestPage() {
     payMethod === 'x402' && !hasEvmSigner && !hasSvmSigner && !walletConnecting
   const x402WalletPreparing =
     payMethod === 'x402' && !x402NeedsWalletConnection && !x402PaymentReady && !walletConnecting
-  const aifinpayNeedsWalletConnection =
-    payMethod === 'aifinpay' && !hasEvmSigner && !walletConnecting
-  const aifinpayWalletPreparing =
-    payMethod === 'aifinpay' && hasEvmSigner && !walletClient?.account?.address
-  const needsWalletConnection = x402NeedsWalletConnection || aifinpayNeedsWalletConnection
-  const walletPreparing = x402WalletPreparing || aifinpayWalletPreparing || walletConnecting
+  const needsWalletConnection = x402NeedsWalletConnection
+  const walletPreparing = x402WalletPreparing || walletConnecting
   const payStatusMessage = payError || paySuccess
   const amountsMissing =
     payError === 'Enter a base or quote starting amount.' &&
     !hasPositiveAmount(baseAmount) &&
     !hasPositiveAmount(quoteAmount)
+  const payUsdcLabel = (
+    <span className="backtest-pay-btn-usdc-label">
+      Pay {defaultBidPrice}
+      <BacktestUsdcTickerIcon size={14} />
+      USDC
+    </span>
+  )
   const payButtonLabel: ReactNode =
     needsWalletConnection
       ? 'Connect wallet'
@@ -1054,23 +996,13 @@ function BacktestPage() {
       ? 'Preparing wallet…'
       : payMethod === 'promocode'
       ? 'QUEUE BACKTEST'
-      : payMethod === 'aifinpay'
-      ? 'Pay AiFinPay'
-      : (
-          <span className="backtest-pay-btn-usdc-label">
-            Pay {defaultBidPrice}
-            <BacktestUsdcTickerIcon size={14} />
-            USDC
-          </span>
-        )
+      : payUsdcLabel
   const payButtonAriaLabel = payBusy
     ? payBusyLabel
     : payStatusMessage
       ? payStatusMessage
       : needsWalletConnection
-      ? payMethod === 'aifinpay'
-        ? 'Connect EVM wallet to pay with AiFinPay'
-        : 'Connect wallet to pay with x402'
+      ? 'Connect wallet to pay with x402'
       : walletConnecting
       ? 'Connecting wallet'
       : walletPreparing && hasEvmSigner && !walletClient?.account?.address
@@ -1079,8 +1011,6 @@ function BacktestPage() {
       ? 'Waiting for wallet signer'
       : payMethod === 'promocode'
       ? 'Run backtest with promocode'
-      : payMethod === 'aifinpay'
-      ? 'Pay with AiFinPay and run backtest'
       : `Pay ${defaultBidPrice} USDC and run backtest`
 
   const backtestApiOrigin = useMemo(
@@ -1723,7 +1653,7 @@ function BacktestPage() {
                 </li>
                 <li>
                   <span className="backtest-panel-heading-tip-key">Pay</span>
-                  x402, AiFinPay or promocode to enqueue
+                  x402 or promocode to enqueue
                 </li>
                 <li>
                   <span className="backtest-panel-heading-tip-key">Runtime</span>
@@ -2074,6 +2004,7 @@ function BacktestPage() {
                                 setPayMethod(m)
                                 setPayError('')
                                 setPaySuccess('')
+                                setShowX402NetworkSwitch(false)
                                 setPayMenuOpen(false)
                               }}
                             >
@@ -2155,16 +2086,17 @@ function BacktestPage() {
                       }
                       if (walletPreparing) {
                         if (hasEvmSigner && !walletClient?.account?.address) {
-                          setPayError(
-                            'x402 needs Base (or Solana). Switch network, then try again.'
-                          )
-                          setShowX402NetworkSwitch(true)
+                          setPayError('x402 needs Base (or Solana). Switch network, then try again.')
+                          if (payMethod === 'x402') setShowX402NetworkSwitch(true)
                         }
                         return
                       }
                       void handlePay()
                     }}
-                    disabled={payBusy || (walletPreparing && !(hasEvmSigner && !walletClient?.account?.address))}
+                    disabled={
+                      payBusy ||
+                      (walletPreparing && !(hasEvmSigner && !walletClient?.account?.address))
+                    }
                     aria-label={payButtonAriaLabel}
                     aria-live="polite"
                   >

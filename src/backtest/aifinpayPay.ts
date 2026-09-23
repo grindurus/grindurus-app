@@ -13,7 +13,9 @@ import {
 import { polygon } from 'viem/chains'
 
 const AIFP_API = 'https://api.aifinpay.io'
-const POLYGON_CHAIN_ID = 137
+/** AiFinPay AIFP-1 receipt settlement is Polygon mainnet only. */
+export const AIFINPAY_POLYGON_CHAIN_ID = 137
+const POLYGON_CHAIN_ID = AIFINPAY_POLYGON_CHAIN_ID
 
 const SETTLE_NATIVE_ABI = [
   {
