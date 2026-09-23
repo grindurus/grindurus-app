@@ -10,7 +10,7 @@ import {
 } from '../../grai/deployments'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../../wallet/caip2Network'
 import { EvmChainListIcon } from '../WalletNetworkSelect'
-import { SolanaLogomark } from '../SolanaLogomark'
+import { SolanaClusterIcon } from '../SolanaClusterIcon'
 import '../WalletStyles.css'
 
 type GraiNetworkOption =
@@ -208,7 +208,10 @@ export function GraiCaNetworkSelect({
               }`}
             >
               {option.kind === 'solana' ? (
-                <SolanaLogomark size={16} />
+                <SolanaClusterIcon
+                  clusterId={option.cluster === 'devnet' ? 'devnet' : 'mainnet-beta'}
+                  size={20}
+                />
               ) : (
                 <EvmChainListIcon name={option.name} />
               )}
@@ -248,7 +251,10 @@ export function GraiCaNetworkSelect({
             }`}
           >
             {current.kind === 'solana' ? (
-              <SolanaLogomark size={16} />
+              <SolanaClusterIcon
+                clusterId={current.cluster === 'devnet' ? 'devnet' : 'mainnet-beta'}
+                size={20}
+              />
             ) : (
               <EvmChainListIcon name={current.name} />
             )}

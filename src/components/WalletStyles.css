@@ -1639,10 +1639,16 @@ html:has(body[data-scroll-locked]) body {
 .network-icon-svg.solana-testnet {
   background: transparent;
   color: inherit;
-  padding: 0.12rem;
+  padding: 0;
   box-sizing: border-box;
   border-radius: 0;
   overflow: visible;
+}
+
+.network-icon-svg.solana-devnet {
+  border-radius: 999px;
+  overflow: visible;
+  padding: 0;
 }
 
 .network-icon-svg.solana img,
@@ -1656,6 +1662,13 @@ html:has(body[data-scroll-locked]) body {
   border-radius: 0;
   overflow: visible;
   clip-path: none;
+}
+
+.network-icon-svg.solana-devnet > svg,
+.wallet-current-network-icon-solana.solana-devnet > svg,
+.header-settings-network-icon.solana-devnet > svg {
+  display: block;
+  border-radius: 999px;
 }
 
 .network-dropdown-item .network-name {

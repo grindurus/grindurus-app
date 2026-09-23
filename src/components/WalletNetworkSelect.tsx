@@ -7,7 +7,7 @@ import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
-import { SolanaLogomark } from './SolanaLogomark'
+import { SolanaClusterIcon } from './SolanaClusterIcon'
 import './WalletStyles.css'
 
 type WalletNetworkSelectProps = {
@@ -105,10 +105,6 @@ export function EvmChainListIcon({ name }: { name: string }) {
     return <img src={baseNetworkIcon} alt="" width={20} height={20} />
   }
   return null
-}
-
-function SolanaClusterListIcon() {
-  return <SolanaLogomark size={16} />
 }
 
 export function WalletNetworkSelect({
@@ -233,7 +229,7 @@ export function WalletNetworkSelect({
               data-network-caip2={solanaClusterToCaip2(cluster.id)}
             >
               <span className={`network-icon-svg ${cluster.id === 'devnet' ? 'solana-devnet' : 'solana'}`}>
-                <SolanaClusterListIcon />
+                <SolanaClusterIcon clusterId={cluster.id} size={20} />
               </span>
               <span className="network-name-wrap">
                 <span className="network-name">{cluster.name}</span>
@@ -270,7 +266,7 @@ export function WalletNetworkSelect({
           ) : null}
           {activeWallet.chainType === 'solana' && currentSolanaCluster ? (
             <span className={`network-icon-svg ${currentSolanaCluster.id === 'devnet' ? 'solana-devnet' : 'solana'}`}>
-              <SolanaClusterListIcon />
+              <SolanaClusterIcon clusterId={currentSolanaCluster.id} size={20} />
             </span>
           ) : null}
           <span

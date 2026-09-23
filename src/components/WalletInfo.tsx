@@ -5,7 +5,7 @@ import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import baseNetworkIcon from '../assets/base-network.svg'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
-import { SolanaLogomark } from './SolanaLogomark'
+import { SolanaClusterIcon } from './SolanaClusterIcon'
 import { EvmChainListIcon } from './WalletNetworkSelect'
 import { WalletExpandToggle } from './WalletExpandToggle'
 import './WalletStyles.css'
@@ -149,7 +149,7 @@ export function WalletInfo() {
 
     return (
       <span className={`wallet-current-network-icon-solana ${solanaClass}`}>
-        <SolanaLogomark size={14} />
+        <SolanaClusterIcon clusterId={solanaWallet.cluster} size={20} />
       </span>
     )
   }
@@ -198,7 +198,7 @@ export function WalletInfo() {
 
     return (
       <span className={`network-icon-svg ${currentCluster.id === 'devnet' ? 'solana-devnet' : 'solana'}`}>
-        <SolanaLogomark size={16} />
+        <SolanaClusterIcon clusterId={currentCluster.id} size={20} />
       </span>
     )
   }
@@ -312,7 +312,7 @@ export function WalletInfo() {
                         data-network-caip2={solanaClusterToCaip2(cluster.id)}
                       >
                         <span className={`network-icon-svg ${cluster.id === 'devnet' ? 'solana-devnet' : 'solana'}`}>
-                          <SolanaLogomark size={16} />
+                          <SolanaClusterIcon clusterId={cluster.id} size={20} />
                         </span>
                         <span className="network-name-wrap">
                           <span className="network-name">{cluster.name}</span>

@@ -8,7 +8,7 @@ import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
 import { GraiUiCaret } from './grai/GraiUiCaret'
-import { SolanaLogomark } from './SolanaLogomark'
+import { SolanaClusterIcon } from './SolanaClusterIcon'
 import { WalletIcon } from './WalletIcon'
 import './WalletStyles.css'
 import './HeaderSettingsPopover.css'
@@ -43,10 +43,10 @@ function EvmChainIcon({ name }: { name: string }) {
   return null
 }
 
-function SolanaClusterIcon({ clusterId }: { clusterId: 'mainnet-beta' | 'devnet' }) {
+function SolanaClusterIconWrap({ clusterId }: { clusterId: 'mainnet-beta' | 'devnet' }) {
   return (
     <span className={`header-settings-network-icon ${clusterId === 'devnet' ? 'solana-devnet' : 'solana-mainnet'}`}>
-      <SolanaLogomark size={16} />
+      <SolanaClusterIcon clusterId={clusterId} size={20} />
     </span>
   )
 }
@@ -141,7 +141,7 @@ export function ConnectWalletButton() {
         <EvmChainIcon name={activeWallet.networkName} />
       </span>
     ) : activeWallet.chainType === 'solana' ? (
-      <SolanaClusterIcon clusterId={solanaWallet.cluster} />
+      <SolanaClusterIconWrap clusterId={solanaWallet.cluster} />
     ) : null
 
   if (activeWallet.isConnected) {
@@ -265,7 +265,7 @@ export function ConnectWalletButton() {
                     onClick={() => handleClusterSelect(cluster.id)}
                     title={solanaClusterToCaip2(cluster.id)}
                   >
-                    <SolanaClusterIcon clusterId={cluster.id} />
+                    <SolanaClusterIconWrap clusterId={cluster.id} />
                     <span className="header-settings-network-text">
                       <span className="header-settings-network-name">{cluster.name}</span>
                       <span className="header-settings-network-caip2">{solanaClusterToCaip2(cluster.id)}</span>

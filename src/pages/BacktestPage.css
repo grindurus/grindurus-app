@@ -2728,7 +2728,15 @@
 .backtest-queue-empty-art {
   width: min(22rem, 100%);
   height: auto;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.15rem;
+}
+
+.backtest-queue-empty-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.2rem;
 }
 
 .backtest-queue-empty-path {
@@ -2764,7 +2772,10 @@
 }
 
 .backtest-queue-empty-dot {
-  fill: #ff69b4;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: #ff69b4;
   opacity: 0.35;
   animation: backtest-queue-empty-pulse 1.6s ease-in-out infinite;
 }

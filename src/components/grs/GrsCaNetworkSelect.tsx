@@ -11,7 +11,7 @@ import {
 } from '../../grs/deployments'
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../../wallet/caip2Network'
 import { EvmChainListIcon } from '../WalletNetworkSelect'
-import { SolanaLogomark } from '../SolanaLogomark'
+import { SolanaClusterIcon } from '../SolanaClusterIcon'
 import '../WalletStyles.css'
 
 type GrsNetworkOption =
@@ -202,7 +202,10 @@ export function GrsCaNetworkSelect({ config, ariaLabel = 'Select GRS contract ne
               }`}
             >
               {option.kind === 'solana' ? (
-                <SolanaLogomark size={16} />
+                <SolanaClusterIcon
+                  clusterId={option.cluster === 'devnet' ? 'devnet' : 'mainnet-beta'}
+                  size={20}
+                />
               ) : (
                 <EvmChainListIcon name={option.name} />
               )}
@@ -242,7 +245,10 @@ export function GrsCaNetworkSelect({ config, ariaLabel = 'Select GRS contract ne
             }`}
           >
             {current.kind === 'solana' ? (
-              <SolanaLogomark size={16} />
+              <SolanaClusterIcon
+                clusterId={current.cluster === 'devnet' ? 'devnet' : 'mainnet-beta'}
+                size={20}
+              />
             ) : (
               <EvmChainListIcon name={current.name} />
             )}

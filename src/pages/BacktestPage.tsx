@@ -2778,7 +2778,7 @@ function BacktestPage() {
                 <div className="backtest-queue-empty" aria-label="Queue is empty">
                   <svg
                     className="backtest-queue-empty-art"
-                    viewBox="0 0 420 168"
+                    viewBox="0 0 420 120"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                     aria-hidden="true"
@@ -2813,10 +2813,12 @@ function BacktestPage() {
                       <rect x="28" y="64" width="88" height="40" rx="8" />
                       <path d="M42 78 H86 M42 90 H74" />
                     </g>
-                    <circle className="backtest-queue-empty-dot" cx="48" cy="126" r="3.5" />
-                    <circle className="backtest-queue-empty-dot is-mid" cx="72" cy="126" r="3.5" />
-                    <circle className="backtest-queue-empty-dot is-late" cx="96" cy="126" r="3.5" />
                   </svg>
+                  <div className="backtest-queue-empty-dots" aria-hidden="true">
+                    <span className="backtest-queue-empty-dot" />
+                    <span className="backtest-queue-empty-dot is-mid" />
+                    <span className="backtest-queue-empty-dot is-late" />
+                  </div>
                   <p className="backtest-queue-empty-title">Queue is clear</p>
                   <p className="backtest-queue-empty-copy">
                     Create a backtest on the left — it lands here in priority order.
