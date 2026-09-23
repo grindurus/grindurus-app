@@ -1120,10 +1120,6 @@
   border-radius: 3px;
   object-fit: cover;
 }
-  letter-spacing: 0.01em;
-  line-height: 1.2;
-  text-align: left;
-}
 
 .backtest-pay-method-caret {
   flex-shrink: 0;
