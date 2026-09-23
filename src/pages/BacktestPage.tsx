@@ -962,19 +962,20 @@ function BacktestPage() {
     }
     if (hasSvmSigner && solanaWallet.address) {
       const solanaSignTransaction = solanaWallet.signTransaction
+      // Kit TransactionModifyingSigner: wallets (Phantom/Solflare) may inject Lighthouse
+      // ixs and change the message. Returning only signatures for the *original* message
+      // makes PayAI verify fail with invalid_exact_svm_payload_signature_invalid.
       const svmSigner = {
         address: solanaWallet.address,
-        signTransactions: async (transactions: any[]) => {
-          const signatures = await Promise.all(
+        modifyAndSignTransactions: async (transactions: readonly any[]) => {
+          return Promise.all(
             transactions.map(async (tx) => {
               const base64Wire = getBase64EncodedWireTransaction(tx)
               const web3Tx = VersionedTransaction.deserialize(Buffer.from(base64Wire, 'base64'))
               const signedWeb3Tx = await solanaSignTransaction!(web3Tx as any)
-              const decodedSignedTx = getTransactionDecoder().decode(signedWeb3Tx.serialize())
-              return decodedSignedTx.signatures ?? {}
+              return getTransactionDecoder().decode(signedWeb3Tx.serialize())
             })
           )
-          return signatures
         },
       }
       // Prefer app-configured RPC endpoint to avoid wallet-internal endpoints
