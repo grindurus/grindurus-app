@@ -15,10 +15,12 @@ function formatMintShareLabel(raw: bigint, decimals: number): string {
 }
 
 function formatMintGraiLabel(raw: bigint, decimals: number): string {
-  if (raw <= 0n) return '0.0'
+  const maxFractionDigits = 6
+  if (raw <= 0n) return `0.${'0'.repeat(maxFractionDigits)}`
 
-  const label = formatTokenBalance(raw, decimals, 1)
-  return label.includes('.') ? label : `${label}.0`
+  const label = formatTokenBalance(raw, decimals, maxFractionDigits)
+  const [whole, fraction = ''] = label.split('.')
+  return `${whole}.${fraction.padEnd(maxFractionDigits, '0').slice(0, maxFractionDigits)}`
 }
 
 export function useGraiMintEstimate(

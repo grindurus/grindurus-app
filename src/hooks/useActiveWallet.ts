@@ -37,7 +37,10 @@ export function useActiveWallet(): ActiveWalletState {
         networkName: solanaWallet.clusterName,
         networkCaip2,
         disconnect: async () => {
-          await solanaWallet.disconnect()
+          await Promise.allSettled([
+            solanaWallet.isConnected ? solanaWallet.disconnect() : Promise.resolve(),
+            evmWallet.isConnected ? Promise.resolve(evmWallet.disconnect()) : Promise.resolve(),
+          ])
           contextDisconnect()
         },
       }
@@ -57,7 +60,10 @@ export function useActiveWallet(): ActiveWalletState {
         networkName: evmWallet.chainName,
         networkCaip2,
         disconnect: async () => {
-          await Promise.resolve(evmWallet.disconnect())
+          await Promise.allSettled([
+            solanaWallet.isConnected ? solanaWallet.disconnect() : Promise.resolve(),
+            Promise.resolve(evmWallet.disconnect()),
+          ])
           contextDisconnect()
         },
       }

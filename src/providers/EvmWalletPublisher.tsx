@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef } from 'react'
 import { useEvmWalletFromWagmi } from '../hooks/useEvmWalletFromWagmi'
 import { useEvmWalletSnapshotApi } from './EvmWalletSnapshotContext'
+import { EvmWalletClientPublisher } from './EvmWalletClientContext'
 
 export function EvmWalletPublisher({ children, onReady }: { children: ReactNode; onReady?: () => void }) {
   const wallet = useEvmWalletFromWagmi()
@@ -28,5 +29,5 @@ export function EvmWalletPublisher({ children, onReady }: { children: ReactNode;
     return () => window.clearTimeout(timer)
   }, [onReady])
 
-  return <>{children}</>
+  return <EvmWalletClientPublisher>{children}</EvmWalletClientPublisher>
 }

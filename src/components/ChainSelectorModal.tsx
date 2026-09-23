@@ -127,6 +127,13 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
       setEvmConnectError('')
 
       try {
+        // Mark EVM as the active chain before connecting so ExclusiveWalletSync
+        // does not tear down the new EVM session if Solana was previously selected.
+        setSelectedChainType('evm')
+        if (solanaWallet.isConnected) {
+          await solanaWallet.disconnect()
+        }
+
         // MetaMask may use WalletConnect under the hood when the extension is absent —
         // still connect that connector directly (deep link / QR for MetaMask).
         if (isWalletConnectConnector(connector) && !isMetaMaskConnector(connector)) {
@@ -134,13 +141,11 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
             setEvmConnectError('WalletConnect failed. Check WalletConnect Project ID and try again.')
             return
           }
-          setSelectedChainType('evm')
           openRainbowKit()
           return
         }
 
         await evmWallet.connectWithConnector(connector.uid)
-        setSelectedChainType('evm')
         // Drop focus before aria-hidden flips on the backdrop.
         ;(document.activeElement as HTMLElement | null)?.blur?.()
         onClose()
@@ -155,23 +160,29 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
         }
       }
     },
-    [isWalletConnectConnector, openRainbowKit, setSelectedChainType, evmWallet, onClose]
+    [isWalletConnectConnector, openRainbowKit, setSelectedChainType, evmWallet, solanaWallet, onClose]
   )
 
   const handleSolanaWalletSelect = useCallback(async (walletName: string) => {
     setSelectedChainType('solana')
+    if (evmWallet.isConnected) {
+      await Promise.resolve(evmWallet.disconnect())
+    }
     await solanaWallet.selectWallet(walletName)
     onClose()
-  }, [setSelectedChainType, solanaWallet, onClose])
+  }, [setSelectedChainType, solanaWallet, evmWallet, onClose])
 
-  const handleWalletConnectFallback = useCallback(() => {
+  const handleWalletConnectFallback = useCallback(async () => {
     setSelectedChainType('evm')
+    if (solanaWallet.isConnected) {
+      await solanaWallet.disconnect()
+    }
     if (!evmWallet.canOpenConnectModal) {
       setEvmConnectError('WalletConnect failed. Check WalletConnect Project ID and try again.')
       return
     }
     openRainbowKit()
-  }, [evmWallet, openRainbowKit, setSelectedChainType])
+  }, [evmWallet, openRainbowKit, setSelectedChainType, solanaWallet])
 
   const getConnectorIcon = (connector: { id: string; name: string; icon?: string }) => {
     if (isMetaMaskConnector(connector)) return metamaskFoxIcon

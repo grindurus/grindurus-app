@@ -26,6 +26,7 @@ export function useSolanaWallet() {
     connecting,
     disconnect: walletDisconnect,
     signTransaction,
+    signAllTransactions,
     wallet,
     wallets,
     select,
@@ -160,6 +161,20 @@ export function useSolanaWallet() {
     [wallets, select, connect]
   )
 
+  const signTransactionOrAll = useCallback(
+    async (tx: Parameters<NonNullable<typeof signTransaction>>[0]) => {
+      if (typeof signTransaction === 'function') {
+        return signTransaction(tx)
+      }
+      if (typeof signAllTransactions === 'function') {
+        const [signed] = await signAllTransactions([tx])
+        return signed
+      }
+      throw new Error('Connected Solana wallet cannot sign transactions.')
+    },
+    [signTransaction, signAllTransactions],
+  ) as NonNullable<typeof signTransaction>
+
   return {
     address,
     shortAddress,
@@ -169,7 +184,10 @@ export function useSolanaWallet() {
     cluster: effectiveCluster,
     clusterName: effectiveClusterName,
     wallet,
-    signTransaction,
+    signTransaction:
+      typeof signTransaction === 'function' || typeof signAllTransactions === 'function'
+        ? signTransactionOrAll
+        : signTransaction,
     wallets: allWallets,
     detectedWallets,
     connection,

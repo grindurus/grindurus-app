@@ -13,6 +13,7 @@ import { SolanaProvider } from './SolanaProvider'
 import { LazyEvmShell, preloadEvmProvider } from './LazyEvmShell'
 import { EvmWalletSnapshotProvider } from './EvmWalletSnapshotContext'
 import { ChainSelectorModal } from '../components/ChainSelectorModal'
+import { ExclusiveWalletSync } from './ExclusiveWalletSync'
 
 export type { ChainType, EvmChain, SolanaCluster, WalletContextType }
 export { useWalletContext }
@@ -183,9 +184,10 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
             rainbowKitEnabled={rainbowKitEnabled}
             onReady={handleEvmStackReady}
           >
+            <ExclusiveWalletSync />
             {children}
+            <ChainSelectorModal isOpen={isChainSelectorOpen} onClose={closeChainSelector} />
           </LazyEvmShell>
-          <ChainSelectorModal isOpen={isChainSelectorOpen} onClose={closeChainSelector} />
         </SolanaProvider>
       </EvmWalletSnapshotProvider>
     </WalletContext.Provider>

@@ -798,10 +798,10 @@ export function GraiMintBurnPanel({
   }, [amount, burnOutputs, isBurnEstimateLoading, usdScale])
 
   const mintedGraiLabel = !amount.trim()
-    ? '0.0'
+    ? '0.000000'
     : isEstimateLoading
       ? '…'
-      : estimatedGrai ?? '0.0'
+      : estimatedGrai ?? '0.000000'
 
   const assetYieldMetrics = useMemo(
     () => lookupGraiAssetYieldMetrics(selectedAsset?.symbol),
@@ -1708,7 +1708,7 @@ export function GraiMintBurnPanel({
                             hint={buildGrindersCashflowHint()}
                           />
                           <span className="grai-detailed-preview-value">
-                            {earnDividends ? `+ ${mintedGraiLabel}` : '0.0'}
+                            {earnDividends ? `+ ${mintedGraiLabel}` : '0.000000'}
                             <img
                               src={assetUrl('logo.png')}
                               alt=""

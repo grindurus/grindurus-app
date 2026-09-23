@@ -1,5 +1,5 @@
 import { createConfig } from 'wagmi'
-import { mainnet, base, arbitrum, sepolia } from 'wagmi/chains'
+import { mainnet, base, arbitrum, polygon, sepolia } from 'wagmi/chains'
 import { connectorsForWallets } from '@rainbow-me/rainbowkit'
 import { metaMaskWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
 import { evmHttpTransport } from './evmTransports'
@@ -28,11 +28,12 @@ export const wagmiConfig = createConfig({
   // when AppWalletProvider re-renders (e.g. selecting MetaMask → setSelectedChainType).
   ssr: true,
   connectors,
-  chains: [mainnet, base, arbitrum, sepolia],
+  chains: [mainnet, base, arbitrum, polygon, sepolia],
   transports: {
     [mainnet.id]: evmHttpTransport(mainnet.id),
     [base.id]: evmHttpTransport(base.id),
     [arbitrum.id]: evmHttpTransport(arbitrum.id),
+    [polygon.id]: evmHttpTransport(polygon.id),
     [sepolia.id]: evmHttpTransport(sepolia.id),
   },
 })

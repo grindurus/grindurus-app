@@ -5,8 +5,10 @@ import { ExactSvmScheme } from '@x402/svm/exact/client'
 import { getBase64EncodedWireTransaction, getTransactionDecoder } from '@solana/kit'
 import { VersionedTransaction } from '@solana/web3.js'
 import { Buffer } from 'buffer'
-import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { useEvmWallet } from '../hooks/useEvmWallet'
+import { useActiveWallet } from '../hooks/useActiveWallet'
+import { useEvmWalletClient } from '../providers/EvmWalletClientContext'
 import { stripTrailingSlash } from '../utils/urlUtils'
 import { useWalletContext } from '../providers/AppWalletProvider'
 import { InventoryHistoryChart, type InventoryHistoryPoint } from '../components/InventoryHistoryChart'
@@ -113,19 +115,19 @@ const AIFINPAY_METHOD_ICON = (
   />
 )
 
+const X402_METHOD_ICON = (
+  <img
+    src={USDC_ICON_URL}
+    alt=""
+    width={16}
+    height={16}
+    className="backtest-pay-method-brand-icon"
+    decoding="async"
+  />
+)
+
 const PAY_METHOD_ICON: Record<PayMethod, ReactNode> = {
-  x402: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2v4" />
-      <path d="M12 18v4" />
-      <path d="m4.93 4.93 2.83 2.83" />
-      <path d="m16.24 16.24 2.83 2.83" />
-      <path d="M2 12h4" />
-      <path d="M18 12h4" />
-      <path d="m4.93 19.07 2.83-2.83" />
-      <path d="m16.24 7.76 2.83-2.83" />
-    </svg>
-  ),
+  x402: X402_METHOD_ICON,
   aifinpay: AIFINPAY_METHOD_ICON,
   promocode: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -605,12 +607,9 @@ function logEventToChartPoints(raw: unknown): {
 }
 
 function BacktestPage() {
-  const { openChainSelector } = useWalletContext()
-  const [dateFrom, setDateFrom] = useState(() => {
-    // Last completed UTC day (today UTC is often incomplete / still "future" vs server).
-    const end = addDays(utcDay(), -1)
-    return toInputDateValue(addDays(end, -(MAX_BACKTEST_PERIOD_DAYS - 1)))
-  })
+  const { openChainSelector, warmEvmStack, isEvmStackReady } = useWalletContext()
+  const activeWallet = useActiveWallet()
+  const [dateFrom, setDateFrom] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
   const [dateTo, setDateTo] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
   const [baseAssets, setBaseAssets] = useState<string[]>([...DEFAULT_BASE_ASSETS])
   const [quoteAssets, setQuoteAssets] = useState<string[]>([...DEFAULT_QUOTE_ASSETS])
@@ -621,6 +620,7 @@ function BacktestPage() {
   const [baseAmount, setBaseAmount] = useState('')
   const [quoteAmount, setQuoteAmount] = useState('')
   const [payBusy, setPayBusy] = useState(false)
+  const [payBusyLabel, setPayBusyLabel] = useState('Processing…')
   const [payError, setPayError] = useState('')
   const [paySuccess, setPaySuccess] = useState('')
   const [payMethod, setPayMethod] = useState<PayMethod>('x402')
@@ -664,11 +664,19 @@ function BacktestPage() {
   const quoteAssetMenuRef = useRef<HTMLDivElement>(null)
   const queueScrollerRef = useRef<HTMLDivElement>(null)
   const queueSearchInputRef = useRef<HTMLInputElement>(null)
-  const { isConnected: isEvmConnected } = useAccount()
   const solanaWallet = useSolanaWallet()
-  const chainId = useChainId()
-  const { switchChain, switchChainAsync } = useSwitchChain()
-  const { data: walletClient } = useWalletClient()
+  const evmWallet = useEvmWallet()
+  const { walletClient } = useEvmWalletClient()
+  const isEvmConnected = evmWallet.isConnected
+  const evmAccountAddress = evmWallet.address
+  const chainId = evmWallet.chainId
+  const switchChain = evmWallet.switchToChain
+  const switchChainAsync = evmWallet.switchToChainAsync
+
+  useEffect(() => {
+    warmEvmStack()
+  }, [warmEvmStack])
+
   const solanaWalletNetwork = useMemo(() => {
     if (!solanaWallet.cluster) return null
     if (solanaWallet.cluster === 'mainnet-beta') return 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
@@ -751,15 +759,19 @@ function BacktestPage() {
       setPayError('Enter a base or quote starting amount.')
       return
     }
-    if (payMethod === 'x402' && !isEvmConnected && !solanaWallet.isConnected) {
+    if (payMethod === 'x402' && !hasEvmSigner && !hasSvmSigner) {
       setPayError('Connect an EVM or Solana wallet to pay with x402.')
+      return
+    }
+    if (payMethod === 'x402' && !x402PaymentReady) {
+      setPayError('Waiting for wallet signer. Try again in a moment.')
       return
     }
     if (payMethod === 'x402' && !paidFetch) {
       setPayError('Unable to initialize x402 payment client.')
       return
     }
-    if (payMethod === 'aifinpay' && !(isEvmConnected && walletClient?.account?.address)) {
+    if (payMethod === 'aifinpay' && !(hasEvmSigner && walletClient?.account?.address)) {
       setPayError('Connect an EVM wallet on Polygon to pay with AiFinPay.')
       return
     }
@@ -768,10 +780,22 @@ function BacktestPage() {
       return
     }
     setPayBusy(true)
+    setPayBusyLabel(
+      payMethod === 'x402'
+        ? 'Confirm payment in wallet…'
+        : payMethod === 'aifinpay'
+          ? 'Confirm AiFinPay in wallet…'
+          : 'Processing…'
+    )
     try {
       const endpoint = `${backtestApiOrigin}/create`
       const body = JSON.stringify({
-        owner_address: solanaWallet.address || walletClient?.account?.address || '0x0000000000000000000000000000000000000001',
+        owner_address:
+          solanaWallet.address ||
+          walletClient?.account?.address ||
+          evmAccountAddress ||
+          evmWallet.address ||
+          '0x0000000000000000000000000000000000000001',
         params: {
           payment_method: payMethod,
           wallet_network: payMethod === 'aifinpay' ? 'eip155:137' : walletNetwork,
@@ -790,6 +814,7 @@ function BacktestPage() {
         if (!walletClient?.account?.address) {
           throw new Error('Connect an EVM wallet to pay with AiFinPay.')
         }
+        setPayBusyLabel('Fetching AiFinPay quote…')
         const healthRes = await fetch(`${backtestApiOrigin}/health`)
         const healthJson = (await healthRes.json().catch(() => null)) as {
           aifinpay?: { enabled?: boolean; merchant_id?: string | null }
@@ -798,10 +823,13 @@ function BacktestPage() {
         if (!healthJson?.aifinpay?.enabled || !merchantId) {
           throw new Error('AiFinPay is not enabled on the backtest service.')
         }
+        setPayBusyLabel('Confirm AiFinPay in wallet…')
         const paid = await purchaseAifpReceiptForCreate({
           walletClient: walletClient as Parameters<typeof purchaseAifpReceiptForCreate>[0]['walletClient'],
           chainId,
-          switchChainAsync: async ({ chainId: next }) => switchChainAsync({ chainId: next }),
+          switchChainAsync: async ({ chainId: next }) => {
+            await switchChainAsync(next)
+          },
           merchantId,
           resource: '/create',
           tier: 'premium',
@@ -828,6 +856,13 @@ function BacktestPage() {
       } else if (walletNetwork) {
         payHeaders['X-Wallet-Network'] = walletNetwork
       }
+      if (payMethod === 'x402') {
+        setPayBusyLabel('Confirm payment in wallet…')
+      } else if (payMethod === 'aifinpay') {
+        setPayBusyLabel('Submitting backtest…')
+      } else {
+        setPayBusyLabel('Queuing backtest…')
+      }
       const response = await requestWithPayment(endpoint, {
         method: 'POST',
         headers: payHeaders,
@@ -852,8 +887,8 @@ function BacktestPage() {
           ? `Backtest queued (${PAY_METHOD_LABEL[payMethod]}). Id: ${id}`
           : `Backtest queued (${PAY_METHOD_LABEL[payMethod]}).`
       )
-      await loadQueue()
-      await loadPriority()
+      // Refresh lists after clearing busy so Processing… does not wait on queue I/O.
+      void Promise.allSettled([loadQueue(), loadPriority()])
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to enqueue backtest'
       const lowerMessage = message.toLowerCase()
@@ -959,7 +994,7 @@ function BacktestPage() {
     setPayError('')
     setPaySuccess('')
     setShowX402NetworkSwitch(false)
-    switchChain({ chainId: 8453 })
+    switchChain(8453)
   }
 
   const handleSwitchSolana = () => {
@@ -974,37 +1009,74 @@ function BacktestPage() {
   const isQuoteSelected = assetMatchesOption(quoteAsset, quoteOptions)
   const isBaseUnmatched = normalizeAssetQuery(baseAsset).length > 0 && !isBaseSelected
   const isQuoteUnmatched = normalizeAssetQuery(quoteAsset).length > 0 && !isQuoteSelected
-  const hasEvmSigner = isEvmConnected && !!walletClient?.account?.address
-  const hasSvmSigner =
-    !!solanaWallet.address &&
-    solanaWallet.isConnected &&
-    solanaWalletWalletSignerReady(solanaWallet.signTransaction)
+  const hasEvmSigner = Boolean(
+    (isEvmConnected || evmWallet.isConnected || activeWallet.chainType === 'evm') &&
+      (walletClient?.account?.address ||
+        evmAccountAddress ||
+        evmWallet.address ||
+        (activeWallet.chainType === 'evm' ? activeWallet.address : ''))
+  )
+  const hasSvmSigner = Boolean(
+    (solanaWallet.isConnected || activeWallet.chainType === 'solana') &&
+      (solanaWallet.address || (activeWallet.chainType === 'solana' ? activeWallet.address : ''))
+  )
+  const hasSvmSignFn = solanaWalletWalletSignerReady(solanaWallet.signTransaction)
+  const x402PaymentReady =
+    (hasEvmSigner && !!walletClient?.account?.address) || (hasSvmSigner && hasSvmSignFn)
+  const walletConnecting =
+    activeWallet.isConnecting ||
+    evmWallet.isConnecting ||
+    solanaWallet.isConnecting ||
+    (payMethod !== 'promocode' && !hasEvmSigner && !hasSvmSigner && !isEvmStackReady)
   const x402NeedsWalletConnection =
-    payMethod === 'x402' && !hasEvmSigner && !hasSvmSigner
+    payMethod === 'x402' && !hasEvmSigner && !hasSvmSigner && !walletConnecting
+  const x402WalletPreparing =
+    payMethod === 'x402' && !x402NeedsWalletConnection && !x402PaymentReady && !walletConnecting
   const aifinpayNeedsWalletConnection =
-    payMethod === 'aifinpay' && !hasEvmSigner
+    payMethod === 'aifinpay' && !hasEvmSigner && !walletConnecting
+  const aifinpayWalletPreparing =
+    payMethod === 'aifinpay' && hasEvmSigner && !walletClient?.account?.address
   const needsWalletConnection = x402NeedsWalletConnection || aifinpayNeedsWalletConnection
+  const walletPreparing = x402WalletPreparing || aifinpayWalletPreparing || walletConnecting
   const payStatusMessage = payError || paySuccess
   const amountsMissing =
     payError === 'Enter a base or quote starting amount.' &&
     !hasPositiveAmount(baseAmount) &&
     !hasPositiveAmount(quoteAmount)
-  const payButtonLabel =
+  const payButtonLabel: ReactNode =
     needsWalletConnection
       ? 'Connect wallet'
+      : walletConnecting
+      ? 'Connecting…'
+      : walletPreparing && hasEvmSigner && !walletClient?.account?.address
+      ? 'Switch network'
+      : walletPreparing
+      ? 'Preparing wallet…'
       : payMethod === 'promocode'
       ? 'QUEUE BACKTEST'
       : payMethod === 'aifinpay'
       ? 'Pay AiFinPay'
-      : `Pay ${defaultBidPrice} USDC`
+      : (
+          <span className="backtest-pay-btn-usdc-label">
+            Pay {defaultBidPrice}
+            <BacktestUsdcTickerIcon size={14} />
+            USDC
+          </span>
+        )
   const payButtonAriaLabel = payBusy
-    ? 'Processing payment'
+    ? payBusyLabel
     : payStatusMessage
       ? payStatusMessage
       : needsWalletConnection
       ? payMethod === 'aifinpay'
         ? 'Connect EVM wallet to pay with AiFinPay'
         : 'Connect wallet to pay with x402'
+      : walletConnecting
+      ? 'Connecting wallet'
+      : walletPreparing && hasEvmSigner && !walletClient?.account?.address
+      ? 'Switch wallet network to continue payment'
+      : walletPreparing
+      ? 'Waiting for wallet signer'
       : payMethod === 'promocode'
       ? 'Run backtest with promocode'
       : payMethod === 'aifinpay'
@@ -1020,10 +1092,12 @@ function BacktestPage() {
     []
   )
   const paidFetch = useMemo(() => {
-    if (!hasEvmSigner && !hasSvmSigner) return null
+    const canPayEvm = Boolean(hasEvmSigner && walletClient?.account?.address)
+    const canPaySvm = Boolean(hasSvmSigner && hasSvmSignFn && solanaWallet.address)
+    if (!canPayEvm && !canPaySvm) return null
 
-    // For x402, if Solana wallet is connected, force Solana scheme selection.
-    const preferSolanaForX402 = payMethod === 'x402' && hasSvmSigner
+    // For x402, if Solana wallet can sign, force Solana scheme selection.
+    const preferSolanaForX402 = payMethod === 'x402' && canPaySvm
     const client = new (x402Client as any)((_: number, accepts: Array<{ network?: string }>) => {
       const byNetwork = (prefix: string) =>
         accepts.filter((item) => typeof item.network === 'string' && item.network.startsWith(prefix))
@@ -1046,19 +1120,20 @@ function BacktestPage() {
 
       return accepts[0]
     })
-    if (!preferSolanaForX402 && hasEvmSigner && walletClient) {
+    if (!preferSolanaForX402 && canPayEvm && walletClient?.account) {
+      const account = walletClient.account
       registerExactEvmScheme(client, {
         signer: {
-          address: walletClient.account.address,
+          address: account.address,
           signTypedData: (typedData: Parameters<typeof walletClient.signTypedData>[0]) =>
             walletClient.signTypedData({
               ...typedData,
-              account: walletClient.account,
+              account,
             }),
         } as any,
       })
     }
-    if (hasSvmSigner && solanaWallet.address) {
+    if (canPaySvm && solanaWallet.address) {
       const solanaSignTransaction = solanaWallet.signTransaction
       // Kit TransactionModifyingSigner: wallets (Phantom/Solflare) may inject Lighthouse
       // ixs and change the message. Returning only signatures for the *original* message
@@ -1092,7 +1167,18 @@ function BacktestPage() {
       }
     }
     return wrapFetchWithPayment(fetch, client)
-  }, [payMethod, solanaWallet.address, solanaWallet.isConnected, solanaWallet.rpcEndpoint, solanaWallet.signTransaction, solanaWalletNetwork, walletClient])
+  }, [
+    hasEvmSigner,
+    hasSvmSignFn,
+    hasSvmSigner,
+    payMethod,
+    solanaWallet.address,
+    solanaWallet.rpcEndpoint,
+    solanaWallet.signTransaction,
+    solanaWalletNetwork,
+    walletClient,
+    walletNetwork,
+  ])
 
   const loadQueue = useCallback(
     async (signal?: AbortSignal) => {
@@ -1622,9 +1708,9 @@ function BacktestPage() {
         <div className="backtest-panel-wrap">
           <div className="backtest-side-column">
           <aside className="backtest-panel" id={BACKTEST_SECTION_IDS.create}>
-          <p className="backtest-panel-heading" tabIndex={0}>
+          <div className="backtest-panel-heading" tabIndex={0}>
             <span className="backtest-panel-heading-label">Create Backtest</span>
-            <span className="backtest-panel-heading-tip" role="tooltip">
+            <div className="backtest-panel-heading-tip" role="tooltip">
               <span className="backtest-panel-heading-tip-title">How to run</span>
               <ul className="backtest-panel-heading-tip-list">
                 <li>
@@ -1644,8 +1730,8 @@ function BacktestPage() {
                   ~5 min typical
                 </li>
               </ul>
-            </span>
-          </p>
+            </div>
+          </div>
 
           <div className="backtest-field">
             <p className="backtest-date-limit-note">
@@ -2067,14 +2153,23 @@ function BacktestPage() {
                         openChainSelector()
                         return
                       }
+                      if (walletPreparing) {
+                        if (hasEvmSigner && !walletClient?.account?.address) {
+                          setPayError(
+                            'x402 needs Base (or Solana). Switch network, then try again.'
+                          )
+                          setShowX402NetworkSwitch(true)
+                        }
+                        return
+                      }
                       void handlePay()
                     }}
-                    disabled={payBusy}
+                    disabled={payBusy || (walletPreparing && !(hasEvmSigner && !walletClient?.account?.address))}
                     aria-label={payButtonAriaLabel}
                     aria-live="polite"
                   >
                     {payBusy ? (
-                      'Processing…'
+                      payBusyLabel
                     ) : payStatusMessage ? (
                       <span className="backtest-pay-btn-status">{payStatusMessage}</span>
                     ) : needsWalletConnection ? (

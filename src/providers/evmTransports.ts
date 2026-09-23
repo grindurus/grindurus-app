@@ -1,5 +1,5 @@
 import { fallback, http, type Transport } from 'viem'
-import { arbitrum, base, mainnet, sepolia } from 'wagmi/chains'
+import { arbitrum, base, mainnet, polygon, sepolia } from 'wagmi/chains'
 
 /** Optional override: `VITE_SEPOLIA_RPC_URL`, `VITE_ETHEREUM_RPC_URL`, … */
 function envRpc(chainId: number): string | undefined {
@@ -7,6 +7,7 @@ function envRpc(chainId: number): string | undefined {
     [mainnet.id]: import.meta.env.VITE_ETHEREUM_RPC_URL,
     [base.id]: import.meta.env.VITE_BASE_RPC_URL,
     [arbitrum.id]: import.meta.env.VITE_ARBITRUM_RPC_URL,
+    [polygon.id]: import.meta.env.VITE_POLYGON_RPC_URL,
     [sepolia.id]: import.meta.env.VITE_SEPOLIA_RPC_URL,
   }
   const raw = byId[chainId]?.trim()
@@ -22,6 +23,7 @@ const PUBLIC_FALLBACKS: Partial<Record<number, string[]>> = {
   [mainnet.id]: ['https://ethereum-rpc.publicnode.com'],
   [base.id]: ['https://base-rpc.publicnode.com'],
   [arbitrum.id]: ['https://arbitrum-one-rpc.publicnode.com'],
+  [polygon.id]: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon-rpc.com'],
 }
 
 /** Prefer env → public backups → chain default (`http()` / thirdweb). */

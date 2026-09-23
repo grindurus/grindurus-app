@@ -21,6 +21,8 @@ type LazyEvmShellProps = {
 export function LazyEvmShell({ enabled, rainbowKitEnabled, onReady, children }: LazyEvmShellProps) {
   if (!enabled) return <>{children}</>
 
+  // Keep the app tree visible while the wagmi chunk loads. Pages must not call
+  // wagmi hooks directly — use snapshot / EvmWalletClientContext instead.
   return (
     <Suspense fallback={children}>
       <EvmProvider rainbowKitEnabled={rainbowKitEnabled} onReady={onReady}>

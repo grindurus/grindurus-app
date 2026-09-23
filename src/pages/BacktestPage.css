@@ -936,6 +936,16 @@
   margin-right: 0.4rem;
 }
 
+.backtest-pay-btn-usdc-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.backtest-pay-btn-usdc-label .backtest-usdc-ticker-icon {
+  flex-shrink: 0;
+}
+
 .backtest-pay-btn:hover:not(:disabled) {
   box-shadow: 0 4px 18px rgba(255, 105, 180, 0.45);
 }

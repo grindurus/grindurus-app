@@ -28,7 +28,7 @@ export default defineConfig({
       insecureTlsHosts: ['boss.localhost', 'grindurus.xyz'],
     }),
     nodePolyfills({
-      include: ['buffer', 'crypto', 'stream'],
+      include: ['buffer', 'crypto', 'stream', 'util'],
     }),
   ],
   server: {

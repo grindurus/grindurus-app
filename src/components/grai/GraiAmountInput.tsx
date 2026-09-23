@@ -98,9 +98,21 @@ export function GraiAmountInput({
   useEffect(() => {
     onAssetChangeRef.current = onAssetChange
   })
+
+  // Notify parent only when the selected asset identity changes — not when the
+  // parent recreates the `assets` array (e.g. balance detail refresh), which
+  // would otherwise loop: onAssetChange → setState → new assets → new
+  // selectedAsset reference → onAssetChange → …
+  const selectedAssetKey = selectedAsset
+    ? `${selectedAsset.symbol}\0${selectedAsset.address}`
+    : ''
+  const lastNotifiedAssetKeyRef = useRef<string>('')
   useEffect(() => {
-    if (selectedAsset) onAssetChangeRef.current?.(selectedAsset)
-  }, [selectedAsset])
+    if (!selectedAsset || !selectedAssetKey) return
+    if (lastNotifiedAssetKeyRef.current === selectedAssetKey) return
+    lastNotifiedAssetKeyRef.current = selectedAssetKey
+    onAssetChangeRef.current?.(selectedAsset)
+  }, [selectedAsset, selectedAssetKey])
 
   const applyFraction = useCallback(
     (fraction: number) => {
