@@ -893,21 +893,13 @@
 .backtest-promocode-inline {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
   width: 100%;
 }
 
 .backtest-promocode-inline .backtest-promo-input {
   flex: 1;
   min-width: 0;
-}
-
-.backtest-promocode-inline-action {
-  flex: 0 0 4.25rem;
-  width: 4.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
 }
 
 .backtest-pay-btn {
@@ -1352,51 +1344,6 @@
   color: var(--text-secondary);
   font-weight: 500;
   opacity: 0.85;
-}
-
-.backtest-promo-apply {
-  flex-shrink: 0;
-  width: 100%;
-  padding: 0.45rem 0.45rem;
-  border: 1px solid #ff69b4;
-  border-radius: 8px;
-  background: transparent;
-  color: #ff69b4;
-  font-size: 0.76rem;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
-}
-
-.backtest-promo-apply:hover:not(:disabled) {
-  background: rgba(255, 105, 180, 0.12);
-}
-
-.backtest-promo-apply:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.backtest-promo-checkmark {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.28rem;
-  width: auto;
-  min-width: 100%;
-  height: 1.85rem;
-  padding: 0 0.35rem;
-  box-sizing: border-box;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: lowercase;
-  line-height: 1;
-  white-space: nowrap;
-  color: #7dffb2;
-  animation: backtest-pay-list-enter 0.18s ease both;
 }
 
 .backtest-main {
@@ -3992,12 +3939,23 @@
   }
 
   .backtest-queue-head-start {
-    flex: 1 1 auto;
-    width: auto;
+    flex: 1 1 100%;
+    width: 100%;
     max-width: 100%;
-    justify-content: flex-start;
+    justify-content: stretch;
     flex-wrap: nowrap;
     gap: 0.5rem;
+  }
+
+  .backtest-queue-view-block {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .backtest-queue-view-switch {
+    display: flex;
+    width: 100%;
+    align-self: stretch;
   }
 
   .backtest-payments-summary--head {

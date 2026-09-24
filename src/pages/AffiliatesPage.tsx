@@ -138,7 +138,7 @@ function AffiliatesPage() {
     try {
       await navigator.clipboard.writeText(referralHref)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 1600)
+      window.setTimeout(() => setCopied(false), 1000)
     } catch {
       setCopied(false)
     }
@@ -154,9 +154,24 @@ function AffiliatesPage() {
           <h1 className="grai-page-title affiliates-intro-title">
             {walletAddress ? 'Your referral link' : 'Connect wallet to generate referral link'}
           </h1>
-          <a className="affiliates-ref-link" href={referralHref}>
-            {referralHref}
-          </a>
+          <div className="affiliates-ref-link-wrap">
+            <a
+              className="affiliates-ref-link"
+              href={referralHref}
+              onClick={(e) => {
+                e.preventDefault()
+                void copyReferralLink()
+              }}
+              title="Click to copy referral link"
+            >
+              {referralHref}
+            </a>
+            {copied ? (
+              <span className="affiliates-ref-copied" aria-live="polite">
+                Copied!
+              </span>
+            ) : null}
+          </div>
           {walletAddress ? (
             <div className="affiliates-link-row">
               <button type="button" className="grai-mint-btn" onClick={() => void copyReferralLink()}>

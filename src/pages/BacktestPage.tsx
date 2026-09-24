@@ -499,6 +499,21 @@ function daysInclusive(from: string, to: string) {
   return Math.max(1, diff + 1)
 }
 
+/** `YYYY-MM-DD` for query `from` / `to`, or null if invalid. */
+function parseQueryDateParam(raw: string | null | undefined): string | null {
+  const s = raw?.trim().slice(0, 10) ?? ''
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null
+  const d = parseInputDate(s)
+  if (Number.isNaN(d.getTime())) return null
+  return toInputDateValue(d) === s ? s : null
+}
+
+function sanitizeDecimalInput(raw: string) {
+  const v = raw.replace(/[^\d.]/g, '')
+  const [int, dec] = v.split('.')
+  return dec !== undefined ? `${int}.${dec.slice(0, 12)}` : int
+}
+
 function chunkArray<T>(arr: T[], size: number) {
   if (size <= 0) return [arr]
   const out: T[][] = []
@@ -511,7 +526,7 @@ function formatBacktestApiError(data: unknown, status: number): string {
   if (data && typeof data === 'object') {
     const o = data as Record<string, unknown>
     const code = typeof o.code === 'string' ? o.code : ''
-    if (code === 'promocode_missing') return 'Promocode is required. Enter code and click Apply.'
+    if (code === 'promocode_missing') return 'Promocode is required. Enter a code in the field.'
     if (code === 'promocode_invalid') return 'Invalid promocode. Check the code and try again.'
 
     if (typeof o.error === 'string' && o.error.trim()) return o.error
@@ -639,7 +654,7 @@ function BacktestPage() {
   const [baseAssetListAll, setBaseAssetListAll] = useState(true)
   const [quoteAssetListAll, setQuoteAssetListAll] = useState(true)
   const [promocode, setPromocode] = useState('')
-  const [appliedPromocode, setAppliedPromocode] = useState('')
+  const createQueryFromUrlApplied = useRef(false)
   const [queueColumns, setQueueColumns] = useState(3)
   const [queueBidValues, setQueueBidValues] = useState<Record<string, string>>({})
   const [queueBidCustomOpen, setQueueBidCustomOpen] = useState<Record<string, boolean>>({})
@@ -684,6 +699,58 @@ function BacktestPage() {
   useEffect(() => {
     warmEvmStack()
   }, [warmEvmStack])
+
+  // `/backtest?from=&to=&base=&quote=&promo=` → hydrate create form once.
+  useEffect(() => {
+    if (createQueryFromUrlApplied.current) return
+    let params: URLSearchParams
+    try {
+      params = new URLSearchParams(window.location.search)
+    } catch {
+      return
+    }
+    const fromParam = params.get('from')
+    const toParam = params.get('to')
+    const baseParam = params.get('base')
+    const quoteParam = params.get('quote')
+    const promoParam = params.get('promo')?.trim() ?? ''
+    if (!fromParam && !toParam && !baseParam && !quoteParam && !promoParam) return
+
+    createQueryFromUrlApplied.current = true
+
+    const fromDate = parseQueryDateParam(fromParam)
+    const toDate = parseQueryDateParam(toParam)
+    if (fromDate || toDate) {
+      let nextFrom = fromDate ?? toDate!
+      let nextTo = toDate ?? fromDate!
+      if (parseInputDate(nextFrom) > parseInputDate(nextTo)) {
+        const swap = nextFrom
+        nextFrom = nextTo
+        nextTo = swap
+      }
+      const maxTo = addDays(parseInputDate(nextFrom), MAX_BACKTEST_PERIOD_DAYS - 1)
+      if (parseInputDate(nextTo) > maxTo) {
+        nextTo = toInputDateValue(maxTo)
+      }
+      setDateFrom(nextFrom)
+      setDateTo(nextTo)
+    }
+
+    if (baseParam != null && baseParam.trim() !== '') {
+      const cleaned = sanitizeDecimalInput(baseParam)
+      if (cleaned !== '') setBaseAmount(cleaned)
+    }
+    if (quoteParam != null && quoteParam.trim() !== '') {
+      const cleaned = sanitizeDecimalInput(quoteParam)
+      if (cleaned !== '') setQuoteAmount(cleaned)
+    }
+
+    if (promoParam) {
+      setPromocode(promoParam)
+      setPayMethod('promocode')
+      setPayError('')
+    }
+  }, [])
 
   const evmWalletNetwork = useMemo(() => (chainId ? `eip155:${chainId}` : null), [chainId])
   const preferSolanaPayment = useMemo(() => {
@@ -757,11 +824,7 @@ function BacktestPage() {
     setDateTo(v)
   }
 
-  const sanitizeDecimal = (raw: string) => {
-    const v = raw.replace(/[^\d.]/g, '')
-    const [int, dec] = v.split('.')
-    return dec !== undefined ? `${int}.${dec.slice(0, 12)}` : int
-  }
+  const sanitizeDecimal = (raw: string) => sanitizeDecimalInput(raw)
 
   const hasPositiveAmount = (raw: string) => {
     const n = Number(raw.trim())
@@ -772,8 +835,8 @@ function BacktestPage() {
     setPayMenuOpen(false)
     setPayError('')
     setPaySuccess('')
-    setAppliedPromocode('')
     setShowX402NetworkSwitch(false)
+    const promoCode = promocode.trim()
     if (!hasPositiveAmount(baseAmount) && !hasPositiveAmount(quoteAmount)) {
       setPayError('Enter a base or quote starting amount.')
       return
@@ -790,8 +853,8 @@ function BacktestPage() {
       setPayError('Unable to initialize x402 payment client.')
       return
     }
-    if (payMethod === 'promocode' && !appliedPromocode) {
-      setPayError('Apply promocode first.')
+    if (payMethod === 'promocode' && !promoCode) {
+      setPayError('Enter a promocode.')
       return
     }
     setPayBusy(true)
@@ -830,8 +893,8 @@ function BacktestPage() {
         'Content-Type': 'application/json',
         'X-Payment-Method': payMethod,
       }
-      if (payMethod === 'promocode' && appliedPromocode) {
-        payHeaders['X-Promocode'] = appliedPromocode
+      if (payMethod === 'promocode' && promoCode) {
+        payHeaders['X-Promocode'] = promoCode
       }
       if (walletNetwork) {
         payHeaders['X-Wallet-Network'] = walletNetwork
@@ -899,13 +962,6 @@ function BacktestPage() {
     } finally {
       setPayBusy(false)
     }
-  }
-
-  const handlePromoApply = () => {
-    const code = promocode.trim()
-    if (!code) return
-    setAppliedPromocode(code)
-    setPayError('')
   }
 
   const handleQueueBidChange = (id: string, raw: string) => {
@@ -1759,11 +1815,6 @@ function BacktestPage() {
           </div>
 
           <div className="backtest-field">
-            <p className="backtest-date-limit-note">
-              <span className="backtest-date-limit-note-label">Max period:</span>
-              <span className="backtest-date-limit-note-value">{MAX_BACKTEST_PERIOD_DAYS} days</span>
-              <span className="backtest-date-limit-note-label">· UTC</span>
-            </p>
             <div className="backtest-dates" role="group" aria-label="Backtest date range">
               <div className="backtest-date-col">
                 <label className="backtest-sublabel backtest-sublabel--with-icon is-from" htmlFor="backtest-date-from">
@@ -1795,6 +1846,11 @@ function BacktestPage() {
                 />
               </div>
             </div>
+            <p className="backtest-date-limit-note">
+              <span className="backtest-date-limit-note-label">Max period:</span>
+              <span className="backtest-date-limit-note-value">{MAX_BACKTEST_PERIOD_DAYS} days</span>
+              <span className="backtest-date-limit-note-label">· UTC</span>
+            </p>
           </div>
 
           <div className="backtest-pair-card" role="group" aria-label="Trading pair">
@@ -2121,14 +2177,11 @@ function BacktestPage() {
                           type="text"
                           className="backtest-promo-input"
                           value={promocode}
-                          onChange={(e) => {
-                            setPromocode(e.target.value)
-                            setAppliedPromocode('')
-                          }}
+                          onChange={(e) => setPromocode(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' && promocode.trim()) {
+                            if (e.key === 'Enter') {
                               e.preventDefault()
-                              handlePromoApply()
+                              void handlePay()
                             }
                           }}
                           placeholder="Enter promocode"
@@ -2136,29 +2189,6 @@ function BacktestPage() {
                           spellCheck={false}
                           aria-label="Promocode"
                         />
-                        {appliedPromocode ? (
-                          <span className="backtest-promocode-inline-action">
-                            <span
-                              className="backtest-promo-checkmark"
-                              aria-live="polite"
-                              aria-label="Promocode applied"
-                              title="Promocode applied"
-                            >
-                              ✓ applied
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="backtest-promocode-inline-action">
-                            <button
-                              type="button"
-                              className="backtest-promo-apply"
-                              onClick={handlePromoApply}
-                              disabled={!promocode.trim()}
-                            >
-                              Apply
-                            </button>
-                          </span>
-                        )}
                       </div>
                     </div>
                   ) : null}
