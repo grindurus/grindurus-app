@@ -1,31 +1,74 @@
-# GRINDURUS
+# GrindURUS
 
-> Volatility harvesting protocol: GrindURUS strategies, GRAI fund shares, Grinders custodians, Treasury affiliate NFTs, and GRS protocol equity.
+> Automated market-taking protocol that turns crypto price volatility into yield. Dual-sided buy-low/sell-high and sell-high/buy-low strategies run via Grinders custodians; passive holders get the same harvest through GRAI, a dollar book-priced fund share.
 
-Grindurus runs automated market-taking / volatility harvesting grinders across CEX and on-chain terminals (Binance, CoW Protocol, Jupiter, LiFi, and others), with on-chain fund accounting on Solana and EVM chains.
+Canonical site: https://grindurus.xyz/ (there is no separate app subdomain). Protocol docs live at https://docs.grindurus.xyz/. Source: https://github.com/grindurus.
 
-## Products
+Agent notes:
 
-- [GRAI](https://grindurus.xyz/grai.json): Grinders Artificial Index — passive fund share for GrindURUS strategies
-- [GRS](https://grindurus.xyz/grs.json): Grindurus Token — fixed-supply protocol equity and governance (1B max)
-- [Treasury NFT](https://grindurus.xyz/treasury.json): GRAI-TREASURY locker NFT — affiliate fee share and claim ownership
+- Prefer docs Markdown URLs (append `.md` to any docs page). Full docs index: https://docs.grindurus.xyz/llms.txt
+- Pre-mainnet / TGE TBD — networks, listed assets, and tokenomics may change; verify against current docs before stating live deployment details
+- GRAI is not a directional prediction product. Yield comes from harvesting volatility, not from forecasting price
+- Unlocked wallet GRAI earns nothing. Only locked, unvoted GRAI earns asset dividends after `distribute`
+- While the fund is live there is no protocol redeem; exit is secondary market, unlock, or post-quorum liquidation
+- GRS max supply is 1 000 000 000. It is protocol equity / governance, not the fund share
+- Backtests on `/backtest` are paid (x402 USDC or promocode), not free public API scrapes
 
-## Sites
+## Start here
 
-- [Landing](https://grindurus.xyz/): Product overview
-- [App](https://app.grindurus.xyz/): Protocol app (GRAI mint/burn, allocate, auctions)
-- [GRAI app](https://app.grindurus.xyz/grai): GRAI management surface
-- [Docs](https://docs.grindurus.xyz/): Protocol documentation
-- [GitHub](https://github.com/grindurus): Source repositories
+- [Quickstart](https://docs.grindurus.xyz/quickstart.md): Deposit GRAI, optional lock for dividends, claim and exit paths
+- [Overview](https://docs.grindurus.xyz/general/overview.md): Architecture, tokenomics, GRAI / GRS roles
+- [Manifesto](https://docs.grindurus.xyz/general/manifesto.md): Why GrindURUS exists
+- [Landing](https://grindurus.xyz/): Product overview for humans
+
+## GRAI
+
+- [GRAI overview](https://docs.grindurus.xyz/grai/overview.md): Grinders Artificial Index — passive fund share
+- [Deposit and mint](https://docs.grindurus.xyz/grai/deposit-and-mint.md): How deposits mint GRAI at book price
+- [Lock, vote, dividends](https://docs.grindurus.xyz/grai/lock-vote-and-dividends.md): Locking, voting, and dividend eligibility
+- [Liquidation](https://docs.grindurus.xyz/grai/liquidation.md): Quorum + Grinders confirm → redeem a share of the basket
+- [Treasury and affiliates](https://docs.grindurus.xyz/grai/treasury-and-affiliates.md): Fee share and Treasury NFT claims
+- [GRAI app](https://grindurus.xyz/grai): Mint, burn, lock, and manage shares (EVM or Solana wallet)
+
+## GRS
+
+- [GRS overview](https://docs.grindurus.xyz/grs/overview.md): Grindurus Token — fixed-supply protocol equity
+- [Cap table](https://docs.grindurus.xyz/grs/cap-table.md): Supply allocation
+- [Bridge](https://docs.grindurus.xyz/grs/bridge.md): Home chain and spoke bridging
+- [Token sales](https://docs.grindurus.xyz/grs/token-sales.md): How GRS is sold
+- [GRS app](https://grindurus.xyz/grs): GRS surface in the product app
+
+## Grinders & protocol
+
+- [Grinders overview](https://docs.grindurus.xyz/grinders/overview.md): Custodian NFTs and where capital trades
+- [Protocol overview](https://docs.grindurus.xyz/protocol/overview.md): URUS accounting, strategy, Boss / adapters
+- [Grinders app](https://grindurus.xyz/grinders): Allocation and grinder management UI
+- [Affiliates app](https://grindurus.xyz/affiliate): Treasury NFT / affiliate fee claims UI
+- [Backtest](https://grindurus.xyz/backtest): Historical strategy backtests (paid via x402 or promocode)
+
+## Developers
+
+- [Mechanics](https://docs.grindurus.xyz/developers/mechanics.md): On-chain specs index
+- [GRAI mechanics](https://docs.grindurus.xyz/developers/mechanics/grai.md): GRAI contract / program behavior
+- [GRS mechanics](https://docs.grindurus.xyz/developers/mechanics/grs.md): GRS contract / program behavior
+- [Grinders mechanics](https://docs.grindurus.xyz/developers/mechanics/grinders.md): Grinders custodian mechanics
+- [EVM contracts](https://docs.grindurus.xyz/developers/evm-contracts.md): EVM deployment references
+- [Solana programs](https://docs.grindurus.xyz/developers/solana-programs.md): Solana program references
+- [Repositories](https://docs.grindurus.xyz/developers/repositories.md): Source repo map
+- [Docs llms.txt](https://docs.grindurus.xyz/llms.txt): Complete documentation link index for agents
 
 ## Token metadata
 
-- [grai.json](https://grindurus.xyz/grai.json): ERC-1046 / Metaplex URI for GRAI
-- [grs.json](https://grindurus.xyz/grs.json): ERC-1046 target URI for GRS
-- [treasury.json](https://grindurus.xyz/treasury.json): Metadata URI for Treasury locker NFTs
-- [logo.png](https://grindurus.xyz/logo.png): Brand image used by token metadata
+Machine-readable ERC-1046 / Metaplex-style JSON (prefer these over scraping HTML):
 
-## Social
+- [grai.json](https://grindurus.xyz/grai.json): GRAI name, symbol, description, docs and social links
+- [grs.json](https://grindurus.xyz/grs.json): GRS metadata including max supply (1B) and decimals
+- [treasury.json](https://grindurus.xyz/treasury.json): GRAI-TREASURY locker NFT metadata
 
-- [X / Twitter](https://x.com/grindurus)
-- [GitHub org](https://github.com/grindurus)
+## Optional
+
+- [Fundraising concepts](https://docs.grindurus.xyz/general/fundraising-concepts.md): How fundraising is framed
+- [App / site / source links](https://docs.grindurus.xyz/links/links.md): Canonical product URLs
+- [GitHub org](https://github.com/grindurus): Source repositories
+- [X / Twitter](https://x.com/grindurus): Announcements
+- [logo.png](https://grindurus.xyz/logo.png): Brand image referenced by token metadata

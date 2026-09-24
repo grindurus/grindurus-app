@@ -97,7 +97,17 @@ export default function Footer() {
           </span>
         </Link>
         <div className="order-1 flex flex-col items-end gap-3 sm:order-2">
-          <p className="m-0 font-mono text-sm text-[#1a1a1a]/85 dark:text-white/85">© GrindURUS 2026. All rights reserved.</p>
+          <p className="m-0 font-mono text-sm text-[#1a1a1a]/85 dark:text-white/85">
+            © GrindURUS 2026. All rights reserved.
+            {' · '}
+            <a
+              href="/llms.txt"
+              rel="describedby"
+              className="text-[#1a1a1a]/85 underline decoration-black/25 underline-offset-2 transition-opacity hover:opacity-70 dark:text-white/85 dark:decoration-white/30"
+            >
+              llms.txt
+            </a>
+          </p>
           <SocialIcons />
         </div>
       </div>
