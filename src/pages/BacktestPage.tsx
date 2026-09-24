@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch'
 import { registerExactEvmScheme } from '@x402/evm/exact/client'
 import { ExactSvmScheme } from '@x402/svm/exact/client'
@@ -19,15 +27,30 @@ import {
   BACKTEST_SECTION_IDS,
   readBacktestSectionFromHash,
 } from '../utils/backtestNavigation'
+import { SOLANA_MAINNET_GENESIS } from '../wallet/caip2Network'
 import './BacktestPage.css'
 
 const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
 const DEFAULT_QUOTE_ASSETS = ['USDC', 'USDT', 'USD', 'SOL'] as const
 const DEFAULT_BASE_ASSET = 'SOL'
+/** Backtest x402 SVM accepts only Solana mainnet (CAIP-2 genesis). */
+const X402_SOLANA_MAINNET = `solana:${SOLANA_MAINNET_GENESIS}` as const
 /** Inclusive calendar-day cap for From–To (matches UI “Max period”). */
 const MAX_BACKTEST_PERIOD_DAYS = 5
-const QUEUE_VISIBLE_OPTIONS = [4, 6, 9, 12] as const
-const QUEUE_VISIBLE_DEFAULT = QUEUE_VISIBLE_OPTIONS[0]
+const QUEUE_VISIBLE_COUNT = 9
+/** Minimum custom / paid queue bid (USDC). */
+const MIN_QUEUE_BID_USDC = 1
+
+function parseBidUsdcAmount(raw: string): number | null {
+  const n = Number(raw.trim())
+  if (!Number.isFinite(n)) return null
+  return n
+}
+
+function isValidQueueBidAmount(raw: string): boolean {
+  const n = parseBidUsdcAmount(raw)
+  return n !== null && n >= MIN_QUEUE_BID_USDC
+}
 const USDC_ICON_URL = 'https://assets.coingecko.com/coins/images/6319/small/usdc.png'
 
 /** Fallback when `/symbols` has not loaded icons yet. */
@@ -617,7 +640,7 @@ function BacktestPage() {
   const [quoteAssetListAll, setQuoteAssetListAll] = useState(true)
   const [promocode, setPromocode] = useState('')
   const [appliedPromocode, setAppliedPromocode] = useState('')
-  const [queueColumns, setQueueColumns] = useState(2)
+  const [queueColumns, setQueueColumns] = useState(3)
   const [queueBidValues, setQueueBidValues] = useState<Record<string, string>>({})
   const [queueBidCustomOpen, setQueueBidCustomOpen] = useState<Record<string, boolean>>({})
   const [queueBidBusy, setQueueBidBusy] = useState<Record<string, boolean>>({})
@@ -625,8 +648,6 @@ function BacktestPage() {
   const [queueItems, setQueueItems] = useState<BacktestQueueItem[]>([])
   const [queueSearch, setQueueSearch] = useState('')
   const [queueView, setQueueView] = useState<'queue' | 'history'>('queue')
-  const [queueVisibleCount, setQueueVisibleCount] =
-    useState<(typeof QUEUE_VISIBLE_OPTIONS)[number]>(QUEUE_VISIBLE_DEFAULT)
   const [queueLoading, setQueueLoading] = useState(false)
   const [queueError, setQueueError] = useState('')
   const [priorityTotals, setPriorityTotals] = useState({
@@ -649,6 +670,8 @@ function BacktestPage() {
   const baseAssetMenuRef = useRef<HTMLDivElement>(null)
   const quoteAssetMenuRef = useRef<HTMLDivElement>(null)
   const queueScrollerRef = useRef<HTMLDivElement>(null)
+  const queueWrapRef = useRef<HTMLDivElement>(null)
+  const queueWrapAnimFromRef = useRef<number | null>(null)
   const queueSearchInputRef = useRef<HTMLInputElement>(null)
   const solanaWallet = useSolanaWallet()
   const evmWallet = useEvmWallet()
@@ -662,19 +685,30 @@ function BacktestPage() {
     warmEvmStack()
   }, [warmEvmStack])
 
-  const solanaWalletNetwork = useMemo(() => {
-    if (!solanaWallet.cluster) return null
-    if (solanaWallet.cluster === 'mainnet-beta') return 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
-    return 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
-  }, [solanaWallet.cluster])
   const evmWalletNetwork = useMemo(() => (chainId ? `eip155:${chainId}` : null), [chainId])
+  const preferSolanaPayment = useMemo(() => {
+    if (payMethod !== 'x402') return false
+    if (!solanaWallet.isConnected || !solanaWalletWalletSignerReady(solanaWallet.signTransaction)) {
+      return false
+    }
+    // Prefer Solana when it's the active wallet, or when no EVM signer is ready.
+    if (activeWallet.chainType === 'solana') return true
+    if (!(isEvmConnected || evmWallet.isConnected || activeWallet.chainType === 'evm')) return true
+    return false
+  }, [
+    activeWallet.chainType,
+    evmWallet.isConnected,
+    isEvmConnected,
+    payMethod,
+    solanaWallet.isConnected,
+    solanaWallet.signTransaction,
+  ])
   const walletNetwork = useMemo(() => {
     if (payMethod !== 'x402') return evmWalletNetwork
-    if (solanaWallet.isConnected && solanaWalletWalletSignerReady(solanaWallet.signTransaction)) {
-      return solanaWalletNetwork
-    }
+    // Payment options are Base + Solana mainnet — never advertise wallet-UI devnet.
+    if (preferSolanaPayment) return X402_SOLANA_MAINNET
     return evmWalletNetwork
-  }, [evmWalletNetwork, payMethod, solanaWallet.isConnected, solanaWallet.signTransaction, solanaWalletNetwork])
+  }, [evmWalletNetwork, payMethod, preferSolanaPayment])
 
   const quoteOptions = useMemo(
     () => quoteAssets.filter((q) => !(baseAsset === 'SOL' && q === 'SOL')),
@@ -881,6 +915,10 @@ function BacktestPage() {
   const handleQueueBidSubmit = async (id: string, explicitAmount?: string) => {
     const value = (explicitAmount ?? queueBidValues[id] ?? '').trim()
     if (!value) return
+    if (!isValidQueueBidAmount(value)) {
+      setQueueError(`Bid must be at least ${MIN_QUEUE_BID_USDC} USDC.`)
+      return
+    }
     if (!paidFetch) {
       setQueueError('Connect wallet to pay bid via x402.')
       return
@@ -1026,31 +1064,42 @@ function BacktestPage() {
     const canPaySvm = Boolean(hasSvmSigner && hasSvmSignFn && solanaWallet.address)
     if (!canPayEvm && !canPaySvm) return null
 
-    // For x402, if Solana wallet can sign, force Solana scheme selection.
-    const preferSolanaForX402 = payMethod === 'x402' && canPaySvm
+    const preferSolanaForX402 = preferSolanaPayment && canPaySvm
     const client = new (x402Client as any)((_: number, accepts: Array<{ network?: string }>) => {
       const byNetwork = (prefix: string) =>
         accepts.filter((item) => typeof item.network === 'string' && item.network.startsWith(prefix))
 
       if (preferSolanaForX402) {
-        if (walletNetwork?.startsWith('solana:')) {
-          const exactSolana = accepts.find((item) => item.network === walletNetwork)
-          if (exactSolana) return exactSolana
-        }
+        const exactMainnet = accepts.find((item) => item.network === X402_SOLANA_MAINNET)
+        if (exactMainnet) return exactMainnet
         const solanaAccepts = byNetwork('solana:')
         if (solanaAccepts.length > 0) return solanaAccepts[0]
       }
 
-      if (walletNetwork?.startsWith('eip155:')) {
-        const exactEvm = accepts.find((item) => item.network === walletNetwork)
+      if (walletNetwork?.startsWith('eip155:') || canPayEvm) {
+        const exactEvm = walletNetwork
+          ? accepts.find((item) => item.network === walletNetwork)
+          : undefined
         if (exactEvm) return exactEvm
         const evmAccepts = byNetwork('eip155:')
         if (evmAccepts.length > 0) return evmAccepts[0]
       }
 
+      if (canPaySvm) {
+        const exactMainnet = accepts.find((item) => item.network === X402_SOLANA_MAINNET)
+        if (exactMainnet) return exactMainnet
+        const solanaAccepts = byNetwork('solana:')
+        if (solanaAccepts.length > 0) return solanaAccepts[0]
+      }
+
       return accepts[0]
     })
-    if (!preferSolanaForX402 && canPayEvm && walletClient?.account) {
+    // x402 defaults maxAmountPerPayment to $1 — blocks custom queue bids above 1 USDC.
+    // Amounts are confirmed in the UI (create + bid), so lift the client-side USD ceiling.
+    ;(client as any).setSpendControls({ maxAmountPerPayment: false })
+    // Always register EVM when available — Solana connected on the wrong cluster must not
+    // block Base payments (previous bug: preferSolana skipped EVM registration entirely).
+    if (canPayEvm && walletClient?.account) {
       const account = walletClient.account
       registerExactEvmScheme(client, {
         signer: {
@@ -1081,31 +1130,24 @@ function BacktestPage() {
           )
         },
       }
-      // Prefer app-configured RPC endpoint to avoid wallet-internal endpoints
-      // that may not expose CORS for browser fetch.
-      const rpcUrl = import.meta.env.VITE_SOLANA_RPC_URL || solanaWallet.rpcEndpoint
-      if (solanaWalletNetwork) {
-        ;(client as any).register(
-          solanaWalletNetwork,
-          new ExactSvmScheme(svmSigner as any, rpcUrl ? { rpcUrl } : undefined)
-        )
-      } else {
-        ;(client as any).register(
-          'solana:*',
-          new ExactSvmScheme(svmSigner as any, rpcUrl ? { rpcUrl } : undefined)
-        )
-      }
+      // Backtest facilitator only lists Solana mainnet — register that CAIP (and wildcard)
+      // with a mainnet RPC even if the wallet UI cluster is still "devnet".
+      const rpcUrl =
+        import.meta.env.VITE_SOLANA_MAINNET_RPC_URL ||
+        import.meta.env.VITE_SOLANA_RPC_URL ||
+        'https://api.mainnet-beta.solana.com'
+      const svmScheme = new ExactSvmScheme(svmSigner as any, { rpcUrl })
+      ;(client as any).register(X402_SOLANA_MAINNET, svmScheme)
+      ;(client as any).register('solana:*', svmScheme)
     }
     return wrapFetchWithPayment(fetch, client)
   }, [
     hasEvmSigner,
     hasSvmSignFn,
     hasSvmSigner,
-    payMethod,
+    preferSolanaPayment,
     solanaWallet.address,
-    solanaWallet.rpcEndpoint,
     solanaWallet.signTransaction,
-    solanaWalletNetwork,
     walletClient,
     walletNetwork,
   ])
@@ -1498,8 +1540,11 @@ function BacktestPage() {
     if (!el) return
 
     const updateColumns = () => {
-      // Snake needs 2 columns on desktop; collapse only on very narrow scroller.
-      setQueueColumns(el.clientWidth >= 420 ? 2 : 1)
+      const width = el.clientWidth
+      // Snake grid: 3 on desktop, 2 on tablet, 1 on narrow.
+      if (width >= 780) setQueueColumns(3)
+      else if (width >= 420) setQueueColumns(2)
+      else setQueueColumns(1)
     }
 
     updateColumns()
@@ -1569,26 +1614,26 @@ function BacktestPage() {
     [stackPriorityRaw, totalPriorityRaw]
   )
   const displayQueue = useMemo(
-    () => visibleQueue.slice(0, queueVisibleCount),
-    [visibleQueue, queueVisibleCount]
+    () => visibleQueue.slice(0, QUEUE_VISIBLE_COUNT),
+    [visibleQueue, QUEUE_VISIBLE_COUNT]
   )
   const queueRows = useMemo(
     () => chunkArray(displayQueue, queueColumns),
     [displayQueue, queueColumns]
   )
-  const historyCols = queueVisibleCount > 4 ? 3 : 2
-  const historyPageCount = Math.max(1, Math.ceil(visibleHistory.length / queueVisibleCount))
+  const historyCols = queueColumns
+  const historyPageCount = Math.max(1, Math.ceil(visibleHistory.length / QUEUE_VISIBLE_COUNT))
   const pagedHistoryItems = useMemo(() => {
-    const start = historyPage * queueVisibleCount
-    return visibleHistory.slice(start, start + queueVisibleCount)
-  }, [visibleHistory, historyPage, queueVisibleCount])
-  const historyRangeStart = visibleHistory.length === 0 ? 0 : historyPage * queueVisibleCount + 1
-  const historyRangeEnd = Math.min((historyPage + 1) * queueVisibleCount, visibleHistory.length)
-  const showHistoryPagination = visibleHistory.length > queueVisibleCount
+    const start = historyPage * QUEUE_VISIBLE_COUNT
+    return visibleHistory.slice(start, start + QUEUE_VISIBLE_COUNT)
+  }, [visibleHistory, historyPage, QUEUE_VISIBLE_COUNT])
+  const historyRangeStart = visibleHistory.length === 0 ? 0 : historyPage * QUEUE_VISIBLE_COUNT + 1
+  const historyRangeEnd = Math.min((historyPage + 1) * QUEUE_VISIBLE_COUNT, visibleHistory.length)
+  const showHistoryPagination = visibleHistory.length > QUEUE_VISIBLE_COUNT
 
   useEffect(() => {
     setHistoryPage((page) => Math.min(page, historyPageCount - 1))
-  }, [visibleHistory.length, historyPageCount, queueVisibleCount])
+  }, [visibleHistory.length, historyPageCount, QUEUE_VISIBLE_COUNT])
 
   useEffect(() => {
     setHistoryPage(0)
@@ -1596,6 +1641,57 @@ function BacktestPage() {
 
   useEffect(() => {
     if (queueView === 'history') setHistoryPage(0)
+  }, [queueView])
+
+  const setQueueViewAnimated = useCallback((next: 'queue' | 'history') => {
+    setQueueView((prev) => {
+      if (prev === next) return prev
+      const el = queueWrapRef.current
+      if (el) {
+        queueWrapAnimFromRef.current = el.getBoundingClientRect().height
+        el.style.height = `${queueWrapAnimFromRef.current}px`
+        el.style.overflow = 'hidden'
+      }
+      return next
+    })
+  }, [])
+
+  useLayoutEffect(() => {
+    const el = queueWrapRef.current
+    const from = queueWrapAnimFromRef.current
+    if (!el || from == null) return
+    queueWrapAnimFromRef.current = null
+
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    el.style.height = 'auto'
+    const to = el.getBoundingClientRect().height
+
+    if (reduceMotion || Math.abs(to - from) < 1) {
+      el.style.height = ''
+      el.style.overflow = ''
+      el.classList.remove('is-height-animating')
+      return
+    }
+
+    el.style.height = `${from}px`
+    void el.offsetHeight
+    el.classList.add('is-height-animating')
+    el.style.height = `${to}px`
+
+    const onEnd = (event: TransitionEvent) => {
+      if (event.target !== el || event.propertyName !== 'height') return
+      el.style.height = ''
+      el.style.overflow = ''
+      el.classList.remove('is-height-animating')
+      el.removeEventListener('transitionend', onEnd)
+    }
+    el.addEventListener('transitionend', onEnd)
+    return () => {
+      el.removeEventListener('transitionend', onEnd)
+    }
   }, [queueView])
 
   const runningBacktest = useMemo(
@@ -1635,9 +1731,8 @@ function BacktestPage() {
   return (
     <div className="backtest-page">
       <div className="backtest-layout">
-        <div className="backtest-panel-wrap">
-          <div className="backtest-side-column">
-          <aside className="backtest-panel" id={BACKTEST_SECTION_IDS.create}>
+        <div className="backtest-create-stack">
+          <aside className="backtest-panel backtest-panel--create" id={BACKTEST_SECTION_IDS.create}>
           <div className="backtest-panel-heading" tabIndex={0}>
             <span className="backtest-panel-heading-label">Create Backtest</span>
             <div className="backtest-panel-heading-tip" role="tooltip">
@@ -2143,112 +2238,82 @@ function BacktestPage() {
             )}
           </div>
           </aside>
-          <section
-            className="backtest-payments-summary"
-            id={BACKTEST_SECTION_IDS.priority}
-            aria-label="Payments summary"
-          >
-            <div className="backtest-payments-summary-head">
-              <span className="backtest-payments-summary-title">Total priority</span>
-              <span className="backtest-payments-summary-value">
-                {totalPaymentsUsdc} <BacktestUsdcTickerIcon />
-                USDC
-              </span>
-            </div>
-            <div className="backtest-payments-infographic">
-              <div className="backtest-payments-bar" aria-hidden="true">
-                <span
-                  className="backtest-payments-bar-segment is-queue"
-                  style={{ width: `${queuePriorityPct}%` }}
-                />
-                <span
-                  className="backtest-payments-bar-segment is-stack"
-                  style={{ width: `${stackPriorityPct}%` }}
-                />
-              </div>
-              <div className="backtest-payments-priority-lines">
-                <span className="backtest-payments-priority-line">
-                  <span className="backtest-payments-priority-label">
-                    <span className="backtest-payments-dot is-queue" aria-hidden="true" />
-                    QUEUE
-                  </span>
-                  <span className="backtest-payments-priority-amount">
-                    {queuePriorityUsdc} <BacktestUsdcTickerIcon size={12} />
-                    USDC ({queuePriorityPct.toFixed(1)}%)
-                  </span>
-                </span>
-                <span className="backtest-payments-priority-line">
-                  <span className="backtest-payments-priority-label">
-                    <span className="backtest-payments-dot is-stack" aria-hidden="true" />
-                    STACK
-                  </span>
-                  <span className="backtest-payments-priority-amount">
-                    {stackPriorityUsdc} <BacktestUsdcTickerIcon size={12} />
-                    USDC ({stackPriorityPct.toFixed(1)}%)
-                  </span>
-                </span>
-              </div>
-            </div>
-          </section>
-          </div>
+        </div>
+        <div className="backtest-panel-wrap">
           <section
             className="backtest-main"
             id={BACKTEST_SECTION_IDS.queue}
             aria-label="Backtest results"
           >
           <div
+            ref={queueWrapRef}
             className={`backtest-queue-wrap ${queueView === 'history' ? 'is-history' : ''}`}
             role="region"
             aria-label={queueView === 'queue' ? 'Queue' : 'Stack'}
           >
-            <div className="backtest-queue-head">
+            <div
+              className="backtest-queue-head"
+              style={{ ['--queue-cols' as string]: String(queueColumns) }}
+            >
               <div className="backtest-queue-head-start">
-              <div className="backtest-queue-view-switch" role="tablist" aria-label="Queue data view">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={queueView === 'queue'}
-                  className={`backtest-queue-view-btn is-queue ${queueView === 'queue' ? 'is-active' : ''}`}
-                  onClick={() => setQueueView('queue')}
-                >
-                  Queue
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={queueView === 'history'}
-                  className={`backtest-queue-view-btn is-stack ${queueView === 'history' ? 'is-active' : ''}`}
-                  onClick={() => setQueueView('history')}
-                >
-                  Stack
-                </button>
+                <div className="backtest-queue-view-block">
+                  <div className="backtest-queue-view-switch" role="tablist" aria-label="Queue data view">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={queueView === 'queue'}
+                      className={`backtest-queue-view-btn is-queue ${queueView === 'queue' ? 'is-active' : ''}`}
+                      onClick={() => setQueueViewAnimated('queue')}
+                    >
+                      Queue
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={queueView === 'history'}
+                      className={`backtest-queue-view-btn is-stack ${queueView === 'history' ? 'is-active' : ''}`}
+                      onClick={() => setQueueViewAnimated('history')}
+                    >
+                      Stack
+                    </button>
+                  </div>
+                  <div className="backtest-queue-view-stats" aria-hidden="true">
+                    <span className="backtest-queue-view-stat is-queue">
+                      <span className="backtest-payments-dot is-queue" />
+                      {queuePriorityUsdc} USDC ({queuePriorityPct.toFixed(1)}%)
+                    </span>
+                    <span className="backtest-queue-view-stat is-stack">
+                      <span className="backtest-payments-dot is-stack" />
+                      {stackPriorityUsdc} USDC ({stackPriorityPct.toFixed(1)}%)
+                    </span>
+                  </div>
+                </div>
               </div>
-              <label className="backtest-queue-size" title="Cards visible">
-                <span className="backtest-queue-size-meta">
-                  <span className="backtest-queue-size-label">Show:</span>
-                  <span className="backtest-queue-size-value" aria-hidden="true">
-                    {queueVisibleCount}
+              <section
+                className="backtest-payments-summary backtest-payments-summary--head"
+                id={BACKTEST_SECTION_IDS.priority}
+                aria-label="Payments summary"
+              >
+                <div className="backtest-payments-summary-head">
+                  <span className="backtest-payments-summary-title">Total bid</span>
+                  <span className="backtest-payments-summary-value">
+                    {totalPaymentsUsdc} <BacktestUsdcTickerIcon />
+                    USDC
                   </span>
-                </span>
-                <input
-                  type="range"
-                  className="backtest-queue-size-slider"
-                  min={0}
-                  max={QUEUE_VISIBLE_OPTIONS.length - 1}
-                  step={1}
-                  value={Math.max(0, QUEUE_VISIBLE_OPTIONS.indexOf(queueVisibleCount))}
-                  onChange={(e) => {
-                    const next = QUEUE_VISIBLE_OPTIONS[Number(e.target.value)]
-                    if (next != null) setQueueVisibleCount(next)
-                  }}
-                  aria-label="Number of cards visible"
-                  aria-valuemin={QUEUE_VISIBLE_OPTIONS[0]}
-                  aria-valuemax={QUEUE_VISIBLE_OPTIONS[QUEUE_VISIBLE_OPTIONS.length - 1]}
-                  aria-valuenow={queueVisibleCount}
-                  aria-valuetext={`${queueVisibleCount} cards`}
-                />
-              </label>
-              </div>
+                </div>
+                <div className="backtest-payments-infographic">
+                  <div className="backtest-payments-bar" aria-hidden="true">
+                    <span
+                      className="backtest-payments-bar-segment is-queue"
+                      style={{ width: `${queuePriorityPct}%` }}
+                    />
+                    <span
+                      className="backtest-payments-bar-segment is-stack"
+                      style={{ width: `${stackPriorityPct}%` }}
+                    />
+                  </div>
+                </div>
+              </section>
               <div className="backtest-queue-sort" aria-label="Search">
                 <div className="backtest-queue-search-wrap">
                   <input
@@ -2374,7 +2439,7 @@ function BacktestPage() {
                               <div className="backtest-queue-creator">
                                 <div className="backtest-queue-creator-top">
                                   <span className="backtest-queue-creator-label">Creator</span>
-                                  <span className="backtest-queue-priority-label">Priority</span>
+                                  <span className="backtest-queue-priority-label">BID</span>
                                 </div>
                                 <div className="backtest-queue-creator-bottom">
                                   <span className="backtest-queue-creator-main">
@@ -2432,50 +2497,52 @@ function BacktestPage() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <>
-                                    <div className="backtest-queue-bid-custom-inline">
+                                  <div className="backtest-queue-bid-custom-inline">
+                                    <button
+                                      type="button"
+                                      className="backtest-queue-bid-btn backtest-queue-bid-btn--secondary"
+                                      onClick={() =>
+                                        setQueueBidCustomOpen((prev) => ({ ...prev, [item.id]: false }))
+                                      }
+                                    >
+                                      BACK
+                                    </button>
+                                    <div className="backtest-queue-bid-custom-submit-row">
+                                      <div className="backtest-queue-bid-input-wrap">
+                                        <input
+                                          type="text"
+                                          inputMode="decimal"
+                                          className="backtest-queue-bid-input"
+                                          placeholder={`min ${MIN_QUEUE_BID_USDC}`}
+                                          value={queueBidValues[item.id] ?? ''}
+                                          onChange={(e) => handleQueueBidChange(item.id, e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              e.preventDefault()
+                                              void handleQueueBidSubmit(item.id)
+                                            }
+                                          }}
+                                          aria-label={`Bid amount for queue item #${originalIdx + 1} (minimum ${MIN_QUEUE_BID_USDC} USDC)`}
+                                          aria-invalid={
+                                            Boolean((queueBidValues[item.id] ?? '').trim()) &&
+                                            !isValidQueueBidAmount(queueBidValues[item.id] ?? '')
+                                          }
+                                        />
+                                        <span className="backtest-queue-bid-suffix">USDC</span>
+                                      </div>
                                       <button
                                         type="button"
-                                        className="backtest-queue-bid-btn backtest-queue-bid-btn--secondary"
-                                        onClick={() =>
-                                          setQueueBidCustomOpen((prev) => ({ ...prev, [item.id]: false }))
+                                        className="backtest-queue-bid-btn"
+                                        onClick={() => void handleQueueBidSubmit(item.id)}
+                                        disabled={
+                                          !isValidQueueBidAmount(queueBidValues[item.id] ?? '') ||
+                                          !!queueBidBusy[item.id]
                                         }
                                       >
-                                        BACK
+                                        {queueBidBusy[item.id] ? 'BIDDING…' : 'BID'}
                                       </button>
-                                      <div className="backtest-queue-bid-custom-submit-row">
-                                        <div className="backtest-queue-bid-input-wrap">
-                                          <input
-                                            type="text"
-                                            inputMode="decimal"
-                                            className="backtest-queue-bid-input"
-                                            placeholder={`#${originalIdx + 1} bid`}
-                                            value={queueBidValues[item.id] ?? ''}
-                                            onChange={(e) => handleQueueBidChange(item.id, e.target.value)}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                e.preventDefault()
-                                                void handleQueueBidSubmit(item.id)
-                                              }
-                                            }}
-                                            aria-label={`Bid amount for queue item #${originalIdx + 1}`}
-                                          />
-                                          <span className="backtest-queue-bid-suffix">USDC</span>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          className="backtest-queue-bid-btn"
-                                          onClick={() => void handleQueueBidSubmit(item.id)}
-                                          disabled={
-                                            !(queueBidValues[item.id] ?? '').trim() ||
-                                            !!queueBidBusy[item.id]
-                                          }
-                                        >
-                                          {queueBidBusy[item.id] ? 'BIDDING…' : 'BID'}
-                                        </button>
-                                      </div>
                                     </div>
-                                  </>
+                                  </div>
                                 )}
                               </div>
                               )}
@@ -2491,7 +2558,7 @@ function BacktestPage() {
             ) : (
               <>
               <div
-                className={`backtest-history-list${historyCols > 2 ? ' is-compact' : ''}`}
+                className="backtest-history-list"
                 style={{ ['--history-cols' as string]: String(historyCols) }}
                 aria-label="Backtest history PnL list"
               >
@@ -2542,7 +2609,7 @@ function BacktestPage() {
                         </div>
                         <div className="backtest-history-period-meta">
                           <span className="backtest-history-index">
-                            #{historyPage * queueVisibleCount + index + 1}
+                            #{historyPage * QUEUE_VISIBLE_COUNT + index + 1}
                           </span>
                         </div>
                         <div className="backtest-history-period-range">
@@ -2753,7 +2820,7 @@ function BacktestPage() {
                   </div>
                   <p className="backtest-queue-empty-title">Queue is clear</p>
                   <p className="backtest-queue-empty-copy">
-                    Create a backtest on the left — it lands here in priority order.
+                    Create a backtest above — it lands here in bid order.
                   </p>
                 </div>
               )
