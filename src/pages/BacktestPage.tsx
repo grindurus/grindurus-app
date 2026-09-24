@@ -272,6 +272,30 @@ function shortenCreatorAddress(addr: string, head = 6, tail = 4) {
   return `${t.slice(0, head)}…${t.slice(-tail)}`
 }
 
+function queueItemsEqual(a: BacktestQueueItem[], b: BacktestQueueItem[]) {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i += 1) {
+    const x = a[i]
+    const y = b[i]
+    if (
+      x.id !== y.id ||
+      x.status !== y.status ||
+      x.usdcPaid !== y.usdcPaid ||
+      x.base !== y.base ||
+      x.quote !== y.quote ||
+      x.dateFrom !== y.dateFrom ||
+      x.dateTo !== y.dateTo ||
+      x.baseAmount !== y.baseAmount ||
+      x.quoteAmount !== y.quoteAmount ||
+      x.creatorAddress !== y.creatorAddress
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
 function toDateOnly(value: string) {
   if (!value) return ''
   const d = new Date(value)
@@ -929,7 +953,7 @@ function BacktestPage() {
           : `Backtest queued (${PAY_METHOD_LABEL[payMethod]}).`
       )
       // Refresh lists after clearing busy so Processing… does not wait on queue I/O.
-      void Promise.allSettled([loadQueue(), loadPriority()])
+      void Promise.allSettled([loadQueue(undefined, { silent: true }), loadPriority()])
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to enqueue backtest'
       const lowerMessage = message.toLowerCase()
@@ -1007,7 +1031,7 @@ function BacktestPage() {
       }
       setQueueBidValues((prev) => ({ ...prev, [id]: '' }))
       setQueueBidCustomOpen((prev) => ({ ...prev, [id]: false }))
-      await loadQueue()
+      await loadQueue(undefined, { silent: true })
       await loadPriority()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit bid'
@@ -1209,9 +1233,12 @@ function BacktestPage() {
   ])
 
   const loadQueue = useCallback(
-    async (signal?: AbortSignal) => {
-      setQueueLoading(true)
-      setQueueError('')
+    async (signal?: AbortSignal, opts?: { silent?: boolean }) => {
+      const silent = Boolean(opts?.silent)
+      if (!silent) {
+        setQueueLoading(true)
+        setQueueError('')
+      }
       try {
         const params = new URLSearchParams({
           limit: '1000',
@@ -1251,15 +1278,31 @@ function BacktestPage() {
             return 0
           })
         if (signal?.aborted) return
-        setQueueItems(mapped)
+        const scroller = queueScrollerRef.current
+        const scrollTop = scroller?.scrollTop ?? 0
+        const scrollLeft = scroller?.scrollLeft ?? 0
+        setQueueItems((prev) => (queueItemsEqual(prev, mapped) ? prev : mapped))
+        if (scroller && (scrollTop > 0 || scrollLeft > 0)) {
+          requestAnimationFrame(() => {
+            const el = queueScrollerRef.current
+            if (!el) return
+            el.scrollTop = scrollTop
+            el.scrollLeft = scrollLeft
+          })
+        }
+        if (!silent) setQueueError('')
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         if (signal?.aborted) return
         const message = err instanceof Error ? err.message : 'Failed to load queue'
+        if (silent) {
+          // Keep current cards on background poll failure — avoid empty flash / jump.
+          return
+        }
         setQueueError(message)
         setQueueItems([])
       } finally {
-        setQueueLoading(false)
+        if (!silent) setQueueLoading(false)
       }
     },
     [backtestApiOrigin]
@@ -1348,7 +1391,7 @@ function BacktestPage() {
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      void loadQueue()
+      void loadQueue(undefined, { silent: true })
       void loadPriority()
     }, 15_000)
     return () => window.clearInterval(id)
@@ -2798,7 +2841,9 @@ function BacktestPage() {
               ) : null}
               </>
             )}
-            {queueView === 'queue' && queueLoading && <div className="backtest-queue-end-hint">Loading queue…</div>}
+            {queueView === 'queue' && queueLoading && visibleQueue.length === 0 && (
+              <div className="backtest-queue-end-hint">Loading queue…</div>
+            )}
             {queueView === 'queue' && !queueLoading && queueError && <div className="backtest-queue-end-hint">{queueError}</div>}
             {queueView === 'queue' && !queueLoading && !queueError && visibleQueue.length === 0 && (
               isQueueSearchActive ? (

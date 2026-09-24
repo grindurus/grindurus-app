@@ -1372,19 +1372,16 @@
 }
 
 .backtest-payments-summary--head {
-  /* Width relative to full queue-head (same as history/queue card column). */
-  --queue-gap: 2.6rem;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  /* Sits in the middle grid column (≈ one queue-card width). */
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
   z-index: 1;
-  width: calc(
-    (100% - (var(--queue-cols, 3) - 1) * var(--queue-gap)) / var(--queue-cols, 3)
-  );
-  max-width: calc(
-    (100% - (var(--queue-cols, 3) - 1) * var(--queue-gap)) / var(--queue-cols, 3)
-  );
+  justify-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 4.2rem;
   padding: 0.55rem 0.9rem 0.6rem;
   gap: 0.4rem;
@@ -1814,11 +1811,10 @@
   position: relative;
   z-index: 3;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   column-gap: 0.75rem;
   margin: 0 0 0.65rem;
-  /* Room for absolutely centered TOTAL BID + view-block height. */
   min-height: 4.5rem;
   min-width: 0;
   width: 100%;
@@ -1832,6 +1828,7 @@
   gap: 0.65rem;
   flex: 0 0 auto;
   min-width: 0;
+  max-width: 100%;
   justify-self: start;
   position: relative;
   z-index: 2;
@@ -1845,7 +1842,7 @@
   margin-left: 0;
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 22rem;
+  max-width: 100%;
   justify-self: end;
   width: 100%;
   position: relative;
@@ -1902,10 +1899,10 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  flex: 0 1 auto;
-  min-width: 12rem;
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 22rem;
-  width: 22rem;
+  width: 100%;
   min-height: 4.2rem;
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -3967,12 +3964,14 @@
     flex: 1 1 100%;
     width: 100%;
     max-width: 100%;
+    justify-self: auto;
   }
 
   .backtest-queue-sort {
     margin-left: auto;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     max-width: 100%;
+    width: 100%;
   }
 
   .backtest-queue-search-wrap {
