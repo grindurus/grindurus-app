@@ -966,6 +966,11 @@
   flex-shrink: 0;
 }
 
+.backtest-pay-btn-usdc-label > span {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
 .backtest-pay-btn:hover:not(:disabled) {
   box-shadow: 0 4px 18px rgba(255, 105, 180, 0.45);
 }
@@ -1230,10 +1235,11 @@
 }
 
 .backtest-network-switch {
-  margin-top: 0.2rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
 }
 
 .backtest-network-switch-label {
@@ -1244,17 +1250,46 @@
   letter-spacing: 0.04em;
 }
 
+.backtest-network-switch-options {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 0.15rem;
+  overscroll-behavior-x: contain;
+}
+
 .backtest-network-switch-btn {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  padding: 0.38rem 0.9rem;
-  font-size: 0.9rem;
+  padding: 0.38rem 0.7rem;
+  font-size: 0.85rem;
   font-weight: 700;
   line-height: 1;
   min-height: 2.05rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.backtest-network-switch-btn-icon {
+  display: inline-flex;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.backtest-network-switch-btn-icon img,
+.backtest-network-switch-btn-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .backtest-network-switch-btn:hover {

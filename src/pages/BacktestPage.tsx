@@ -18,10 +18,12 @@ import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWalletClient } from '../providers/EvmWalletClientContext'
 import { stripTrailingSlash } from '../utils/urlUtils'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
 import { InventoryHistoryChart, type InventoryHistoryPoint } from '../components/InventoryHistoryChart'
 import { YieldChart, type YieldHistoryPoint } from '../components/YieldChart'
 import { GraiUiCaret } from '../components/grai/GraiUiCaret'
+import { SolanaClusterIcon } from '../components/SolanaClusterIcon'
+import { EvmChainListIcon } from '../components/WalletNetworkSelect'
 import { consumeCompleteSseEvents } from '../boss/sseParser'
 import {
   BACKTEST_SECTION_IDS,
@@ -35,6 +37,26 @@ const DEFAULT_QUOTE_ASSETS = ['USDC', 'USDT', 'USD', 'SOL'] as const
 const DEFAULT_BASE_ASSET = 'SOL'
 /** Backtest x402 SVM accepts only Solana mainnet (CAIP-2 genesis). */
 const X402_SOLANA_MAINNET = `solana:${SOLANA_MAINNET_GENESIS}` as const
+/** Whitelisted EVM chains for backtest x402 (Ethereum, Base, Arbitrum, Polygon). */
+const X402_EVM_CHAIN_IDS = [1, 8453, 42161, 137] as const
+type X402EvmChainId = (typeof X402_EVM_CHAIN_IDS)[number]
+const X402_BASE_CHAIN_ID = 8453
+const X402_EVM_SWITCH_OPTIONS: ReadonlyArray<{
+  chainId: X402EvmChainId
+  name: string
+  evmChain: EvmChain
+}> = [
+  { chainId: 1, name: 'Ethereum', evmChain: 'ethereum' },
+  { chainId: 8453, name: 'Base', evmChain: 'base' },
+  { chainId: 42161, name: 'Arbitrum', evmChain: 'arbitrum' },
+  { chainId: 137, name: 'Polygon', evmChain: 'polygon' },
+]
+function isX402EvmChainId(chainId: number | undefined | null): chainId is X402EvmChainId {
+  return (
+    typeof chainId === 'number' &&
+    (X402_EVM_CHAIN_IDS as readonly number[]).includes(chainId)
+  )
+}
 /** Inclusive calendar-day cap for From–To (matches UI “Max period”). */
 const MAX_BACKTEST_PERIOD_DAYS = 5
 const QUEUE_VISIBLE_COUNT = 9
@@ -546,14 +568,51 @@ function chunkArray<T>(arr: T[], size: number) {
 }
 
 function formatBacktestApiError(data: unknown, status: number): string {
-  if (typeof data === 'string' && data.trim()) return data.trim()
+  if (typeof data === 'string' && data.trim()) {
+    const trimmed = data.trim()
+    if (/insufficient eth for gas|facilitator_insufficient_gas|facilitator low gas/i.test(trimmed)) {
+      return 'facilitator low gas'
+    }
+    return trimmed
+  }
   if (data && typeof data === 'object') {
     const o = data as Record<string, unknown>
     const code = typeof o.code === 'string' ? o.code : ''
     if (code === 'promocode_missing') return 'Promocode is required. Enter a code in the field.'
     if (code === 'promocode_invalid') return 'Invalid promocode. Check the code and try again.'
 
-    if (typeof o.error === 'string' && o.error.trim()) return o.error
+    const message = typeof o.message === 'string' ? o.message.trim() : ''
+    const error = typeof o.error === 'string' ? o.error.trim() : ''
+    const detailStr = typeof o.detail === 'string' ? o.detail.trim() : ''
+    const invalidMessage =
+      typeof o.invalidMessage === 'string'
+        ? o.invalidMessage.trim()
+        : typeof o.invalid_message === 'string'
+          ? o.invalid_message.trim()
+          : ''
+    const facilitatorMessage =
+      typeof o.facilitator_message === 'string' ? o.facilitator_message.trim() : ''
+    const blob = `${error} ${message} ${detailStr} ${invalidMessage} ${facilitatorMessage}`
+
+    if (
+      error === 'facilitator_low_gas' ||
+      /insufficient eth for gas|facilitator_insufficient_gas|facilitator low gas/i.test(blob)
+    ) {
+      return 'facilitator low gas'
+    }
+
+    if (error === 'settlement_failed') {
+      if (/insufficient funds|have 0 want/i.test(`${message} ${facilitatorMessage}`)) {
+        return 'facilitator low gas'
+      }
+      if (message) return message
+      return facilitatorMessage || 'Payment settlement failed. Try again.'
+    }
+
+    if (invalidMessage) return invalidMessage
+    if (message) return message
+    if (error) return error
+
     const detail = o.detail
     if (typeof detail === 'string') return detail
     if (Array.isArray(detail)) {
@@ -571,8 +630,22 @@ function formatBacktestApiError(data: unknown, status: number): string {
         })
         .join('; ')
     }
-    if (typeof o.message === 'string') return o.message
+
+    const facilitatorResponse = o.facilitator_response
+    if (facilitatorResponse && typeof facilitatorResponse === 'object') {
+      const fr = facilitatorResponse as Record<string, unknown>
+      if (typeof fr.invalidMessage === 'string' && fr.invalidMessage.trim()) {
+        return fr.invalidMessage.trim()
+      }
+      if (typeof fr.message === 'string' && fr.message.trim()) return fr.message.trim()
+    }
+
+    // Bare/empty 402 after a signed attempt (SDK often strips the verify reason).
+    if (status === 402) {
+      return 'facilitator low gas'
+    }
   }
+  if (status === 402) return 'facilitator low gas'
   return `Request failed (${status})`
 }
 
@@ -655,7 +728,8 @@ function logEventToChartPoints(raw: unknown): {
 }
 
 function BacktestPage() {
-  const { openChainSelector, warmEvmStack, isEvmStackReady } = useWalletContext()
+  const { openChainSelector, warmEvmStack, isEvmStackReady, setEvmChain, setSelectedChainType, selectedChainType } =
+    useWalletContext()
   const activeWallet = useActiveWallet()
   const [dateFrom, setDateFrom] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
   const [dateTo, setDateTo] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
@@ -782,6 +856,8 @@ function BacktestPage() {
     if (!solanaWallet.isConnected || !solanaWalletWalletSignerReady(solanaWallet.signTransaction)) {
       return false
     }
+    // Only prefer Solana when the header cluster is mainnet (x402 accept).
+    if (solanaWallet.cluster !== 'mainnet-beta') return false
     // Prefer Solana when it's the active wallet, or when no EVM signer is ready.
     if (activeWallet.chainType === 'solana') return true
     if (!(isEvmConnected || evmWallet.isConnected || activeWallet.chainType === 'evm')) return true
@@ -791,15 +867,35 @@ function BacktestPage() {
     evmWallet.isConnected,
     isEvmConnected,
     payMethod,
+    solanaWallet.cluster,
     solanaWallet.isConnected,
     solanaWallet.signTransaction,
   ])
   const walletNetwork = useMemo(() => {
     if (payMethod !== 'x402') return evmWalletNetwork
-    // Payment options are Base + Solana mainnet — never advertise wallet-UI devnet.
+    // Payment options: whitelisted EVM + Solana mainnet — never advertise wallet-UI devnet.
     if (preferSolanaPayment) return X402_SOLANA_MAINNET
-    return evmWalletNetwork
-  }, [evmWalletNetwork, payMethod, preferSolanaPayment])
+    // Stay on the header wallet network when it is already x402-supported.
+    if (evmWalletNetwork && isX402EvmChainId(chainId)) return evmWalletNetwork
+    if (solanaWallet.isConnected && solanaWallet.cluster === 'mainnet-beta') {
+      return X402_SOLANA_MAINNET
+    }
+    // EVM connected on a non-whitelisted chain (e.g. Sepolia) — fall back to Base.
+    if (isEvmConnected || evmWallet.isConnected || activeWallet.chainType === 'evm') {
+      return `eip155:${X402_BASE_CHAIN_ID}`
+    }
+    return null
+  }, [
+    activeWallet.chainType,
+    chainId,
+    evmWallet.isConnected,
+    evmWalletNetwork,
+    isEvmConnected,
+    payMethod,
+    preferSolanaPayment,
+    solanaWallet.cluster,
+    solanaWallet.isConnected,
+  ])
 
   const quoteOptions = useMemo(
     () => quoteAssets.filter((q) => !(baseAsset === 'SOL' && q === 'SOL')),
@@ -980,6 +1076,14 @@ function BacktestPage() {
           'x402 is not available for the current wallet network. Please switch network.'
         )
         setShowX402NetworkSwitch(true)
+      } else if (
+        payMethod === 'x402' &&
+        (/facilitator low gas|insufficient eth for gas|facilitator_insufficient_gas|insufficient funds for gas/i.test(
+          message
+        ) ||
+          /^request failed \(402\)$/i.test(message))
+      ) {
+        setPayError('facilitator low gas')
       } else {
         setPayError(message)
       }
@@ -1047,17 +1151,21 @@ function BacktestPage() {
     void handleQueueBidSubmit(id, amount)
   }
 
-  const handleSwitchBase = () => {
+  const handleSwitchEvmNetwork = (option: (typeof X402_EVM_SWITCH_OPTIONS)[number]) => {
     setPayError('')
     setPaySuccess('')
     setShowX402NetworkSwitch(false)
-    switchChain(8453)
+    setSelectedChainType('evm')
+    setEvmChain(option.evmChain)
+    switchChain(option.chainId)
   }
 
   const handleSwitchSolana = () => {
     setPayError('')
     setPaySuccess('')
     setShowX402NetworkSwitch(false)
+    setSelectedChainType('solana')
+    solanaWallet.switchCluster('mainnet-beta')
   }
 
   const baseValue = baseAsset.trim() || baseAssets[0] || DEFAULT_BASE_ASSET
@@ -1074,23 +1182,71 @@ function BacktestPage() {
         (activeWallet.chainType === 'evm' ? activeWallet.address : ''))
   )
   const hasSvmSigner = Boolean(
-    (solanaWallet.isConnected || activeWallet.chainType === 'solana') &&
-      (solanaWallet.address || (activeWallet.chainType === 'solana' ? activeWallet.address : ''))
+    (solanaWallet.isConnected ||
+      (activeWallet.isConnected && activeWallet.chainType === 'solana')) &&
+      (solanaWallet.address ||
+        solanaWallet.publicKey ||
+        (activeWallet.chainType === 'solana' ? activeWallet.address : ''))
   )
   const hasSvmSignFn = solanaWalletWalletSignerReady(solanaWallet.signTransaction)
+  const evmOnX402Network = hasEvmSigner && isX402EvmChainId(chainId)
+  const svmOnX402Network = hasSvmSigner && solanaWallet.cluster === 'mainnet-beta'
+  /** EVM connected on a non-accept chain (e.g. Sepolia) — pick Ethereum/Base/Arbitrum/Polygon. */
+  const x402NeedsEvmNetworkSwitch =
+    payMethod === 'x402' && hasEvmSigner && !isX402EvmChainId(chainId)
+  /**
+   * x402 only accepts Solana mainnet. Show "Switch to mainnet" when Solana is active
+   * on Devnet. If an EVM wallet is connected on a supported chain, prefer Pay instead.
+   */
+  const x402NeedsSolanaMainnetSwitch =
+    payMethod === 'x402' &&
+    !hasEvmSigner &&
+    !x402NeedsEvmNetworkSwitch &&
+    solanaWallet.cluster !== 'mainnet-beta' &&
+    (hasSvmSigner || selectedChainType === 'solana' || activeWallet.chainType === 'solana')
+  const x402HasSupportedNetwork = evmOnX402Network || svmOnX402Network
   const x402PaymentReady =
-    (hasEvmSigner && !!walletClient?.account?.address) || (hasSvmSigner && hasSvmSignFn)
+    (evmOnX402Network && !!walletClient?.account?.address) || (svmOnX402Network && hasSvmSignFn)
   const walletConnecting =
     activeWallet.isConnecting ||
     evmWallet.isConnecting ||
     solanaWallet.isConnecting ||
-    (payMethod !== 'promocode' && !hasEvmSigner && !hasSvmSigner && !isEvmStackReady)
+    (payMethod !== 'promocode' &&
+      !hasEvmSigner &&
+      !hasSvmSigner &&
+      !x402NeedsSolanaMainnetSwitch &&
+      !isEvmStackReady)
   const x402NeedsWalletConnection =
-    payMethod === 'x402' && !hasEvmSigner && !hasSvmSigner && !walletConnecting
+    payMethod === 'x402' &&
+    !hasEvmSigner &&
+    !hasSvmSigner &&
+    !walletConnecting &&
+    !x402NeedsSolanaMainnetSwitch
+  const x402NeedsNetworkSwitch =
+    payMethod === 'x402' &&
+    !x402NeedsWalletConnection &&
+    !walletConnecting &&
+    !x402NeedsSolanaMainnetSwitch &&
+    (x402NeedsEvmNetworkSwitch ||
+      (hasSvmSigner && !x402HasSupportedNetwork && !hasEvmSigner))
   const x402WalletPreparing =
-    payMethod === 'x402' && !x402NeedsWalletConnection && !x402PaymentReady && !walletConnecting
+    payMethod === 'x402' &&
+    !x402NeedsWalletConnection &&
+    !x402NeedsNetworkSwitch &&
+    !x402NeedsSolanaMainnetSwitch &&
+    !x402PaymentReady &&
+    !walletConnecting
   const needsWalletConnection = x402NeedsWalletConnection
   const walletPreparing = x402WalletPreparing || walletConnecting
+  const showNetworkSwitchUi =
+    payMethod === 'x402' && (x402NeedsNetworkSwitch || showX402NetworkSwitch)
+
+  useEffect(() => {
+    if (x402HasSupportedNetwork && showX402NetworkSwitch) {
+      setShowX402NetworkSwitch(false)
+    }
+  }, [showX402NetworkSwitch, x402HasSupportedNetwork])
+
   const payStatusMessage = payError || paySuccess
   const amountsMissing =
     payError === 'Enter a base or quote starting amount.' &&
@@ -1108,7 +1264,15 @@ function BacktestPage() {
       ? 'Connect wallet'
       : walletConnecting
       ? 'Connecting…'
-      : walletPreparing && hasEvmSigner && !walletClient?.account?.address
+      : x402NeedsSolanaMainnetSwitch
+      ? (
+          <span className="backtest-pay-btn-usdc-label">
+            Switch to
+            <SolanaClusterIcon clusterId="mainnet-beta" size={14} />
+            mainnet
+          </span>
+        )
+      : x402NeedsNetworkSwitch
       ? 'Switch network'
       : walletPreparing
       ? 'Preparing wallet…'
@@ -1123,8 +1287,10 @@ function BacktestPage() {
       ? 'Connect wallet to pay with x402'
       : walletConnecting
       ? 'Connecting wallet'
-      : walletPreparing && hasEvmSigner && !walletClient?.account?.address
-      ? 'Switch wallet network to continue payment'
+      : x402NeedsSolanaMainnetSwitch
+      ? 'Switch Solana wallet to mainnet for x402'
+      : x402NeedsNetworkSwitch
+      ? 'Switch wallet network to Ethereum, Base, Arbitrum, Polygon, or Solana mainnet for x402'
       : walletPreparing
       ? 'Waiting for wallet signer'
       : payMethod === 'promocode'
@@ -1140,8 +1306,9 @@ function BacktestPage() {
     []
   )
   const paidFetch = useMemo(() => {
-    const canPayEvm = Boolean(hasEvmSigner && walletClient?.account?.address)
-    const canPaySvm = Boolean(hasSvmSigner && hasSvmSignFn && solanaWallet.address)
+    // Register EVM whenever a signer is available (Base preferred; wallet may switch).
+    const canPayEvm = Boolean(evmOnX402Network && walletClient?.account?.address)
+    const canPaySvm = Boolean(svmOnX402Network && hasSvmSignFn && solanaWallet.address)
     if (!canPayEvm && !canPaySvm) return null
 
     const preferSolanaForX402 = preferSolanaPayment && canPaySvm
@@ -1161,6 +1328,13 @@ function BacktestPage() {
           ? accepts.find((item) => item.network === walletNetwork)
           : undefined
         if (exactEvm) return exactEvm
+        // Prefer current whitelisted chain, then Base, then any EVM accept.
+        if (typeof chainId === 'number') {
+          const byChain = accepts.find((item) => item.network === `eip155:${chainId}`)
+          if (byChain) return byChain
+        }
+        const exactBase = accepts.find((item) => item.network === `eip155:${X402_BASE_CHAIN_ID}`)
+        if (exactBase) return exactBase
         const evmAccepts = byNetwork('eip155:')
         if (evmAccepts.length > 0) return evmAccepts[0]
       }
@@ -1222,12 +1396,13 @@ function BacktestPage() {
     }
     return wrapFetchWithPayment(fetch, client)
   }, [
-    hasEvmSigner,
+    chainId,
+    evmOnX402Network,
     hasSvmSignFn,
-    hasSvmSigner,
     preferSolanaPayment,
     solanaWallet.address,
     solanaWallet.signTransaction,
+    svmOnX402Network,
     walletClient,
     walletNetwork,
   ])
@@ -2252,18 +2427,26 @@ function BacktestPage() {
                         openChainSelector()
                         return
                       }
+                      if (x402NeedsSolanaMainnetSwitch) {
+                        setPayError('')
+                        handleSwitchSolana()
+                        return
+                      }
+                      if (x402NeedsNetworkSwitch) {
+                        setPayError('')
+                        setShowX402NetworkSwitch(true)
+                        return
+                      }
                       if (walletPreparing) {
-                        if (hasEvmSigner && !walletClient?.account?.address) {
-                          setPayError('x402 needs Base (or Solana). Switch network, then try again.')
-                          if (payMethod === 'x402') setShowX402NetworkSwitch(true)
-                        }
                         return
                       }
                       void handlePay()
                     }}
                     disabled={
                       payBusy ||
-                      (walletPreparing && !(hasEvmSigner && !walletClient?.account?.address))
+                      (walletPreparing &&
+                        !x402NeedsNetworkSwitch &&
+                        !x402NeedsSolanaMainnetSwitch)
                     }
                     aria-label={payButtonAriaLabel}
                     aria-live="polite"
@@ -2298,15 +2481,42 @@ function BacktestPage() {
                 </div>
               </div>
             </div>
-            {showX402NetworkSwitch && payMethod === 'x402' && (
+            {showNetworkSwitchUi && (
               <div className="backtest-network-switch" aria-live="polite">
                 <span className="backtest-network-switch-label">Switch network to:</span>
-                <button type="button" className="backtest-network-switch-btn" onClick={handleSwitchBase}>
-                  Base
-                </button>
-                <button type="button" className="backtest-network-switch-btn" onClick={handleSwitchSolana}>
-                  Solana
-                </button>
+                <div
+                  className="backtest-network-switch-options"
+                  role="listbox"
+                  aria-label="Available payment networks"
+                >
+                  {X402_EVM_SWITCH_OPTIONS.map((option) => (
+                    <button
+                      key={option.chainId}
+                      type="button"
+                      role="option"
+                      className="backtest-network-switch-btn"
+                      onClick={() => handleSwitchEvmNetwork(option)}
+                    >
+                      <span className="backtest-network-switch-btn-icon" aria-hidden="true">
+                        <EvmChainListIcon name={option.name} />
+                      </span>
+                      {option.name}
+                    </button>
+                  ))}
+                  {!hasEvmSigner ? (
+                    <button
+                      type="button"
+                      role="option"
+                      className="backtest-network-switch-btn"
+                      onClick={handleSwitchSolana}
+                    >
+                      <span className="backtest-network-switch-btn-icon" aria-hidden="true">
+                        <SolanaClusterIcon clusterId="mainnet-beta" size={16} />
+                      </span>
+                      Solana
+                    </button>
+                  ) : null}
+                </div>
               </div>
             )}
           </div>
