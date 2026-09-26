@@ -2004,6 +2004,37 @@ function BacktestPage() {
 
   return (
     <div className="backtest-page">
+      <div className="backtest-page-title-row">
+        <h1 className="backtest-page-title">Calculator for Strategy Verification</h1>
+        <span
+          className="backtest-page-title-help"
+          tabIndex={0}
+          aria-label="What is strategy verification"
+        >
+          <span className="backtest-page-title-help-icon" aria-hidden="true">?</span>
+          <div className="backtest-page-title-help-tip" role="tooltip">
+            <span className="backtest-page-title-help-tip-title">What this is</span>
+            <ul className="backtest-page-title-help-tip-list">
+              <li>
+                <span className="backtest-page-title-help-tip-key">Purpose</span>
+                Run the same market-taking algorithm that powers the fund — on historical data you choose
+              </li>
+              <li>
+                <span className="backtest-page-title-help-tip-key">Verify</span>
+                Not a marketing chart: pick any pair, period, and starting balances yourself
+              </li>
+              <li>
+                <span className="backtest-page-title-help-tip-key">Output</span>
+                Inventory path, yield, and PnL so you can see how the strategy would have performed
+              </li>
+              <li>
+                <span className="backtest-page-title-help-tip-key">Cost</span>
+                About $1 via x402 or a promocode · ~5 min typical runtime
+              </li>
+            </ul>
+          </div>
+        </span>
+      </div>
       <div className="backtest-layout">
         <div className="backtest-create-stack">
           <aside className="backtest-panel backtest-panel--create" id={BACKTEST_SECTION_IDS.create}>

@@ -1,8 +1,11 @@
-import { useState, useMemo } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import * as Select from "@radix-ui/react-select"
+import { APP_BACKTEST } from "@landing/config"
 import { Title } from "@landing/components/ui/Title"
-import { PerformanceChart, type ChartDataPoint } from "./PerformanceChart"
+import { Description } from "@landing/components/ui/Description"
+import { Button } from "@landing/components/ui/Button"
 import { FieldLabel } from "@landing/components/ui/FieldLabel"
+import { PerformanceChart, type ChartDataPoint } from "./PerformanceChart"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const ALL_MONTHS = [
@@ -72,7 +75,13 @@ const PAIR_DATA: Record<PairKey, ChartDataPoint[]> = {
   ],
 }
 
-// ─── Radix UI Select (matches app design language) ────────────────────────────
+const YIELD_MIN = 10
+const YIELD_MAX = 60
+const INITIAL_USDC = 5_000
+const HOLD_MS = 3000
+const RECALC_MS = 300
+
+// ─── Radix UI Select ──────────────────────────────────────────────────────────
 interface CustomSelectProps<T extends string | number> {
   value: T
   onChange: (v: T) => void
@@ -193,7 +202,6 @@ function ChartControls({ pair, onPair, fromMonth, onFrom, toMonth, onTo }: Contr
         <CustomSelect value={pair} onChange={onPair} options={pairOptions} id="ctrl-pair" />
       </div>
 
-      {/* Period: From → To */}
       <div className="flex gap-4">
         <div className="flex-1">
           <FieldLabel>From</FieldLabel>
@@ -230,6 +238,107 @@ function ChartControls({ pair, onPair, fromMonth, onFrom, toMonth, onTo }: Contr
   )
 }
 
+// ─── Animated yield preview (calculator teaser) ───────────────────────────────
+function useAnimatedYield() {
+  const [value, setValue] = useState(() => YIELD_MIN + Math.random() * (YIELD_MAX - YIELD_MIN))
+  const timeoutRef = useRef<number | null>(null)
+  const rafRef = useRef(0)
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(35)
+      return
+    }
+
+    let cancelled = false
+    const randomBetween = () => YIELD_MIN + Math.random() * (YIELD_MAX - YIELD_MIN)
+
+    const clearTimers = () => {
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+      cancelAnimationFrame(rafRef.current)
+    }
+
+    const scheduleHoldThenRecalc = (heldValue: number) => {
+      setValue(heldValue)
+      timeoutRef.current = window.setTimeout(() => {
+        if (cancelled) return
+        startRecalc()
+      }, HOLD_MS)
+    }
+
+    const startRecalc = () => {
+      const start = performance.now()
+      const tick = (now: number) => {
+        if (cancelled) return
+        const elapsed = now - start
+        if (elapsed >= RECALC_MS) {
+          scheduleHoldThenRecalc(randomBetween())
+          return
+        }
+        setValue(randomBetween())
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+
+    timeoutRef.current = window.setTimeout(() => {
+      if (cancelled) return
+      startRecalc()
+    }, HOLD_MS)
+
+    return () => {
+      cancelled = true
+      clearTimers()
+    }
+  }, [])
+
+  return value
+}
+
+function VerifyStrip() {
+  const yield_ = useAnimatedYield()
+  const finalUsdc = INITIAL_USDC * (1 + yield_ / 100)
+  const finalFormatted = finalUsdc.toLocaleString("en-US", { maximumFractionDigits: 0 })
+
+  return (
+    <div className="mt-8 md:mt-10 bg-[#0a0a0a] border border-white/[0.08] rounded-2xl p-5 md:p-6 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10">
+      <div className="flex-1 min-w-0">
+        <p className="font-mono font-bold text-white text-lg md:text-xl leading-snug mb-2">
+          Backtest any asset yourself{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink to-[#ff1493]">
+            for $1
+          </span>
+        </p>
+        <p className="font-mono text-sm text-white/50 leading-relaxed max-w-[36rem]">
+          Same algorithm. Your pair. Your timeframe. See exactly how much volatility yield it would have earned.
+        </p>
+      </div>
+
+      <div className="bg-black border border-white/10 rounded-xl px-4 py-3 flex items-stretch divide-x divide-white/10 shrink-0">
+        <div className="flex flex-col items-center text-center pr-4 min-w-[5.5rem]">
+          <FieldLabel className="mb-1 text-center">Yield</FieldLabel>
+          <span className="font-mono font-black text-xl text-[#4ade80] tabular-nums leading-none">
+            +{yield_.toFixed(1)}%
+          </span>
+        </div>
+        <div className="flex flex-col items-center text-center pl-4 min-w-[6.5rem]">
+          <FieldLabel className="mb-1 text-center">On $5k</FieldLabel>
+          <span className="font-mono font-black text-xl text-white tabular-nums leading-none">
+            ${finalFormatted}
+          </span>
+        </div>
+      </div>
+
+      <Button href={APP_BACKTEST} size="md" className="shrink-0 w-full lg:w-auto">
+        Launch Calculator
+      </Button>
+    </div>
+  )
+}
+
 // ─── Section ──────────────────────────────────────────────────────────────────
 export function AnnualResultsSection() {
   const [pair, setPair] = useState<PairKey>("SOL/USDC")
@@ -247,14 +356,20 @@ export function AnnualResultsSection() {
     <section className="relative w-full py-6 md:py-12 lg:py-16 bg-black">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-8">
 
-        <div className="text-center mb-12">
-          <Title>Performance</Title>
+        <div className="text-center mb-10 md:mb-12">
+          <Title className="mb-4">
+            Onchain Grinder Infrastructure —{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink to-[#ff1493]">
+              a verifiable algorithm
+            </span>
+          </Title>
+          <Description className="mx-auto max-w-[540px]">
+            An automated market-taking strategy that turns price volatility into yield.
+            Inspect the track record — then prove it yourself on any asset.
+          </Description>
         </div>
 
-        {/* controls above chart on mobile, 1/3+2/3 from md */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:items-stretch">
-
-          {/* Controls — 1 col */}
           <div className="md:col-span-1">
             <ChartControls
               pair={pair}
@@ -272,7 +387,6 @@ export function AnnualResultsSection() {
             />
           </div>
 
-          {/* Chart — 2 cols */}
           <div className="md:col-span-2">
             <PerformanceChart
               data={chartData}
@@ -280,8 +394,9 @@ export function AnnualResultsSection() {
               marketLabel={marketLabel}
             />
           </div>
-
         </div>
+
+        <VerifyStrip />
       </div>
     </section>
   )

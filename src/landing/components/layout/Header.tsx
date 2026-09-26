@@ -21,7 +21,7 @@ function Header() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mr-3 sm:mr-0">
           <Button href={APP_HOME} size="sm">
             Open App
           </Button>

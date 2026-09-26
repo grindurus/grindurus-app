@@ -3,6 +3,12 @@
   justify-content: center;
   text-align: center;
   white-space: normal;
+  width: max-content;
+  max-width: min(100%, 36rem);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
 }
 
 .affiliates-intro {

@@ -8,6 +8,118 @@
   align-items: stretch;
 }
 
+.backtest-page-title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.backtest-page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0 0 1.25rem;
+  position: relative;
+  z-index: 20;
+}
+
+.backtest-page-title-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  border: 1.5px solid #ff69b4;
+  color: #ff69b4;
+  cursor: help;
+  outline: none;
+}
+
+.backtest-page-title-help:hover,
+.backtest-page-title-help:focus-visible {
+  background: color-mix(in srgb, #ff69b4 16%, transparent);
+}
+
+.backtest-page-title-help-icon {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(0.5px);
+}
+
+.backtest-page-title-help-tip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.55rem);
+  z-index: 40;
+  width: min(20rem, 88vw);
+  padding: 0.65rem 0.75rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color));
+  background: var(--bg-primary, var(--bg-secondary));
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, -2px);
+  transition: opacity 0.14s ease, visibility 0.14s ease, transform 0.14s ease;
+}
+
+.backtest-page-title-help:hover .backtest-page-title-help-tip,
+.backtest-page-title-help:focus-visible .backtest-page-title-help-tip,
+.backtest-page-title-help:focus-within .backtest-page-title-help-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+.backtest-page-title-help-tip-title {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.backtest-page-title-help-tip-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.backtest-page-title-help-tip-list li {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  column-gap: 0.45rem;
+  align-items: baseline;
+}
+
+.backtest-page-title-help-tip-key {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ff69b4;
+}
+
 .backtest-page .grai-page-dev-banner {
   margin: 0 0 0.75rem;
   width: 100%;
