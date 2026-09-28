@@ -76,13 +76,6 @@ export const GRS_CAP_GROUPS: GrsCapGroupSpec[] = [
   },
 ]
 
-/** TGE (M0): 200M free float, 400M gated, 400M locked. */
-export const GRS_TGE_SPLIT = [
-  { id: 'float', label: 'TGE float', millions: 200, pct: 20, hint: 'Sales 150M + Foundation 50M, unlocked at TGE' },
-  { id: 'gated', label: 'Gated', millions: 400, pct: 40, hint: 'Revenue share, airdrops, growth, LP — allocated, not free float' },
-  { id: 'locked', label: 'Locked', millions: 400, pct: 40, hint: '250M calendar vest + 150M Foundation vote-gated' },
-] as const
-
 export const GRS_CAP_SUPPLY_MILLIONS = 1000
 
 const MILLION = 1_000_000n

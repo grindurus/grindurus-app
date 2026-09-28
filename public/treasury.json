@@ -1,10 +1,10 @@
 {
   "name": "Grinders Artificial Index Treasury",
-  "symbol": "GRAI-TREASURY",
+  "symbol": "T-GRAI",
   "description": "Treasury locker NFT for GrindURUS fee share, affiliate cashflow rights, and OTC-transferable claim ownership.",
   "image": "https://grindurus.xyz/logo.png",
-  "external_url": "https://app.grindurus.xyz/grai",
-  "app": "https://app.grindurus.xyz/grai",
+  "external_url": "https://grindurus.xyz/affiliate",
+  "app": "https://grindurus.xyz/affiliate",
   "properties": {
     "category": "nft",
     "docs": "https://docs.grindurus.xyz",

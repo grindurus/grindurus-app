@@ -425,7 +425,7 @@ export function GrsGrantPanel({ config, snapshot, isLoading, refresh, solanaSele
   ])
 
   const assets = useMemo(
-    () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: config?.address ?? 'grs' }],
+    () => [{ icon: assetUrl('grs.png'), symbol: 'GRS', address: config?.address ?? 'grs' }],
     [config?.address],
   )
 

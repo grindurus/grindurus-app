@@ -190,7 +190,7 @@ export function GraiEstimateSuffix({ explorerHref }: { explorerHref?: string | n
     <span className="grai-estimated-amount-suffix">
       <span className="grai-mint-asset-item-icon" aria-hidden="true">
         <img
-          src={assetUrl('logo.png')}
+          src={assetUrl('grai.png')}
           alt=""
           width={20}
           height={20}

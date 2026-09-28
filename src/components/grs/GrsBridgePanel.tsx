@@ -389,7 +389,7 @@ export function GrsBridgePanel({ config, snapshot, isLoading, refresh, note }: P
         ? activeConfig.address
         : 'grs'
   const assets = useMemo(
-    () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: tokenAddress }],
+    () => [{ icon: assetUrl('grs.png'), symbol: 'GRS', address: tokenAddress }],
     [tokenAddress],
   )
 

@@ -1278,7 +1278,7 @@ export function GraiLiquidationActions() {
   const voteAssetOptions = useMemo<GraiAmountAsset[]>(
     () => [
       {
-        icon: assetUrl('logo.png'),
+        icon: assetUrl('grai.png'),
         symbol: 'GRAI',
         address: evmProtocol
           ? (evmProtocol.graiToken ?? evmProtocol.protocolAddress ?? 'grai')
@@ -1901,48 +1901,43 @@ export function GraiLiquidationActions() {
       <div
         className={`grai-action-switch-liquidate-slot${
           opsView === 'liquidate' ? ' is-active' : ''
-        }`}
+        }${opsView === 'liquidate' && liquidateView === 'redeem' ? ' is-redeem' : ''}`}
       >
         <button
           type="button"
           role="tab"
           aria-selected={opsView === 'liquidate'}
+          aria-label={
+            opsView === 'liquidate'
+              ? liquidateView === 'redeem'
+                ? 'Switch to Liquidate'
+                : 'Switch to Redeem'
+              : 'Liquidate'
+          }
+          title={
+            opsView === 'liquidate'
+              ? liquidateView === 'redeem'
+                ? 'Liquidate'
+                : 'Redeem'
+              : 'Liquidate'
+          }
           className={`grai-action-switch-btn is-liquidate ${opsView === 'liquidate' ? 'is-active' : ''}`}
-          onClick={() => handleOpsViewChange('liquidate')}
+          onClick={() => {
+            if (opsView === 'liquidate') {
+              handleLiquidateViewChange(liquidateView === 'redeem' ? 'liquidate' : 'redeem')
+              return
+            }
+            handleOpsViewChange('liquidate')
+          }}
         >
           <span className="grai-action-switch-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
             </svg>
           </span>
-          <span className="grai-action-switch-label">Liquidate</span>
-        </button>
-        <button
-          type="button"
-          className={`grai-liquidation-liquidate-view-toggle${
-            liquidateView === 'redeem' ? ' is-redeem' : ''
-          }`}
-          aria-label={
-            liquidateView === 'redeem' ? 'Switch to Liquidate' : 'Switch to Redeem'
-          }
-          title={liquidateView === 'redeem' ? 'Liquidate' : 'Redeem'}
-          onClick={() =>
-            handleLiquidateViewChange(liquidateView === 'redeem' ? 'liquidate' : 'redeem')
-          }
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 8v5" />
-            <path d="m9.5 11.5 2.5 2.5 2.5-2.5" />
-          </svg>
+          <span className="grai-action-switch-label">
+            {opsView === 'liquidate' && liquidateView === 'redeem' ? 'Redeem' : 'Liquidate'}
+          </span>
         </button>
       </div>
     </div>

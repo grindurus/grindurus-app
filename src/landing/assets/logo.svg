@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 72" role="img" aria-label="GrindURUS">
+  <title>GrindURUS</title>
+
+  <!-- Mark -->
+  <g transform="translate(2 6) scale(0.94)">
+    <path
+      fill="#ff8ec8"
+      d="
+        M8.2 4.2
+        L14.8 14.6
+        L22.2 17.2
+        L27.6 21.4
+        L29.2 32.8
+        L29.2 42.6
+        L31.8 48.2
+        L35.8 48.2
+        L38.4 42.6
+        L38.4 32.8
+        L40 21.4
+        L45.4 17.2
+        L52.8 14.6
+        L59.4 4.2
+        L56.6 18.4
+        L46.8 23.2
+        L42.2 28.6
+        L41.2 44.8
+        L38.4 49.2
+        L37.6 52.4
+        L32 60.8
+        L26.4 52.4
+        L25.6 49.2
+        L22.8 44.8
+        L21.8 28.6
+        L17.2 23.2
+        L7.4 18.4
+        Z
+      "
+    />
+  </g>
+
+  <!-- Wordmark — geometric extended sans -->
+  <text
+    x="78"
+    y="49"
+    fill="#ff8ec8"
+    font-family="Arial Black, Helvetica Neue Black, Helvetica Neue, Arial, sans-serif"
+    font-size="34"
+    font-weight="800"
+    letter-spacing="0.12em"
+  >GRINDURUS</text>
+</svg>

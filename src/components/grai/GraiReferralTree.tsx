@@ -1479,7 +1479,7 @@ export function GraiReferralTree({
                     <span className="grai-action-metric-value is-yield grai-action-metric-value--grai">
                       {formatGraiAmount(poachAsk, graiDecimals)}
                       <img
-                        src={assetUrl('logo.png')}
+                        src={assetUrl('grai.png')}
                         alt=""
                         width={18}
                         height={18}

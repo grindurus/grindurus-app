@@ -59,7 +59,7 @@ function Footer() {
         <div className="app-footer-top">
           <div className="app-footer-logo-row">
             <Link to="/grai" className="app-footer-logo">
-              <img src={assetUrl('logo.png')} alt="" className="app-footer-logo-img" width={32} height={32} />
+              <img src={assetUrl('logo.svg')} alt="" className="app-footer-logo-img" width={32} height={32} />
               <span className="app-footer-logo-text">GrindURUS</span>
             </Link>
             <span className="app-footer-copyright">© {year} All rights reserved</span>

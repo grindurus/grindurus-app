@@ -370,7 +370,7 @@ export function GraiMintBurnPanel({
 
   const mintAssetOptions = useMemo<GraiAmountAsset[]>(() => {
     const graiOption: GraiAmountAsset = {
-      icon: assetUrl('logo.png'),
+      icon: assetUrl('grai.png'),
       symbol: 'GRAI',
       address: graiMintAddress,
     }
@@ -385,7 +385,7 @@ export function GraiMintBurnPanel({
     return [graiOption, ...listed]
   }, [graiAssets, graiMintAddress])
   const redeemAssetOptions = useMemo<GraiAmountAsset[]>(
-    () => [{ icon: assetUrl('logo.png'), symbol: 'GRAI', address: graiMintAddress }],
+    () => [{ icon: assetUrl('grai.png'), symbol: 'GRAI', address: graiMintAddress }],
     [graiMintAddress],
   )
   const mintDefaultAsset =
@@ -1552,7 +1552,7 @@ export function GraiMintBurnPanel({
                   <span className="grai-action-result-value">
                     {penaltyLabel}
                     <img
-                      src={assetUrl('logo.png')}
+                      src={assetUrl('grai.png')}
                       alt=""
                       width={18}
                       height={18}
@@ -1635,7 +1635,7 @@ export function GraiMintBurnPanel({
                       <>
                         {lockedGraiLabel}
                         <img
-                          src={assetUrl('logo.png')}
+                          src={assetUrl('grai.png')}
                           alt=""
                           width={18}
                           height={18}
@@ -1648,7 +1648,7 @@ export function GraiMintBurnPanel({
                       <>
                         {amount.trim() ? unlockAmountLabel : lockedGraiLabel}
                         <img
-                          src={assetUrl('logo.png')}
+                          src={assetUrl('grai.png')}
                           alt=""
                           width={18}
                           height={18}
@@ -1662,7 +1662,7 @@ export function GraiMintBurnPanel({
                         {!earnDividends ? '+ ' : null}
                         {mintedGraiLabel}
                         <img
-                          src={assetUrl('logo.png')}
+                          src={assetUrl('grai.png')}
                           alt=""
                           width={18}
                           height={18}
@@ -1710,7 +1710,7 @@ export function GraiMintBurnPanel({
                           <span className="grai-detailed-preview-value">
                             {earnDividends ? `+ ${mintedGraiLabel}` : '0.000000'}
                             <img
-                              src={assetUrl('logo.png')}
+                              src={assetUrl('grai.png')}
                               alt=""
                               width={16}
                               height={16}

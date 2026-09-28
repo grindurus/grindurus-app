@@ -292,7 +292,7 @@ export function GrsListSalePanel({ config, snapshot, refresh, solanaSpoke, note 
   const remainingLabel = remaining == null ? '—' : formatTokenBalance(remaining, decimals, 2)
 
   const assets = useMemo(
-    () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: config?.address ?? 'grs' }],
+    () => [{ icon: assetUrl('grs.png'), symbol: 'GRS', address: config?.address ?? 'grs' }],
     [config?.address],
   )
 

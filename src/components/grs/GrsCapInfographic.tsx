@@ -4,7 +4,6 @@ import { GATE_LABELS, GRS_DECIMALS } from '../../grs/constants'
 import {
   GRS_CAP_GROUPS,
   GRS_CAP_SUPPLY_MILLIONS,
-  GRS_TGE_SPLIT,
   formatGrsCompact,
   formatUsedPercent,
   millionsToRaw,
@@ -100,7 +99,7 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
       const usage = usageCap(allocations, 0, sales?.millions ?? 150, decimals, salesRemaining)
       return `Token sales ${formatGrsCompact(salesRemaining, decimals)} of ${sales?.millions ?? 150}M listed · used ${formatUsedPercent(usage.spent, usage.cap)}%`
     }
-    return 'TGE float 200M · 400M gated · 400M calendar / vote locked'
+    return 'Five groups · 200M each · hover a bucket for gate and remaining'
   })()
 
   const handleJump = (jump: GrsCapBucketSpec['jump']) => {
@@ -220,22 +219,6 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
           </div>
         ))}
       </div>
-
-      <div className="grs-cap-tge" aria-hidden="true">
-        {GRS_TGE_SPLIT.map((slice) => (
-          <span key={slice.id} className={`grs-cap-tge-slice grs-cap-tge-slice--${slice.id}`}>
-            {slice.pct}% · {slice.millions}M
-          </span>
-        ))}
-      </div>
-      <ul className="grs-cap-tge-legend">
-        {GRS_TGE_SPLIT.map((slice) => (
-          <li key={slice.id}>
-            <span className={`grs-cap-dot grs-cap-dot--${slice.id}`} />
-            {slice.label} {slice.millions}M
-          </li>
-        ))}
-      </ul>
 
       {granted > 0n ? (
         <div className="grs-cap-granted" aria-hidden="true">

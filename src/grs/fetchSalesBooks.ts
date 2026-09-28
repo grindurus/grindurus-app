@@ -105,14 +105,15 @@ function resolveEvmBookConfig(pageConfig: GrsConfig | null): GrsEvmConfig | null
 }
 
 /**
- * Token-sale catalog for one wallet surface:
+ * Token-sale catalog:
+ * - `all` → EVM home/page CA + Solana spoke (TGE four-window catalog)
  * - `solana` → spoke OFT sales only
- * - `evm` → sales on the selected EVM CA only (not mixed with Solana)
+ * - `evm` → sales on the selected EVM CA only
  */
 export async function fetchAllOpenGrsSaleBooks(params: {
   pageConfig: GrsConfig | null
   solanaCluster?: SolanaCluster | null
-  mode: GrsSaleBookMode
+  mode: GrsSaleBookMode | 'all'
   solanaConnection?: Connection | null
 }): Promise<{
   rows: GrsSaleBookRow[]
@@ -125,22 +126,30 @@ export async function fetchAllOpenGrsSaleBooks(params: {
   let rows: GrsSaleBookRow[] = []
   let solanaError: string | null = null
 
-  if (params.mode === 'solana') {
+  const wantSolana = params.mode === 'solana' || params.mode === 'all'
+  const wantEvm = params.mode === 'evm' || params.mode === 'all'
+
+  if (wantSolana) {
     const solana = resolveGrsSolanaConfigPreferringDevnet(params.solanaCluster)
     if (!solana) {
-      solanaError = 'Solana GRS is not configured (set VITE_GRS_DEVNET_MINT)'
+      if (params.mode === 'solana') {
+        solanaError = 'Solana GRS is not configured (set VITE_GRS_DEVNET_MINT)'
+      }
     } else {
       try {
-        rows = await fetchSolanaSaleBook(solana, params.solanaConnection)
+        const solanaRows = await fetchSolanaSaleBook(solana, params.solanaConnection)
+        rows = rows.concat(solanaRows)
       } catch (error) {
         solanaError = error instanceof Error ? error.message : 'Failed to load Solana sales'
-        rows = []
       }
     }
-  } else {
+  }
+
+  if (wantEvm) {
     const evm = resolveEvmBookConfig(params.pageConfig)
     if (evm) {
-      rows = await fetchEvmSaleBook(evm).catch(() => [])
+      const evmRows = await fetchEvmSaleBook(evm).catch(() => [])
+      rows = rows.concat(evmRows)
     }
   }
 

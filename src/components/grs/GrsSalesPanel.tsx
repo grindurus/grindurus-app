@@ -44,22 +44,91 @@ function saleUnitPriceLabel(sale: GrsSale, grsDecimals: number): string {
   return `${formatTokenBalance(perGrs, sale.quoteDecimals, 8)} ${sale.quoteSymbol} / GRS`
 }
 
+const DEMO_EVM_CONFIG = {
+  kind: 'evm' as const,
+  chainId: 1,
+  chainName: 'Ethereum',
+  address: '0x0000000000000000000000000000000000000001' as `0x${string}`,
+}
+
+/** TGE four-window plan: ETH USDC · SOL USDC · ETH · SOL. */
+const QUOTE_ICONS = {
+  USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
+  ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+  SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+} as const
+
+const TGE_SLOT_META = [
+  { networkLabel: 'Ethereum', quoteLabel: 'USDC', quoteIcon: QUOTE_ICONS.USDC },
+  { networkLabel: 'Solana', quoteLabel: 'USDC', quoteIcon: QUOTE_ICONS.USDC },
+  { networkLabel: 'Ethereum', quoteLabel: 'ETH', quoteIcon: QUOTE_ICONS.ETH },
+  { networkLabel: 'Solana', quoteLabel: 'SOL', quoteIcon: QUOTE_ICONS.SOL },
+] as const
+
+const CATALOG_WINDOW_COUNT = 4
+
 function mockBookRows(): GrsSaleBookRow[] {
-  return MOCK_GRS_SALES.map((sale) => ({
+  const networks = ['Ethereum', 'Solana', 'Ethereum', 'Solana'] as const
+  return MOCK_GRS_SALES.map((sale, index) => ({
     ...sale,
-    key: `demo:${sale.id.toString()}`,
-    networkLabel: 'Demo',
+    key: `demo:${networks[index]}:${sale.id.toString()}`,
+    networkLabel: networks[index] ?? 'Demo',
     decimals: GRS_DECIMALS,
-    config: {
-      kind: 'evm',
-      chainId: 11155111,
-      chainName: 'Demo',
-      address: '0x0000000000000000000000000000000000000001',
-    },
+    // Demo cannot buy — EVM stub config is enough for selection / pricing preview.
+    config: { ...DEMO_EVM_CONFIG, chainName: networks[index] ?? 'Demo' },
   }))
 }
 
-export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh, note }: Props) {
+type CatalogSlot =
+  | { kind: 'sale'; sale: GrsSaleBookRow }
+  | {
+      kind: 'placeholder'
+      key: string
+      networkLabel: string
+      quoteLabel: string
+      quoteIcon: string
+    }
+
+function buildCatalogSlots(rows: GrsSaleBookRow[]): CatalogSlot[] {
+  const sales: CatalogSlot[] = rows.map((sale) => ({ kind: 'sale', sale }))
+  if (sales.length >= CATALOG_WINDOW_COUNT) return sales
+  const placeholders = TGE_SLOT_META.slice(sales.length).map((meta, index) => ({
+    kind: 'placeholder' as const,
+    key: `placeholder:${meta.networkLabel}:${meta.quoteLabel}:${index}`,
+    networkLabel: meta.networkLabel,
+    quoteLabel: meta.quoteLabel,
+    quoteIcon: meta.quoteIcon,
+  }))
+  return [...sales, ...placeholders]
+}
+
+function PriceUnit({
+  quoteIcon,
+  quoteSymbol,
+}: {
+  quoteIcon: string
+  quoteSymbol: string
+}) {
+  return (
+    <span className="grs-book-price-unit">
+      <img className="grs-book-price-unit-icon" src={quoteIcon} alt="" width={14} height={14} />
+      <span className="grs-book-price-unit-sym">{quoteSymbol}</span>
+      <span className="grs-book-price-unit-sep" aria-hidden="true">
+        /
+      </span>
+      <img
+        className="grs-book-price-unit-icon"
+        src={assetUrl('grs.png')}
+        alt=""
+        width={14}
+        height={14}
+      />
+      <span className="grs-book-price-unit-sym">GRS</span>
+    </span>
+  )
+}
+
+export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoading, refresh, note }: Props) {
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
   const activeWallet = useActiveWallet()
@@ -79,14 +148,8 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
 
   const configured = isGrsConfiguredAnywhere()
   const isDemo = !configured
-  // Solana wallet → spoke book. EVM wallet (or CA on EVM) → selected chain only.
-  const bookMode: 'solana' | 'evm' = solanaWallet.isConnected
-    ? 'solana'
-    : evmWallet.isConnected || config?.kind === 'evm'
-      ? 'evm'
-      : config?.kind === 'solana'
-        ? 'solana'
-        : 'evm'
+  // Always merge EVM home + Solana spoke for the four-window TGE catalog.
+  const bookMode = 'all' as const
   const refreshBook = useCallback(() => {
     setBookTick((value) => value + 1)
     refresh()
@@ -149,6 +212,8 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
     solanaWallet.cluster,
     solanaWallet.connection,
   ])
+
+  const catalogSlots = useMemo(() => buildCatalogSlots(bookRows), [bookRows])
 
   const selected =
     bookRows.find((sale) => sale.key === saleKey) ?? bookRows[0] ?? null
@@ -253,7 +318,7 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
       ? saleConfig.mint.toBase58()
       : (saleConfig?.address ?? 'grs')
   const assets = useMemo(
-    () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: tokenAddress }],
+    () => [{ icon: assetUrl('grs.png'), symbol: 'GRS', address: tokenAddress }],
     [tokenAddress],
   )
   const listed = selected?.grsAmount ?? 0n
@@ -261,7 +326,7 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
   const buyableLabel = listed > 0n ? formatTokenBalance(listed, decimals, 2) : null
   const costLabel =
     selected && cost != null
-      ? `${formatTokenBalance(cost, selected.quoteDecimals, 8)} ${selected.quoteSymbol}`
+      ? formatTokenBalance(cost, selected.quoteDecimals, 8)
       : null
 
   const selectSale = (sale: GrsSaleBookRow) => {
@@ -365,26 +430,50 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
 
   const catalog = (
     <div className="grs-sales-catalog-panel">
-      <div className="grs-book" role="list">
+      <div className="grs-book" role="list" aria-label="Token sales on Ethereum and Solana">
         {bookError ? (
           <p className="grai-manage-feedback is-error" role="alert">
             {bookError}
           </p>
         ) : null}
-        {bookRows.length === 0 ? (
-          <p className="grs-empty">
-            {bookLoading || isLoading
-              ? 'Loading sales…'
-              : bookMode === 'solana'
-                ? 'No open sales on Solana Devnet.'
-                : `No open sales on ${config?.kind === 'evm' ? config.chainName : 'this chain'}.`}
-          </p>
+        {bookLoading && bookRows.length === 0 ? (
+          <p className="grs-empty">Loading sales…</p>
         ) : (
-          bookRows.map((sale) => {
+          catalogSlots.map((slot) => {
+            if (slot.kind === 'placeholder') {
+              return (
+                <div
+                  key={slot.key}
+                  role="listitem"
+                  className="grs-book-row is-placeholder"
+                  aria-label={`${slot.networkLabel} ${slot.quoteLabel} sale — listed soon`}
+                >
+                  <span className="grs-book-row-top">
+                    <span className="grs-book-price-block">
+                      <span className="grs-book-price-value">0.02</span>
+                      <PriceUnit quoteIcon={slot.quoteIcon} quoteSymbol={slot.quoteLabel} />
+                    </span>
+                    <span className="grs-book-network">
+                      <span className="grs-book-network-icon" aria-hidden="true">
+                        <GrsChainGlyph name={slot.networkLabel} size={14} />
+                      </span>
+                      {slot.networkLabel}
+                    </span>
+                  </span>
+                  <span className="grs-book-foot">
+                    <span className="grs-book-foot-cell">
+                      <span className="grs-book-meta-label">Status</span>
+                      <span className="grs-book-meta-value">Listed soon</span>
+                    </span>
+                  </span>
+                </div>
+              )
+            }
+
+            const sale = slot.sale
             const active = selected?.key === sale.key
             const unitPrice = saleUnitPriceLabel(sale, sale.decimals)
-            const [unitValue, ...unitRest] = unitPrice.split(' ')
-            const unitSuffix = unitRest.join(' ')
+            const [unitValue] = unitPrice.split(' ')
             return (
               <button
                 key={sale.key}
@@ -394,19 +483,15 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
                 onClick={() => selectSale(sale)}
               >
                 <span className="grs-book-row-top">
-                  <span className="grs-book-sale-id">#{sale.id.toString()}</span>
+                  <span className="grs-book-price-block">
+                    <span className="grs-book-price-value">{unitValue}</span>
+                    <PriceUnit quoteIcon={sale.quoteIcon} quoteSymbol={sale.quoteSymbol} />
+                  </span>
                   <span className="grs-book-network">
                     <span className="grs-book-network-icon" aria-hidden="true">
                       <GrsChainGlyph name={sale.networkLabel} size={14} />
                     </span>
                     {sale.networkLabel}
-                  </span>
-                </span>
-
-                <span className="grs-book-price-block">
-                  <span className="grs-book-price-value">{unitValue}</span>
-                  <span className="grs-book-price-unit">
-                    {unitSuffix || `${sale.quoteSymbol} / GRS`}
                   </span>
                 </span>
 
@@ -416,7 +501,7 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
                     <span className="grs-book-meta-value">
                       <img
                         className="grs-book-ticker-icon"
-                        src={assetUrl('logo.png')}
+                        src={assetUrl('grs.png')}
                         alt=""
                         width={14}
                         height={14}
@@ -485,6 +570,63 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
               disabled={!selected}
             />
 
+            <div className="grai-action-metrics grai-action-metrics--under-amount" aria-live="polite">
+              <div className="grai-action-metric-row">
+                <span className="grai-action-metric-label-wrap">
+                  <GraiFieldInfoButton
+                    className="grai-action-metric-label-info"
+                    hint="Buying the listed remainder pays remaining assetAmount exactly. A partial fill is floor(amount × assetAmount / remaining GRS)."
+                  />
+                  <span className="grai-action-metric-label">You pay</span>
+                </span>
+                <span className="grai-action-metric-value grai-action-metric-value--token">
+                  {costLabel ?? '—'}
+                  {selected ? (
+                    <>
+                      <img
+                        src={selected.quoteIcon}
+                        alt=""
+                        width={16}
+                        height={16}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      {selected.quoteSymbol}
+                    </>
+                  ) : null}
+                </span>
+              </div>
+              <div className="grai-action-metric-row">
+                <span className="grai-action-metric-label-wrap">
+                  <button
+                    type="button"
+                    className="grai-mint-referrer-chevron-btn"
+                    aria-expanded={deliverOpen}
+                    aria-controls="grs-sales-deliver-field"
+                    aria-label={deliverOpen ? 'Hide deliver address' : 'Show deliver address'}
+                    onClick={() => setDeliverOpen((open) => !open)}
+                  >
+                    <GraiUiCaret
+                      className={`grai-mint-referrer-chevron${deliverOpen ? ' is-open' : ''}`}
+                    />
+                  </button>
+                  <span className="grai-action-metric-label">You receive</span>
+                </span>
+                <span className="grai-action-metric-value grai-action-metric-value--token">
+                  {amount.trim() || '—'}
+                  <img
+                    src={assetUrl('grs.png')}
+                    alt=""
+                    width={16}
+                    height={16}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  GRS
+                </span>
+              </div>
+            </div>
+
             {deliverOpen ? (
               <label className="grai-mint-referrer-field" id="grs-sales-deliver-field">
                 <span className="grai-mint-referrer-label-row">
@@ -519,41 +661,6 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading, refresh,
                 </div>
               </label>
             ) : null}
-
-            <div className="grai-action-metrics" aria-live="polite">
-              <div className="grai-action-metric-row">
-                <span className="grai-action-metric-label-wrap">
-                  <button
-                    type="button"
-                    className="grai-mint-referrer-chevron-btn"
-                    aria-expanded={deliverOpen}
-                    aria-controls="grs-sales-deliver-field"
-                    aria-label={deliverOpen ? 'Hide deliver address' : 'Show deliver address'}
-                    onClick={() => setDeliverOpen((open) => !open)}
-                  >
-                    <GraiUiCaret
-                      className={`grai-mint-referrer-chevron${deliverOpen ? ' is-open' : ''}`}
-                    />
-                  </button>
-                  <span className="grai-action-metric-label">You receive</span>
-                </span>
-                <span className="grai-action-metric-value">
-                  {amount.trim() ? `${amount} GRS` : '— GRS'}
-                </span>
-              </div>
-              <div className="grai-action-metric-row">
-                <span className="grai-action-metric-label-wrap">
-                  <GraiFieldInfoButton
-                    className="grai-action-metric-label-info"
-                    hint="Buying the listed remainder pays remaining assetAmount exactly. A partial fill is floor(amount × assetAmount / remaining GRS)."
-                  />
-                  <span className="grai-action-metric-label">You pay</span>
-                </span>
-                <span className="grai-action-metric-value">
-                  {costLabel ?? (selected ? `— ${selected.quoteSymbol}` : '—')}
-                </span>
-              </div>
-            </div>
 
             {selected?.unpayableEvmAsset ? (
               <p className="grai-manage-feedback is-error">

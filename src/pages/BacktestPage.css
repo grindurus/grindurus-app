@@ -382,6 +382,13 @@
   color: #ffffff;
 }
 
+[data-theme='light'] .backtest-sublabel--with-icon.is-base,
+[data-theme='light'] .backtest-sublabel--with-icon.is-quote,
+[data-theme='light'] .backtest-sublabel--with-icon.is-from,
+[data-theme='light'] .backtest-sublabel--with-icon.is-to {
+  color: #111111;
+}
+
 .backtest-sublabel--with-icon.is-from .backtest-sublabel-icon,
 .backtest-sublabel--with-icon.is-to .backtest-sublabel-icon {
   color: #ff69b4;
@@ -1112,6 +1119,10 @@
   text-transform: uppercase;
   color: #ffffff;
   line-height: 1.2;
+}
+
+[data-theme='light'] .backtest-pay-method-caption {
+  color: #111111;
 }
 
 .backtest-pay-method-caption--with-icon {
@@ -1929,6 +1940,21 @@
   color: #ffe9f6;
   box-shadow: inset 0 0 0 1px rgba(255, 105, 180, 0.75);
   text-shadow: 0 0 6px rgba(255, 105, 180, 0.35);
+}
+
+[data-theme='light'] .backtest-queue-view-btn {
+  color: #3a3a3a;
+}
+
+[data-theme='light'] .backtest-queue-view-btn:hover {
+  color: #111111;
+}
+
+[data-theme='light'] .backtest-queue-view-btn.is-active {
+  color: #c2185b;
+  text-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(194, 24, 91, 0.55);
+  background: color-mix(in srgb, #ff69b4 12%, transparent);
 }
 
 .backtest-queue-view-btn.is-active:first-child,
@@ -2792,6 +2818,28 @@
 
 [data-theme='light'] .backtest-history-pnl-tip-den {
   color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme='light'] .backtest-history-index,
+[data-theme='light'] .backtest-history-id,
+[data-theme='light'] .backtest-history-pair-amount,
+[data-theme='light'] .backtest-history-period-duration,
+[data-theme='light'] .backtest-history-creator,
+[data-theme='light'] .backtest-history-balances-asset {
+  color: #111111;
+}
+
+[data-theme='light'] .backtest-history-id:focus-visible,
+[data-theme='light'] .backtest-history-creator:focus-visible {
+  outline-color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='light'] .backtest-history-pnl-head {
+  text-decoration-color: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='light'] .backtest-history-balances-num.is-pnl-pos {
+  color: #0a7a45;
 }
 
 .backtest-history-balances-asset {

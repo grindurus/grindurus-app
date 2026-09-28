@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="GRS">
+  <title>GRS</title>
+  <defs>
+    <clipPath id="grs-disc-clip">
+      <circle cx="32" cy="32" r="32" />
+    </clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="32" fill="#ff69b4" />
+  <!-- Arc centerline r=26.5: inset from disc rim. Side arcs ±75°. -->
+  <g clip-path="url(#grs-disc-clip)">
+    <path
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="2.75"
+      stroke-linecap="round"
+      d="M 25.14 6.40 A 26.5 26.5 0 0 0 25.14 57.60"
+    />
+    <path
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="2.75"
+      stroke-linecap="round"
+      d="M 38.86 6.40 A 26.5 26.5 0 0 1 38.86 57.60"
+    />
+  </g>
+  <g transform="translate(32 32) scale(0.62) translate(-32 -32)">
+    <path
+      fill="#ffffff"
+      d="
+        M8.2 4.2
+        L14.8 14.6
+        L22.2 17.2
+        L27.6 21.4
+        L29.2 32.8
+        L29.2 42.6
+        L31.8 48.2
+        L35.8 48.2
+        L38.4 42.6
+        L38.4 32.8
+        L40 21.4
+        L45.4 17.2
+        L52.8 14.6
+        L59.4 4.2
+        L56.6 18.4
+        L46.8 23.2
+        L42.2 28.6
+        L41.2 44.8
+        L38.4 49.2
+        L37.6 52.4
+        L32 60.8
+        L26.4 52.4
+        L25.6 49.2
+        L22.8 44.8
+        L21.8 28.6
+        L17.2 23.2
+        L7.4 18.4
+        Z
+      "
+    />
+  </g>
+</svg>

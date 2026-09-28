@@ -56,30 +56,53 @@ export function partyName(address: string): string | undefined {
 
 const eth = ethMeta()
 const usdc = usdcMeta()
+const SOL_ICON = 'https://assets.coingecko.com/coins/images/4128/small/solana.png'
 
-/** Home TGE book: ETH + USDC public sales, proceeds to Foundation / Treasury. */
+/** TGE four-row plan: ETH USDC · SOL USDC · ETH native · SOL native @ $0.02. */
 export const MOCK_GRS_SALES: GrsSale[] = [
   {
     id: 1n,
+    asset: USDC,
+    assetAmount: 500_000n * 1_000_000n,
+    recipient: MOCK_GRS_PARTIES.treasury,
+    grsAmount: grs(25_000_000n),
+    quoteSymbol: usdc.symbol,
+    quoteDecimals: 6,
+    quoteIcon: usdc.icon.src,
+    native: false,
+  },
+  {
+    id: 2n,
+    asset: USDC,
+    assetAmount: 500_000n * 1_000_000n,
+    recipient: MOCK_GRS_PARTIES.treasury,
+    grsAmount: grs(25_000_000n),
+    quoteSymbol: usdc.symbol,
+    quoteDecimals: 6,
+    quoteIcon: usdc.icon.src,
+    native: false,
+  },
+  {
+    id: 3n,
     asset: NATIVE_QUOTE,
-    assetAmount: 80_000_000n * 40_000_000_000_000n,
+    assetAmount: 250n * 10n ** 18n,
     recipient: MOCK_GRS_PARTIES.foundation,
-    grsAmount: grs(80_000_000n),
+    grsAmount: grs(25_000_000n),
     quoteSymbol: eth.symbol,
     quoteDecimals: 18,
     quoteIcon: eth.icon.src,
     native: true,
   },
   {
-    id: 2n,
-    asset: USDC,
-    assetAmount: 61_800_000n * 120_000n,
-    recipient: MOCK_GRS_PARTIES.treasury,
-    grsAmount: grs(61_800_000n),
-    quoteSymbol: usdc.symbol,
-    quoteDecimals: 6,
-    quoteIcon: usdc.icon.src,
-    native: false,
+    id: 4n,
+    asset: NATIVE_QUOTE,
+    assetAmount: 2_500n * 10n ** 9n,
+    recipient: MOCK_GRS_PARTIES.foundation,
+    grsAmount: grs(25_000_000n),
+    quoteSymbol: 'SOL',
+    quoteDecimals: 9,
+    quoteIcon: SOL_ICON,
+    native: true,
   },
 ]
 

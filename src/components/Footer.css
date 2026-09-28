@@ -10,7 +10,7 @@
 }
 
 [data-theme='light'] .app-footer {
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--bg-primary);
 }
 
 .app-footer-container {
@@ -61,6 +61,13 @@
   height: 2rem;
   object-fit: contain;
   flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .app-footer-logo-img {
+  background: #3b1d2e;
+  border-radius: 50%;
+  padding: 3px;
 }
 
 .app-footer-logo-text {

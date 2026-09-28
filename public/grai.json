@@ -3,8 +3,8 @@
   "symbol": "GRAI",
   "description": "Passive access to the GrindURUS volatility harvesting strategy.",
   "image": "https://grindurus.xyz/logo.png",
-  "external_url": "https://app.grindurus.xyz/grai",
-  "app": "https://app.grindurus.xyz/grai",
+  "external_url": "https://grindurus.xyz/grai",
+  "app": "https://grindurus.xyz/grai",
   "properties": {
     "category": "fungible",
     "bosses": [

@@ -94,7 +94,7 @@ function buildSpreadLayout(count: number) {
 const FLOATING_LAYOUT = buildSpreadLayout(FLOATING_TOKEN_COUNT)
 
 export function buildFloatingTokens(icons: GraiAssetIcon[]): FloatingTokenSpec[] {
-  const graiIcon: GraiAssetIcon = { src: assetUrl('logo.png'), alt: 'GRAI' }
+  const graiIcon: GraiAssetIcon = { src: assetUrl('grai.png'), alt: 'GRAI' }
   const unique = [...new Map(icons.map((icon) => [icon.src, icon])).values()].filter(
     (icon) => icon.src !== graiIcon.src,
   )

@@ -119,7 +119,7 @@ export function GrsVestingPanel({ config, snapshot, isLoading, refresh, view, no
   const tokenAddress =
     config?.kind === 'solana' ? config.mint.toBase58() : (config?.address ?? 'grs')
   const assets = useMemo(
-    () => [{ icon: assetUrl('logo.png'), symbol: 'GRS', address: tokenAddress }],
+    () => [{ icon: assetUrl('grs.png'), symbol: 'GRS', address: tokenAddress }],
     [tokenAddress],
   )
   const walletBalanceText =

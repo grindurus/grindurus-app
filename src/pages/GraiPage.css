@@ -9809,12 +9809,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-shadow: none;
 }
 
-[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-no {
-  color: rgba(0, 0, 0, 0.78);
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no .grai-mint-dividends-toggle-option.is-yes,
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no .grai-mint-dividends-toggle-option.is-no {
+  color: #111111;
 }
 
-[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-yes {
-  color: #fff;
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-no,
+[data-theme='light'] .grai-mint-dividends-toggle.is-below-amount.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-yes {
+  color: rgba(0, 0, 0, 0.42);
 }
 
 .grai-mint-dividends-toggle-label {
@@ -10259,12 +10261,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
 }
 
-[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-yes {
-  color: #fff;
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-option.is-yes,
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no .grai-mint-dividends-toggle-option.is-no {
+  color: #111111;
 }
 
-[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-no {
-  color: rgba(0, 0, 0, 0.78);
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no.is-active .grai-mint-dividends-toggle-option.is-no,
+[data-theme='light'] .grai-mint-dividends-toggle.is-yes-no:not(.is-active) .grai-mint-dividends-toggle-option.is-yes {
+  color: rgba(0, 0, 0, 0.42);
 }
 
 /* GRAI escrow: Lock left of track, Unlock right; Lock = pink (inactive), Unlock = white (active) */
@@ -10995,13 +10999,22 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn {
   width: 100%;
   height: 100%;
-  color: #fff;
-  opacity: 0.85;
+  color: #ff69b4;
+  opacity: 1;
 }
 
 .grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn:hover,
 .grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn:focus-visible {
-  opacity: 1;
+  color: #ff9ed3;
+}
+
+[data-theme='light'] .grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn:hover,
+[data-theme='light'] .grai-action-result--penalty .grai-action-result-penalty-info .grai-field-info-btn:focus-visible {
+  color: #ff69b4;
 }
 
 .grai-action-result-penalty-time {
@@ -11985,11 +11998,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: none;
 }
 
-.grai-action-switch-liquidate-slot > .grai-liquidation-liquidate-view-toggle {
-  flex: 0 0 auto;
-  margin-left: auto;
-}
-
 [data-theme='light'] .grai-action-switch-liquidate-slot {
   border-color: rgba(148, 163, 184, 0.4);
 }
@@ -12197,20 +12205,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     border: 0;
     background: transparent;
     transform: none;
-  }
-
-  .grai-action-switch-liquidate-slot > .grai-liquidation-liquidate-view-toggle {
-    position: absolute;
-    top: 0.15rem;
-    right: 0.15rem;
-    width: 1.15rem;
-    height: 1.15rem;
-    margin-left: 0;
-  }
-
-  .grai-action-switch-liquidate-slot > .grai-liquidation-liquidate-view-toggle svg {
-    width: 0.7rem;
-    height: 0.7rem;
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
@@ -12474,54 +12468,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-liquidation-liquidate-header > .grai-liquidation-distribute-title-info {
   align-self: center;
   justify-content: center;
-}
-
-.grai-liquidation-liquidate-view-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  margin: 0;
-  padding: 0;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease,
-    background-color 0.15s ease;
-}
-
-.grai-liquidation-liquidate-view-toggle svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  transition: transform 0.2s ease;
-}
-
-.grai-liquidation-liquidate-view-toggle.is-redeem svg {
-  transform: rotate(180deg);
-}
-
-.grai-liquidation-liquidate-view-toggle:hover,
-.grai-liquidation-liquidate-view-toggle:focus-visible {
-  color: #ff69b4;
-  border-color: rgba(255, 105, 180, 0.55);
-  outline: none;
-}
-
-.grai-liquidation-liquidate-view-toggle.is-redeem {
-  color: #ff69b4;
-  border-color: rgba(255, 105, 180, 0.55);
-}
-
-[data-theme='light'] .grai-liquidation-liquidate-view-toggle:hover,
-[data-theme='light'] .grai-liquidation-liquidate-view-toggle:focus-visible,
-[data-theme='light'] .grai-liquidation-liquidate-view-toggle.is-redeem {
-  color: #e91e8c;
-  border-color: rgba(233, 30, 140, 0.5);
 }
 
 .grai-liquidation-liquidate-screen > .grai-liquidation-quorum-infographic {
@@ -12937,7 +12883,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-referral-dash-collapse.is-collapsed .grai-donut-legend-toggle-icon {
-  transform: none;
+  transform: rotate(-90deg);
 }
 
 .grai-referral-dash-collapse:hover .grai-donut-legend-toggle-icon,

@@ -431,7 +431,7 @@ function Header() {
         <div className="header-left">
           <div className="header-brand">
             <Link to="/" className="header-logo" onClick={() => setIsMobileNavOpen(false)}>
-              <img src={assetUrl('logo.png')} alt="" className="header-logo-img" />
+              <img src={assetUrl('logo.svg')} alt="" className="header-logo-img" />
             </Link>
             <Link
               to="/"
