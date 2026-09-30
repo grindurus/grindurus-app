@@ -265,7 +265,8 @@ function Header() {
 
   const isNavCompact = navMode === 'compact'
   const isNavMobile = navMode === 'mobile'
-  const showBurger = navMode !== 'full'
+  // Desktop strip (full/compact) XOR burger drawer (mobile) — never both.
+  const showBurger = isNavMobile
 
   // Backtest / x402 needs the Mainnet env (not Testnet). Pin Solana to mainnet-beta and
   // leave Sepolia → Ethereum, but do not yank the wallet off Base/Arbitrum/Polygon.
@@ -321,8 +322,8 @@ function Header() {
   }, [])
 
   useEffect(() => {
-    if (navMode === 'full') setIsMobileNavOpen(false)
-  }, [navMode])
+    if (!isNavMobile) setIsMobileNavOpen(false)
+  }, [isNavMobile])
 
   useLayoutEffect(() => {
     const track = desktopNavTrackRef.current
@@ -520,6 +521,18 @@ function Header() {
             <Link to="/" className="header-logo" onClick={() => setIsMobileNavOpen(false)}>
               <img src={assetUrl('logo.svg')} alt="" className="header-logo-img" />
             </Link>
+            {showBurger ? (
+              <button
+                type="button"
+                className="header-menu-btn"
+                aria-expanded={isMobileNavOpen}
+                aria-controls={mobileNavId}
+                aria-label={isMobileNavOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => setIsMobileNavOpen((open) => !open)}
+              >
+                {isMobileNavOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+              </button>
+            ) : null}
             <Link
               to="/"
               className="header-logo-text"
@@ -760,18 +773,6 @@ function Header() {
           <div className="header-wallet-cluster">
             <ConnectWalletButton />
             <HeaderSettingsPopover />
-            {showBurger ? (
-              <button
-                type="button"
-                className="header-menu-btn"
-                aria-expanded={isMobileNavOpen}
-                aria-controls={mobileNavId}
-                aria-label={isMobileNavOpen ? 'Close menu' : 'Open menu'}
-                onClick={() => setIsMobileNavOpen((open) => !open)}
-              >
-                {isMobileNavOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-              </button>
-            ) : null}
           </div>
         </div>
       </div>

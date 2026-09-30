@@ -1743,6 +1743,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   margin-left: auto;
 }
 
+.grai-grinders-summary-filter-wrap--network-only {
+  justify-content: flex-start;
+}
+
+.grai-grinders-summary-filter-wrap--network-only .grai-grinders-summary-toolbar-network {
+  margin-left: 0;
+}
+
 .grai-grinders-summary-toolbar {
   display: flex;
   align-items: center;
@@ -1891,6 +1899,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   line-height: 1.2;
   letter-spacing: 0.02em;
   text-transform: none;
+  min-height: 0;
+  height: calc(1.5rem * 1.2);
+  box-sizing: border-box;
 }
 
 .grai-grinders-row--summary .grai-grinders-summary-general .grai-grinders-live-label.grai-grinders-summary-mini-label {
@@ -1907,12 +1918,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-grinders-row--summary .grai-grinders-group-title.is-network.is-stacked {
-  align-items: stretch;
-  justify-content: flex-start;
   text-align: left;
   min-width: 0;
   max-width: 100%;
-  gap: 0.2rem;
   overflow: visible;
 }
 
@@ -2029,6 +2037,30 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0.28rem;
 }
 
+.grai-grinders-network-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  flex-shrink: 0;
+  color: #ff69b4;
+  opacity: 1;
+}
+
+.grai-grinders-network-menu-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.wallet-network-select-list.grai-grinders-network-menu-list .grai-grinders-network-total-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.wallet-network-select-list.grai-grinders-network-menu-list .wallet-network-select-item.active .grai-grinders-network-total-icon {
+  color: #ff69b4;
+}
+
 .wallet-network-select.is-grai-compact .network-icon-svg {
   width: 1.1rem;
   height: 1.1rem;
@@ -2098,6 +2130,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.48);
+}
+
+.wallet-network-select-list.grai-grinders-network-menu-list {
+  max-height: min(16rem, 50vh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .wallet-network-select-list.is-grai-compact-portal .network-caip2 {
@@ -2195,86 +2234,159 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
   border-top: 0;
   background: transparent;
+  align-items: start;
 }
 
-.grai-grinders-row--summary .grai-grinders-network-main {
-  min-height: var(--grai-grinders-summary-value-row-height);
-  height: auto;
-  align-items: center;
-  gap: 0.35rem;
+.grai-grinders-row--summary > span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  align-content: flex-start;
+  align-self: start;
+  gap: 0.2rem;
+  min-height: 0;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-slot--desktop .grai-grinders-network-select-shell {
   width: 100%;
   min-width: 0;
-  max-width: 100%;
-  overflow: visible;
 }
 
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-network-action {
-  margin-left: 0;
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox:hover {
+  opacity: 0.92;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-top {
+  pointer-events: none;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-icons-row,
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-value-spacer {
+  pointer-events: none;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-top {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  flex-wrap: nowrap;
+  gap: 0.4rem;
+  min-height: 0;
+  height: calc(1.5rem * 1.2);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #fff;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .wallet-network-select-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: auto;
+  overflow: hidden;
+  gap: 0.4rem;
+  justify-content: flex-start;
+  align-items: center;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-menu-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-select-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  text-align: left;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-value-spacer {
+  display: block;
+  min-height: 0;
+  height: calc(1.5rem * 1.1);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-icons-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+  width: 100%;
+  height: calc(1.5rem * 1.1);
+  min-height: calc(1.5rem * 1.1);
+}
+
+.grai-grinders-row--summary .grai-grinders-network-icons-row-icon {
+  width: calc(1.5rem * 1.1) !important;
+  height: calc(1.5rem * 1.1) !important;
+  padding: 0 !important;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-icons-row-icon img,
+.grai-grinders-row--summary .grai-grinders-network-icons-row-icon svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-shell {
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  overflow: visible;
-  box-sizing: border-box;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-network-action,
-.grai-grinders-row--summary .grai-grinders-network-main .connect-wallet-btn.grai-grinders-network-connect-btn,
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .wallet-network-select-btn.grai-grinders-network-select-btn {
-  min-height: var(--grai-grinders-summary-value-row-height);
-  height: var(--grai-grinders-summary-value-row-height);
-  box-sizing: border-box;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-network-action:has(.grai-grinders-filter-toggle) {
-  height: auto;
-  min-height: var(--grai-grinders-summary-value-row-height);
   align-self: stretch;
 }
 
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle {
-  height: auto;
-  min-height: 0;
-  width: auto;
-  flex: 0 0 auto;
-  justify-content: center;
-  align-self: center;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact {
-  flex: 1 1 0;
-  width: auto;
-  min-width: 0;
-  max-width: 100%;
-  align-self: center;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .wallet-network-select-btn.grai-grinders-network-select-btn {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  justify-content: flex-start;
-  align-items: center;
-  overflow: hidden;
-  padding-right: 0.15rem;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .wallet-network-select-main {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 100%;
-  overflow: hidden;
-  gap: 0.28rem;
-  justify-content: flex-start;
-  align-items: center;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .network-icon-svg {
-  width: 2.25rem;
-  height: 2.25rem;
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .network-icon-svg {
+  width: 0.75rem;
+  height: 0.75rem;
   padding: 0;
   flex-shrink: 0;
   align-self: center;
@@ -2283,8 +2395,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   justify-content: center;
 }
 
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .network-icon-svg img,
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .network-logo-img--ethereum {
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .network-icon-svg img,
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .network-logo-img--ethereum {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -2292,52 +2404,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   transform: none;
 }
 
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .grai-grinders-network-select-value {
-  flex: 0 1 auto;
-  min-width: 0;
-  height: 2.25rem;
-  display: inline-flex;
-  align-items: center;
-  font-size: 1.15rem;
-  line-height: 1;
-  text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .wallet-network-select.is-grai-compact .wallet-network-select-arrow {
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .wallet-network-select-arrow {
   display: none;
 }
 
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-stack {
-  height: auto;
-  min-height: 0;
-  gap: 0.35rem;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-caption,
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-caption--network {
-  font-size: 0.62rem;
-  text-align: center;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-track {
-  width: 2.45rem;
-  height: 1.05rem;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle-thumb {
-  width: 0.68rem;
-  height: 0.68rem;
-}
-
-.grai-grinders-row--summary .grai-grinders-network-main .grai-grinders-filter-toggle.is-active .grai-grinders-filter-toggle-thumb {
-  left: calc(100% - 0.16rem - 0.68rem);
-}
-
 .grai-grinders-row--summary .grai-grinders-group-general-top {
-  min-height: var(--grai-grinders-summary-top-row-height);
+  min-height: 0;
+  height: calc(1.5rem * 1.2);
 }
 
 .grai-grinders-show-all-label {
@@ -2674,10 +2747,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-grinders-row--summary .grai-grinders-group-title.is-stacked {
-  gap: 0.05rem;
+  gap: 0.2rem;
   width: 100%;
   min-width: 0;
   justify-self: stretch;
+  justify-content: flex-start;
+}
+
+.grai-grinders-row--summary .grai-grinders-summary-general {
+  gap: 0.2rem;
 }
 
 .grai-grinders-group-general {
@@ -2710,6 +2788,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   line-height: 1.1;
   letter-spacing: 0.02em;
   color: inherit;
+  min-height: calc(1.5rem * 1.1);
+  display: inline-flex;
+  align-items: center;
 }
 
 .grai-grinders-group-general .grai-grinders-group-general-value-label {
@@ -2794,6 +2875,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 [data-theme='light'] .grai-grinders-live-label {
+  color: var(--text-primary);
+}
+
+[data-theme='light'] .grai-grinders-row--summary .grai-grinders-network-top,
+[data-theme='light'] .grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-select-value {
   color: var(--text-primary);
 }
 
@@ -3424,6 +3510,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   white-space: nowrap;
 }
 
+.grai-page-subtitle-text-segment--after-term {
+  margin-inline-start: 0.28em;
+}
+
 .grai-page-subtitle-rotating-slot {
   display: inline-flex;
   overflow: hidden;
@@ -3685,16 +3775,89 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: #c2186a;
 }
 
-@container (max-width: 520px) {
+@container (max-width: 640px) {
   .grai-actions-block .grai-page-subtitle {
-    white-space: nowrap;
+    white-space: normal;
+    font-size: clamp(1.05rem, 5cqi, 1.55rem);
+    flex-wrap: wrap;
+    row-gap: 0.12rem;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .grai-actions-block .grai-page-subtitle > span:not(.grai-page-subtitle-caret) {
+    flex-wrap: wrap;
+    white-space: normal;
+    max-width: 100%;
+    row-gap: 0.08rem;
+  }
+
+  .grai-page-subtitle-mode-swap,
+  .grai-page-subtitle-mode-swap-item {
+    max-width: 100%;
+  }
+
+  .grai-page-subtitle-mode-swap-item {
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 0.08rem;
+  }
+
+  .grai-page-subtitle-text-line {
+    flex-wrap: wrap;
+    white-space: normal;
+    width: 100%;
+    max-width: 100%;
+    row-gap: 0.08rem;
+    column-gap: 0.2rem;
+    justify-content: center;
+  }
+
+  .grai-page-subtitle-text-segment {
+    white-space: normal;
+    flex-shrink: 1;
+  }
+
+  .grai-page-subtitle-rotating-slot {
+    flex-shrink: 1;
+    max-width: 100%;
   }
 
   .grai-actions-block .grai-page-subtitle.is-fit-width {
-    font-size: clamp(1.1rem, 4.5cqi, 1.85rem);
+    font-size: clamp(1.05rem, 5cqi, 1.55rem);
     font-weight: 700;
     letter-spacing: 0.02em;
     line-height: 1.25;
+  }
+}
+
+@media (max-width: 640px) {
+  .grai-actions-block .grai-page-subtitle {
+    white-space: normal;
+    font-size: clamp(1.05rem, 4.6vw, 1.45rem);
+    flex-wrap: wrap;
+    row-gap: 0.12rem;
+    overflow: visible;
+  }
+
+  .grai-actions-block .grai-page-subtitle > span:not(.grai-page-subtitle-caret),
+  .grai-page-subtitle-mode-swap-item,
+  .grai-page-subtitle-text-line {
+    flex-wrap: wrap;
+    white-space: normal;
+    max-width: 100%;
+  }
+
+  .grai-page-subtitle-text-line {
+    width: 100%;
+    column-gap: 0.2rem;
+    row-gap: 0.08rem;
+    justify-content: center;
+  }
+
+  .grai-page-subtitle-text-segment {
+    white-space: normal;
+    flex-shrink: 1;
   }
 }
 

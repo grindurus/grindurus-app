@@ -1862,7 +1862,9 @@ export function GraiMintBurnPanel({
                   >
                     <span className="grai-action-deposit-term-label">custodians</span>
                   </GraiFieldInfoButton>{' '}
-                  to generate volatility yield. You receive GRAI as your share in the fund.
+                  to generate volatility yield. You receive{' '}
+                  <span className="grai-action-deposit-term-label">GRAI</span> as your share in
+                  the fund.
                 </>
               )
             ) : (

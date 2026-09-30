@@ -137,7 +137,10 @@ export function GraiMintSubtitleText() {
     <span className="grai-page-subtitle-text-line">
       <span className="grai-page-subtitle-text-segment">Turn</span>
       <GraiMintSubtitleRotatingAsset />
-      <span className="grai-page-subtitle-text-segment">Price Volatility into Yields</span>
+      <span className="grai-page-subtitle-text-segment">Price Volatility</span>
+      <span className="grai-page-subtitle-text-segment grai-page-subtitle-text-segment--after-term">
+        into Yields
+      </span>
     </span>
   )
 }

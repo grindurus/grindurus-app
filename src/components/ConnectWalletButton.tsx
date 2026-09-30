@@ -101,10 +101,19 @@ export function ConnectWalletButton() {
     (chainId: number) => {
       const next = chainIdToEvmChain(chainId)
       if (next) setEvmChain(next)
-      void evmWallet.switchToChainAsync(chainId).catch(() => {
-        evmWallet.switchToChain(chainId)
-      })
       setIsNetworkOpen(false)
+      void (async () => {
+        try {
+          await evmWallet.switchToChainAsync(chainId)
+        } catch (error) {
+          console.error('[wallet] switchToChainAsync failed', { chainId, error })
+          try {
+            evmWallet.switchToChain(chainId)
+          } catch (syncError) {
+            console.error('[wallet] switchToChain failed', { chainId, error: syncError })
+          }
+        }
+      })()
     },
     [evmWallet, setEvmChain],
   )

@@ -9,7 +9,6 @@ import {
   type GrinderTvlBreakdownRow,
   type GrinderYieldBreakdownRow,
 } from '../../grai/formatGrinderUsd'
-import { WalletIcon } from '../WalletIcon'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 
 export function GraiGrinderTableName({
@@ -286,15 +285,3 @@ export function GraiGrinderCountValue({
   )
 }
 
-export function GraiGrindersSummaryConnectButton({ onConnect }: { onConnect: () => void }) {
-  return (
-    <button
-      type="button"
-      className="connect-wallet-btn grai-grinders-network-connect-btn"
-      onClick={onConnect}
-    >
-      <WalletIcon />
-      Connect Wallet
-    </button>
-  )
-}

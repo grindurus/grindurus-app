@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Settings } from 'lucide-react'
-import { WalletNetworkSelect } from '../WalletNetworkSelect'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
 import { useBossGrinderTable } from '../../hooks/useBossGrinderTable'
 import { useBossEndpointUrls } from '../../hooks/useBossEndpointUrls'
 import { useGrinderLastTx } from '../../hooks/useGrinderLastTx'
-import { useWalletContext } from '../../providers/AppWalletProvider'
 import { summarizeGrinderTableRows } from '../../boss/grinderTable'
 import { grinderRowMatchesCaip2Network } from '../../wallet/caip2Network'
 import {
@@ -15,9 +13,9 @@ import {
   GraiGrinderTableName,
   GraiGrinderTvlValue,
   GraiGrinderYieldValue,
-  GraiGrindersSummaryConnectButton,
 } from './GraiGrinderCells'
 import { GraiFieldInfoButton, GraiGrindersTotalLabel } from './GraiFieldInfo'
+import { GraiGrindersNetworkSelect } from './GraiGrindersNetworkSelect'
 import {
   GRINDERS_COLUMN_ICONS,
   GRINDER_TVL_INFO_HINT,
@@ -33,7 +31,6 @@ const GRINDERS_TABLE_PAGE_SIZE = 10
 
 export function GraiGrindersSection() {
   const navigate = useNavigate()
-  const { openChainSelector } = useWalletContext()
   const activeWallet = useActiveWallet()
   const [isGrindersTableHidden, setIsGrindersTableHidden] = useState(true)
   const [isGrindersFilterEnabled, setIsGrindersFilterEnabled] = useState(false)
@@ -77,12 +74,7 @@ export function GraiGrindersSection() {
   const grinderActiveCount = displayGrinderSummary.activeCount
   const grinderTvlUsd = displayGrinderSummary.tvlUsd
   const grinderYieldUsd = displayGrinderSummary.yieldUsd
-  const isGrinderNetworkConnected = activeWallet.isConnected && Boolean(walletNetworkCaip2)
   const grinderUptimeLabel = isBossGrinderLive ? '99.999%' : '—'
-  const toggleGrindersFilter = useCallback(() => {
-    if (!activeWallet.isConnected) return
-    setIsGrindersFilterEnabled((enabled) => !enabled)
-  }, [activeWallet.isConnected])
   const toggleBossEndpoints = useCallback(() => {
     setIsBossEndpointsOpen((open) => {
       const nextOpen = !open
@@ -126,58 +118,20 @@ export function GraiGrindersSection() {
     setGrindersTablePage((page) => Math.min(page, grindersTablePageCount - 1))
   }, [displayGrinderRows.length, grindersTablePageCount])
 
-  const grindersNetworkFilterToggle = (
-    <button
-      type="button"
-      role="switch"
-      className={`grai-grinders-filter-toggle${isGrindersFilterEnabled ? ' is-active' : ''}${activeWallet.isConnected ? '' : ' is-disabled'}`}
-      onClick={toggleGrindersFilter}
-      aria-checked={isGrindersFilterEnabled}
-      aria-disabled={!activeWallet.isConnected}
-      disabled={!activeWallet.isConnected}
-      aria-label={
-        isGrindersFilterEnabled ? 'Disable grinder network filter' : 'Enable grinder network filter'
-      }
-    >
-      <span className="grai-grinders-filter-toggle-stack" aria-hidden="true">
-        <span className="grai-grinders-filter-toggle-caption grai-grinders-filter-toggle-caption--all">
-          TOTAL
-        </span>
-        <span className="grai-grinders-filter-toggle-track">
-          <span className="grai-grinders-filter-toggle-thumb" />
-        </span>
-        <span className="grai-grinders-filter-toggle-caption grai-grinders-filter-toggle-caption--network">
-          BY NETWORK
+  const grindersSummaryNetworkRow = isCompactGrindersLayout ? (
+    <div className="grai-grinders-summary-filter-wrap grai-grinders-summary-filter-wrap--compact-row grai-grinders-summary-filter-wrap--network-only">
+      <span className="grai-grinders-summary-toolbar-network">
+        <span className="grai-grinders-network-action">
+          <GraiGrindersNetworkSelect
+            filterEnabled={isGrindersFilterEnabled}
+            onFilterChange={setIsGrindersFilterEnabled}
+            ariaLabel="Filter grinders by network"
+            variant="inline"
+          />
         </span>
       </span>
-    </button>
-  )
-
-  const compactToolbarNetworkAction = isGrinderNetworkConnected ? (
-    <WalletNetworkSelect variant="compact" ariaLabel="Select wallet network" />
-  ) : (
-    <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
-  )
-  const grindersSummaryFilterRow = (
-    <div
-      className={`grai-grinders-summary-filter-wrap${
-        isCompactGrindersLayout ? ' grai-grinders-summary-filter-wrap--compact-row' : ''
-      }`}
-    >
-      {grindersNetworkFilterToggle}
-      {isCompactGrindersLayout ? (
-        <span className="grai-grinders-summary-toolbar-network">
-          <span className="grai-grinders-network-action">{compactToolbarNetworkAction}</span>
-        </span>
-      ) : null}
     </div>
-  )
-
-  const desktopNetworkAction = isGrinderNetworkConnected ? (
-    <WalletNetworkSelect variant="compact" ariaLabel="Selected wallet network" />
-  ) : (
-    <GraiGrindersSummaryConnectButton onConnect={openChainSelector} />
-  )
+  ) : null
 
   const bossEndpointsToggle = (
     <div className="grai-grinders-summary-toggle grai-grinders-endpoints-toggle-wrap">
@@ -206,16 +160,19 @@ export function GraiGrindersSection() {
   return (
     <div className="grai-bottom-row">
       <div className="grai-grinders-summary-shell" id="grai-grinders-summary">
-        {grindersSummaryFilterRow}
+        {grindersSummaryNetworkRow}
         <div className="grai-grinders-row grai-grinders-row--group grai-grinders-row--summary" role="row">
           {!isCompactGrindersLayout ? (
           <span
             role="columnheader"
             className="grai-grinders-group-title is-network is-stacked grai-grinders-network-slot--desktop"
           >
-            <span className="grai-grinders-network-main">
-              <span className="grai-grinders-network-action">{desktopNetworkAction}</span>
-            </span>
+            <GraiGrindersNetworkSelect
+              filterEnabled={isGrindersFilterEnabled}
+              onFilterChange={setIsGrindersFilterEnabled}
+              ariaLabel="Filter grinders by network"
+              variant="stacked"
+            />
           </span>
           ) : null}
           <span role="columnheader" className="grai-grinders-group-general is-stacked grai-grinders-summary-general">

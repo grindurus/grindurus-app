@@ -13,7 +13,6 @@ import {
   evmExplorerAccountUrl,
   evmExplorerTokenUrl,
   evmExplorerTxUrl,
-  listConfiguredEvmChains,
   resolveGraiEvmConfig,
   resolveGraiSolanaConfig,
   resolveGraiSolanaRuntime,
@@ -24,14 +23,18 @@ import {
 
 function chainIdToEvmChain(chainId: number): EvmChain | null {
   if (chainId === 1) return 'ethereum'
+  if (chainId === 8453) return 'base'
   if (chainId === 42161) return 'arbitrum'
+  if (chainId === 137) return 'polygon'
   if (chainId === 11155111) return 'sepolia'
   return null
 }
 
 function evmChainToChainId(evmChain: EvmChain): number {
   if (evmChain === 'ethereum') return 1
+  if (evmChain === 'base') return 8453
   if (evmChain === 'arbitrum') return 42161
+  if (evmChain === 'polygon') return 137
   if (evmChain === 'sepolia') return 11155111
   return 8453
 }
@@ -78,13 +81,12 @@ export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
   const [protocolError, setProtocolError] = useState<string | null>(null)
   const hasStaticConfig = staticSolana !== null
 
-  // Keep selectedChainType aligned with the only live wallet family.
+  // Keep selectedChainType + evmChain aligned with the connected wallet — never remap
+  // to a different chain just because GRAI env vars are missing for the current one.
   useEffect(() => {
     if (evmWallet.isConnected && !isSolanaConnected) {
       if (selectedChainType !== 'evm') setSelectedChainType('evm')
-      const walletConfig =
-        resolveGraiEvmConfig(evmWallet.chainId) ?? listConfiguredEvmChains()[0] ?? null
-      const mapped = walletConfig ? chainIdToEvmChain(walletConfig.chainId) : null
+      const mapped = chainIdToEvmChain(evmWallet.chainId)
       if (mapped && mapped !== evmChain) setEvmChain(mapped)
       return
     }
@@ -105,9 +107,7 @@ export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
   const evm = useMemo(() => {
     // Connected EVM wallet wins over a stale Solana selection (e.g. after GRS).
     if (evmWallet.isConnected && !isSolanaConnected) {
-      return (
-        resolveGraiEvmConfig(evmWallet.chainId) ?? listConfiguredEvmChains()[0] ?? null
-      )
+      return resolveGraiEvmConfig(evmWallet.chainId)
     }
     if (selectedChainType === 'solana') return null
     if (selectedChainType === 'evm') {

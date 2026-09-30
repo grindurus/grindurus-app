@@ -569,6 +569,12 @@ button.header-nav-link {
   padding: 0.7rem 0.35rem;
   font-size: 0.95rem;
   box-sizing: border-box;
+  justify-content: flex-start;
+}
+
+.header-mobile-nav-list .header-nav-link-stack {
+  align-items: flex-start;
+  text-align: left;
 }
 
 .header-mobile-nav-list .header-nav-link.is-current {
@@ -598,8 +604,7 @@ button.header-nav-link {
   cursor: pointer;
 }
 
-/* Compact: keep the full product strip with horizontal scroll (do not hide siblings).
-   Burger remains available for the same destinations in a stacked drawer. */
+/* Compact: scrollable product strip only (no burger — that appears in mobile). */
 .header.is-nav-compact .header-nav--desktop {
   justify-content: flex-start;
   scroll-padding-inline: 0.25rem;
@@ -620,6 +625,10 @@ button.header-nav-link {
 
 .header.is-nav-compact {
   --header-control-size: 40px;
+}
+
+.header.is-nav-compact .header-logo-text {
+  display: none;
 }
 
 .header.is-nav-compact.is-nav-open,
@@ -654,6 +663,16 @@ button.header-nav-link {
 
 .header.is-nav-mobile .header-brand {
   gap: 0.45rem;
+}
+
+.header.is-nav-compact .header-brand {
+  gap: 0.55rem;
+}
+
+.header.is-nav-compact .header-menu-btn,
+.header.is-nav-mobile .header-menu-btn {
+  width: var(--header-control-size, 40px);
+  height: var(--header-control-size, 40px);
 }
 
 .header.is-nav-mobile .header-nav--desktop {

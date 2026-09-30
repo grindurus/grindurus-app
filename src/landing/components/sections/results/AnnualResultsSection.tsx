@@ -319,7 +319,7 @@ function VerifyStrip() {
 
       <div className="bg-black border border-white/10 rounded-xl px-4 py-3 flex items-stretch divide-x divide-white/10 shrink-0">
         <div className="flex flex-col items-center text-center pr-4 min-w-[5.5rem]">
-          <FieldLabel className="mb-1 text-center">Yield</FieldLabel>
+          <FieldLabel className="mb-1 text-center">APY</FieldLabel>
           <span className="font-mono font-black text-xl text-[#4ade80] tabular-nums leading-none">
             +{yield_.toFixed(1)}%
           </span>
@@ -358,7 +358,7 @@ export function AnnualResultsSection() {
 
         <div className="text-center mb-10 md:mb-12">
           <Title className="mb-4">
-            Onchain Grinder Infrastructure —{" "}
+            Offchain Grinder Infrastructure —{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink to-[#ff1493]">
               a verifiable algorithm
             </span>

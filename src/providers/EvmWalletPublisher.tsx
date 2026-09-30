@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from 'react'
+import { ReactNode, useLayoutEffect, useRef } from 'react'
 import { useEvmWalletFromWagmi } from '../hooks/useEvmWalletFromWagmi'
 import { useEvmWalletSnapshotApi } from './EvmWalletSnapshotContext'
 import { EvmWalletClientPublisher } from './EvmWalletClientContext'
@@ -8,25 +8,15 @@ export function EvmWalletPublisher({ children, onReady }: { children: ReactNode;
   const api = useEvmWalletSnapshotApi()
   const readySentRef = useRef(false)
 
-  // Defer snapshot writes so Wagmi's <Hydrate> never sees a sibling/parent setState mid-render
-  // (common when connecting MetaMask before an account is restored).
-  useEffect(() => {
-    let cancelled = false
-    const publish = () => {
-      if (!cancelled) api.setSnapshot(wallet)
-    }
-    const timer = window.setTimeout(publish, 0)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
+  // Publish before paint so header network switches use a fresh switchToChainAsync.
+  useLayoutEffect(() => {
+    api.setSnapshot(wallet)
   }, [api, wallet])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (readySentRef.current) return
     readySentRef.current = true
-    const timer = window.setTimeout(() => onReady?.(), 0)
-    return () => window.clearTimeout(timer)
+    onReady?.()
   }, [onReady])
 
   return <EvmWalletClientPublisher>{children}</EvmWalletClientPublisher>
