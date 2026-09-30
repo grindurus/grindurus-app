@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { PublicKey } from '@solana/web3.js'
 import { GraiAmountInput } from '../grai/GraiAmountInput'
 import { GraiFieldInfoButton } from '../grai/GraiFieldInfo'
 import { GraiUiCaret } from '../grai/GraiUiCaret'
@@ -130,6 +131,17 @@ const DEMO_EVM_CONFIG = {
   address: '0x0000000000000000000000000000000000000001' as `0x${string}`,
 }
 
+const DEMO_SOLANA_PK = new PublicKey('11111111111111111111111111111111')
+const DEMO_SOLANA_CONFIG: Extract<GrsConfig, { kind: 'solana' }> = {
+  kind: 'solana',
+  cluster: 'devnet',
+  programId: DEMO_SOLANA_PK,
+  mint: DEMO_SOLANA_PK,
+  escrow: DEMO_SOLANA_PK,
+  oftStore: DEMO_SOLANA_PK,
+  rpcUrl: 'https://api.devnet.solana.com',
+}
+
 /** TGE four-window plan: EVM (USDC · ETH) on top, Solana (USDC · SOL) at the bottom. */
 const QUOTE_ICONS = {
   USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
@@ -159,14 +171,7 @@ function mockBookRows(): GrsSaleBookRow[] {
     decimals: kind === 'solana' ? 9 : GRS_DECIMALS,
     config:
       kind === 'solana'
-        ? ({
-            kind: 'solana',
-            cluster: 'devnet',
-            chainName: 'Solana',
-            programId: '11111111111111111111111111111111',
-            mint: '11111111111111111111111111111111',
-            oftStore: '11111111111111111111111111111111',
-          } as GrsConfig)
+        ? { ...DEMO_SOLANA_CONFIG }
         : { ...DEMO_EVM_CONFIG, chainName: networkLabel },
   }))
 }
