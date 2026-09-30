@@ -10,12 +10,7 @@ import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { NATIVE_MINT } from './knownMints'
-import {
-  fetchAssetConfigPriceFeed,
-  fetchMintDecimals,
-  parseTokenAmount,
-  confirmSignatureViaHttp,
-} from './onchain'
+import { fetchAssetConfigPriceFeed, fetchMintDecimals, parseTokenAmount } from './onchain'
 import { resolveSolanaGrindersProgramId } from './solanaAllocateCustody'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -32,6 +27,8 @@ import { createAssociatedTokenAccountIdempotentInstruction } from './splInstruct
 import { depositAffiliateRemainingMetas } from './referralAccounts'
 import { lockRemainingAccountMetas } from './buildLockTransaction'
 import { fetchAccountsByKey } from './accountBatch'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182])
 const DEPOSIT_SOL_DISCRIMINATOR = Buffer.from([108, 81, 78, 117, 125, 155, 56, 200])
@@ -218,6 +215,7 @@ export type ExecuteMintParams = {
   assetMint: PublicKey
   amountInput: string
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
   lock?: boolean
@@ -229,6 +227,7 @@ export async function executeMint({
   assetMint,
   amountInput,
   signTransaction,
+  sendTransaction,
   connection,
   config,
   lock = false,
@@ -245,12 +244,15 @@ export async function executeMint({
     lock,
     referrer,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: minter,
+    cluster: config.cluster,
+    action: 'deposit GRAI',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }
 

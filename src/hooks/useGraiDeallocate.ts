@@ -26,7 +26,7 @@ export function useGraiDeallocate() {
         failureMessage: 'Deallocate transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter an amount to deallocate',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeDeallocate({
             connection,
             config: solana,
@@ -35,6 +35,7 @@ export function useGraiDeallocate() {
             assetMint,
             amountInput,
             signTransaction,
+            sendTransaction,
           }),
       })
 

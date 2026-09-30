@@ -26,7 +26,7 @@ export function useGraiAllocate() {
         failureMessage: 'Allocate transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter an amount to allocate',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeAllocate({
             connection,
             config: solana,
@@ -35,6 +35,7 @@ export function useGraiAllocate() {
             custodyWallet,
             amountInput,
             signTransaction,
+            sendTransaction,
           }),
       })
 

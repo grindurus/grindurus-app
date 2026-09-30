@@ -105,6 +105,7 @@ export function HeaderSettingsPopover() {
       }
       return
     }
+    // TESTNET → Solana Devnet + Sepolia (same header pin Connect Wallet uses).
     setSolanaCluster('devnet')
     setEvmChain('sepolia')
     if (evmWallet.isConnected) {

@@ -10,7 +10,7 @@ import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { lockRemainingAccountMetas } from './buildLockTransaction'
-import { confirmSignatureViaHttp, parseTokenAmount } from './onchain'
+import { parseTokenAmount } from './onchain'
 import {
   escrowPda,
   getAssociatedTokenAddress,
@@ -18,6 +18,8 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::vote` (`sha256("global:vote")[0..8]`). */
 const VOTE_DISCRIMINATOR = Buffer.from([227, 110, 155, 23, 136, 126, 172, 25])
@@ -98,6 +100,7 @@ export type ExecuteVoteParams = {
   amountInput: string
   graiDecimals: number
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -107,6 +110,7 @@ export async function executeVote({
   amountInput,
   graiDecimals,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteVoteParams): Promise<{ signature: string; amount: bigint }> {
@@ -117,11 +121,14 @@ export async function executeVote({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: voter,
+    cluster: config.cluster,
+    action: 'vote',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }

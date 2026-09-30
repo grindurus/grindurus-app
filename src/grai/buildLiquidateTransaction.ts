@@ -8,7 +8,6 @@ import {
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import { confirmSignatureViaHttp } from './onchain'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
@@ -16,6 +15,8 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::liquidate` (`sha256("global:liquidate")[0..8]`). */
 const LIQUIDATE_DISCRIMINATOR = Buffer.from([223, 179, 226, 125, 48, 46, 39, 74])
@@ -84,6 +85,7 @@ export async function buildLiquidateTransaction({
 export type ExecuteLiquidateParams = {
   caller: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -91,6 +93,7 @@ export type ExecuteLiquidateParams = {
 export async function executeLiquidate({
   caller,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteLiquidateParams): Promise<{ signature: string }> {
@@ -99,11 +102,14 @@ export async function executeLiquidate({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: caller,
+    cluster: config.cluster,
+    action: 'liquidate',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature }
 }

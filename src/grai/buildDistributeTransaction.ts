@@ -7,11 +7,13 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
-import { fetchAssetConfigPriceFeed, fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
+import { fetchAssetConfigPriceFeed, fetchMintDecimals, parseTokenAmount } from './onchain'
 import {
   assertSolanaCustodianWallet,
   resolveSolanaGrindersProgramId,
 } from './solanaAllocateCustody'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 import {
   assetConfigPda,
   getAssociatedTokenAddress,
@@ -113,6 +115,7 @@ export type ExecuteDistributeParams = {
   amountInput: string
   owner?: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -123,6 +126,7 @@ export async function executeDistribute({
   amountInput,
   owner,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteDistributeParams): Promise<{ signature: string; amount: bigint }> {
@@ -136,11 +140,14 @@ export async function executeDistribute({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: owner ?? custodyWallet,
+    cluster: config.cluster,
+    action: 'distribute',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount: yieldAmount }
 }

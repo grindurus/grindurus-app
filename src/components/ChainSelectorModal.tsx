@@ -203,7 +203,8 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
 
   const handleSolanaWalletSelect = useCallback(async (walletName: string) => {
     setSelectedChainType('solana')
-    // Pin Solana RPC to header Mainnet/Testnet before the adapter connects.
+    // Pin Solana RPC to header Mainnet/Testnet before the adapter connects
+    // (TESTNET → Devnet, same as EVM → Sepolia via connectWithConnector chainId).
     if (solanaCluster !== targetSolanaCluster) {
       setSolanaCluster(targetSolanaCluster)
       // Let ConnectionProvider remount on the new RPC before select/connect.

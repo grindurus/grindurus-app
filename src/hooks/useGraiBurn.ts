@@ -39,13 +39,14 @@ export function useGraiBurn() {
         failureMessage: 'Burn transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter an amount to burn',
-        execute: async ({ connection, solana, publicKey, signTransaction }) => {
+        execute: async ({ connection, solana, publicKey, signTransaction, sendTransaction }) => {
           const result = await executeBurn({
             connection,
             config: solana,
             burner: publicKey,
             amountInput,
             signTransaction,
+            sendTransaction,
           })
           setLastAmountLabel(result.amountLabel)
           return result

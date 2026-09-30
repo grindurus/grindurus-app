@@ -6,11 +6,13 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
-import { fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
+import { fetchMintDecimals, parseTokenAmount } from './onchain'
 import {
   assertSolanaCustodianWallet,
   resolveSolanaGrindersProgramId,
 } from './solanaAllocateCustody'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 import {
   getAssociatedTokenAddress,
   grindersStatePda,
@@ -90,6 +92,7 @@ export type ExecuteDeallocateParams = {
   amountInput: string
   owner: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -100,6 +103,7 @@ export async function executeDeallocate({
   amountInput,
   owner,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteDeallocateParams): Promise<{ signature: string; amount: bigint }> {
@@ -113,11 +117,14 @@ export async function executeDeallocate({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: owner,
+    cluster: config.cluster,
+    action: 'deallocate',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }

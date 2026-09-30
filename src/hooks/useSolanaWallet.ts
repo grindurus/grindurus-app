@@ -7,7 +7,9 @@ import { useWalletContext } from '../providers/walletContext'
 import { shortenAddress } from '../utils/shortenAddress'
 import { clusterFromRpcEndpoint } from '../solana/sendWalletTransaction'
 import {
+  chainIdsForCluster,
   getStandardWallet,
+  pickStandardAccount,
   signAndSendLegacyTxWithChain,
   signLegacyTxWithChain,
   signVersionedTxWithChain,
@@ -69,29 +71,39 @@ export function useSolanaWallet() {
         globalAny.phantom?.solana?.connection?.rpcEndpoint,
       )
       if (fromRpc) return fromRpc
-      // Wallet Standard Phantom: inspect active account chains (solana:devnet / solana:mainnet).
       const standardWallet = (
         wallet.adapter as { wallet?: { accounts?: ReadonlyArray<{ chains: readonly string[] }> } }
       ).wallet
       const chains = standardWallet?.accounts?.[0]?.chains ?? []
-      if (chains.some((c) => c.includes('devnet'))) return 'devnet'
-      if (chains.some((c) => c.includes('mainnet'))) return 'mainnet-beta'
+      if (chains.some((c) => c.includes('devnet') || c.includes('EtWTRAB'))) return 'devnet'
+      if (chains.some((c) => c.includes('mainnet') || c.includes('5eykt4Us'))) return 'mainnet-beta'
       return null
     }
     if (walletName.includes('solflare')) {
       return detectClusterFromRpcEndpoint(globalAny.solflare?.connection?.rpcEndpoint)
     }
+    if (walletName.includes('metamask')) {
+      const standard = getStandardWallet(wallet.adapter)
+      const accounts = standard?.accounts ?? []
+      const prefer = publicKey?.toBase58()
+      const active = prefer
+        ? accounts.find((a) => a.address === prefer) ?? accounts[0]
+        : accounts[0]
+      const chains = active?.chains ?? []
+      if (chains.some((c) => chainIdsForCluster('devnet').includes(c))) return 'devnet'
+      if (chains.some((c) => chainIdsForCluster('mainnet-beta').includes(c))) return 'mainnet-beta'
+      if (chains.some((c) => chainIdsForCluster('testnet').includes(c))) return 'testnet'
+      return null
+    }
 
     return null
-  }, [wallet, connected])
+  }, [wallet, connected, publicKey])
 
   const normalizedSolanaCluster = toWalletSolanaCluster(solanaCluster)
   const normalizedWalletCluster =
     walletDetectedCluster && walletDetectedCluster !== 'testnet'
       ? toWalletSolanaCluster(walletDetectedCluster)
       : null
-  // App-selected cluster is source of truth for RPC / tx routing. Wallet-reported
-  // cluster is only a mismatch signal (Phantom/Solflare may still be on mainnet).
   const effectiveCluster = normalizedSolanaCluster
   const effectiveClusterName = useMemo(() => {
     if (effectiveCluster === 'mainnet-beta') return 'Mainnet'
@@ -123,8 +135,6 @@ export function useSolanaWallet() {
     try {
       await walletDisconnect()
     } finally {
-      // Prevent wallet-adapter autoConnect from immediately reconnecting
-      // after manual disconnect (even if disconnect throws).
       select(null)
     }
   }, [select, walletDisconnect])
@@ -142,25 +152,22 @@ export function useSolanaWallet() {
       if (!found) return
 
       select(found.adapter.name)
-
-      // Wallet adapter updates selected wallet state asynchronously.
-      // A tiny delay prevents WalletNotSelectedError race on immediate connect().
       await new Promise((resolve) => setTimeout(resolve, 0))
       try {
         await connect()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        const isNotSelected = message.includes('Wallet not selected') || message.includes('WalletNotSelectedError')
+        const isNotSelected =
+          message.includes('Wallet not selected') || message.includes('WalletNotSelectedError')
         if (isNotSelected) {
           try {
             await new Promise((resolve) => setTimeout(resolve, 50))
             await connect()
           } catch {
-            // User rejected, wallet locked, or adapter still initializing.
+            // User rejected / locked / still initializing.
           }
           return
         }
-        // User rejected or wallet still initializing.
       }
     },
     [wallets, select, connect],
@@ -174,27 +181,29 @@ export function useSolanaWallet() {
 
   const signTransactionOrAll = useCallback(
     async (tx: Parameters<NonNullable<typeof signTransaction>>[0]) => {
-      // Wallet Standard + explicit chain: sign only (never SignAndSend).
-      // x402 Exact SVM deserializes a VersionedTransaction with facilitator as
-      // fee payer — broadcasting that incomplete tx would fail / confuse wallets.
-      if (standardWallet && tx instanceof VersionedTransaction) {
+      const liveStandard = standardWallet ?? (wallet ? getStandardWallet(wallet.adapter) : null)
+      if (liveStandard && tx instanceof VersionedTransaction) {
         return signVersionedTxWithChain(
-          standardWallet,
+          liveStandard,
           tx,
           connection,
           effectiveCluster,
           publicKey?.toBase58() ?? null,
         )
       }
-      // MetaMask: adapter signTransaction omits chain and often uses accounts[0]
-      // (mainnet). Force account + chain from app cluster.
-      if (isMetaMaskSolana && standardWallet && 'instructions' in tx) {
+      // Always pass Wallet Standard chain (CAIP-2 for MetaMask). Omitting → mainnet UI.
+      if (liveStandard && 'instructions' in tx) {
         return signLegacyTxWithChain(
-          standardWallet,
+          liveStandard,
           tx as Transaction,
           connection,
           effectiveCluster,
           publicKey?.toBase58() ?? null,
+        )
+      }
+      if (isMetaMaskSolana) {
+        throw new Error(
+          'MetaMask Solana Wallet Standard is unavailable. Update MetaMask, enable Solana, reconnect on Devnet.',
         )
       }
       if (typeof signTransaction === 'function') {
@@ -209,11 +218,12 @@ export function useSolanaWallet() {
     [
       signTransaction,
       signAllTransactions,
-      isMetaMaskSolana,
       standardWallet,
+      wallet,
       connection,
       effectiveCluster,
       publicKey,
+      isMetaMaskSolana,
     ],
   ) as NonNullable<typeof signTransaction>
 
@@ -227,15 +237,22 @@ export function useSolanaWallet() {
         maxRetries?: number
       },
     ): Promise<TransactionSignature> => {
-      // MetaMask: pick the Devnet account (not accounts[0]=mainnet) and pass
-      // chain explicitly. Prefer SignAndSend so the approval UI shows Devnet.
-      if (isMetaMaskSolana && standardWallet) {
-        const cluster =
-          clusterFromRpcEndpoint(conn.rpcEndpoint) === 'devnet' || effectiveCluster === 'devnet'
-            ? 'devnet'
-            : effectiveCluster
+      const liveStandard = standardWallet ?? (wallet ? getStandardWallet(wallet.adapter) : null)
+      const cluster =
+        clusterFromRpcEndpoint(conn.rpcEndpoint) === 'devnet' || effectiveCluster === 'devnet'
+          ? 'devnet'
+          : effectiveCluster
+
+      // MetaMask: SignAndSend + CAIP-2 genesis hash (docs). Alias `solana:devnet` → mainnet UI.
+      // Mirror header TESTNET→Sepolia switch for EVM: pin the Devnet scope on every send.
+      if (isMetaMaskSolana && liveStandard) {
+        if (!pickStandardAccount(liveStandard, cluster, publicKey?.toBase58())) {
+          throw new Error(
+            `Header is on ${cluster === 'devnet' ? 'Testnet' : 'Mainnet'}: open MetaMask → Solana → switch to ${cluster === 'devnet' ? 'Devnet' : 'Mainnet'}, then reconnect.`,
+          )
+        }
         return signAndSendLegacyTxWithChain(
-          standardWallet,
+          liveStandard,
           transaction,
           conn,
           cluster,
@@ -247,17 +264,44 @@ export function useSolanaWallet() {
           publicKey?.toBase58() ?? null,
         )
       }
+
+      if (liveStandard) {
+        const signed = await signLegacyTxWithChain(
+          liveStandard,
+          transaction,
+          conn,
+          cluster,
+          publicKey?.toBase58() ?? null,
+        )
+        return conn.sendRawTransaction(signed.serialize(), {
+          skipPreflight: options?.skipPreflight ?? true,
+          preflightCommitment: options?.preflightCommitment ?? 'confirmed',
+          maxRetries: options?.maxRetries ?? 3,
+        })
+      }
+
+      if (isMetaMaskSolana) {
+        throw new Error(
+          'MetaMask Solana Wallet Standard is unavailable. Update MetaMask, enable Solana, reconnect on Devnet.',
+        )
+      }
+
       if (typeof adapterSendTransaction !== 'function') {
         throw new Error('Connected Solana wallet cannot send transactions.')
       }
       return adapterSendTransaction(transaction, conn, options)
     },
-    [adapterSendTransaction, isMetaMaskSolana, standardWallet, effectiveCluster, publicKey],
+    [
+      adapterSendTransaction,
+      isMetaMaskSolana,
+      standardWallet,
+      wallet,
+      effectiveCluster,
+      publicKey,
+    ],
   )
 
-  // Wallet Standard adapters: use sendTransaction so `chain` is set from RPC URL.
-  // MetaMask uses our custom send (sign+chain + sendRaw) above — not SignAndSend.
-  const prefersChainedSend = Boolean(standardWallet)
+  const prefersChainedSend = Boolean(standardWallet) || isMetaMaskSolana
 
   return {
     address,
@@ -272,14 +316,11 @@ export function useSolanaWallet() {
     signTransaction:
       typeof signTransaction === 'function' ||
       typeof signAllTransactions === 'function' ||
-      (isMetaMaskSolana && standardWallet)
+      Boolean(standardWallet) ||
+      isMetaMaskSolana
         ? signTransactionOrAll
         : signTransaction,
-    sendTransaction:
-      prefersChainedSend &&
-      (typeof adapterSendTransaction === 'function' || (isMetaMaskSolana && standardWallet))
-        ? sendTransaction
-        : null,
+    sendTransaction: prefersChainedSend ? sendTransaction : null,
     wallets: allWallets,
     detectedWallets,
     connection,

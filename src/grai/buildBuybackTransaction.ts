@@ -8,7 +8,7 @@ import {
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import { confirmSignatureViaHttp, fetchMintDecimals, parseTokenAmount } from './onchain'
+import { fetchMintDecimals, parseTokenAmount } from './onchain'
 import { lockRemainingAccountMetas } from './buildLockTransaction'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -19,6 +19,8 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::buyback` */
 const BUYBACK_DISCRIMINATOR = Buffer.from([106, 117, 64, 30, 56, 69, 7, 45])
@@ -112,6 +114,7 @@ export type ExecuteBuybackParams = {
   assetDecimals?: number
   paymentMaxGrai: bigint
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -123,6 +126,7 @@ export async function executeBuyback({
   assetDecimals,
   paymentMaxGrai,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteBuybackParams): Promise<{ signature: string; amount: bigint }> {
@@ -136,11 +140,14 @@ export async function executeBuyback({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: buyer,
+    cluster: config.cluster,
+    action: 'buyback',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }

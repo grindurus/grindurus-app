@@ -3,6 +3,8 @@ import type { Connection } from '@solana/web3.js'
 import { PublicKey, Transaction } from '@solana/web3.js'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import type { GraiSolanaRuntime } from '../grai/deployments'
+import { useWalletContext } from '../providers/walletContext'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
 import { useSolanaWallet } from './useSolanaWallet'
 
 export type GraiTransactionStatus = 'idle' | 'building' | 'signing' | 'confirming' | 'success' | 'error'
@@ -16,6 +18,7 @@ type GraiTransactionContext = {
   solana: GraiSolanaRuntime
   publicKey: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction: SolanaSendTransaction | null
   setStatus: (status: GraiTransactionStatus) => void
 }
 
@@ -29,8 +32,10 @@ type RunGraiTransactionOptions<TResult extends { signature: string }> = {
   execute: (ctx: GraiTransactionContext) => Promise<TResult>
 }
 
+/** Same cluster-pinning + sendTransaction path as `useGrsSolanaTransaction`. */
 export function useGraiTransaction() {
   const solanaWallet = useSolanaWallet()
+  const { setSelectedChainType, setSolanaCluster } = useWalletContext()
   const { connection, solana, clusterMismatch } = useGraiDeployment()
   const [status, setStatus] = useState<GraiTransactionStatus>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -43,12 +48,18 @@ export function useGraiTransaction() {
       setError(null)
       setLastSignature(null)
 
+      setSelectedChainType('solana')
+      // Pin Devnet before signing so Wallet Standard / MetaMask get the right chain.
+      if (solana?.cluster === 'devnet' || solana?.cluster === 'mainnet-beta') {
+        setSolanaCluster(solana.cluster)
+      }
+
       if (!solanaWallet.publicKey) {
         solanaWallet.connect()
         throw new Error(options.connectMessage)
       }
 
-      if (!solanaWallet.signTransaction) {
+      if (!solanaWallet.signTransaction && !solanaWallet.sendTransaction) {
         throw new Error('Connected wallet cannot sign transactions')
       }
 
@@ -75,8 +86,17 @@ export function useGraiTransaction() {
         setStatus('building')
         const signTransaction = async (transaction: Transaction) => {
           setStatus('signing')
-          return solanaWallet.signTransaction!(transaction)
+          if (!solanaWallet.signTransaction) {
+            throw new Error('Connected wallet cannot sign transactions')
+          }
+          return solanaWallet.signTransaction(transaction)
         }
+        const sendTransaction: SolanaSendTransaction | null = solanaWallet.sendTransaction
+          ? async (transaction, conn, sendOptions) => {
+              setStatus('signing')
+              return solanaWallet.sendTransaction!(transaction, conn, sendOptions)
+            }
+          : null
 
         setStatus('confirming')
         const result = await options.execute({
@@ -84,6 +104,7 @@ export function useGraiTransaction() {
           solana,
           publicKey,
           signTransaction,
+          sendTransaction,
           setStatus,
         })
 
@@ -108,7 +129,7 @@ export function useGraiTransaction() {
         throw txError instanceof Error ? txError : new Error(message)
       }
     },
-    [clusterMismatch, connection, solana, solanaWallet],
+    [clusterMismatch, connection, setSelectedChainType, setSolanaCluster, solana, solanaWallet],
   )
 
   const reset = useCallback(() => {

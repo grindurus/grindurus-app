@@ -9,7 +9,7 @@ import {
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import { confirmSignatureViaHttp, parseTokenAmount } from './onchain'
+import { parseTokenAmount } from './onchain'
 import {
   assetConfigPda,
   escrowPda,
@@ -19,6 +19,8 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 const LOCK_DISCRIMINATOR = Buffer.from([21, 19, 208, 43, 237, 62, 255, 87])
 const UNLOCK_DISCRIMINATOR = Buffer.from([101, 155, 40, 21, 158, 189, 56, 203])
@@ -158,6 +160,7 @@ export type ExecuteLockParams = {
   amountInput: string
   graiDecimals: number
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -167,17 +170,21 @@ export async function executeLock({
   amountInput,
   graiDecimals,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteLockParams): Promise<{ signature: string; amount: bigint }> {
   const amount = parseTokenAmount(amountInput, graiDecimals)
   const transaction = await buildLockTransaction({ locker, amount, connection, config })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: locker,
+    cluster: config.cluster,
+    action: 'lock GRAI',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }
 
@@ -248,6 +255,7 @@ export type ExecuteUnlockParams = {
   amountInput: string
   graiDecimals: number
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -257,16 +265,20 @@ export async function executeUnlock({
   amountInput,
   graiDecimals,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteUnlockParams): Promise<{ signature: string; amount: bigint }> {
   const amount = parseTokenAmount(amountInput, graiDecimals)
   const transaction = await buildUnlockTransaction({ account, amount, connection, config })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: account,
+    cluster: config.cluster,
+    action: 'unlock GRAI',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }

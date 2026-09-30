@@ -65,12 +65,22 @@ type GraiDeploymentContextValue = {
 const GraiDeploymentContext = createContext<GraiDeploymentContextValue | undefined>(undefined)
 
 export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
-  const { selectedChainType, setSelectedChainType, evmChain, setEvmChain } = useWalletContext()
-  const { cluster: walletCluster, isConnected: isSolanaConnected } = useSolanaWallet()
+  const {
+    selectedChainType,
+    setSelectedChainType,
+    evmChain,
+    setEvmChain,
+    solanaCluster: appSolanaCluster,
+  } = useWalletContext()
+  const {
+    walletClusterMismatch,
+    isConnected: isSolanaConnected,
+  } = useSolanaWallet()
   const evmWallet = useEvmWallet()
   const { connection: walletConnection } = useConnection()
 
-  const solanaCluster = getDefaultGraiSolanaCluster()
+  // Follow the header / Connect Wallet cluster — same as GRS (never ignore Devnet).
+  const solanaCluster = appSolanaCluster || getDefaultGraiSolanaCluster()
   const staticSolana = useMemo(() => resolveGraiSolanaConfig(solanaCluster), [solanaCluster])
   const connection = useMemo(
     () => (staticSolana ? walletConnection : null),
@@ -129,8 +139,9 @@ export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
     return null
   }, [evm, evmWallet.isConnected, isSolanaConnected, selectedChainType, staticSolana])
 
+  // Phantom/Solflare/MetaMask may still be on Mainnet while the app cluster is Devnet.
   const clusterMismatch =
-    selectedChainType === 'solana' && isSolanaConnected && walletCluster !== null && walletCluster !== solanaCluster
+    selectedChainType === 'solana' && isSolanaConnected && walletClusterMismatch
 
   const evmChainMismatch =
     selectedChainType === 'evm' &&

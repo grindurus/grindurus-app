@@ -10,7 +10,7 @@ import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchAccountsByKey } from './accountBatch'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import { confirmSignatureViaHttp, fetchAssetConfigPriceFeed, parseTokenAmount } from './onchain'
+import { fetchAssetConfigPriceFeed, parseTokenAmount } from './onchain'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   assetConfigPda,
@@ -24,6 +24,8 @@ import {
 } from './pdas'
 import { claimAffiliateRemainingMetas } from './referralAccounts'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor `global:claim` discriminator. */
 const CLAIM_DISCRIMINATOR = Buffer.from([62, 198, 214, 193, 213, 159, 108, 210])
@@ -211,6 +213,7 @@ export type ExecuteClaimParams = {
   /** When true, claim full pending (`u64::MAX`) regardless of amountInput. */
   claimMax?: boolean
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
   /** Connected wallet that pays fees / receives tip. Defaults to `holder`. */
@@ -224,6 +227,7 @@ export async function executeClaim({
   assetDecimals,
   claimMax = false,
   signTransaction,
+  sendTransaction,
   connection,
   config,
   payer = holder,
@@ -237,7 +241,14 @@ export async function executeClaim({
     config,
     payer,
   })
-  const signature = await signAndSendClaimTransaction(connection, transaction, signTransaction)
+  const signature = await signAndSendClaimTransaction(
+    connection,
+    transaction,
+    payer,
+    config.cluster,
+    signTransaction,
+    sendTransaction,
+  )
   return { signature, amount }
 }
 
@@ -249,6 +260,7 @@ export type ExecuteClaimAllParams = {
    */
   assetMints?: PublicKey[]
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
   /** Connected wallet that pays fees / receives tip. Defaults to `holder`. */
@@ -278,16 +290,26 @@ function serializedTxSize(feePayer: PublicKey, instructions: TransactionInstruct
 async function signAndSendClaimTransaction(
   connection: Connection,
   transaction: Transaction,
+  feePayer: PublicKey,
+  cluster: GraiSolanaRuntime['cluster'],
   signTransaction: (transaction: Transaction) => Promise<Transaction>,
+  sendTransaction?: SolanaSendTransaction | null,
 ): Promise<string> {
   const simulation = await connection.simulateTransaction(transaction)
   if (simulation.value.err) {
     throw new Error(claimSimulationErrorMessage(simulation.value.err, simulation.value.logs))
   }
 
-  let signed: Transaction
   try {
-    signed = await signTransaction(transaction)
+    return await signAndSendGraiTx({
+      connection,
+      transaction,
+      feePayer,
+      cluster,
+      action: 'claim dividends',
+      signTransaction,
+      sendTransaction,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     if (/unexpected error/i.test(message)) {
@@ -297,13 +319,6 @@ async function signAndSendClaimTransaction(
     }
     throw error
   }
-
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
-  })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
-  return signature
 }
 
 /**
@@ -317,6 +332,7 @@ export async function executeClaimAll({
   holder,
   assetMints: pendingMints,
   signTransaction,
+  sendTransaction,
   connection,
   config,
   payer = holder,
@@ -363,7 +379,14 @@ export async function executeClaimAll({
       lastValidBlockHeight,
     })
     transaction.add(...instructions)
-    signature = await signAndSendClaimTransaction(connection, transaction, signTransaction)
+    signature = await signAndSendClaimTransaction(
+      connection,
+      transaction,
+      payer,
+      config.cluster,
+      signTransaction,
+      sendTransaction,
+    )
   }
 
   if (!signature) throw new Error('No claimable dividends')

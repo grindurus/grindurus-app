@@ -60,7 +60,7 @@ export function useGraiBribe() {
         failureMessage: 'Bribe transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter a GRAI amount to bribe',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeBribe({
             connection,
             config: solana,
@@ -69,6 +69,7 @@ export function useGraiBribe() {
             amountInput: params.amountInput.trim(),
             graiDecimals: params.graiDecimals,
             signTransaction,
+            sendTransaction,
           }),
       })
       return signature

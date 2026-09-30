@@ -41,7 +41,7 @@ export function useGraiLock() {
           failureMessage: 'Lock transaction failed',
           amountInput: params.amountInput,
           emptyAmountMessage: 'Enter a GRAI amount to lock',
-          execute: ({ connection, solana, publicKey, signTransaction }) =>
+          execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
             executeLock({
               connection,
               config: solana,
@@ -49,6 +49,7 @@ export function useGraiLock() {
               amountInput: params.amountInput,
               graiDecimals: params.graiDecimals,
               signTransaction,
+              sendTransaction,
             }),
         })
         return signature
@@ -86,7 +87,7 @@ export function useGraiLock() {
           failureMessage: 'Unlock transaction failed',
           amountInput: params.amountInput,
           emptyAmountMessage: 'Enter a GRAI amount to unlock',
-          execute: ({ connection, solana, publicKey, signTransaction }) =>
+          execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
             executeUnlock({
               connection,
               config: solana,
@@ -94,6 +95,7 @@ export function useGraiLock() {
               amountInput: params.amountInput,
               graiDecimals: params.graiDecimals,
               signTransaction,
+              sendTransaction,
             }),
         })
         return signature
@@ -136,7 +138,7 @@ export function useGraiLock() {
           failureMessage: 'Claim transaction failed',
           amountInput: params.amountInput,
           emptyAmountMessage: 'Enter an amount to claim',
-          execute: ({ connection, solana: runtime, publicKey, signTransaction }) => {
+          execute: ({ connection, solana: runtime, publicKey, signTransaction, sendTransaction }) => {
             const holder = params.holder ? new PublicKey(params.holder) : publicKey
             return executeClaim({
               connection,
@@ -147,6 +149,7 @@ export function useGraiLock() {
               amountInput: params.amountInput,
               assetDecimals: params.assetDecimals,
               signTransaction,
+              sendTransaction,
             })
           },
         })
@@ -187,7 +190,7 @@ export function useGraiLock() {
           connectMessage: 'Connect a Solana wallet to claim dividends',
           clusterAction: 'claim dividends',
           failureMessage: 'Claim transaction failed',
-          execute: async ({ connection, solana: runtime, publicKey, signTransaction }) => {
+          execute: async ({ connection, solana: runtime, publicKey, signTransaction, sendTransaction }) => {
             const holder = params?.holder ? new PublicKey(params.holder) : publicKey
             const pending = await estimateSolanaClaimAll(connection, runtime, holder)
             const assetMints = pending
@@ -200,6 +203,7 @@ export function useGraiLock() {
               payer: publicKey,
               assetMints,
               signTransaction,
+              sendTransaction,
             })
           },
         })

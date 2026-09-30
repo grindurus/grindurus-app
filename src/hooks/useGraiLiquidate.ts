@@ -53,12 +53,13 @@ export function useGraiLiquidate() {
         connectMessage,
         clusterAction: chainAction,
         failureMessage,
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeConfirm({
             connection,
             config: solana,
             owner: publicKey,
             signTransaction,
+            sendTransaction,
           }),
       })
       return signature
@@ -93,12 +94,13 @@ export function useGraiLiquidate() {
         connectMessage,
         clusterAction: chainAction,
         failureMessage,
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeLiquidate({
             connection,
             config: solana,
             caller: publicKey,
             signTransaction,
+            sendTransaction,
           }),
       })
       return signature

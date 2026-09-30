@@ -7,12 +7,7 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
-import {
-  confirmSignatureViaHttp,
-  fetchAssetConfigPriceFeed,
-  fetchMintDecimals,
-  parseTokenAmount,
-} from './onchain'
+import { fetchAssetConfigPriceFeed, fetchMintDecimals, parseTokenAmount } from './onchain'
 import { NATIVE_MINT } from './knownMints'
 import {
   assetConfigPda,
@@ -23,6 +18,8 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::distribute` */
 const DISTRIBUTE_DISCRIMINATOR = Buffer.from([191, 44, 223, 207, 164, 236, 126, 61])
@@ -147,6 +144,7 @@ export type ExecuteProtocolDistributeParams = {
   assetDecimals?: number
   payer?: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -158,6 +156,7 @@ export async function executeProtocolDistribute({
   assetDecimals,
   payer,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteProtocolDistributeParams): Promise<{ signature: string; amount: bigint }> {
@@ -171,11 +170,14 @@ export async function executeProtocolDistribute({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: payer ?? custodyWallet,
+    cluster: config.cluster,
+    action: 'protocol distribute',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount: yieldAmount }
 }

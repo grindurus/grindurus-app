@@ -57,7 +57,7 @@ export function useGraiVote() {
         failureMessage: 'Vote transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter a GRAI amount to vote',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeVote({
             connection,
             config: solana,
@@ -65,6 +65,7 @@ export function useGraiVote() {
             amountInput: params.amountInput.trim(),
             graiDecimals: params.graiDecimals,
             signTransaction,
+            sendTransaction,
           }),
       })
       return signature

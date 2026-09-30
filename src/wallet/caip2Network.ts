@@ -6,8 +6,10 @@ export function evmChainIdToCaip2(chainId: number): string {
 }
 
 export function solanaClusterToCaip2(cluster: 'mainnet-beta' | 'devnet'): string {
-  const reference = cluster === 'mainnet-beta' ? 'mainnet-beta' : 'devnet'
-  return `solana:${reference}`
+  // MetaMask Multichain requires genesis-hash CAIP-2 (not `solana:devnet` alias).
+  return cluster === 'mainnet-beta'
+    ? `solana:${SOLANA_MAINNET_GENESIS}`
+    : `solana:${SOLANA_DEVNET_GENESIS}`
 }
 
 export function normalizeCaip2Network(network?: string | null): string | null {

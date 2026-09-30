@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react'
 import { assetUrl } from '../../utils/appPaths'
+import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
 import { useActiveWallet } from '../../hooks/useActiveWallet'
 import { useWalletContext } from '../../providers/AppWalletProvider'
 import { WalletIcon } from '../WalletIcon'
@@ -140,7 +141,9 @@ export function GraiActionConnectWalletButton({
   /** e.g. setSelectedChainType('solana') so the modal opens on the right tab. */
   onBeforeOpen?: () => void
 }) {
-  const { isChainSelectorOpen, openChainSelector, warmEvmStack } = useWalletContext()
+  const { isChainSelectorOpen, openChainSelector, warmEvmStack, setSelectedChainType, setSolanaCluster } =
+    useWalletContext()
+  const { chainKind, solanaCluster } = useGraiDeployment()
   const activeWallet = useActiveWallet()
   const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
   const touchOpenedRef = useRef(false)
@@ -148,8 +151,23 @@ export function GraiActionConnectWalletButton({
   const handleOpen = useCallback(() => {
     if (showConnecting) return
     onBeforeOpen?.()
+    // Same as GRS sales/ops: pin Solana + app cluster before the modal opens.
+    if (chainKind === 'solana' || !chainKind) {
+      setSelectedChainType('solana')
+      if (solanaCluster === 'devnet' || solanaCluster === 'mainnet-beta') {
+        setSolanaCluster(solanaCluster)
+      }
+    }
     openChainSelector()
-  }, [onBeforeOpen, openChainSelector, showConnecting])
+  }, [
+    chainKind,
+    onBeforeOpen,
+    openChainSelector,
+    setSelectedChainType,
+    setSolanaCluster,
+    showConnecting,
+    solanaCluster,
+  ])
 
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {

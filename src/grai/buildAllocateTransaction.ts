@@ -5,7 +5,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
-import { fetchMintDecimals, parseTokenAmount, confirmSignatureViaHttp } from './onchain'
+import { fetchMintDecimals, parseTokenAmount } from './onchain'
 import {
   assertSolanaCustodianWallet,
   resolveSolanaGrindersProgramId,
@@ -16,6 +16,8 @@ import {
   TOKEN_PROGRAM_ID,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** grinders::allocate discriminator */
 const ALLOCATE_DISCRIMINATOR = Buffer.from([64, 38, 189, 129, 24, 157, 82, 136])
@@ -93,6 +95,7 @@ export type ExecuteAllocateParams = {
   custodyWallet: PublicKey
   amountInput: string
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -103,6 +106,7 @@ export async function executeAllocate({
   custodyWallet,
   amountInput,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteAllocateParams): Promise<{ signature: string; amount: bigint }> {
@@ -116,11 +120,14 @@ export async function executeAllocate({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: authority,
+    cluster: config.cluster,
+    action: 'allocate',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }

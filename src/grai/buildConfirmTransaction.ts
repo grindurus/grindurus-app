@@ -6,7 +6,8 @@ import {
 } from '@solana/web3.js'
 import type { GraiSolanaRuntime } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import { confirmSignatureViaHttp } from './onchain'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grinders::confirm` (`sha256("global:confirm")[0..8]`). */
 const CONFIRM_DISCRIMINATOR = Buffer.from([174, 1, 15, 213, 3, 190, 131, 0])
@@ -59,6 +60,7 @@ export async function buildConfirmTransaction({
 export type ExecuteConfirmParams = {
   owner: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -66,6 +68,7 @@ export type ExecuteConfirmParams = {
 export async function executeConfirm({
   owner,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteConfirmParams): Promise<{ signature: string }> {
@@ -74,11 +77,14 @@ export async function executeConfirm({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: owner,
+    cluster: config.cluster,
+    action: 'confirm',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature }
 }

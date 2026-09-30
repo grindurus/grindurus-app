@@ -44,7 +44,7 @@ export function useGraiMint() {
         failureMessage: 'Mint transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter an amount to mint',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeMint({
             connection,
             config: solana,
@@ -52,6 +52,7 @@ export function useGraiMint() {
             assetMint,
             amountInput,
             signTransaction,
+            sendTransaction,
             lock: params.lock ?? false,
             referrer: params.referrer,
           }),

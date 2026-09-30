@@ -9,11 +9,7 @@ import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { lockRemainingAccountMetas } from './buildLockTransaction'
-import {
-  confirmSignatureViaHttp,
-  fetchAssetConfigPriceFeed,
-  parseTokenAmount,
-} from './onchain'
+import { fetchAssetConfigPriceFeed, parseTokenAmount } from './onchain'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   assetConfigPda,
@@ -24,6 +20,8 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::bribe` (`sha256("global:bribe")[0..8]`). */
 const BRIBE_DISCRIMINATOR = Buffer.from([40, 207, 231, 7, 109, 179, 119, 140])
@@ -131,6 +129,7 @@ export type ExecuteBribeParams = {
   amountInput: string
   graiDecimals: number
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -141,6 +140,7 @@ export async function executeBribe({
   amountInput,
   graiDecimals,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteBribeParams): Promise<{ signature: string; amount: bigint }> {
@@ -152,11 +152,14 @@ export async function executeBribe({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: briber,
+    cluster: config.cluster,
+    action: 'bribe',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, amount }
 }

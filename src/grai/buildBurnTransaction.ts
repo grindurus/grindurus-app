@@ -9,12 +9,7 @@ import {
 import type { GraiSolanaRuntime } from './deployments'
 import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import {
-  confirmSignatureViaHttp,
-  fetchMintDecimals,
-  formatTokenBalance,
-  parseTokenAmount,
-} from './onchain'
+import { fetchMintDecimals, formatTokenBalance, parseTokenAmount } from './onchain'
 import {
   assetConfigPda,
   escrowPda,
@@ -24,6 +19,8 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::redeem`. */
 const REDEEM_DISCRIMINATOR = Buffer.from([184, 12, 86, 149, 70, 196, 97, 225])
@@ -121,6 +118,7 @@ export type ExecuteBurnParams = {
   burner: PublicKey
   amountInput: string
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -129,6 +127,7 @@ export async function executeBurn({
   burner,
   amountInput,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecuteBurnParams): Promise<{ signature: string; amount: bigint; amountLabel: string }> {
@@ -140,12 +139,15 @@ export async function executeBurn({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: burner,
+    cluster: config.cluster,
+    action: 'redeem GRAI',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return {
     signature,
     amount: graiAmount,

@@ -5,9 +5,19 @@ import {
 } from '@solana/wallet-standard-features'
 import { SOLANA_DEVNET_CHAIN, SOLANA_MAINNET_CHAIN, SOLANA_TESTNET_CHAIN } from '@solana/wallet-standard-chains'
 import { Transaction, VersionedTransaction, type Connection } from '@solana/web3.js'
+import { getWallets } from '@wallet-standard/app'
 import bs58 from 'bs58'
 import type { SolanaCluster } from '../providers/AppWalletProvider'
 import { clusterFromRpcEndpoint } from './sendWalletTransaction'
+
+/**
+ * MetaMask Multichain uses CAIP-2 genesis hashes, not Wallet Standard aliases
+ * (`solana:devnet`). Passing the alias makes MetaMask ignore `chain` → mainnet UI.
+ * @see https://docs.metamask.io/metamask-connect/solana/guides/send-transactions/legacy/
+ */
+export const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
+export const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
+export const SOLANA_TESTNET_CAIP2 = 'solana:4uhcVJyU9pJkvQyS88uRDiswHXSCkY3z'
 
 type StandardAccount = {
   address: string
@@ -41,61 +51,117 @@ type SignAndSendFeature = {
 }
 
 type StandardWalletLike = {
+  name?: string
   accounts: readonly StandardAccount[]
   features: Record<string, unknown>
 }
 
-/** Wallet Standard account object from a wallet-adapter StandardWalletAdapter. */
+/** Alias + MetaMask CAIP-2 for a cluster. */
+export function chainIdsForCluster(cluster: SolanaCluster): readonly string[] {
+  if (cluster === 'devnet') return [SOLANA_DEVNET_CAIP2, SOLANA_DEVNET_CHAIN]
+  if (cluster === 'testnet') return [SOLANA_TESTNET_CAIP2, SOLANA_TESTNET_CHAIN]
+  return [SOLANA_MAINNET_CAIP2, SOLANA_MAINNET_CHAIN]
+}
+
+export function clusterLabel(cluster: SolanaCluster): string {
+  if (cluster === 'devnet') return 'Devnet'
+  if (cluster === 'testnet') return 'Testnet'
+  return 'Mainnet'
+}
+
+function accountSupportsCluster(account: StandardAccount, cluster: SolanaCluster): boolean {
+  const ids = chainIdsForCluster(cluster)
+  return account.chains.some((c) => ids.includes(c))
+}
+
+/** Prefer CAIP-2 genesis hash (MetaMask). Alias `solana:devnet` is ignored → mainnet UI. */
+export function chainIdForAccount(_account: StandardAccount, cluster: SolanaCluster): string {
+  return chainIdsForCluster(cluster)[0]
+}
+
+function isStandardWalletLike(value: unknown): value is StandardWalletLike {
+  if (!value || typeof value !== 'object') return false
+  const wallet = value as StandardWalletLike
+  return Array.isArray(wallet.accounts) && Boolean(wallet.features)
+}
+
 export function getStandardWallet(adapter: unknown): StandardWalletLike | null {
-  if (!adapter || typeof adapter !== 'object' || !('wallet' in adapter)) return null
-  const wallet = (adapter as { wallet?: StandardWalletLike }).wallet
-  if (!wallet?.accounts || !wallet.features) return null
-  return wallet
+  if (!adapter || typeof adapter !== 'object') return null
+  const fromAdapter = (adapter as { wallet?: unknown }).wallet
+  if (isStandardWalletLike(fromAdapter)) return fromAdapter
+
+  const adapterName =
+    typeof (adapter as { name?: unknown }).name === 'string'
+      ? ((adapter as { name: string }).name || '').toLowerCase()
+      : ''
+  if (!adapterName) return null
+  try {
+    const match = getWallets().get().find((wallet) => {
+      const name = (wallet.name || '').toLowerCase()
+      if (!name) return false
+      if (name === adapterName) return true
+      return adapterName.includes('metamask') && name.includes('metamask')
+    })
+    if (isStandardWalletLike(match)) return match
+  } catch {
+    // SSR / registry unavailable
+  }
+  return null
 }
 
 export function walletStandardChainForCluster(cluster: SolanaCluster): string {
-  if (cluster === 'devnet') return SOLANA_DEVNET_CHAIN
-  if (cluster === 'testnet') return SOLANA_TESTNET_CHAIN
-  return SOLANA_MAINNET_CHAIN
+  return chainIdsForCluster(cluster)[0]
+}
+
+export function resolveWalletStandardCluster(
+  connection: Connection,
+  expectedCluster?: SolanaCluster,
+): SolanaCluster {
+  if (expectedCluster) return expectedCluster
+  const fromRpc = clusterFromRpcEndpoint(connection.rpcEndpoint)
+  if (fromRpc === 'devnet' || fromRpc === 'testnet' || fromRpc === 'mainnet-beta') return fromRpc
+  const mapped = getChainForEndpoint(connection.rpcEndpoint)
+  if (mapped === SOLANA_DEVNET_CHAIN) return 'devnet'
+  if (mapped === SOLANA_TESTNET_CHAIN) return 'testnet'
+  return 'mainnet-beta'
 }
 
 export function resolveWalletStandardChain(
   connection: Connection,
   expectedCluster?: SolanaCluster,
 ): string {
-  if (expectedCluster) return walletStandardChainForCluster(expectedCluster)
-  const fromRpc = clusterFromRpcEndpoint(connection.rpcEndpoint)
-  if (fromRpc === 'devnet') return SOLANA_DEVNET_CHAIN
-  if (fromRpc === 'testnet') return SOLANA_TESTNET_CHAIN
-  // Prefer util mapping, but never trust a bare URL that omitted "devnet".
-  const mapped = getChainForEndpoint(connection.rpcEndpoint)
-  return mapped || SOLANA_MAINNET_CHAIN
+  return walletStandardChainForCluster(resolveWalletStandardCluster(connection, expectedCluster))
 }
 
-/** Prefer the account that advertises the target chain (MetaMask lists one per network). */
 export function pickStandardAccount(
   standardWallet: StandardWalletLike,
-  chain: string,
+  chainOrCluster: string | SolanaCluster,
   preferredAddress?: string | null,
 ): StandardAccount | null {
-  const withChain = standardWallet.accounts.filter((account) => account.chains.includes(chain))
+  const cluster: SolanaCluster =
+    chainOrCluster === 'devnet' ||
+    chainOrCluster === 'testnet' ||
+    chainOrCluster === 'mainnet-beta'
+      ? chainOrCluster
+      : chainOrCluster === SOLANA_DEVNET_CHAIN ||
+          chainOrCluster === SOLANA_DEVNET_CAIP2 ||
+          chainOrCluster.includes('devnet') ||
+          chainOrCluster.includes('EtWTRAB')
+        ? 'devnet'
+        : chainOrCluster === SOLANA_TESTNET_CHAIN ||
+            chainOrCluster === SOLANA_TESTNET_CAIP2 ||
+            chainOrCluster.includes('testnet')
+          ? 'testnet'
+          : 'mainnet-beta'
+
+  const withChain = standardWallet.accounts.filter((account) =>
+    accountSupportsCluster(account, cluster),
+  )
   if (preferredAddress) {
     const matched = withChain.find((account) => account.address === preferredAddress)
     if (matched) return matched
-    const anyPreferred = standardWallet.accounts.find((account) => account.address === preferredAddress)
-    if (anyPreferred?.chains.includes(chain)) return anyPreferred
   }
-  if (withChain[0]) return withChain[0]
-  const needle = chain.replace(/^solana:/, '')
-  const fuzzy = standardWallet.accounts.find((account) =>
-    account.chains.some((c) => c.includes(needle)),
-  )
-  if (fuzzy) return fuzzy
-  if (preferredAddress) {
-    const anyPreferred = standardWallet.accounts.find((account) => account.address === preferredAddress)
-    if (anyPreferred) return anyPreferred
-  }
-  return standardWallet.accounts[0] ?? null
+  return withChain[0] ?? null
 }
 
 function serializeLegacyTx(transaction: Transaction): Uint8Array {
@@ -107,11 +173,21 @@ function serializeLegacyTx(transaction: Transaction): Uint8Array {
   )
 }
 
-/**
- * Sign a legacy Transaction via Wallet Standard with an explicit `chain`.
- * Adapter `signTransaction` omits chain → MetaMask/Phantom default to mainnet UI.
- * Always pick the account that lists the target chain (not blindly accounts[0]).
- */
+function assertAccountOnCluster(
+  account: StandardAccount,
+  cluster: SolanaCluster,
+  preferredAddress?: string | null,
+): void {
+  if (!accountSupportsCluster(account, cluster)) {
+    throw new Error(`Switch your Solana wallet to ${clusterLabel(cluster)} and try again`)
+  }
+  if (preferredAddress && account.address !== preferredAddress) {
+    throw new Error(
+      `Connected wallet account is not on ${clusterLabel(cluster)}. Open MetaMask → Solana → switch to ${clusterLabel(cluster)}, then reconnect.`,
+    )
+  }
+}
+
 export async function signLegacyTxWithChain(
   standardWallet: StandardWalletLike,
   transaction: Transaction,
@@ -119,19 +195,18 @@ export async function signLegacyTxWithChain(
   expectedCluster?: SolanaCluster,
   preferredAddress?: string | null,
 ): Promise<Transaction> {
-  const chain = resolveWalletStandardChain(connection, expectedCluster)
-  const account = pickStandardAccount(standardWallet, chain, preferredAddress)
-  if (!account) throw new Error('Solana wallet is not connected')
-
-  if (!account.chains.includes(chain)) {
-    const label = chain === SOLANA_DEVNET_CHAIN ? 'Devnet' : chain.replace(/^solana:/, '')
-    throw new Error(`Switch your Solana wallet to ${label} and try again`)
+  const cluster = resolveWalletStandardCluster(connection, expectedCluster)
+  const account = pickStandardAccount(standardWallet, cluster, preferredAddress)
+  if (!account) {
+    throw new Error(
+      `Switch MetaMask Solana to ${clusterLabel(cluster)} (Networks → Solana ${clusterLabel(cluster)}), then reconnect.`,
+    )
   }
+  assertAccountOnCluster(account, cluster, preferredAddress)
 
+  const chain = chainIdForAccount(account, cluster)
   const feature = standardWallet.features[SolanaSignTransaction] as SignTransactionFeature | undefined
-  if (!feature?.signTransaction) {
-    throw new Error('Connected wallet cannot sign Solana transactions')
-  }
+  if (!feature?.signTransaction) throw new Error('Connected wallet cannot sign Solana transactions')
   if (!account.features.includes(SolanaSignTransaction)) {
     throw new Error('Connected wallet account cannot sign Solana transactions')
   }
@@ -141,15 +216,9 @@ export async function signLegacyTxWithChain(
     chain,
     transaction: serializeLegacyTx(transaction),
   })
-
   return Transaction.from(output.signedTransaction)
 }
 
-/**
- * Sign a VersionedTransaction via Wallet Standard (`solana:signTransaction` only).
- * Used by x402 Exact SVM: client partially signs; facilitator fee-pays and broadcasts.
- * Never use SignAndSend here — broadcasting a fee-payer-incomplete tx breaks the flow.
- */
 export async function signVersionedTxWithChain(
   standardWallet: StandardWalletLike,
   transaction: VersionedTransaction,
@@ -157,19 +226,18 @@ export async function signVersionedTxWithChain(
   expectedCluster?: SolanaCluster,
   preferredAddress?: string | null,
 ): Promise<VersionedTransaction> {
-  const chain = resolveWalletStandardChain(connection, expectedCluster)
-  const account = pickStandardAccount(standardWallet, chain, preferredAddress)
-  if (!account) throw new Error('Solana wallet is not connected')
-
-  if (!account.chains.includes(chain)) {
-    const label = chain === SOLANA_DEVNET_CHAIN ? 'Devnet' : chain.replace(/^solana:/, '')
-    throw new Error(`Switch your Solana wallet to ${label} and try again`)
+  const cluster = resolveWalletStandardCluster(connection, expectedCluster)
+  const account = pickStandardAccount(standardWallet, cluster, preferredAddress)
+  if (!account) {
+    throw new Error(
+      `Switch MetaMask Solana to ${clusterLabel(cluster)} (Networks → Solana ${clusterLabel(cluster)}), then reconnect.`,
+    )
   }
+  assertAccountOnCluster(account, cluster, preferredAddress)
 
+  const chain = chainIdForAccount(account, cluster)
   const feature = standardWallet.features[SolanaSignTransaction] as SignTransactionFeature | undefined
-  if (!feature?.signTransaction) {
-    throw new Error('Connected wallet cannot sign Solana transactions')
-  }
+  if (!feature?.signTransaction) throw new Error('Connected wallet cannot sign Solana transactions')
   if (!account.features.includes(SolanaSignTransaction)) {
     throw new Error('Connected wallet account cannot sign Solana transactions')
   }
@@ -179,14 +247,9 @@ export async function signVersionedTxWithChain(
     chain,
     transaction: transaction.serialize(),
   })
-
   return VersionedTransaction.deserialize(output.signedTransaction)
 }
 
-/**
- * MetaMask: SignAndSend shows the correct network in the approval UI when `chain` is set.
- * Prefer the Devnet account (not accounts[0], which is often mainnet).
- */
 export async function signAndSendLegacyTxWithChain(
   standardWallet: StandardWalletLike,
   transaction: Transaction,
@@ -199,15 +262,16 @@ export async function signAndSendLegacyTxWithChain(
   },
   preferredAddress?: string | null,
 ): Promise<string> {
-  const chain = resolveWalletStandardChain(connection, expectedCluster)
-  const account = pickStandardAccount(standardWallet, chain, preferredAddress)
-  if (!account) throw new Error('Solana wallet is not connected')
-
-  if (!account.chains.includes(chain)) {
-    const label = chain === SOLANA_DEVNET_CHAIN ? 'Devnet' : chain.replace(/^solana:/, '')
-    throw new Error(`Switch your Solana wallet to ${label} and try again`)
+  const cluster = resolveWalletStandardCluster(connection, expectedCluster)
+  const account = pickStandardAccount(standardWallet, cluster, preferredAddress)
+  if (!account) {
+    throw new Error(
+      `Switch MetaMask Solana to ${clusterLabel(cluster)} (Networks → Solana ${clusterLabel(cluster)}), then reconnect.`,
+    )
   }
+  assertAccountOnCluster(account, cluster, preferredAddress)
 
+  const chain = chainIdForAccount(account, cluster)
   const signAndSend = standardWallet.features[SolanaSignAndSendTransaction] as
     | SignAndSendFeature
     | undefined
@@ -218,7 +282,6 @@ export async function signAndSendLegacyTxWithChain(
       chain,
       transaction: serializeLegacyTx(transaction),
       options: {
-        // MetaMask Devnet scanner often fails with "unknown error" — skip wallet preflight.
         skipPreflight: options?.skipPreflight ?? true,
         preflightCommitment: options?.preflightCommitment ?? 'confirmed',
         maxRetries: options?.maxRetries ?? 3,

@@ -74,7 +74,7 @@ export function useGraiBuyback() {
         failureMessage: 'Buyback transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter an amount to buyback',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeBuyback({
             connection,
             config: solana,
@@ -84,6 +84,7 @@ export function useGraiBuyback() {
             assetDecimals: params.assetDecimals,
             paymentMaxGrai,
             signTransaction,
+            sendTransaction,
           }),
       })
       return signature

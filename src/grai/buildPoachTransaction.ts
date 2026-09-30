@@ -12,13 +12,14 @@ import {
   decodeSolanaReferrerBook,
   previewSolanaPoach,
 } from './fetchSolanaReferralBooks'
-import { confirmSignatureViaHttp } from './onchain'
 import {
   getAssociatedTokenAddress,
   referrerPda,
   TOKEN_PROGRAM_ID,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor `global:poach` discriminator. */
 const POACH_DISCRIMINATOR = Buffer.from([53, 255, 175, 100, 32, 162, 71, 140])
@@ -199,6 +200,7 @@ export type ExecutePoachParams = {
   poacher: PublicKey
   locker: PublicKey | string
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   connection: Connection
   config: GraiSolanaRuntime
 }
@@ -207,6 +209,7 @@ export async function executePoach({
   poacher,
   locker,
   signTransaction,
+  sendTransaction,
   connection,
   config,
 }: ExecutePoachParams): Promise<{ signature: string; price: bigint; seller: PublicKey }> {
@@ -217,11 +220,14 @@ export async function executePoach({
     connection,
     config,
   })
-  const signed = await signTransaction(transaction)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
+  const signature = await signAndSendGraiTx({
+    connection,
+    transaction,
+    feePayer: poacher,
+    cluster: config.cluster,
+    action: 'poach',
+    signTransaction,
+    sendTransaction,
   })
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
   return { signature, price, seller }
 }

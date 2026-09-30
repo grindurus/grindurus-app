@@ -65,7 +65,7 @@ export function useGraiDistribute() {
         failureMessage: 'Distribute transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter a yield amount to distribute',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeProtocolDistribute({
             connection,
             config: solana,
@@ -74,6 +74,7 @@ export function useGraiDistribute() {
             amountInput: params.amountInput.trim(),
             assetDecimals: params.assetDecimals,
             signTransaction,
+            sendTransaction,
           }),
       })
       return signature
@@ -93,7 +94,7 @@ export function useGraiDistribute() {
         failureMessage: 'Distribute transaction failed',
         amountInput: params.amountInput,
         emptyAmountMessage: 'Enter a yield amount to distribute',
-        execute: ({ connection, solana, publicKey, signTransaction }) =>
+        execute: ({ connection, solana, publicKey, signTransaction, sendTransaction }) =>
           executeDistribute({
             connection,
             config: solana,
@@ -101,6 +102,7 @@ export function useGraiDistribute() {
             assetMint,
             amountInput,
             signTransaction,
+            sendTransaction,
           }),
       })
 
