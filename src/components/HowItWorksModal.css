@@ -149,6 +149,14 @@
   animation-delay: 0.36s;
 }
 
+.hiw-modal-body .grai-token-flow-step:nth-child(7) {
+  animation-delay: 0.42s;
+}
+
+.hiw-modal-body .grai-token-flow-step:nth-child(8) {
+  animation-delay: 0.48s;
+}
+
 .hiw-modal-loading {
   display: flex;
   align-items: center;

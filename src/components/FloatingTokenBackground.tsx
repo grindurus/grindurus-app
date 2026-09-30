@@ -95,15 +95,24 @@ const FLOATING_LAYOUT = buildSpreadLayout(FLOATING_TOKEN_COUNT)
 
 export function buildFloatingTokens(icons: GraiAssetIcon[]): FloatingTokenSpec[] {
   const graiIcon: GraiAssetIcon = { src: assetUrl('grai.png'), alt: 'GRAI' }
+  const usdtFromInput = icons.find((icon) => icon.alt.toUpperCase() === 'USDT')
+  const usdtIcon: GraiAssetIcon = usdtFromInput ?? {
+    src: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    alt: 'USDT',
+  }
   const unique = [...new Map(icons.map((icon) => [icon.src, icon])).values()].filter(
-    (icon) => icon.src !== graiIcon.src,
+    (icon) =>
+      icon.src !== graiIcon.src &&
+      icon.src !== usdtIcon.src &&
+      icon.alt.toUpperCase() !== 'GRAI' &&
+      icon.alt.toUpperCase() !== 'USDT',
   )
-  const pool = [graiIcon, ...unique]
+  // Keep GRAI + USDT on the mist background and weight them higher than the rest.
+  const pool = [graiIcon, usdtIcon, ...unique, graiIcon, usdtIcon]
   if (pool.length === 0) return []
 
   return FLOATING_LAYOUT.map((layout, index) => {
-    const stride = Math.max(1, Math.floor(pool.length / 2) + 1)
-    const icon = pool[(index * stride) % pool.length]
+    const icon = pool[index % pool.length]
     return { icon, ...layout }
   })
 }

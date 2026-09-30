@@ -194,7 +194,7 @@ export const ACTION_SWITCH_ICONS = {
 
 export const GRINDER_TVL_INFO_HINT = (
   <>
-    <span className="grai-field-info-tooltip-title">Value Locked</span>
+    <span className="grai-field-info-tooltip-title">Total Value Locked</span>
     <span className="grai-field-info-tooltip-section">
       <span className="grai-field-info-tooltip-section-label">Formula</span>
       Per grinder: <code>balance_quote + balance_base × spot_price</code>

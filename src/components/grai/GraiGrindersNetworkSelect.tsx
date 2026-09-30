@@ -315,16 +315,26 @@ export function GraiGrindersNetworkSelect({
         data-network-caip2={showTotal ? undefined : (activeWallet.networkCaip2 ?? undefined)}
       >
         {isStacked ? (
-          <>
-            <span className="grai-grinders-group-general-top grai-grinders-network-top">
-              {labelMain}
-            </span>
-            {showTotal ? (
+          showTotal ? (
+            <>
+              <span className="grai-grinders-group-general-top grai-grinders-network-top">
+                {labelMain}
+              </span>
               <GraiGrindersMainnetNetworkIcons />
-            ) : (
-              <span className="grai-grinders-network-value-spacer" aria-hidden="true" />
-            )}
-          </>
+            </>
+          ) : (
+            <>
+              <span className="grai-grinders-group-general-top grai-grinders-network-top">
+                <span className="grai-grinders-network-menu-icon" aria-hidden="true">
+                  <Globe size={20} strokeWidth={2} />
+                </span>
+                <span className="grai-grinders-live-label grai-grinders-summary-mini-label grai-grinders-network-heading">
+                  NETWORK
+                </span>
+              </span>
+              <span className="grai-grinders-network-selected-row">{labelMain}</span>
+            </>
+          )
         ) : (
           <>
             {labelMain}

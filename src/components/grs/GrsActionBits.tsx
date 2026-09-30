@@ -57,7 +57,9 @@ export function GrsSubmit({
 }) {
   if (!connected) {
     return (
-      <GraiActionConnectWalletButton label={connectLabel} onBeforeOpen={onBeforeConnect} />
+      <div className="grai-action-submit">
+        <GraiActionConnectWalletButton label={connectLabel} onBeforeOpen={onBeforeConnect} />
+      </div>
     )
   }
   if (blockedLabel) {

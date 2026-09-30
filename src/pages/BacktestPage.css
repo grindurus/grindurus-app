@@ -8,6 +8,50 @@
   align-items: stretch;
 }
 
+.backtest-page-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  margin: 0 0 1.25rem;
+  width: 100%;
+}
+
+.backtest-page-how-it-works {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ff69b4;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.18em;
+}
+
+.backtest-page-how-it-works:hover,
+.backtest-page-how-it-works:focus-visible {
+  color: #ff8ac8;
+  text-decoration-style: solid;
+  outline: none;
+}
+
+[data-theme='light'] .backtest-page-how-it-works {
+  color: #e91e8c;
+}
+
+[data-theme='light'] .backtest-page-how-it-works:hover,
+[data-theme='light'] .backtest-page-how-it-works:focus-visible {
+  color: #c2186a;
+}
+
 .backtest-page-title {
   margin: 0;
   text-align: center;
@@ -23,7 +67,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  margin: 0 0 1.25rem;
+  margin: 0;
   position: relative;
   z-index: 20;
 }
@@ -433,9 +477,18 @@
   color: var(--text-secondary);
 }
 
-.backtest-date-input {
+.backtest-date-input-wrap {
+  position: relative;
   width: 100%;
-  padding: 0.5rem 0.45rem;
+  min-width: 0;
+}
+
+.backtest-date-input {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.125rem;
+  padding: 0.5rem 2rem 0.5rem 0.45rem;
   background: transparent;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -443,13 +496,42 @@
   font-size: 0.78rem;
   font-weight: 600;
   font-family: inherit;
+  color-scheme: dark;
 }
 
+[data-theme='light'] .backtest-date-input {
+  color-scheme: light;
+}
+
+/* Stretch hit target so iOS/Safari opens the picker on any tap; hide the flaky native glyph. */
 .backtest-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
   cursor: pointer;
-  opacity: 1;
-  /* #ff69b4 — same pink as other backtest accents */
-  filter: brightness(0) saturate(100%) invert(61%) sepia(74%) saturate(2195%) hue-rotate(295deg) brightness(101%) contrast(101%);
+  filter: none;
+}
+
+.backtest-date-calendar-affordance {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: #ff69b4;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.backtest-date-calendar-affordance svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .backtest-date-input:focus {
@@ -492,15 +574,31 @@
 }
 
 .backtest-time-estimate-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
   margin: 0;
   text-align: center;
   align-self: stretch;
   width: 100%;
-  font-size: 0.64rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
+  line-height: 1.4;
   color: var(--text-secondary);
-  opacity: 0.82;
+  opacity: 0.88;
+}
+
+.backtest-time-estimate-note-line {
+  display: block;
+  max-width: 100%;
+}
+
+.backtest-time-estimate-note-em {
+  color: var(--text-primary);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .backtest-pay-actions .backtest-time-estimate-note {
@@ -562,6 +660,48 @@
   box-sizing: border-box;
 }
 
+.backtest-amount-with-action {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.backtest-amount-with-action .backtest-amount-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.backtest-amount-random-btn {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.12rem 0.35rem;
+  border: 1px solid color-mix(in srgb, #ff69b4 45%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: #ff69b4;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.backtest-amount-random-btn:hover {
+  background: color-mix(in srgb, #ff69b4 14%, transparent);
+  border-color: #ff69b4;
+}
+
+.backtest-amount-random-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, #ff69b4 55%, transparent);
+  outline-offset: 1px;
+}
+
 .backtest-pair-input-row:focus-within {
   border-bottom-color: #ff69b4;
 }
@@ -583,7 +723,6 @@
 }
 
 .backtest-pair-input-row .backtest-amount-input:not(.backtest-pair-asset-input) {
-  grid-column: 1;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -1989,7 +2128,7 @@
   z-index: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   column-gap: 0.75rem;
   margin: 0 0 0.65rem;
   min-height: 4.5rem;
@@ -2007,6 +2146,7 @@
   min-width: 0;
   max-width: 100%;
   justify-self: start;
+  align-self: start;
   position: relative;
   z-index: 2;
 }
@@ -2021,6 +2161,7 @@
   min-width: 0;
   max-width: 100%;
   justify-self: end;
+  align-self: start;
   width: 100%;
   position: relative;
   z-index: 2;
@@ -2061,8 +2202,9 @@
   min-width: 0;
   max-width: 100%;
   width: 100%;
-  min-height: 4.2rem;
-  padding: 0.85rem 0.95rem;
+  min-height: 2.75rem;
+  height: 2.75rem;
+  padding: 0.55rem 0.95rem;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: transparent;
@@ -2070,6 +2212,7 @@
   font-size: 1.05rem;
   font-weight: 600;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .backtest-queue-search-wrap {
@@ -2080,10 +2223,12 @@
   min-width: 0;
   max-width: 22rem;
   width: 100%;
-  min-height: 4.2rem;
+  min-height: 2.75rem;
+  height: 2.75rem;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: transparent;
+  box-sizing: border-box;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -2098,8 +2243,9 @@
   flex: 1 1 auto;
   min-width: 0;
   max-width: none;
-  min-height: 4.2rem;
-  padding: 0.85rem 2.75rem 0.85rem 0.95rem;
+  min-height: 2.75rem;
+  height: 2.75rem;
+  padding: 0.55rem 2.75rem 0.55rem 0.95rem;
   border: 0;
   border-radius: 12px;
   background: transparent;
@@ -2108,15 +2254,15 @@
 
 .backtest-queue-search-btn {
   position: absolute;
-  right: 0.4rem;
+  right: 0.35rem;
   top: 50%;
   transform: translateY(-50%);
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2rem;
+  height: 2rem;
   margin: 0;
   padding: 0;
   border: 0;

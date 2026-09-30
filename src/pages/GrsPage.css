@@ -384,6 +384,30 @@
   width: 100%;
 }
 
+.grs-sales-deposit-network {
+  display: inline;
+  color: var(--text-primary);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.grs-sales-deposit-network-icon {
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.28rem;
+  vertical-align: -0.12em;
+  line-height: 0;
+}
+
+.grs-sales-deposit-network-icon svg,
+.grs-sales-deposit-network-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
 /* Match chevron lead to info-icon lead so metric labels share one column. */
 .grs-sales-form .grai-action-metric-label-wrap > .grai-mint-referrer-chevron-btn {
   width: var(--grai-action-label-lead-size, 1.25rem);
@@ -893,7 +917,7 @@
   border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1108,6 +1132,7 @@
 
 [data-theme='light'] .grs-book-network {
   background: color-mix(in srgb, #ffffff 70%, transparent);
+  color: #111;
 }
 
 [data-theme='light'] .grs-book-price-unit {

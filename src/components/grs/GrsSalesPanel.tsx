@@ -1055,7 +1055,19 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
               successLabel={lastTx?.successLabel ?? 'Purchase confirmed.'}
               linkLabel={explorerLinkLabel}
             >
-              {note}
+              {selected ? (
+                <>
+                  You buy {note} on token sale in{' '}
+                  <span className="grs-sales-deposit-network">
+                    <span className="grs-sales-deposit-network-icon" aria-hidden="true">
+                      <GrsChainGlyph name={selected.networkLabel} size={14} />
+                    </span>
+                    {selected.networkLabel}
+                  </span>
+                </>
+              ) : (
+                <>You buy {note} on token sale</>
+              )}
             </ActionDepositNote>
             {isDemo ? (
               <div className="grai-action-deposit-notes">

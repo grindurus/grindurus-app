@@ -206,14 +206,16 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
                       flexGrow: bucket.millions,
                       ['--spent' as string]: `${usedLabel}%`,
                     }}
-                    title={`${bucket.label}: ${bucket.millions}M · used ${usedLabel}%`}
+                    title={`${bucket.label}: ${bucket.pct}% · ${bucket.millions}M · used ${usedLabel}%`}
                     onMouseEnter={() => setFocus({ group, bucket })}
                     onFocus={() => setFocus({ group, bucket })}
                     onClick={() => handleJump(bucket.jump)}
                   >
                     <span className="grs-cap-bucket-label">
                       {bucket.short}
-                      <span className="grs-cap-bucket-amt">{bucket.millions}M</span>
+                      <span className="grs-cap-bucket-amt">
+                        {bucket.millions}M · {bucket.pct}%
+                      </span>
                       <span className="grs-cap-bucket-used">{usedLabel}%</span>
                     </span>
                   </button>

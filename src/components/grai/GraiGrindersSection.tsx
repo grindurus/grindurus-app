@@ -14,7 +14,7 @@ import {
   GraiGrinderTvlValue,
   GraiGrinderYieldValue,
 } from './GraiGrinderCells'
-import { GraiFieldInfoButton, GraiGrindersTotalLabel } from './GraiFieldInfo'
+import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiGrindersNetworkSelect } from './GraiGrindersNetworkSelect'
 import {
   GRINDERS_COLUMN_ICONS,
@@ -82,7 +82,6 @@ export function GraiGrindersSection() {
       return nextOpen
     })
   }, [])
-  const showGrindersTotalLabels = !isGrindersFilterEnabled
   const copyGrinderTableAddress = useCallback(async (address: string, grinderId: string) => {
     try {
       await navigator.clipboard.writeText(address)
@@ -220,13 +219,13 @@ export function GraiGrindersSection() {
             <GraiFieldInfoButton
               className="grai-grinders-group-title-label"
               hint={GRINDER_TVL_INFO_HINT}
-              ariaLabel="How value locked is calculated"
+              ariaLabel="Total Value Locked"
               structured
             >
               <span className="grai-grinders-group-title-icon" aria-hidden="true">
                 {GRINDERS_COLUMN_ICONS.quote}
               </span>
-              <GraiGrindersTotalLabel showTotal={showGrindersTotalLabels} rest="VALUE LOCKED" />
+              TVL
             </GraiFieldInfoButton>
             {isBossGrinderLoading || isBossUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
@@ -246,7 +245,7 @@ export function GraiGrindersSection() {
               <span className="grai-grinders-group-title-icon" aria-hidden="true">
                 {GRINDERS_COLUMN_ICONS.yieldQuote}
               </span>
-              <GraiGrindersTotalLabel showTotal={showGrindersTotalLabels} rest="YIELD" />
+              YIELD
             </GraiFieldInfoButton>
             {isBossGrinderLoading || isBossUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">

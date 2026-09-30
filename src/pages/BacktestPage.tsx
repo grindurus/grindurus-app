@@ -24,6 +24,7 @@ import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
 import { evmHttpTransport } from '../providers/evmTransports'
 import { InventoryHistoryChart, type InventoryHistoryPoint } from '../components/InventoryHistoryChart'
 import { YieldChart, type YieldHistoryPoint } from '../components/YieldChart'
+import { BacktestHowItWorksModal } from '../components/BacktestHowItWorksModal'
 import { GraiUiCaret } from '../components/grai/GraiUiCaret'
 import { SolanaClusterIcon } from '../components/SolanaClusterIcon'
 import { EvmChainListIcon } from '../components/WalletNetworkSelect'
@@ -257,22 +258,6 @@ const PAY_METHOD_ICON: Record<PayMethod, ReactNode> = {
     </svg>
   ),
 }
-
-const PAIR_FIELD_ICONS = {
-  base: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 8v8" />
-      <path d="M9.5 10.5h3a2 2 0 1 1 0 4h-3" />
-    </svg>
-  ),
-  quote: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2v20" />
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-    </svg>
-  ),
-} as const
 
 const DATE_FIELD_ICONS = {
   from: (
@@ -650,6 +635,31 @@ function sanitizeDecimalInput(raw: string) {
   return dec !== undefined ? `${int}.${dec.slice(0, 12)}` : int
 }
 
+/** Sensible random start size for the pair amount fields. */
+function randomBacktestAmount(symbol: string): string {
+  const s = symbol.trim().toUpperCase()
+  const isStable = s === 'USDC' || s === 'USDT' || s === 'DAI' || s.endsWith('USD')
+  const isBtc = s === 'BTC' || s === 'WBTC'
+  const isEth = s === 'ETH' || s === 'WETH'
+  let value: number
+  let decimals: number
+  if (isStable) {
+    value = 50 + Math.random() * 9950
+    decimals = 2
+  } else if (isBtc) {
+    value = 0.01 + Math.random() * 1.99
+    decimals = 4
+  } else if (isEth) {
+    value = 0.1 + Math.random() * 19.9
+    decimals = 4
+  } else {
+    value = 1 + Math.random() * 99
+    decimals = 4
+  }
+  const fixed = value.toFixed(decimals).replace(/\.?0+$/, '')
+  return sanitizeDecimalInput(fixed === '' ? '0' : fixed)
+}
+
 function chunkArray<T>(arr: T[], size: number) {
   if (size <= 0) return [arr]
   const out: T[][] = []
@@ -823,6 +833,7 @@ function BacktestPage() {
   const activeWallet = useActiveWallet()
   const [dateFrom, setDateFrom] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
   const [dateTo, setDateTo] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
   const [baseAssets, setBaseAssets] = useState<string[]>([...DEFAULT_BASE_ASSETS])
   const [quoteAssets, setQuoteAssets] = useState<string[]>([...DEFAULT_QUOTE_ASSETS])
   const [assetIcons, setAssetIcons] = useState<Record<string, string>>({})
@@ -2180,37 +2191,52 @@ function BacktestPage() {
 
   return (
     <div className="backtest-page">
-      <div className="backtest-page-title-row">
-        <h1 className="backtest-page-title">Calculator for Strategy Verification</h1>
-        <span
-          className="backtest-page-title-help"
-          tabIndex={0}
-          aria-label="What is strategy verification"
+      <div className="backtest-page-heading">
+        <button
+          type="button"
+          className="backtest-page-how-it-works"
+          onClick={() => setIsHowItWorksOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={isHowItWorksOpen}
         >
-          <span className="backtest-page-title-help-icon" aria-hidden="true">?</span>
-          <div className="backtest-page-title-help-tip" role="tooltip">
-            <span className="backtest-page-title-help-tip-title">What this is</span>
-            <ul className="backtest-page-title-help-tip-list">
-              <li>
-                <span className="backtest-page-title-help-tip-key">Purpose</span>
-                Run the same market-taking algorithm that powers the fund — on historical data you choose
-              </li>
-              <li>
-                <span className="backtest-page-title-help-tip-key">Verify</span>
-                Not a marketing chart: pick any pair, period, and starting balances yourself
-              </li>
-              <li>
-                <span className="backtest-page-title-help-tip-key">Output</span>
-                Inventory path, yield, and PnL so you can see how the strategy would have performed
-              </li>
-              <li>
-                <span className="backtest-page-title-help-tip-key">Cost</span>
-                About $1 via x402 or a promocode · ~5 min typical runtime
-              </li>
-            </ul>
-          </div>
-        </span>
+          HOW IT WORKS
+        </button>
+        <div className="backtest-page-title-row">
+          <h1 className="backtest-page-title">Calculator for Grinder&apos;s Strategy Verification</h1>
+          <span
+            className="backtest-page-title-help"
+            tabIndex={0}
+            aria-label="What is strategy verification"
+          >
+            <span className="backtest-page-title-help-icon" aria-hidden="true">?</span>
+            <div className="backtest-page-title-help-tip" role="tooltip">
+              <span className="backtest-page-title-help-tip-title">What this is</span>
+              <ul className="backtest-page-title-help-tip-list">
+                <li>
+                  <span className="backtest-page-title-help-tip-key">Purpose</span>
+                  Run the same market-taking algorithm that powers the fund — on historical data you choose
+                </li>
+                <li>
+                  <span className="backtest-page-title-help-tip-key">Verify</span>
+                  Not a marketing chart: pick any pair, period, and starting balances yourself
+                </li>
+                <li>
+                  <span className="backtest-page-title-help-tip-key">Output</span>
+                  Inventory path, yield, and PnL so you can see how the strategy would have performed
+                </li>
+                <li>
+                  <span className="backtest-page-title-help-tip-key">Cost</span>
+                  About $1 via x402 or a promocode · ~5 min typical runtime
+                </li>
+              </ul>
+            </div>
+          </span>
+        </div>
       </div>
+      <BacktestHowItWorksModal
+        isOpen={isHowItWorksOpen}
+        onClose={() => setIsHowItWorksOpen(false)}
+      />
       <div className="backtest-layout">
         <div className="backtest-create-stack">
           <aside className="backtest-panel backtest-panel--create" id={BACKTEST_SECTION_IDS.create}>
@@ -2242,33 +2268,41 @@ function BacktestPage() {
           <div className="backtest-field">
             <div className="backtest-dates" role="group" aria-label="Backtest date range">
               <div className="backtest-date-col">
-                <label className="backtest-sublabel backtest-sublabel--with-icon is-from" htmlFor="backtest-date-from">
-                  <span className="backtest-sublabel-icon">{DATE_FIELD_ICONS.from}</span>
+                <label className="backtest-sublabel is-from" htmlFor="backtest-date-from">
                   From
                 </label>
-                <input
-                  id="backtest-date-from"
-                  type="date"
-                  className="backtest-date-input"
-                  value={dateFrom}
-                  onChange={(e) => onFromChange(e.target.value)}
-                />
+                <div className="backtest-date-input-wrap">
+                  <input
+                    id="backtest-date-from"
+                    type="date"
+                    className="backtest-date-input"
+                    value={dateFrom}
+                    onChange={(e) => onFromChange(e.target.value)}
+                  />
+                  <span className="backtest-date-calendar-affordance" aria-hidden="true">
+                    {DATE_FIELD_ICONS.from}
+                  </span>
+                </div>
               </div>
               <span className="backtest-date-sep" aria-hidden="true">
                 –
               </span>
               <div className="backtest-date-col">
-                <label className="backtest-sublabel backtest-sublabel--with-icon is-to" htmlFor="backtest-date-to">
-                  <span className="backtest-sublabel-icon">{DATE_FIELD_ICONS.to}</span>
+                <label className="backtest-sublabel is-to" htmlFor="backtest-date-to">
                   To
                 </label>
-                <input
-                  id="backtest-date-to"
-                  type="date"
-                  className="backtest-date-input"
-                  value={dateTo}
-                  onChange={(e) => onToChange(e.target.value)}
-                />
+                <div className="backtest-date-input-wrap">
+                  <input
+                    id="backtest-date-to"
+                    type="date"
+                    className="backtest-date-input"
+                    value={dateTo}
+                    onChange={(e) => onToChange(e.target.value)}
+                  />
+                  <span className="backtest-date-calendar-affordance" aria-hidden="true">
+                    {DATE_FIELD_ICONS.to}
+                  </span>
+                </div>
               </div>
             </div>
             <p className="backtest-date-limit-note">
@@ -2282,25 +2316,38 @@ function BacktestPage() {
             <div className="backtest-pair-row">
               <div className="backtest-pair-col">
                 <div className={`backtest-pair-field${amountsMissing ? ' is-invalid' : ''}`}>
-                  <label className="backtest-sublabel backtest-sublabel--with-icon is-base" htmlFor="backtest-base-amt">
-                    <span className="backtest-sublabel-icon">{PAIR_FIELD_ICONS.base}</span>
+                  <label className="backtest-sublabel is-base" htmlFor="backtest-base-amt">
                     Base
                   </label>
                   <div className={`backtest-pair-input-row${amountsMissing ? ' is-invalid' : ''}`}>
-                    <input
-                      id="backtest-base-amt"
-                      type="text"
-                      inputMode="decimal"
-                      className={`backtest-amount-input${amountsMissing ? ' is-invalid' : ''}`}
-                      placeholder="0"
-                      value={baseAmount}
-                      onChange={(e) => {
-                        setBaseAmount(sanitizeDecimal(e.target.value))
-                        if (payError === 'Enter a base or quote starting amount.') setPayError('')
-                      }}
-                      aria-invalid={amountsMissing}
-                      aria-label={`Amount, ${baseAsset}`}
-                    />
+                    <div className="backtest-amount-with-action">
+                      <input
+                        id="backtest-base-amt"
+                        type="text"
+                        inputMode="decimal"
+                        className={`backtest-amount-input${amountsMissing ? ' is-invalid' : ''}`}
+                        placeholder="0"
+                        value={baseAmount}
+                        onChange={(e) => {
+                          setBaseAmount(sanitizeDecimal(e.target.value))
+                          if (payError === 'Enter a base or quote starting amount.') setPayError('')
+                        }}
+                        aria-invalid={amountsMissing}
+                        aria-label={`Amount, ${baseAsset}`}
+                      />
+                      <button
+                        type="button"
+                        className="backtest-amount-random-btn"
+                        onClick={() => {
+                          setBaseAmount(randomBacktestAmount(baseAsset))
+                          if (payError === 'Enter a base or quote starting amount.') setPayError('')
+                        }}
+                        aria-label={`Fill random ${baseAsset} amount`}
+                        title="Random amount"
+                      >
+                        RANDOM
+                      </button>
+                    </div>
                     <div
                       className={`backtest-pair-asset-select-wrap ${baseAssetMenuOpen ? 'is-open' : ''}`}
                       ref={baseAssetMenuRef}
@@ -2408,25 +2455,38 @@ function BacktestPage() {
               </div>
               <div className="backtest-pair-col">
                 <div className={`backtest-pair-field${amountsMissing ? ' is-invalid' : ''}`}>
-                  <label className="backtest-sublabel backtest-sublabel--with-icon is-quote" htmlFor="backtest-quote-amt">
-                    <span className="backtest-sublabel-icon">{PAIR_FIELD_ICONS.quote}</span>
+                  <label className="backtest-sublabel is-quote" htmlFor="backtest-quote-amt">
                     Quote
                   </label>
                   <div className={`backtest-pair-input-row${amountsMissing ? ' is-invalid' : ''}`}>
-                    <input
-                      id="backtest-quote-amt"
-                      type="text"
-                      inputMode="decimal"
-                      className={`backtest-amount-input${amountsMissing ? ' is-invalid' : ''}`}
-                      placeholder="0"
-                      value={quoteAmount}
-                      onChange={(e) => {
-                        setQuoteAmount(sanitizeDecimal(e.target.value))
-                        if (payError === 'Enter a base or quote starting amount.') setPayError('')
-                      }}
-                      aria-invalid={amountsMissing}
-                      aria-label={`Amount, ${quoteAsset}`}
-                    />
+                    <div className="backtest-amount-with-action">
+                      <input
+                        id="backtest-quote-amt"
+                        type="text"
+                        inputMode="decimal"
+                        className={`backtest-amount-input${amountsMissing ? ' is-invalid' : ''}`}
+                        placeholder="0"
+                        value={quoteAmount}
+                        onChange={(e) => {
+                          setQuoteAmount(sanitizeDecimal(e.target.value))
+                          if (payError === 'Enter a base or quote starting amount.') setPayError('')
+                        }}
+                        aria-invalid={amountsMissing}
+                        aria-label={`Amount, ${quoteAsset}`}
+                      />
+                      <button
+                        type="button"
+                        className="backtest-amount-random-btn"
+                        onClick={() => {
+                          setQuoteAmount(randomBacktestAmount(quoteAsset))
+                          if (payError === 'Enter a base or quote starting amount.') setPayError('')
+                        }}
+                        aria-label={`Fill random ${quoteAsset} amount`}
+                        title="Random amount"
+                      >
+                        RANDOM
+                      </button>
+                    </div>
                     <div
                       className={`backtest-pair-asset-select-wrap ${quoteAssetMenuOpen ? 'is-open' : ''}`}
                       ref={quoteAssetMenuRef}
@@ -2689,7 +2749,14 @@ function BacktestPage() {
                       payButtonLabel
                     )}
                   </button>
-                  <p className="backtest-time-estimate-note">Est. backtest time ~ 5 min</p>
+                  <p className="backtest-time-estimate-note">
+                    <span className="backtest-time-estimate-note-line">
+                      After payment queues backtest’s to order.
+                    </span>
+                    <span className="backtest-time-estimate-note-line">
+                      Results appear when finished (~5&nbsp;min once started).
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -2744,7 +2811,7 @@ function BacktestPage() {
             ref={queueWrapRef}
             className={`backtest-queue-wrap ${queueView === 'history' ? 'is-history' : ''}`}
             role="region"
-            aria-label={queueView === 'queue' ? 'Queue' : 'Stack'}
+            aria-label={queueView === 'queue' ? 'Queue' : 'Results'}
           >
             <div
               className="backtest-queue-head"
@@ -2769,7 +2836,7 @@ function BacktestPage() {
                       className={`backtest-queue-view-btn is-stack ${queueView === 'history' ? 'is-active' : ''}`}
                       onClick={() => setQueueViewAnimated('history')}
                     >
-                      Stack
+                      Results
                     </button>
                   </div>
                   <div className="backtest-queue-view-stats" aria-hidden="true">
@@ -2818,7 +2885,7 @@ function BacktestPage() {
                     value={queueSearch}
                     onChange={(e) => setQueueSearch(e.target.value)}
                     placeholder="ID / Creator Address"
-                    aria-label={queueView === 'queue' ? 'Search in queue' : 'Search in stack'}
+                    aria-label={queueView === 'queue' ? 'Search in queue' : 'Search in results'}
                   />
                   <button
                     type="button"
@@ -2827,7 +2894,7 @@ function BacktestPage() {
                       setQueueSearch((prev) => prev.trim())
                       queueSearchInputRef.current?.focus()
                     }}
-                    aria-label={queueView === 'queue' ? 'Search queue' : 'Search stack'}
+                    aria-label={queueView === 'queue' ? 'Search queue' : 'Search results'}
                   >
                     <svg
                       className="backtest-queue-search-icon"

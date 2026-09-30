@@ -50,6 +50,14 @@
   animation-delay: 0.36s;
 }
 
+.grai-token-flow-panel.is-open .grai-token-flow-step:nth-child(7) {
+  animation-delay: 0.42s;
+}
+
+.grai-token-flow-panel.is-open .grai-token-flow-step:nth-child(8) {
+  animation-delay: 0.48s;
+}
+
 @keyframes grai-token-flow-step-in {
   from {
     opacity: 0;

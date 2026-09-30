@@ -611,48 +611,48 @@ function Header() {
                 </div>
               </li>
               <li
-                ref={affiliatesMenuRef}
-                className={`header-nav-item header-nav-item--grai${isAffiliatesActive ? ' is-current-product' : ''}${isAffiliatesMenuOpen ? ' is-open' : ''}`}
+                ref={grsMenuRef}
+                className={`header-nav-item header-nav-item--grai${isGrsActive ? ' is-current-product' : ''}${isGrsMenuOpen ? ' is-open' : ''}`}
               >
                 <HeaderNavPathButton
-                  path="/affiliate"
-                  active={isAffiliatesActive}
+                  path="/grs"
+                  active={isGrsActive}
                   onClick={closeMenus}
                 >
                   <span className="header-nav-link-stack">
-                    <span className="header-nav-link-title">AFFILIATES</span>
-                    <span className="header-nav-link-sub">referral program</span>
+                    <span className="header-nav-link-title">GRS</span>
+                    <span className="header-nav-link-sub">protocol token</span>
                   </span>
                 </HeaderNavPathButton>
                 <button
                   type="button"
-                  className={`header-nav-caret-btn${isAffiliatesMenuOpen ? ' is-open' : ''}`}
-                  aria-expanded={isAffiliatesMenuOpen}
+                  className={`header-nav-caret-btn${isGrsMenuOpen ? ' is-open' : ''}`}
+                  aria-expanded={isGrsMenuOpen}
                   aria-haspopup="menu"
-                  aria-label="AFFILIATES sections"
+                  aria-label="GRS sections"
                   onClick={() => {
                     setIsBacktestMenuOpen(false)
+                    setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
-                    setIsGrsMenuOpen(false)
-                    setIsAffiliatesMenuOpen((open) => !open)
+                    setIsGrsMenuOpen((open) => !open)
                   }}
                 >
                   <GraiUiCaret className="header-nav-caret" />
                 </button>
                 <div
-                  className={`header-nav-dropdown${isAffiliatesMenuOpen ? ' is-open' : ''}`}
+                  className={`header-nav-dropdown${isGrsMenuOpen ? ' is-open' : ''}`}
                   role="menu"
-                  aria-label="AFFILIATES sections"
-                  aria-hidden={!isAffiliatesMenuOpen}
-                  hidden={!isAffiliatesMenuOpen}
+                  aria-label="GRS sections"
+                  aria-hidden={!isGrsMenuOpen}
+                  hidden={!isGrsMenuOpen}
                 >
-                  {AFFILIATES_NAV_ITEMS.map((item) => (
+                  {GRS_NAV_ITEMS.map((item) => (
                     <button
                       key={item.section}
                       type="button"
                       role="menuitem"
                       className="header-nav-dropdown-item"
-                      onClick={() => handleAffiliatesSectionClick(item.section)}
+                      onClick={() => handleGrsSectionClick(item.section)}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
                       <span>{item.label}</span>
@@ -717,48 +717,48 @@ function Header() {
                 </div>
               </li>
               <li
-                ref={grsMenuRef}
-                className={`header-nav-item header-nav-item--grai${isGrsActive ? ' is-current-product' : ''}${isGrsMenuOpen ? ' is-open' : ''}`}
+                ref={affiliatesMenuRef}
+                className={`header-nav-item header-nav-item--grai${isAffiliatesActive ? ' is-current-product' : ''}${isAffiliatesMenuOpen ? ' is-open' : ''}`}
               >
                 <HeaderNavPathButton
-                  path="/grs"
-                  active={isGrsActive}
+                  path="/affiliate"
+                  active={isAffiliatesActive}
                   onClick={closeMenus}
                 >
                   <span className="header-nav-link-stack">
-                    <span className="header-nav-link-title">GRS</span>
-                    <span className="header-nav-link-sub">protocol equity</span>
+                    <span className="header-nav-link-title">AFFILIATES</span>
+                    <span className="header-nav-link-sub">referral program</span>
                   </span>
                 </HeaderNavPathButton>
                 <button
                   type="button"
-                  className={`header-nav-caret-btn${isGrsMenuOpen ? ' is-open' : ''}`}
-                  aria-expanded={isGrsMenuOpen}
+                  className={`header-nav-caret-btn${isAffiliatesMenuOpen ? ' is-open' : ''}`}
+                  aria-expanded={isAffiliatesMenuOpen}
                   aria-haspopup="menu"
-                  aria-label="GRS sections"
+                  aria-label="AFFILIATES sections"
                   onClick={() => {
                     setIsBacktestMenuOpen(false)
-                    setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
-                    setIsGrsMenuOpen((open) => !open)
+                    setIsGrsMenuOpen(false)
+                    setIsAffiliatesMenuOpen((open) => !open)
                   }}
                 >
                   <GraiUiCaret className="header-nav-caret" />
                 </button>
                 <div
-                  className={`header-nav-dropdown${isGrsMenuOpen ? ' is-open' : ''}`}
+                  className={`header-nav-dropdown${isAffiliatesMenuOpen ? ' is-open' : ''}`}
                   role="menu"
-                  aria-label="GRS sections"
-                  aria-hidden={!isGrsMenuOpen}
-                  hidden={!isGrsMenuOpen}
+                  aria-label="AFFILIATES sections"
+                  aria-hidden={!isAffiliatesMenuOpen}
+                  hidden={!isAffiliatesMenuOpen}
                 >
-                  {GRS_NAV_ITEMS.map((item) => (
+                  {AFFILIATES_NAV_ITEMS.map((item) => (
                     <button
                       key={item.section}
                       type="button"
                       role="menuitem"
                       className="header-nav-dropdown-item"
-                      onClick={() => handleGrsSectionClick(item.section)}
+                      onClick={() => handleAffiliatesSectionClick(item.section)}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
                       <span>{item.label}</span>
@@ -806,19 +806,19 @@ function Header() {
               </HeaderNavPathButton>
             </li>
             ) : null}
-            {!isNavCompact || !isAffiliatesActive ? (
+            {!isNavCompact || !isGrsActive ? (
             <li>
               <HeaderNavPathButton
-                path="/affiliate"
-                active={isAffiliatesActive}
+                path="/grs"
+                active={isGrsActive}
                 onClick={() => {
                   closeMenus()
                   setIsMobileNavOpen(false)
                 }}
               >
                 <span className="header-nav-link-stack">
-                  <span className="header-nav-link-title">AFFILIATES</span>
-                  <span className="header-nav-link-sub">referral program</span>
+                  <span className="header-nav-link-title">GRS</span>
+                  <span className="header-nav-link-sub">protocol token</span>
                 </span>
               </HeaderNavPathButton>
             </li>
@@ -844,19 +844,19 @@ function Header() {
               </HeaderNavPathButton>
             </li>
             ) : null}
-            {!isNavCompact || !isGrsActive ? (
+            {!isNavCompact || !isAffiliatesActive ? (
             <li>
               <HeaderNavPathButton
-                path="/grs"
-                active={isGrsActive}
+                path="/affiliate"
+                active={isAffiliatesActive}
                 onClick={() => {
                   closeMenus()
                   setIsMobileNavOpen(false)
                 }}
               >
                 <span className="header-nav-link-stack">
-                  <span className="header-nav-link-title">GRS</span>
-                  <span className="header-nav-link-sub">protocol equity</span>
+                  <span className="header-nav-link-title">AFFILIATES</span>
+                  <span className="header-nav-link-sub">referral program</span>
                 </span>
               </HeaderNavPathButton>
             </li>
@@ -878,15 +878,15 @@ function Header() {
                   </li>
                 ))
               : null}
-            {isAffiliatesActive
-              ? AFFILIATES_NAV_ITEMS.map((item) => (
+            {isGrsActive
+              ? GRS_NAV_ITEMS.map((item) => (
                   <li key={item.section}>
                     <button
                       type="button"
                       className="header-nav-link header-mobile-nav-sublink"
                       onClick={() => {
                         setIsMobileNavOpen(false)
-                        handleAffiliatesSectionClick(item.section)
+                        handleGrsSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
@@ -912,15 +912,15 @@ function Header() {
                   </li>
                 ))
               : null}
-            {isGrsActive
-              ? GRS_NAV_ITEMS.map((item) => (
+            {isAffiliatesActive
+              ? AFFILIATES_NAV_ITEMS.map((item) => (
                   <li key={item.section}>
                     <button
                       type="button"
                       className="header-nav-link header-mobile-nav-sublink"
                       onClick={() => {
                         setIsMobileNavOpen(false)
-                        handleGrsSectionClick(item.section)
+                        handleAffiliatesSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>

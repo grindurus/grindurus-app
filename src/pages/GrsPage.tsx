@@ -41,10 +41,8 @@ const GRS_TERM = (
   </GraiFieldInfoButton>
 )
 
-const BUY_NOTE = <>You buy {GRS_TERM} on token sale</>
-
 const NOTES: Record<GrsSection, ReactNode> = {
-  'token-sale': BUY_NOTE,
+  'token-sale': <>You buy {GRS_TERM} on a token sale</>,
   allocation: <>Cap table for the fixed 1B {GRS_TERM} supply — five groups, remaining vs used.</>,
   bridge: (
     <>
@@ -243,7 +241,7 @@ function GrsPage() {
             snapshot={snapshot}
             isLoading={isLoading}
             refresh={refresh}
-            note={BUY_NOTE}
+            note={GRS_TERM}
           />
         </section>
 

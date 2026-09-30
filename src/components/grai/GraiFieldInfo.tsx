@@ -1,28 +1,6 @@
 import { useState, type FocusEvent, type ReactNode } from 'react'
 import { BALANCE_FIELD_ICON, FIELD_INFO_ICON } from './graiPageIcons'
 
-export function GraiGrindersTotalLabel({
-  showTotal,
-  rest,
-}: {
-  showTotal: boolean
-  rest: string
-}) {
-  return (
-    <span
-      className={`grai-grinders-filter-total-label${showTotal ? ' has-total-prefix' : ''}`}
-    >
-      <span
-        className={`grai-grinders-filter-total-prefix${showTotal ? ' is-visible' : ''}`}
-        aria-hidden={showTotal ? undefined : true}
-      >
-        <span className="grai-grinders-filter-total-prefix-inner">TOTAL</span>
-      </span>
-      {rest}
-    </span>
-  )
-}
-
 export function GraiFieldInfoButton({
   hint,
   ariaLabel,
