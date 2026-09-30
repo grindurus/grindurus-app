@@ -512,7 +512,7 @@ export function GrsListSalePanel({ config, snapshot, refresh, solanaSpoke, note 
   if (solanaSpoke && !config) {
     return (
       <p className="grs-empty">
-        Solana GRS is deployed as a spoke (<code>home: false</code>). List / publish sales on the EVM
+        Solana GRS is deployed as a spoke (<code>homeEid ≠ 0</code>). List / publish sales on the EVM
         home chain (Sepolia), then they can be LZ-published to Solana for spoke buys.
       </p>
     )

@@ -43,18 +43,18 @@ const EVM_CHAINS = [
 ] as const
 
 /**
- * Devnet spoke defaults — `grindurus-solana/migrations/grs/v1_deploy.md`
- * (paired with Sepolia home `grindurus-evm/script/grs/v2_deploy.md`).
+ * Devnet spoke defaults — `grindurus-solana/migrations/grs/v2_deploy.md`
+ * (paired with Sepolia home `grindurus-evm/script/grs/v3_deploy.md`).
  * Escrow / oft_store derived as `["OftEscrow", mint]` → `["OFT", escrow]`;
  * env `VITE_GRS_*_ESCROW` / `OFT_STORE` still override when set.
  */
 const DEVNET_DEFAULTS = {
   programId: 'BGWdAUzjxAZtFzxRTSy88k6r9iYotkhga449vB2tRNTy',
-  mint: '6zyHpFEjGZeD7oGoe1VLBydQ3tM1FbKaUrkXXeVmgrs',
+  mint: '9YCwSKP54mZCnGFzdUFNfd6vsx84gsaARKh7NG16z6mc',
 } as const
 
-/** Sepolia home OFT — `grindurus-evm/script/grs/v2_deploy.md` */
-const SEPOLIA_DEFAULT_TOKEN = '0x2cd392CC10887a258019143a710a5Ce2C5B5d88d' as const
+/** Sepolia home OFT — `grindurus-evm/script/grs/v3_deploy.md` */
+const SEPOLIA_DEFAULT_TOKEN = '0xFBa4f8CDa4C54BD9D3F045665C6D7F5B9A2c56c4' as const
 
 function readEnv(key: string): string | undefined {
   const value = (import.meta.env as Record<string, string | undefined>)[key]
@@ -147,11 +147,16 @@ export function resolveGrsSolanaConfig(cluster: SolanaCluster = getDefaultGrsSol
 }
 
 export function createGrsSolanaConnection(config: GrsSolanaConfig): Connection {
+  // Wallet Standard derives chain from rpcEndpoint — must contain "devnet" for Devnet.
+  const rpcUrl =
+    config.cluster === 'devnet' && !/\bdevnet\b/i.test(config.rpcUrl)
+      ? resolveSolanaRpcUrl('devnet')
+      : config.rpcUrl
   return createGraiConnection({
     kind: 'solana',
     cluster: config.cluster,
     graiMint: config.mint,
-    rpcUrl: config.rpcUrl,
+    rpcUrl,
   })
 }
 

@@ -26,23 +26,33 @@ function readU32(data: Buffer, offset: number): number {
 }
 
 export type DecodedGrsConfig = {
+  homeEid: number
+  homeAddress: PublicKey
+  /** True when `homeEid === 0` (this deployment is home; `homeAddress` is oft_store). */
   home: boolean
   genesisMinted: boolean
   bump: number
   vestingCount: bigint
   tokenSalesSpent: bigint
+  salesReserved: bigint
 }
 
 export function decodeGrsConfig(data: Buffer): DecodedGrsConfig {
   requireDisc(data, GRS_CONFIG_DISC, 'GrsConfig')
   let o = 8
-  const home = data[o++] === 1
+  const homeEid = data.readUInt32LE(o)
+  o += 4
+  const homeAddress = readPubkey(data, o)
+  o += 32
+  const home = homeEid === 0
   const genesisMinted = data[o++] === 1
   const bump = data[o++]
   const vestingCount = readU64(data, o)
   o += 8
   const tokenSalesSpent = readU64(data, o)
-  return { home, genesisMinted, bump, vestingCount, tokenSalesSpent }
+  o += 8
+  const salesReserved = readU64(data, o)
+  return { homeEid, homeAddress, home, genesisMinted, bump, vestingCount, tokenSalesSpent, salesReserved }
 }
 
 export type DecodedSale = {

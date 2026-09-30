@@ -1,5 +1,14 @@
-import { getAccount, readContract, waitForTransactionReceipt, writeContract } from '@wagmi/core'
-import { erc20Abi, getAddress, maxUint256 } from 'viem'
+import {
+  getAccount,
+  getBytecode,
+  getCapabilities,
+  readContract,
+  sendCalls,
+  waitForCallsStatus,
+  waitForTransactionReceipt,
+  writeContract,
+} from '@wagmi/core'
+import { erc20Abi, getAddress } from 'viem'
 import { wagmiConfig } from '../../providers/evmConfig'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import { GRS_DECIMALS } from '../constants'
@@ -7,6 +16,36 @@ import { parseBridgeRecipient, parseSaleAsset, ZERO_BYTES32, evmAddressToBytes32
 import type { GrsEvmConfig } from '../deployments'
 import { grsAbi } from './abi'
 import { quoteGrsBridge, quoteGrsGrant, previewGrsBuy } from './readProtocol'
+
+/** EIP-5792 atomic batching and/or EIP-7702 delegated EOA (MetaMask smart account). */
+async function walletCanBatchCalls(
+  address: `0x${string}`,
+  chainId: number,
+): Promise<boolean> {
+  try {
+    const caps = await getCapabilities(wagmiConfig, { account: address, chainId })
+    const chainCaps =
+      caps && typeof caps === 'object' && 'atomic' in caps
+        ? (caps as { atomic?: { status?: string } })
+        : ((caps as Record<string | number, { atomic?: { status?: string } }>)[chainId] ??
+          (caps as Record<string, { atomic?: { status?: string } }>)[
+            `0x${chainId.toString(16)}`
+          ])
+    const status = chainCaps?.atomic?.status
+    if (status === 'supported' || status === 'ready') return true
+  } catch {
+    /* wallet_getCapabilities unavailable */
+  }
+
+  try {
+    const code = await getBytecode(wagmiConfig, { address })
+    // EIP-7702 designation: 0xef0100 ‖ address
+    if (code && code.toLowerCase().startsWith('0xef0100')) return true
+  } catch {
+    /* ignore */
+  }
+  return false
+}
 
 export type ExecuteGrsBridgeParams = {
   config: GrsEvmConfig
@@ -142,6 +181,7 @@ export async function executeGrsBuy({
   const to = getAddress(recipient)
   const amount = parseTokenAmount(amountInput, decimals)
   const cost = await previewGrsBuy(config, saleId, amount)
+  const chainId = (account.chainId ?? config.chainId) as (typeof wagmiConfig)['chains'][number]['id']
 
   if (!nativeQuote) {
     const allowance = await readContract(wagmiConfig, {
@@ -151,11 +191,47 @@ export async function executeGrsBuy({
       args: [account.address, config.address],
     })
     if (allowance < cost) {
+      const canBatch = await walletCanBatchCalls(account.address, chainId)
+      if (canBatch) {
+        try {
+          const { id } = await sendCalls(wagmiConfig, {
+            account: account.address,
+            chainId,
+            forceAtomic: true,
+            calls: [
+              {
+                to: quoteAddress,
+                abi: erc20Abi,
+                functionName: 'approve',
+                args: [config.address, cost],
+              },
+              {
+                to: config.address,
+                abi: grsAbi,
+                functionName: 'buy',
+                args: [saleId, amount, to],
+              },
+            ],
+          })
+          const status = await waitForCallsStatus(wagmiConfig, { id })
+          if (status.status !== 'success') {
+            throw new Error(`Batched USDC approve + buy failed (${status.status})`)
+          }
+          const receipts = status.receipts ?? []
+          const hash = receipts[receipts.length - 1]?.transactionHash ?? receipts[0]?.transactionHash
+          if (!hash) throw new Error('Batched buy succeeded but returned no receipt hash')
+          return { hash, amount, cost, amountLabel: formatTokenBalance(amount, decimals) }
+        } catch (batchError) {
+          // Wallet advertised batching but rejected — fall through to two txs.
+          console.warn('[GRS] atomic approve+buy failed; falling back to sequential', batchError)
+        }
+      }
+
       const approveHash = await writeContract(wagmiConfig, {
         address: quoteAddress,
         abi: erc20Abi,
         functionName: 'approve',
-        args: [config.address, maxUint256],
+        args: [config.address, cost],
       })
       await waitForTransactionReceipt(wagmiConfig, { hash: approveHash })
     }

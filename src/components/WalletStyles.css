@@ -1,7 +1,7 @@
 /* Connect Wallet Button */
 .header-wallet-slot {
-  width: 11.5rem;
-  min-width: 11.5rem;
+  width: 12.75rem;
+  min-width: 12.75rem;
   flex-shrink: 0;
 }
 
@@ -2029,7 +2029,7 @@ html:has(body[data-scroll-locked]) body {
   .header-wallet-slot {
     width: auto;
     min-width: 0;
-    max-width: min(11.5rem, 52vw);
+    max-width: min(12.75rem, 52vw);
     flex: 0 1 auto;
   }
 
@@ -2049,7 +2049,7 @@ html:has(body[data-scroll-locked]) body {
   .header-wallet-slot--connected {
     width: auto;
     min-width: 0;
-    max-width: min(11.5rem, 48vw);
+    max-width: min(12.75rem, 48vw);
     flex: 0 1 auto;
   }
 
@@ -2266,7 +2266,7 @@ html:has(body[data-scroll-locked]) body {
 
 @media (max-width: 480px) {
   .header-wallet-slot:not(.header-wallet-slot--connected) {
-    max-width: min(11.5rem, calc(100vw - 5.5rem));
+    max-width: min(12.75rem, calc(100vw - 5.5rem));
   }
 
   .wallet-modal {

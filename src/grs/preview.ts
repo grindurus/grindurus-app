@@ -58,7 +58,7 @@ const eth = ethMeta()
 const usdc = usdcMeta()
 const SOL_ICON = 'https://assets.coingecko.com/coins/images/4128/small/solana.png'
 
-/** TGE four-row plan: ETH USDC · SOL USDC · ETH native · SOL native @ $0.02. */
+/** TGE four-row plan: EVM USDC · EVM ETH · Solana USDC · Solana SOL @ $0.02. */
 export const MOCK_GRS_SALES: GrsSale[] = [
   {
     id: 1n,

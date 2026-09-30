@@ -99,9 +99,11 @@ export function ConnectWalletButton() {
 
   const handleNetworkSelect = useCallback(
     (chainId: number) => {
-      evmWallet.switchToChain(chainId)
       const next = chainIdToEvmChain(chainId)
       if (next) setEvmChain(next)
+      void evmWallet.switchToChainAsync(chainId).catch(() => {
+        evmWallet.switchToChain(chainId)
+      })
       setIsNetworkOpen(false)
     },
     [evmWallet, setEvmChain],

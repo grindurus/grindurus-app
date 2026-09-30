@@ -1078,7 +1078,11 @@
 .backtest-pay-btn-usdc-label {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 0.35rem;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .backtest-pay-btn-usdc-label .backtest-usdc-ticker-icon {

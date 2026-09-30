@@ -77,22 +77,31 @@ function devnetRpcProxyUrl(): string {
 
 function resolveSolanaRpcUrlInternal(cluster: SolanaCluster): string {
   const suffix = clusterEnvSuffix(cluster)
-  const graiSpecific = readEnv(`VITE_GRAI_${suffix}_RPC_URL`)
-  if (graiSpecific) return graiSpecific
-
-  const solanaSpecific = readEnv(`VITE_SOLANA_${suffix}_RPC_URL`)
-  if (solanaSpecific) return solanaSpecific
+  const candidates = [
+    readEnv(`VITE_GRAI_${suffix}_RPC_URL`),
+    readEnv(`VITE_SOLANA_${suffix}_RPC_URL`),
+  ]
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    const detected = detectClusterFromRpc(candidate)
+    if (detected && detected !== cluster) continue
+    return candidate
+  }
 
   const isDefaultCluster = cluster === getDefaultGraiSolanaCluster()
   if (isDefaultCluster) {
     const legacyGrai = readEnv('VITE_GRAI_RPC_URL')
-    if (legacyGrai) return legacyGrai
+    // Never bind a mainnet Helius URL to a Devnet default cluster.
+    if (legacyGrai && (detectClusterFromRpc(legacyGrai) ?? cluster) === cluster) {
+      return legacyGrai
+    }
   }
 
   const solanaRpc = readEnv('VITE_SOLANA_RPC_URL')
   if (solanaRpc && detectClusterFromRpc(solanaRpc) === cluster) return solanaRpc
 
   // Local dev: proxy to official devnet RPC (api.devnet.solana.com TLS cert is expired).
+  // Path must contain "devnet" so Wallet Standard getChainForEndpoint → solana:devnet.
   if (import.meta.env.DEV && cluster === 'devnet') {
     return devnetRpcProxyUrl()
   }
@@ -101,7 +110,14 @@ function resolveSolanaRpcUrlInternal(cluster: SolanaCluster): string {
 }
 
 export function resolveSolanaRpcUrl(cluster: SolanaCluster): string {
-  return resolveSolanaRpcUrlInternal(cluster)
+  const url = resolveSolanaRpcUrlInternal(cluster)
+  if (cluster === 'devnet' && !/\bdevnet\b/i.test(url)) {
+    return import.meta.env.DEV ? devnetRpcProxyUrl() : clusterApiUrl('devnet')
+  }
+  if (cluster === 'mainnet-beta' && /\bdevnet\b/i.test(url)) {
+    return clusterApiUrl('mainnet-beta')
+  }
+  return url
 }
 
 function resolveGraiMintAddress(cluster: SolanaCluster): string | undefined {

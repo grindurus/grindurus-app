@@ -11,7 +11,11 @@ import {
   getAssociatedTokenAddress,
 } from '../../grai/pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from '../../grai/splInstructions'
-import { formatTokenBalance, parseTokenAmount, confirmSignatureViaHttp } from '../../grai/onchain'
+import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
+import {
+  sendWalletTransaction,
+  type SolanaSendTransaction,
+} from '../../solana/sendWalletTransaction'
 import type { GrsSolanaConfig } from '../deployments'
 import { decodeGrsConfig, decodeOftStore, decodeSaleAccount, decodeSaleRegistry, quoteSaleCost } from './layout'
 import { isEvmPackedPubkey } from './quoteAssets'
@@ -35,25 +39,26 @@ function meta(pubkey: PublicKey, isSigner = false, isWritable = false) {
   return { pubkey, isSigner, isWritable }
 }
 
+type SignTx = (transaction: Transaction) => Promise<Transaction>
+
 async function sendSigned(
   connection: Connection,
   tx: Transaction,
   feePayer: PublicKey,
-  signTransaction: (transaction: Transaction) => Promise<Transaction>,
+  signTransaction: SignTx,
+  sendTransaction?: SolanaSendTransaction | null,
+  expectedCluster?: GrsSolanaConfig['cluster'],
+  action = 'GRS action',
 ): Promise<string> {
-  const { blockhash } = await connection.getLatestBlockhash('confirmed')
-  tx.feePayer = feePayer
-  tx.recentBlockhash = blockhash
-  const signed = await signTransaction(tx)
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
-    maxRetries: 3,
+  return sendWalletTransaction({
+    connection,
+    transaction: tx,
+    feePayer,
+    expectedCluster,
+    action,
+    sendTransaction,
+    signTransaction,
   })
-  // HTTP poll — `confirmTransaction` WebSocket hangs on the local /solana-devnet-rpc proxy
-  // while Solscan already shows the tx confirmed.
-  await confirmSignatureViaHttp(connection, signature, 'confirmed')
-  return signature
 }
 
 async function loadStore(connection: Connection, config: GrsSolanaConfig) {
@@ -76,7 +81,8 @@ export async function executeSolanaGrsBuy(params: {
   connection: Connection
   config: GrsSolanaConfig
   publicKey: PublicKey
-  signTransaction: (transaction: Transaction) => Promise<Transaction>
+  signTransaction: SignTx
+  sendTransaction?: SolanaSendTransaction | null
   saleId: bigint
   amountInput: string
   recipient: string
@@ -100,6 +106,25 @@ export async function executeSolanaGrsBuy(params: {
   const payee = row.recipient.equals(PublicKey.default) ? oft.admin : row.recipient
   const destAta = getAssociatedTokenAddress(params.config.mint, to)
   const native = row.asset.equals(PublicKey.default)
+
+  if (native) {
+    const lamports = await params.connection.getBalance(params.publicKey, 'confirmed')
+    if (BigInt(lamports) < cost + 10_000n) {
+      throw new Error(
+        `Need ${formatTokenBalance(cost, 9, 4)} SOL on Devnet (plus fees) to buy.`,
+      )
+    }
+  } else {
+    const quoteSource = getAssociatedTokenAddress(row.asset, params.publicKey)
+    const quoteInfo = await params.connection.getTokenAccountBalance(quoteSource).catch(() => null)
+    const have = quoteInfo ? BigInt(quoteInfo.value.amount) : 0n
+    if (have < cost) {
+      const quoteDecimals = quoteInfo?.value.decimals ?? 6
+      throw new Error(
+        `Need ${formatTokenBalance(cost, quoteDecimals, 2)} USDC on Devnet (wallet has ${formatTokenBalance(have, quoteDecimals, 2)}).`,
+      )
+    }
+  }
 
   const keys = [
     meta(params.publicKey, true, true),
@@ -140,7 +165,18 @@ export async function executeSolanaGrsBuy(params: {
     )
   }
   if (!native) {
+    const quoteSource = getAssociatedTokenAddress(row.asset, params.publicKey)
     const quoteDest = getAssociatedTokenAddress(row.asset, payee)
+    if (!(await params.connection.getAccountInfo(quoteSource))) {
+      tx.add(
+        createAssociatedTokenAccountIdempotentInstruction(
+          params.publicKey,
+          quoteSource,
+          params.publicKey,
+          row.asset,
+        ),
+      )
+    }
     if (!(await params.connection.getAccountInfo(quoteDest))) {
       tx.add(
         createAssociatedTokenAccountIdempotentInstruction(
@@ -166,6 +202,9 @@ export async function executeSolanaGrsBuy(params: {
     tx,
     params.publicKey,
     params.signTransaction,
+    params.sendTransaction,
+    params.config.cluster,
+    'buy GRS',
   )
   return {
     signature,
@@ -179,7 +218,8 @@ export async function executeSolanaGrsVest(params: {
   connection: Connection
   config: GrsSolanaConfig
   publicKey: PublicKey
-  signTransaction: (transaction: Transaction) => Promise<Transaction>
+  signTransaction: SignTx
+  sendTransaction?: SolanaSendTransaction | null
   amountInput: string
   beneficiary: string
   cliffSeconds: number
@@ -225,6 +265,9 @@ export async function executeSolanaGrsVest(params: {
     tx,
     params.publicKey,
     params.signTransaction,
+    params.sendTransaction,
+    params.config.cluster,
+    'vest GRS',
   )
   return { signature, amount, amountLabel: formatTokenBalance(amount, decimals), id }
 }
@@ -233,7 +276,8 @@ export async function executeSolanaGrsRelease(params: {
   connection: Connection
   config: GrsSolanaConfig
   publicKey: PublicKey
-  signTransaction: (transaction: Transaction) => Promise<Transaction>
+  signTransaction: SignTx
+  sendTransaction?: SolanaSendTransaction | null
   vestingId: bigint
 }): Promise<{ signature: string }> {
   const { pdas } = await loadStore(params.connection, params.config)
@@ -268,6 +312,9 @@ export async function executeSolanaGrsRelease(params: {
     tx,
     params.publicKey,
     params.signTransaction,
+    params.sendTransaction,
+    params.config.cluster,
+    'release GRS vesting',
   )
   return { signature }
 }
@@ -276,7 +323,8 @@ export async function executeSolanaGrsSale(params: {
   connection: Connection
   config: GrsSolanaConfig
   publicKey: PublicKey
-  signTransaction: (transaction: Transaction) => Promise<Transaction>
+  signTransaction: SignTx
+  sendTransaction?: SolanaSendTransaction | null
   asset: PublicKey
   assetAmount: bigint
   grsAmount: bigint
@@ -318,6 +366,9 @@ export async function executeSolanaGrsSale(params: {
     tx,
     params.publicKey,
     params.signTransaction,
+    params.sendTransaction,
+    params.config.cluster,
+    'list GRS sale',
   )
   return { signature }
 }

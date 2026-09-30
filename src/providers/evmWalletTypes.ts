@@ -11,7 +11,7 @@ export type EvmWalletSnapshot = {
   canOpenConnectModal: boolean
   connect: () => boolean
   connectWalletConnect: () => boolean
-  connectWithConnector: (connectorId: string) => Promise<void>
+  connectWithConnector: (connectorId: string, chainId?: number) => Promise<void>
   disconnect: () => void
   switchToChain: (targetChainId: number) => void
   switchToChainAsync: (targetChainId: number) => Promise<void>

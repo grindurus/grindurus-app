@@ -3350,8 +3350,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   flex-direction: column;
   gap: 0.65rem;
   align-items: stretch;
-  width: 33.333%;
-  max-width: 33.333%;
+  width: min(42rem, 100%);
+  max-width: min(42rem, 100%);
   box-sizing: border-box;
   container-type: inline-size;
   overflow: clip;
@@ -3365,7 +3365,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-actions-block .grai-page-subtitle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
@@ -3376,22 +3376,24 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   padding: 0;
   border: 0;
   background: transparent;
-  font: inherit;
-  font-size: clamp(1.25rem, 5.8cqi, 1.75rem);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
   text-align: center;
+  text-transform: none;
   white-space: nowrap;
-  overflow: hidden;
-  color: inherit;
+  overflow: visible;
+  color: var(--text-primary);
 }
 
 .grai-actions-block .grai-page-subtitle > span:not(.grai-page-subtitle-caret) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
   min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
   font: inherit;
   line-height: inherit;
@@ -3399,21 +3401,27 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-page-subtitle-text-line {
   display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
   column-gap: 0;
+  width: max-content;
+  max-width: 100%;
   font: inherit;
-  line-height: 1.2;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .grai-page-subtitle-text-segment {
-  display: inline-flex;
-  align-items: center;
+  display: inline;
+  flex-shrink: 0;
   font: inherit;
   font-size: inherit;
   font-weight: inherit;
-  line-height: 1.2;
+  line-height: inherit;
   letter-spacing: inherit;
+  white-space: nowrap;
 }
 
 .grai-page-subtitle-rotating-slot {
@@ -3520,7 +3528,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-actions-block .grai-page-subtitle.is-fit-width {
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
 }
 
 .grai-page-subtitle-wrap {
@@ -3531,16 +3539,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   justify-content: center;
   gap: 0;
   width: 100%;
+  overflow: visible;
 }
 
 /* Stack subtitle ↔ escrow tabs in one slot so amount input never shifts */
 .grai-page-subtitle-head {
-  --grai-subtitle-head-height: 2.5rem;
+  --grai-subtitle-head-height: 2.6rem;
   position: relative;
   display: grid;
   align-items: center;
   width: 100%;
   min-height: var(--grai-subtitle-head-height);
+  overflow: visible;
 }
 
 .grai-page-subtitle-head > .grai-page-subtitle {
@@ -3681,8 +3691,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-actions-block .grai-page-subtitle.is-fit-width {
-    font-size: clamp(1.12rem, 5.4cqi, 1.55rem) !important;
-    letter-spacing: -0.01em;
+    font-size: clamp(1.1rem, 4.5cqi, 1.85rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
   }
 }
 
@@ -7998,6 +8010,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     max-width: none;
   }
 
+  .grai-action-card.grai-mint .grai-action-content {
+    --grai-mint-controls-width: 100%;
+  }
+
   .grai-assets-chart-card {
     max-width: none;
   }
@@ -8932,7 +8948,21 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-action-card.grai-mint .grai-action-content {
   --grai-action-content-gap: 1rem;
   --grai-action-metric-stack-gap: 0.55rem;
+  /* Match .grai-liquidation-escrow-body column width */
+  --grai-mint-controls-width: min(100%, 25.3125rem);
   gap: var(--grai-action-content-gap);
+  align-items: center;
+}
+
+/* Title can use the full wide card; controls stay at the old ~1/3 column width. */
+.grai-action-card.grai-mint .grai-action-content > .grai-page-subtitle-wrap {
+  align-self: stretch;
+  width: 100%;
+}
+
+.grai-action-card.grai-mint .grai-action-content > :not(.grai-page-subtitle-wrap) {
+  width: 100%;
+  max-width: var(--grai-mint-controls-width);
 }
 
 .grai-action-card.grai-mint .grai-amount-input:not(.is-fill-layout) {
@@ -9471,13 +9501,16 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   align-items: center;
   justify-items: center;
   min-width: 0;
+  max-width: 100%;
 }
 
 .grai-page-subtitle-mode-swap-item {
   grid-area: 1 / 1;
   display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;

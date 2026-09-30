@@ -297,6 +297,74 @@
   border-radius: 0;
 }
 
+.grs-sales-catalog-tabs-shell {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-bottom: calc(-1 * 0.75rem);
+  pointer-events: none;
+  transition:
+    grid-template-rows 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease,
+    margin-bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grs-sales-catalog-tabs-shell.is-visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-bottom: 0;
+  pointer-events: auto;
+}
+
+.grs-sales-catalog-tabs-shell-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.grs-sales-catalog-tabs {
+  align-self: center;
+  width: min(100%, 16rem);
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0;
+  flex: 0 0 auto;
+}
+
+.grs-sales-catalog-tabs.is-solana-active::after {
+  transform: translateX(100%);
+}
+
+.grs-sales-catalog-tabs .grai-action-switch-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.grs-sales-catalog-tabs .grai-action-switch-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.grs-sales-catalog-tabs .grai-action-switch-icon img,
+.grs-sales-catalog-tabs .grai-action-switch-icon svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grs-sales-catalog-tabs-shell {
+    transition: none;
+  }
+}
+
 .grs-sales-catalog-panel > .grai-action-metrics {
   flex: 0 0 auto;
   width: 100%;
@@ -728,8 +796,8 @@
 
 .grs-book-row-top {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 0.55rem;
   width: 100%;
 }
@@ -737,12 +805,45 @@
 .grs-book-row-top .grs-book-price-block {
   flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
 }
 
-.grs-book-row-top .grs-book-network {
-  flex: 0 0 auto;
-  max-width: 45%;
-  align-self: center;
+.grs-book-price-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grs-book-price-label {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.grs-book-sale-id {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.grs-book-heading {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem 0.45rem;
+  min-width: 0;
+  margin-left: auto;
 }
 
 .grs-book-network {
@@ -750,7 +851,7 @@
   align-items: center;
   gap: 0.32rem;
   min-width: 0;
-  max-width: 65%;
+  max-width: 100%;
   padding: 0.18rem 0.48rem 0.18rem 0.32rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg-primary, #0a0a0a) 45%, transparent);
@@ -781,9 +882,28 @@
 
 .grs-book-price-block {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.22rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.grs-book-price-line {
+  display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem 0.45rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.grs-book-price-main {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.18rem;
   min-width: 0;
 }
 
@@ -796,6 +916,15 @@
   color: var(--text-primary);
 }
 
+.grs-book-price-usd {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
 .grs-book-row.is-active .grs-book-price-value {
   color: color-mix(in srgb, #ff69b4 42%, var(--text-primary));
 }
@@ -803,16 +932,19 @@
 .grs-book-price-unit {
   display: inline-flex;
   align-items: center;
-  gap: 0.22rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  align-self: flex-start;
+  gap: 0.28rem;
+  height: 1.7rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
   color: #fff;
 }
 
 .grs-book-price-unit-icon {
-  width: 0.85rem;
-  height: 0.85rem;
+  width: 1.05rem;
+  height: 1.05rem;
   flex-shrink: 0;
   object-fit: contain;
   border-radius: 999px;
@@ -873,6 +1005,13 @@
 
 .grs-book-foot-cell:last-child .grs-book-meta-value {
   justify-content: flex-end;
+}
+
+.grs-book-ticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  flex-shrink: 0;
 }
 
 .grs-book-ticker-icon {

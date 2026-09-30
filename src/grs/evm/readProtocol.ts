@@ -13,6 +13,10 @@ import { grsAbi } from './abi'
 import { createGrsEvmPublicClient } from './client'
 import { isNativeEvmAsset, resolveEvmGraiAsset } from '../../grai/evm/knownAssets'
 
+function isHomeDeployment(homeEid: number): boolean {
+  return homeEid === 0
+}
+
 export type GrsPeer = {
   eid: number
   peer: `0x${string}`
@@ -284,12 +288,12 @@ async function resolveHomeChain(current: GrsEvmConfig, isHome: boolean): Promise
     candidates.map(async (item) => {
       try {
         const client = createGrsEvmPublicClient(item)
-        const home = await client.readContract({
+        const homeEid = await client.readContract({
           address: item.address,
           abi: grsAbi,
-          functionName: 'home',
+          functionName: 'homeEid',
         })
-        return home ? item : null
+        return isHomeDeployment(Number(homeEid)) ? item : null
       } catch {
         return null
       }
@@ -307,12 +311,12 @@ export async function resolveGrsHomeEvmConfig(
   for (const item of configured) {
     try {
       const client = createGrsEvmPublicClient(item)
-      const isHome = await client.readContract({
+      const homeEid = await client.readContract({
         address: item.address,
         abi: grsAbi,
-        functionName: 'home',
+        functionName: 'homeEid',
       })
-      if (isHome) return item
+      if (isHomeDeployment(Number(homeEid))) return item
     } catch {
       /* try next */
     }
@@ -438,8 +442,8 @@ export async function fetchGrsSnapshot(
   owner?: `0x${string}`,
 ): Promise<GrsSnapshot> {
   const client = createGrsEvmPublicClient(config)
-  const [home, decimals, maxSupply, peersRaw, sales, vestingPack] = await Promise.all([
-    client.readContract({ address: config.address, abi: grsAbi, functionName: 'home' }),
+  const [homeEid, decimals, maxSupply, peersRaw, sales, vestingPack] = await Promise.all([
+    client.readContract({ address: config.address, abi: grsAbi, functionName: 'homeEid' }),
     client.readContract({ address: config.address, abi: grsAbi, functionName: 'decimals' }).catch(() => 18),
     client.readContract({ address: config.address, abi: grsAbi, functionName: 'MAX_SUPPLY' }).catch(() => 0n),
     client.readContract({ address: config.address, abi: grsAbi, functionName: 'getPeers' }).catch(() => []),
@@ -447,6 +451,7 @@ export async function fetchGrsSnapshot(
     fetchWalletVestings(config, owner).catch(() => ({ vestings: [] as GrsVesting[], vestingCount: 0n })),
   ])
 
+  const home = isHomeDeployment(Number(homeEid))
   const homeChain = await resolveHomeChain(config, home)
   const inventoryHome = home ? config : homeChain
   const [inventory, allocations, homePeersPack] = await Promise.all([
@@ -504,7 +509,7 @@ export async function previewGrsBuy(
   return client.readContract({
     address: config.address,
     abi: grsAbi,
-    functionName: 'previewBuy',
+    functionName: 'quoteBuy',
     args: [saleId, amount],
   })
 }

@@ -4,7 +4,6 @@ export const grsAbi = [
   { type: 'error', name: 'NotHome', inputs: [] },
   { type: 'error', name: 'NotSpoke', inputs: [] },
   { type: 'error', name: 'BucketExceeded', inputs: [] },
-  { type: 'error', name: 'ProprietorGated', inputs: [] },
   { type: 'error', name: 'InvalidSchedule', inputs: [] },
   { type: 'error', name: 'ZeroAmount', inputs: [] },
   { type: 'error', name: 'NothingToRelease', inputs: [] },
@@ -26,10 +25,17 @@ export const grsAbi = [
   },
   {
     type: 'function',
-    name: 'home',
+    name: 'homeAddress',
     stateMutability: 'view',
     inputs: [],
-    outputs: [{ type: 'bool' }],
+    outputs: [{ type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'homeEid',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint32' }],
   },
   {
     type: 'function',
@@ -103,7 +109,7 @@ export const grsAbi = [
   },
   {
     type: 'function',
-    name: 'previewBuy',
+    name: 'quoteBuy',
     stateMutability: 'view',
     inputs: [
       { name: 'id', type: 'uint256' },

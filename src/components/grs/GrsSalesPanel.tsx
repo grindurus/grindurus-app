@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { GraiAmountInput } from '../grai/GraiAmountInput'
 import { GraiFieldInfoButton } from '../grai/GraiFieldInfo'
 import { GraiUiCaret } from '../grai/GraiUiCaret'
@@ -44,6 +44,85 @@ function saleUnitPriceLabel(sale: GrsSale, grsDecimals: number): string {
   return `${formatTokenBalance(perGrs, sale.quoteDecimals, 8)} ${sale.quoteSymbol} / GRS`
 }
 
+/** TGE reference / fallbacks when CoinGecko is unavailable (matches DeployGRS ~$0.02 lots). */
+const FALLBACK_QUOTE_USD: Record<string, number> = {
+  USDC: 1,
+  USDT: 1,
+  ETH: 2500,
+  WETH: 2500,
+  SOL: 110,
+}
+
+function quoteUsdRate(symbol: string, rates: Record<string, number>): number | null {
+  const sym = symbol.trim().toUpperCase()
+  if (rates[sym] != null) return rates[sym]!
+  if (sym.includes('USDC') || sym.includes('USDT')) return rates.USDC ?? 1
+  if (sym === 'ETH' || sym === 'WETH') return rates.ETH ?? FALLBACK_QUOTE_USD.ETH!
+  if (sym === 'SOL') return rates.SOL ?? FALLBACK_QUOTE_USD.SOL!
+  return null
+}
+
+function formatUsdPerGrs(usd: number): string {
+  if (!Number.isFinite(usd) || usd <= 0) return '—'
+  if (usd >= 1) return `$${usd.toFixed(2)}`
+  if (usd >= 0.01) return `$${usd.toFixed(2)}`
+  if (usd >= 0.0001) return `$${usd.toFixed(4)}`
+  return `$${usd.toExponential(1)}`
+}
+
+function formatUsdTotal(usd: number): string {
+  if (!Number.isFinite(usd) || usd <= 0) return '$0.00'
+  if (usd >= 1000) {
+    return `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+  if (usd >= 1) return `$${usd.toFixed(2)}`
+  if (usd >= 0.01) return `$${usd.toFixed(2)}`
+  return `$${usd.toFixed(4)}`
+}
+
+function saleUnitUsdLabel(sale: GrsSale, grsDecimals: number, rates: Record<string, number>): string {
+  if (sale.grsAmount <= 0n || sale.assetAmount <= 0n) return '—'
+  const rate = quoteUsdRate(sale.quoteSymbol, rates)
+  if (rate == null || rate <= 0) return '—'
+  const perGrs = (sale.assetAmount * 10n ** BigInt(grsDecimals)) / sale.grsAmount
+  const quoteHuman = Number(perGrs) / 10 ** sale.quoteDecimals
+  return formatUsdPerGrs(quoteHuman * rate)
+}
+
+function saleCostUsdLabel(
+  cost: bigint | null,
+  quoteSymbol: string,
+  quoteDecimals: number,
+  rates: Record<string, number>,
+): string {
+  if (cost == null || cost <= 0n) return '$0.00'
+  const rate = quoteUsdRate(quoteSymbol, rates)
+  if (rate == null || rate <= 0) return '—'
+  return formatUsdTotal((Number(cost) / 10 ** quoteDecimals) * rate)
+}
+
+function saleInputUsdLabel(
+  amount: string,
+  decimals: number,
+  sale: Pick<GrsSale, 'grsAmount' | 'assetAmount' | 'quoteSymbol' | 'quoteDecimals'> | null,
+  quotedCost: bigint | null,
+  rates: Record<string, number>,
+): string {
+  if (!sale) return '$0.00'
+  let cost = quotedCost
+  if ((cost == null || cost <= 0n) && amount.trim() && amount !== '0' && amount !== '0.') {
+    try {
+      const raw = parseTokenAmount(amount, decimals)
+      if (raw > 0n && sale.grsAmount > 0n) {
+        cost = mockQuoteSaleCost(raw, sale.grsAmount, sale.assetAmount)
+      }
+    } catch {
+      cost = null
+    }
+  }
+  return saleCostUsdLabel(cost, sale.quoteSymbol, sale.quoteDecimals, rates)
+}
+
 const DEMO_EVM_CONFIG = {
   kind: 'evm' as const,
   chainId: 1,
@@ -51,7 +130,7 @@ const DEMO_EVM_CONFIG = {
   address: '0x0000000000000000000000000000000000000001' as `0x${string}`,
 }
 
-/** TGE four-window plan: ETH USDC · SOL USDC · ETH · SOL. */
+/** TGE four-window plan: EVM (USDC · ETH) on top, Solana (USDC · SOL) at the bottom. */
 const QUOTE_ICONS = {
   USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
   ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
@@ -59,23 +138,36 @@ const QUOTE_ICONS = {
 } as const
 
 const TGE_SLOT_META = [
-  { networkLabel: 'Ethereum', quoteLabel: 'USDC', quoteIcon: QUOTE_ICONS.USDC },
-  { networkLabel: 'Solana', quoteLabel: 'USDC', quoteIcon: QUOTE_ICONS.USDC },
-  { networkLabel: 'Ethereum', quoteLabel: 'ETH', quoteIcon: QUOTE_ICONS.ETH },
-  { networkLabel: 'Solana', quoteLabel: 'SOL', quoteIcon: QUOTE_ICONS.SOL },
+  { family: 'evm' as const, networkLabel: 'Ethereum', quoteLabel: 'USDC', quoteIcon: QUOTE_ICONS.USDC },
+  { family: 'evm' as const, networkLabel: 'Ethereum', quoteLabel: 'ETH', quoteIcon: QUOTE_ICONS.ETH },
+  { family: 'solana' as const, networkLabel: 'Solana', quoteLabel: 'USDC', quoteIcon: QUOTE_ICONS.USDC },
+  { family: 'solana' as const, networkLabel: 'Solana', quoteLabel: 'SOL', quoteIcon: QUOTE_ICONS.SOL },
 ] as const
 
-const CATALOG_WINDOW_COUNT = 4
-
 function mockBookRows(): GrsSaleBookRow[] {
-  const networks = ['Ethereum', 'Solana', 'Ethereum', 'Solana'] as const
-  return MOCK_GRS_SALES.map((sale, index) => ({
+  // Align with TGE slots: EVM USDC · EVM ETH · Solana USDC · Solana SOL.
+  const slots: { sale: (typeof MOCK_GRS_SALES)[number]; networkLabel: string; kind: 'evm' | 'solana' }[] = [
+    { sale: MOCK_GRS_SALES[0]!, networkLabel: 'Ethereum', kind: 'evm' },
+    { sale: MOCK_GRS_SALES[2]!, networkLabel: 'Ethereum', kind: 'evm' },
+    { sale: MOCK_GRS_SALES[1]!, networkLabel: 'Solana', kind: 'solana' },
+    { sale: MOCK_GRS_SALES[3]!, networkLabel: 'Solana', kind: 'solana' },
+  ]
+  return slots.map(({ sale, networkLabel, kind }, index) => ({
     ...sale,
-    key: `demo:${networks[index]}:${sale.id.toString()}`,
-    networkLabel: networks[index] ?? 'Demo',
-    decimals: GRS_DECIMALS,
-    // Demo cannot buy — EVM stub config is enough for selection / pricing preview.
-    config: { ...DEMO_EVM_CONFIG, chainName: networks[index] ?? 'Demo' },
+    key: `demo:${networkLabel}:${sale.id.toString()}:${index}`,
+    networkLabel,
+    decimals: kind === 'solana' ? 9 : GRS_DECIMALS,
+    config:
+      kind === 'solana'
+        ? ({
+            kind: 'solana',
+            cluster: 'devnet',
+            chainName: 'Solana',
+            programId: '11111111111111111111111111111111',
+            mint: '11111111111111111111111111111111',
+            oftStore: '11111111111111111111111111111111',
+          } as GrsConfig)
+        : { ...DEMO_EVM_CONFIG, chainName: networkLabel },
   }))
 }
 
@@ -89,17 +181,71 @@ type CatalogSlot =
       quoteIcon: string
     }
 
-function buildCatalogSlots(rows: GrsSaleBookRow[]): CatalogSlot[] {
-  const sales: CatalogSlot[] = rows.map((sale) => ({ kind: 'sale', sale }))
-  if (sales.length >= CATALOG_WINDOW_COUNT) return sales
-  const placeholders = TGE_SLOT_META.slice(sales.length).map((meta, index) => ({
-    kind: 'placeholder' as const,
-    key: `placeholder:${meta.networkLabel}:${meta.quoteLabel}:${index}`,
-    networkLabel: meta.networkLabel,
-    quoteLabel: meta.quoteLabel,
-    quoteIcon: meta.quoteIcon,
-  }))
-  return [...sales, ...placeholders]
+function saleMatchesSlot(
+  sale: GrsSaleBookRow,
+  slot: (typeof TGE_SLOT_META)[number],
+): boolean {
+  const isSolana = sale.config.kind === 'solana'
+  if ((slot.family === 'solana') !== isSolana) return false
+  const sym = sale.quoteSymbol.toUpperCase()
+  if (slot.quoteLabel === 'USDC') return sym.includes('USDC')
+  if (slot.quoteLabel === 'ETH') return sale.native || sym === 'ETH'
+  if (slot.quoteLabel === 'SOL') return sale.native || sym === 'SOL'
+  return false
+}
+
+function chainSortKey(sale: GrsSaleBookRow): number {
+  return sale.config.kind === 'solana' ? 1 : 0
+}
+
+type CatalogFamily = 'evm' | 'solana'
+
+function buildCatalogSlots(
+  rows: GrsSaleBookRow[],
+  family: CatalogFamily | 'all' = 'all',
+): CatalogSlot[] {
+  const metas =
+    family === 'all' ? TGE_SLOT_META : TGE_SLOT_META.filter((meta) => meta.family === family)
+  const used = new Set<string>()
+  const filled = metas.map((meta) => {
+    const sale = rows.find((row) => !used.has(row.key) && saleMatchesSlot(row, meta))
+    if (sale) {
+      used.add(sale.key)
+      return { kind: 'sale' as const, sale }
+    }
+    return {
+      kind: 'placeholder' as const,
+      key: `placeholder:${meta.family}:${meta.quoteLabel}`,
+      networkLabel: meta.networkLabel,
+      quoteLabel: meta.quoteLabel,
+      quoteIcon: meta.quoteIcon,
+    }
+  })
+
+  const overflow = rows
+    .filter((row) => !used.has(row.key))
+    .filter((row) => {
+      if (family === 'all') return true
+      return family === 'solana' ? row.config.kind === 'solana' : row.config.kind !== 'solana'
+    })
+    .sort((a, b) => {
+      const byChain = chainSortKey(a) - chainSortKey(b)
+      if (byChain !== 0) return byChain
+      return Number(a.id - b.id)
+    })
+    .map((sale) => ({ kind: 'sale' as const, sale }))
+
+  if (family === 'evm') {
+    return [...filled, ...overflow]
+  }
+  if (family === 'solana') {
+    return [...filled, ...overflow]
+  }
+
+  const evmOverflow = overflow.filter((slot) => slot.sale.config.kind !== 'solana')
+  const solOverflow = overflow.filter((slot) => slot.sale.config.kind === 'solana')
+  // EVM windows (+ extra EVM lots), then Solana windows (+ extra Solana lots).
+  return [...filled.slice(0, 2), ...evmOverflow, ...filled.slice(2), ...solOverflow]
 }
 
 function PriceUnit({
@@ -145,22 +291,69 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
   const [bookLoading, setBookLoading] = useState(false)
   const [bookError, setBookError] = useState<string | null>(null)
   const [bookTick, setBookTick] = useState(0)
+  const [quoteUsd, setQuoteUsd] = useState<Record<string, number>>(FALLBACK_QUOTE_USD)
+  /** When a wallet is connected, catalog is split into EVM / Solana tabs. */
+  const [catalogTab, setCatalogTab] = useState<CatalogFamily>('evm')
+  /** Last auto-driven connect pair — avoids fighting manual tab clicks. */
+  const catalogAutoKeyRef = useRef('')
 
   const configured = isGrsConfiguredAnywhere()
   const isDemo = !configured
   // Always merge EVM home + Solana spoke for the four-window TGE catalog.
   const bookMode = 'all' as const
+  const anyWalletConnected = solanaWallet.isConnected || evmWallet.isConnected
+  const catalogFamily: CatalogFamily | 'all' = anyWalletConnected ? catalogTab : 'all'
   const refreshBook = useCallback(() => {
     setBookTick((value) => value + 1)
     refresh()
   }, [refresh])
 
-  // GRS spoke sales live on Devnet — don't stay stuck on Phantom mainnet / Sepolia CA.
   useEffect(() => {
-    if (!solanaWallet.isConnected) return
-    setSelectedChainType('solana')
-    if (solanaCluster !== 'devnet') setSolanaCluster('devnet')
-  }, [setSelectedChainType, setSolanaCluster, solanaCluster, solanaWallet.isConnected])
+    let cancelled = false
+    void fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,solana&vs_currencies=usd',
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`price http ${response.status}`)
+        return response.json() as Promise<{
+          ethereum?: { usd?: number }
+          solana?: { usd?: number }
+        }>
+      })
+      .then((data) => {
+        if (cancelled) return
+        const eth = data.ethereum?.usd
+        const sol = data.solana?.usd
+        setQuoteUsd({
+          ...FALLBACK_QUOTE_USD,
+          ...(typeof eth === 'number' && eth > 0 ? { ETH: eth, WETH: eth } : {}),
+          ...(typeof sol === 'number' && sol > 0 ? { SOL: sol } : {}),
+        })
+      })
+      .catch(() => {
+        /* keep TGE fallbacks */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Prefer Solana catalog whenever a Solana wallet is (already) connected.
+  // Re-runs only when the connect pair changes so manual tab clicks still stick.
+  useEffect(() => {
+    const key = `${solanaWallet.isConnected ? 1 : 0}:${evmWallet.isConnected ? 1 : 0}`
+    if (key === catalogAutoKeyRef.current) return
+    catalogAutoKeyRef.current = key
+    if (solanaWallet.isConnected) {
+      setCatalogTab('solana')
+      setSelectedChainType('solana')
+      return
+    }
+    if (evmWallet.isConnected) {
+      setCatalogTab('evm')
+      setSelectedChainType('evm')
+    }
+  }, [evmWallet.isConnected, setSelectedChainType, solanaWallet.isConnected])
 
   useEffect(() => {
     if (isDemo) {
@@ -182,7 +375,11 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
     })
       .then((pack) => {
         if (cancelled) return
-        const rows = [...pack.rows].sort((a, b) => Number(a.id - b.id))
+        const rows = [...pack.rows].sort((a, b) => {
+          const byChain = (a.config.kind === 'solana' ? 1 : 0) - (b.config.kind === 'solana' ? 1 : 0)
+          if (byChain !== 0) return byChain
+          return Number(a.id - b.id)
+        })
         setBookRows(rows)
         setBookError(pack.solanaError)
         setSaleKey((current) => {
@@ -213,14 +410,48 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
     solanaWallet.connection,
   ])
 
-  const catalogSlots = useMemo(() => buildCatalogSlots(bookRows), [bookRows])
+  const catalogSlots = useMemo(
+    () => buildCatalogSlots(bookRows, catalogFamily),
+    [bookRows, catalogFamily],
+  )
 
+  const visibleSales = useMemo(
+    () =>
+      catalogSlots
+        .filter((slot): slot is { kind: 'sale'; sale: GrsSaleBookRow } => slot.kind === 'sale')
+        .map((slot) => slot.sale),
+    [catalogSlots],
+  )
+
+  // Prefer a sale visible in the current catalog filter / matching connected wallet.
   const selected =
-    bookRows.find((sale) => sale.key === saleKey) ?? bookRows[0] ?? null
-
+    visibleSales.find((sale) => sale.key === saleKey) ??
+    bookRows.find((sale) => sale.key === saleKey && catalogFamily === 'all') ??
+    visibleSales[0] ??
+    bookRows.find((sale) => {
+      if (catalogFamily === 'solana') return sale.config.kind === 'solana'
+      if (catalogFamily === 'evm') return sale.config.kind !== 'solana'
+      if (solanaWallet.isConnected && !evmWallet.isConnected) return sale.config.kind === 'solana'
+      if (evmWallet.isConnected && !solanaWallet.isConnected) return sale.config.kind === 'evm'
+      return false
+    }) ??
+    bookRows[0] ??
+    null
 
   const saleConfig = selected?.config ?? config
   const chainKind = saleConfig?.kind ?? null
+  const saleWalletConnected =
+    chainKind === 'solana' ? solanaWallet.isConnected : chainKind === 'evm' ? evmWallet.isConnected : false
+  const connectLabel =
+    chainKind === 'solana'
+      ? evmWallet.isConnected && !solanaWallet.isConnected
+        ? 'Connect Solana wallet'
+        : 'Connect Wallet'
+      : chainKind === 'evm'
+        ? solanaWallet.isConnected && !evmWallet.isConnected
+          ? 'Connect Ethereum wallet'
+          : 'Connect Wallet'
+        : 'Connect Wallet'
   const decimals = selected?.decimals ?? (chainKind === 'solana' ? 9 : GRS_DECIMALS)
   const isPending = chainKind === 'solana' ? solTx.isPending : evmTx.isPending
   const liveError = chainKind === 'solana' ? solTx.error : evmTx.error
@@ -243,6 +474,20 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
   const clearLiveTx = () => {
     evmTx.reset()
     solTx.reset()
+  }
+
+  const selectCatalogTab = (tab: CatalogFamily) => {
+    setCatalogTab(tab)
+    setSelectedChainType(tab === 'solana' ? 'solana' : 'evm')
+    if (tab === 'solana') setSolanaCluster('devnet')
+    const next = bookRows.find((sale) =>
+      tab === 'solana' ? sale.config.kind === 'solana' : sale.config.kind !== 'solana',
+    )
+    if (next) {
+      setSaleKey(next.key)
+      setAmount('')
+      clearLiveTx()
+    }
   }
 
   const headerAddress = useMemo(() => {
@@ -328,6 +573,7 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
     selected && cost != null
       ? formatTokenBalance(cost, selected.quoteDecimals, 8)
       : null
+  const amountUsdLabel = saleInputUsdLabel(amount, decimals, selected, cost, quoteUsd)
 
   const selectSale = (sale: GrsSaleBookRow) => {
     setSaleKey(sale.key)
@@ -361,17 +607,13 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
           clusterAction: 'buy GRS',
           failureMessage: 'Purchase failed',
           amountInput: amount,
-          execute: () =>
+          execute: ({ sendTransaction, signTransaction, publicKey }) =>
             executeSolanaGrsBuy({
               connection: createGrsSolanaConnection(saleConfig),
               config: saleConfig,
-              publicKey: solanaWallet.publicKey!,
-              signTransaction: async (transaction) => {
-                if (!solanaWallet.signTransaction) {
-                  throw new Error('Connected wallet cannot sign transactions')
-                }
-                return solanaWallet.signTransaction(transaction)
-              },
+              publicKey,
+              signTransaction,
+              sendTransaction,
               saleId: selected.id,
               amountInput: amount,
               recipient: to,
@@ -430,7 +672,58 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
 
   const catalog = (
     <div className="grs-sales-catalog-panel">
-      <div className="grs-book" role="list" aria-label="Token sales on Ethereum and Solana">
+      <div
+        className={`grs-sales-catalog-tabs-shell${anyWalletConnected ? ' is-visible' : ''}`}
+        aria-hidden={!anyWalletConnected}
+      >
+        <div className="grs-sales-catalog-tabs-shell-inner">
+          <div
+            className={`grs-sales-catalog-tabs grai-action-switch${catalogTab === 'solana' ? ' is-solana-active' : ''}`}
+            role="tablist"
+            aria-label="Sale network"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={catalogTab === 'evm'}
+              tabIndex={anyWalletConnected ? undefined : -1}
+              className={`grai-action-switch-btn${catalogTab === 'evm' ? ' is-active' : ''}`}
+              onClick={() => selectCatalogTab('evm')}
+              disabled={!anyWalletConnected}
+            >
+              <span className="grai-action-switch-icon" aria-hidden="true">
+                <GrsChainGlyph name="Ethereum" size={16} />
+              </span>
+              <span className="grai-action-switch-label">Ethereum</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={catalogTab === 'solana'}
+              tabIndex={anyWalletConnected ? undefined : -1}
+              className={`grai-action-switch-btn${catalogTab === 'solana' ? ' is-active' : ''}`}
+              onClick={() => selectCatalogTab('solana')}
+              disabled={!anyWalletConnected}
+            >
+              <span className="grai-action-switch-icon" aria-hidden="true">
+                <GrsChainGlyph name="Solana" solana size={16} />
+              </span>
+              <span className="grai-action-switch-label">Solana</span>
+            </button>
+        </div>
+        </div>
+      </div>
+      <div
+        className={`grs-book${catalogFamily !== 'all' ? ' is-filtered' : ''}`}
+        role="list"
+        aria-label={
+          catalogFamily === 'evm'
+            ? 'Token sales on Ethereum'
+            : catalogFamily === 'solana'
+              ? 'Token sales on Solana'
+              : 'Token sales on Ethereum and Solana'
+        }
+      >
         {bookError ? (
           <p className="grai-manage-feedback is-error" role="alert">
             {bookError}
@@ -450,14 +743,25 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
                 >
                   <span className="grs-book-row-top">
                     <span className="grs-book-price-block">
-                      <span className="grs-book-price-value">0.02</span>
-                      <PriceUnit quoteIcon={slot.quoteIcon} quoteSymbol={slot.quoteLabel} />
-                    </span>
-                    <span className="grs-book-network">
-                      <span className="grs-book-network-icon" aria-hidden="true">
-                        <GrsChainGlyph name={slot.networkLabel} size={14} />
+                      <span className="grs-book-price-head">
+                        <span className="grs-book-price-label">Price</span>
+                        <span className="grs-book-heading">
+                          <span className="grs-book-sale-id">—</span>
+                          <span className="grs-book-network">
+                            <span className="grs-book-network-icon" aria-hidden="true">
+                              <GrsChainGlyph name={slot.networkLabel} size={14} />
+                            </span>
+                            {slot.networkLabel}
+                          </span>
+                        </span>
                       </span>
-                      {slot.networkLabel}
+                      <span className="grs-book-price-line">
+                        <span className="grs-book-price-main">
+                          <span className="grs-book-price-value">0.02</span>
+                          <span className="grs-book-price-usd">$0.02</span>
+                        </span>
+                        <PriceUnit quoteIcon={slot.quoteIcon} quoteSymbol={slot.quoteLabel} />
+                      </span>
                     </span>
                   </span>
                   <span className="grs-book-foot">
@@ -474,6 +778,7 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
             const active = selected?.key === sale.key
             const unitPrice = saleUnitPriceLabel(sale, sale.decimals)
             const [unitValue] = unitPrice.split(' ')
+            const usdLabel = saleUnitUsdLabel(sale, sale.decimals, quoteUsd)
             return (
               <button
                 key={sale.key}
@@ -484,14 +789,25 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
               >
                 <span className="grs-book-row-top">
                   <span className="grs-book-price-block">
-                    <span className="grs-book-price-value">{unitValue}</span>
-                    <PriceUnit quoteIcon={sale.quoteIcon} quoteSymbol={sale.quoteSymbol} />
-                  </span>
-                  <span className="grs-book-network">
-                    <span className="grs-book-network-icon" aria-hidden="true">
-                      <GrsChainGlyph name={sale.networkLabel} size={14} />
+                    <span className="grs-book-price-head">
+                      <span className="grs-book-price-label">Price</span>
+                      <span className="grs-book-heading">
+                        <span className="grs-book-sale-id">#{sale.id.toString()}</span>
+                        <span className="grs-book-network">
+                          <span className="grs-book-network-icon" aria-hidden="true">
+                            <GrsChainGlyph name={sale.networkLabel} size={14} />
+                          </span>
+                          {sale.networkLabel}
+                        </span>
+                      </span>
                     </span>
-                    {sale.networkLabel}
+                    <span className="grs-book-price-line">
+                      <span className="grs-book-price-main">
+                        <span className="grs-book-price-value">{unitValue}</span>
+                        <span className="grs-book-price-usd">{usdLabel}</span>
+                      </span>
+                      <PriceUnit quoteIcon={sale.quoteIcon} quoteSymbol={sale.quoteSymbol} />
+                    </span>
                   </span>
                 </span>
 
@@ -499,29 +815,33 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
                   <span className="grs-book-foot-cell">
                     <span className="grs-book-meta-label">Available</span>
                     <span className="grs-book-meta-value">
-                      <img
-                        className="grs-book-ticker-icon"
-                        src={assetUrl('grs.png')}
-                        alt=""
-                        width={14}
-                        height={14}
-                      />
                       {formatTokenBalance(sale.grsAmount, sale.decimals, 2)}
-                      <span className="grs-book-ticker-sym">GRS</span>
+                      <span className="grs-book-ticker">
+                        <img
+                          className="grs-book-ticker-icon"
+                          src={assetUrl('grs.png')}
+                          alt=""
+                          width={14}
+                          height={14}
+                        />
+                        <span className="grs-book-ticker-sym">GRS</span>
+                      </span>
                     </span>
                   </span>
                   <span className="grs-book-foot-cell">
                     <span className="grs-book-meta-label">Total ask</span>
                     <span className="grs-book-meta-value">
-                      <img
-                        className="grs-book-ticker-icon"
-                        src={sale.quoteIcon}
-                        alt=""
-                        width={14}
-                        height={14}
-                      />
                       {formatTokenBalance(sale.assetAmount, sale.quoteDecimals, 4)}
-                      <span className="grs-book-ticker-sym">{sale.quoteSymbol}</span>
+                      <span className="grs-book-ticker">
+                        <img
+                          className="grs-book-ticker-icon"
+                          src={sale.quoteIcon}
+                          alt=""
+                          width={14}
+                          height={14}
+                        />
+                        <span className="grs-book-ticker-sym">{sale.quoteSymbol}</span>
+                      </span>
                     </span>
                   </span>
                 </span>
@@ -564,7 +884,8 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
               }}
               balanceLabel={buyableLabel ? `${buyableLabel} GRS` : '—'}
               balancePrefix="This sale:"
-              usdTrailingLabel="remaining"
+              usdLabel={amountUsdLabel}
+              usdTrailingLabel="available"
               maxAmount={maxAmount}
               decimals={decimals}
               disabled={!selected}
@@ -575,7 +896,21 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
                 <span className="grai-action-metric-label-wrap">
                   <GraiFieldInfoButton
                     className="grai-action-metric-label-info"
-                    hint="Buying the listed remainder pays remaining assetAmount exactly. A partial fill is floor(amount × assetAmount / remaining GRS)."
+                    ariaLabel="How You pay is calculated"
+                    structured
+                    hint={
+                      <>
+                        <span className="grai-field-info-tooltip-title">You pay</span>
+                        <span className="grai-field-info-tooltip-section">
+                          <span className="grai-field-info-tooltip-section-label">Full lot</span>
+                          Buy all remaining GRS → pay the full ask.
+                        </span>
+                        <span className="grai-field-info-tooltip-section">
+                          <span className="grai-field-info-tooltip-section-label">Partial</span>
+                          Cost scales with size: GRS × ask ÷ remaining.
+                        </span>
+                      </>
+                    }
                   />
                   <span className="grai-action-metric-label">You pay</span>
                 </span>
@@ -671,18 +1006,34 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
             ) : null}
 
             <GrsSubmit
-              connected={
-                chainKind === 'solana' ? solanaWallet.isConnected : evmWallet.isConnected
-              }
+              connected={saleWalletConnected}
+              connectLabel={connectLabel}
+              onBeforeConnect={() => {
+                if (chainKind === 'solana') {
+                  setSelectedChainType('solana')
+                  setSolanaCluster(
+                    saleConfig?.kind === 'solana' ? saleConfig.cluster : 'devnet',
+                  )
+                } else if (chainKind === 'evm') {
+                  setSelectedChainType('evm')
+                }
+              }}
               disabled={
                 isDemo ||
                 !selected ||
                 Boolean(selected.unpayableEvmAsset) ||
                 !amount.trim() ||
+                amount === '0' ||
+                amount === '0.' ||
                 !isGrsRecipient(recipientValue, chainKind)
               }
               pending={isPending}
               label="Buy"
+              blockedLabel={
+                !amount.trim() || amount === '0' || amount === '0.'
+                  ? 'Enter GRS amount'
+                  : null
+              }
               onClick={() => {
                 void handleBuy()
               }}

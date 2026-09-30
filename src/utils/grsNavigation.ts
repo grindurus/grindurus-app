@@ -1,14 +1,16 @@
 import { isAtAppPath, toAppPath } from './appPaths'
 import { writeAppUrl } from './navigate'
 
-export type GrsSection = 'token-sale' | 'bridge' | 'grant' | 'sales' | 'vesting' | 'vest'
-export type GrsOpsTab = Exclude<GrsSection, 'token-sale' | 'sales'>
+export type GrsSection = 'token-sale' | 'allocation' | 'bridge' | 'grant' | 'sales' | 'vesting' | 'vest'
+export type GrsOpsTab = Exclude<GrsSection, 'token-sale' | 'allocation' | 'sales'>
 
 export const GRS_OPS_ID = 'grs-ops'
 export const GRS_SALES_ID = 'grs-sales'
+export const GRS_ALLOCATION_ID = 'grs-allocation'
 
 export const GRS_SECTION_IDS: Record<GrsSection, string> = {
   'token-sale': GRS_SALES_ID,
+  allocation: GRS_ALLOCATION_ID,
   bridge: GRS_OPS_ID,
   grant: GRS_OPS_ID,
   sales: GRS_OPS_ID,
@@ -16,11 +18,20 @@ export const GRS_SECTION_IDS: Record<GrsSection, string> = {
   vest: GRS_OPS_ID,
 }
 
-export const GRS_SECTIONS: GrsSection[] = ['token-sale', 'bridge', 'vesting', 'vest', 'grant', 'sales']
+export const GRS_SECTIONS: GrsSection[] = [
+  'token-sale',
+  'allocation',
+  'bridge',
+  'vesting',
+  'vest',
+  'grant',
+  'sales',
+]
 export const GRS_OPS_TABS: GrsOpsTab[] = ['bridge', 'vesting', 'vest']
 
 export const GRS_SECTION_LABELS: Record<GrsSection, string> = {
   'token-sale': 'Token Sale',
+  allocation: 'Allocation',
   bridge: 'Bridge',
   grant: 'Grant',
   sales: 'Sale',

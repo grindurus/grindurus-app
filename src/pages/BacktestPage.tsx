@@ -11,19 +11,24 @@ import { x402Client, wrapFetchWithPayment } from '@x402/fetch'
 import { registerExactEvmScheme } from '@x402/evm/exact/client'
 import { ExactSvmScheme } from '@x402/svm/exact/client'
 import { getBase64EncodedWireTransaction, getTransactionDecoder } from '@solana/kit'
-import { VersionedTransaction } from '@solana/web3.js'
+import { VersionedTransaction, PublicKey, type Connection } from '@solana/web3.js'
 import { Buffer } from 'buffer'
+import { createPublicClient, erc20Abi, formatUnits, type Chain } from 'viem'
+import { mainnet, base, arbitrum, polygon } from 'viem/chains'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useActiveWallet } from '../hooks/useActiveWallet'
 import { useEvmWalletClient } from '../providers/EvmWalletClientContext'
 import { stripTrailingSlash } from '../utils/urlUtils'
 import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
+import { evmHttpTransport } from '../providers/evmTransports'
 import { InventoryHistoryChart, type InventoryHistoryPoint } from '../components/InventoryHistoryChart'
 import { YieldChart, type YieldHistoryPoint } from '../components/YieldChart'
 import { GraiUiCaret } from '../components/grai/GraiUiCaret'
 import { SolanaClusterIcon } from '../components/SolanaClusterIcon'
 import { EvmChainListIcon } from '../components/WalletNetworkSelect'
+import { getAssociatedTokenAddress } from '../grai/pdas'
+import { SOLANA_USDC_MAINNET } from '../grs/solana/quoteAssets'
 import { consumeCompleteSseEvents } from '../boss/sseParser'
 import {
   BACKTEST_SECTION_IDS,
@@ -73,6 +78,91 @@ function isValidQueueBidAmount(raw: string): boolean {
   const n = parseBidUsdcAmount(raw)
   return n !== null && n >= MIN_QUEUE_BID_USDC
 }
+
+/** Native Circle USDC on x402-whitelisted EVM chains. */
+const X402_USDC_BY_CHAIN: Record<number, `0x${string}`> = {
+  1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  8453: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  42161: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+  137: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+}
+
+const X402_VIEM_CHAIN: Record<number, Chain> = {
+  1: mainnet,
+  8453: base,
+  42161: arbitrum,
+  137: polygon,
+}
+
+function formatUsdcDisplay(amount: number): string {
+  if (!Number.isFinite(amount) || amount <= 0) return '0'
+  if (amount >= 100) return amount.toFixed(2)
+  if (amount >= 1) return amount.toFixed(2)
+  return amount.toFixed(4).replace(/\.?0+$/, '') || '0'
+}
+
+async function fetchEvmUsdcBalance(chainId: number, owner: `0x${string}`): Promise<number> {
+  const token = X402_USDC_BY_CHAIN[chainId]
+  const chain = X402_VIEM_CHAIN[chainId]
+  if (!token || !chain) return 0
+  // Use the app’s configured RPC (env + publicnode fallbacks), not bare http().
+  const client = createPublicClient({
+    chain,
+    transport: evmHttpTransport(chainId),
+  })
+  const raw = await client.readContract({
+    address: token,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [owner],
+  })
+  return Number(formatUnits(raw, 6))
+}
+
+async function fetchSolanaUsdcBalance(connection: Connection, ownerBase58: string): Promise<number> {
+  try {
+    const owner = new PublicKey(ownerBase58)
+    const ata = getAssociatedTokenAddress(new PublicKey(SOLANA_USDC_MAINNET), owner)
+    const info = await connection.getTokenAccountBalance(ata).catch(() => null)
+    if (!info) return 0
+    if (info.value.uiAmountString != null && info.value.uiAmountString !== '') {
+      return Number(info.value.uiAmountString) || 0
+    }
+    return info.value.uiAmount ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/** USDC balance on the network x402 will charge (matches `walletNetwork` / connected chain). */
+async function fetchX402UsdcBalance(params: {
+  walletNetwork: string | null
+  chainId: number | undefined
+  evmAddress: string | undefined
+  solanaAddress: string | undefined
+  solanaConnection: Connection | null | undefined
+}): Promise<number> {
+  const network = params.walletNetwork ?? ''
+  const evmMatch = /^eip155:(\d+)$/.exec(network)
+  if (evmMatch) {
+    const payChainId = Number(evmMatch[1])
+    if (!params.evmAddress || !X402_USDC_BY_CHAIN[payChainId]) return 0
+    return fetchEvmUsdcBalance(payChainId, params.evmAddress as `0x${string}`)
+  }
+  if (network.startsWith('solana:')) {
+    if (!params.solanaAddress || !params.solanaConnection) return 0
+    return fetchSolanaUsdcBalance(params.solanaConnection, params.solanaAddress)
+  }
+  // Fallback: connected EVM x402 chain, then Solana.
+  if (params.chainId && X402_USDC_BY_CHAIN[params.chainId] && params.evmAddress) {
+    return fetchEvmUsdcBalance(params.chainId, params.evmAddress as `0x${string}`)
+  }
+  if (params.solanaAddress && params.solanaConnection) {
+    return fetchSolanaUsdcBalance(params.solanaConnection, params.solanaAddress)
+  }
+  return 0
+}
+
 const USDC_ICON_URL = 'https://assets.coingecko.com/coins/images/6319/small/usdc.png'
 
 /** Fallback when `/symbols` has not loaded icons yet. */
@@ -745,6 +835,7 @@ function BacktestPage() {
   const [payBusyLabel, setPayBusyLabel] = useState('Processing…')
   const [payError, setPayError] = useState('')
   const [paySuccess, setPaySuccess] = useState('')
+  const [usdcShortfall, setUsdcShortfall] = useState<{ have: string; need: string } | null>(null)
   const [payMethod, setPayMethod] = useState<PayMethod>('x402')
   const [payMenuOpen, setPayMenuOpen] = useState(false)
   const [baseAssetMenuOpen, setBaseAssetMenuOpen] = useState(false)
@@ -858,12 +949,22 @@ function BacktestPage() {
     }
     // Only prefer Solana when the header cluster is mainnet (x402 accept).
     if (solanaWallet.cluster !== 'mainnet-beta') return false
+    // Connected EVM on a whitelisted chain (e.g. Arbitrum) — charge that network’s USDC,
+    // not Solana, unless the header explicitly selected Solana as the active wallet.
+    if (
+      (isEvmConnected || evmWallet.isConnected) &&
+      isX402EvmChainId(chainId) &&
+      activeWallet.chainType !== 'solana'
+    ) {
+      return false
+    }
     // Prefer Solana when it's the active wallet, or when no EVM signer is ready.
     if (activeWallet.chainType === 'solana') return true
     if (!(isEvmConnected || evmWallet.isConnected || activeWallet.chainType === 'evm')) return true
     return false
   }, [
     activeWallet.chainType,
+    chainId,
     evmWallet.isConnected,
     isEvmConnected,
     payMethod,
@@ -955,6 +1056,7 @@ function BacktestPage() {
     setPayMenuOpen(false)
     setPayError('')
     setPaySuccess('')
+    setUsdcShortfall(null)
     setShowX402NetworkSwitch(false)
     const promoCode = promocode.trim()
     if (!hasPositiveAmount(baseAmount) && !hasPositiveAmount(quoteAmount)) {
@@ -978,12 +1080,40 @@ function BacktestPage() {
       return
     }
     setPayBusy(true)
-    setPayBusyLabel(
-      payMethod === 'x402'
-        ? 'Confirm payment in wallet…'
-        : 'Processing…'
-    )
     try {
+      if (payMethod === 'x402') {
+        setPayBusyLabel('Checking USDC balance…')
+        const required = Number(defaultBidPrice)
+        const need = Number.isFinite(required) && required > 0 ? required : MIN_QUEUE_BID_USDC
+        const evmOwner =
+          walletClient?.account?.address || evmAccountAddress || evmWallet.address || undefined
+        let have = 0
+        try {
+          have = await fetchX402UsdcBalance({
+            walletNetwork,
+            chainId,
+            evmAddress: evmOwner,
+            solanaAddress: solanaWallet.address || undefined,
+            solanaConnection: solanaWallet.connection,
+          })
+        } catch (balanceErr) {
+          console.warn('[backtest] USDC balance check failed', balanceErr)
+          setPayError('Could not read USDC balance on the connected network. Try again.')
+          setPayBusy(false)
+          return
+        }
+        if (have + 1e-9 < need) {
+          setUsdcShortfall({ have: formatUsdcDisplay(have), need: formatUsdcDisplay(need) })
+          setPayBusy(false)
+          return
+        }
+        setPayBusyLabel(
+          preferSolanaPayment ? 'Sign payment in wallet…' : 'Confirm payment in wallet…',
+        )
+      } else {
+        setPayBusyLabel('Processing…')
+      }
+
       const endpoint = `${backtestApiOrigin}/create`
       const body = JSON.stringify({
         owner_address:
@@ -1020,7 +1150,9 @@ function BacktestPage() {
         payHeaders['X-Wallet-Network'] = walletNetwork
       }
       if (payMethod === 'x402') {
-        setPayBusyLabel('Confirm payment in wallet…')
+        setPayBusyLabel(
+          preferSolanaPayment ? 'Sign payment in wallet…' : 'Confirm payment in wallet…',
+        )
       } else {
         setPayBusyLabel('Queuing backtest…')
       }
@@ -1105,6 +1237,28 @@ function BacktestPage() {
     }
     if (!paidFetch) {
       setQueueError('Connect wallet to pay bid via x402.')
+      return
+    }
+    const need = Number(value)
+    const evmOwner =
+      walletClient?.account?.address || evmAccountAddress || evmWallet.address || undefined
+    let have = 0
+    try {
+      have = await fetchX402UsdcBalance({
+        walletNetwork,
+        chainId,
+        evmAddress: evmOwner,
+        solanaAddress: solanaWallet.address || undefined,
+        solanaConnection: solanaWallet.connection,
+      })
+    } catch {
+      setQueueError('Could not read USDC balance on the connected network. Try again.')
+      return
+    }
+    if (have + 1e-9 < need) {
+      setQueueError(
+        `Your balance: ${formatUsdcDisplay(have)} USDC. Required ${formatUsdcDisplay(need)} USDC`,
+      )
       return
     }
     setQueueBidBusy((prev) => ({ ...prev, [id]: true }))
@@ -1247,7 +1401,24 @@ function BacktestPage() {
     }
   }, [showX402NetworkSwitch, x402HasSupportedNetwork])
 
+  // Red pay-button status (errors / USDC shortfall) clears after 5s.
+  useEffect(() => {
+    if (!payError && !usdcShortfall) return
+    const timer = window.setTimeout(() => {
+      setPayError('')
+      setUsdcShortfall(null)
+    }, 5000)
+    return () => window.clearTimeout(timer)
+  }, [payError, usdcShortfall])
+
   const payStatusMessage = payError || paySuccess
+  const usdcShortfallLabel = usdcShortfall ? (
+    <span className="backtest-pay-btn-usdc-label">
+      Your balance: {usdcShortfall.have} USDC. Required {usdcShortfall.need}
+      <BacktestUsdcTickerIcon size={14} />
+      USDC
+    </span>
+  ) : null
   const amountsMissing =
     payError === 'Enter a base or quote starting amount.' &&
     !hasPositiveAmount(baseAmount) &&
@@ -1281,7 +1452,9 @@ function BacktestPage() {
       : payUsdcLabel
   const payButtonAriaLabel = payBusy
     ? payBusyLabel
-    : payStatusMessage
+    : usdcShortfall
+      ? `Your balance: ${usdcShortfall.have} USDC. Required ${usdcShortfall.need} USDC`
+      : payStatusMessage
       ? payStatusMessage
       : needsWalletConnection
       ? 'Connect wallet to pay with x402'
@@ -1368,9 +1541,11 @@ function BacktestPage() {
     }
     if (canPaySvm && solanaWallet.address) {
       const solanaSignTransaction = solanaWallet.signTransaction
-      // Kit TransactionModifyingSigner: wallets (Phantom/Solflare) may inject Lighthouse
-      // ixs and change the message. Returning only signatures for the *original* message
-      // makes PayAI verify fail with invalid_exact_svm_payload_signature_invalid.
+      // x402 Exact SVM: payload is a partially-signed TransferChecked VersionedTransaction
+      // (facilitator = fee payer). Unlike EVM Exact (EIP-712 typed data), there is no
+      // detached signMessage — the signed wire tx *is* what the facilitator verifies/settles.
+      // Kit TransactionModifyingSigner: wallets may inject Lighthouse ixs; return the
+      // wallet-signed bytes so PayAI verify matches the modified message.
       const svmSigner = {
         address: solanaWallet.address,
         modifyAndSignTransactions: async (transactions: readonly any[]) => {
@@ -1378,6 +1553,7 @@ function BacktestPage() {
             transactions.map(async (tx) => {
               const base64Wire = getBase64EncodedWireTransaction(tx)
               const web3Tx = VersionedTransaction.deserialize(Buffer.from(base64Wire, 'base64'))
+              // signTransaction only — never send. Facilitator co-signs + broadcasts.
               const signedWeb3Tx = await solanaSignTransaction!(web3Tx as any)
               return getTransactionDecoder().decode(signedWeb3Tx.serialize())
             })
@@ -2446,7 +2622,7 @@ function BacktestPage() {
                     className={`backtest-pay-btn${
                       payBusy
                         ? ''
-                        : payError
+                        : usdcShortfall || payError
                           ? ' is-status is-error'
                           : paySuccess
                             ? ' is-status is-success'
@@ -2455,16 +2631,19 @@ function BacktestPage() {
                     onClick={() => {
                       if (needsWalletConnection) {
                         setPayError('')
+                        setUsdcShortfall(null)
                         openChainSelector()
                         return
                       }
                       if (x402NeedsSolanaMainnetSwitch) {
                         setPayError('')
+                        setUsdcShortfall(null)
                         handleSwitchSolana()
                         return
                       }
                       if (x402NeedsNetworkSwitch) {
                         setPayError('')
+                        setUsdcShortfall(null)
                         setShowX402NetworkSwitch(true)
                         return
                       }
@@ -2484,6 +2663,8 @@ function BacktestPage() {
                   >
                     {payBusy ? (
                       payBusyLabel
+                    ) : usdcShortfallLabel ? (
+                      usdcShortfallLabel
                     ) : payStatusMessage ? (
                       <span className="backtest-pay-btn-status">{payStatusMessage}</span>
                     ) : needsWalletConnection ? (

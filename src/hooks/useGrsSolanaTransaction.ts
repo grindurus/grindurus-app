@@ -9,6 +9,7 @@ import {
   resolveGrsSolanaConfig,
   type GrsSolanaConfig,
 } from '../grs/deployments'
+import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
 
 type RunOptions<TResult extends { signature: string }> = {
   connectMessage: string
@@ -21,12 +22,13 @@ type RunOptions<TResult extends { signature: string }> = {
     config: GrsSolanaConfig
     publicKey: PublicKey
     signTransaction: (transaction: Transaction) => Promise<Transaction>
+    sendTransaction: SolanaSendTransaction | null
   }) => Promise<TResult>
 }
 
 export function useGrsSolanaTransaction() {
   const solanaWallet = useSolanaWallet()
-  const { setSelectedChainType, solanaCluster } = useWalletContext()
+  const { setSelectedChainType, setSolanaCluster, solanaCluster } = useWalletContext()
   const [status, setStatus] = useState<GraiTransactionStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [lastSignature, setLastSignature] = useState<string | null>(null)
@@ -38,16 +40,23 @@ export function useGrsSolanaTransaction() {
       setError(null)
       setLastSignature(null)
       setSelectedChainType('solana')
+      // Pin Devnet before signing so Wallet Standard passes chain=solana:devnet.
+      if (config?.cluster === 'devnet') setSolanaCluster('devnet')
 
       if (!solanaWallet.publicKey) {
         solanaWallet.connect()
         throw new Error(options.connectMessage)
       }
-      if (!solanaWallet.signTransaction) {
+      if (!solanaWallet.signTransaction && !solanaWallet.sendTransaction) {
         throw new Error('Connected wallet cannot sign transactions')
       }
       if (!config) {
         throw new Error('GRS is not configured for Solana. Set VITE_GRS_DEVNET_MINT / program env.')
+      }
+      if (solanaWallet.walletClusterMismatch) {
+        throw new Error(
+          `Switch Phantom/Solflare to ${config.cluster === 'mainnet-beta' ? 'Mainnet' : 'Devnet'} to ${options.clusterAction}`,
+        )
       }
 
       if (options.amountInput !== undefined) {
@@ -62,14 +71,24 @@ export function useGrsSolanaTransaction() {
         const connection = createGrsSolanaConnection(config)
         const signTransaction = async (transaction: Transaction) => {
           setStatus('signing')
-          return solanaWallet.signTransaction!(transaction)
+          if (!solanaWallet.signTransaction) {
+            throw new Error('Connected wallet cannot sign transactions')
+          }
+          return solanaWallet.signTransaction(transaction)
         }
+        const sendTransaction: SolanaSendTransaction | null = solanaWallet.sendTransaction
+          ? async (transaction, conn, sendOptions) => {
+              setStatus('signing')
+              return solanaWallet.sendTransaction!(transaction, conn, sendOptions)
+            }
+          : null
         setStatus('confirming')
         const result = await options.execute({
           connection,
           config,
           publicKey: solanaWallet.publicKey,
           signTransaction,
+          sendTransaction,
         })
         setLastSignature(result.signature)
         setStatus('success')
@@ -81,7 +100,7 @@ export function useGrsSolanaTransaction() {
         throw txError
       }
     },
-    [config, setSelectedChainType, solanaWallet],
+    [config, setSelectedChainType, setSolanaCluster, solanaWallet],
   )
 
   const reset = useCallback(() => {

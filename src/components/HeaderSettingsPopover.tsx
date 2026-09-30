@@ -8,6 +8,13 @@ import {
   X,
 } from 'lucide-react'
 import { readSoundEnabled, writeSoundEnabled } from '../utils/soundPreference'
+import { useWalletContext } from '../providers/walletContext'
+import { useEvmWallet } from '../hooks/useEvmWallet'
+import {
+  networkEnvFromSolanaCluster,
+  preferredEvmChainId,
+  type NetworkEnv,
+} from '../wallet/networkEnv'
 import './HeaderSettingsPopover.css'
 
 type Theme = 'light' | 'dark'
@@ -24,17 +31,19 @@ function SegmentedToggle<T extends string>({
   options,
   onChange,
   ariaLabel,
+  className,
 }: {
   value: T
   options: { value: T; icon: JSX.Element; label: string }[]
   onChange: (value: T) => void
   ariaLabel: string
+  className?: string
 }) {
   const activeIndex = options.findIndex((option) => option.value === value)
 
   return (
     <div
-      className={`header-settings-segmented${activeIndex === 1 ? ' is-second-active' : ''}`}
+      className={`header-settings-segmented${activeIndex === 1 ? ' is-second-active' : ''}${className ? ` ${className}` : ''}`}
       role="group"
       aria-label={ariaLabel}
     >
@@ -59,7 +68,11 @@ export function HeaderSettingsPopover() {
   const [isOpen, setIsOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(readSavedTheme)
   const [soundEnabled, setSoundEnabled] = useState(readSoundEnabled)
+  const { solanaCluster, setSolanaCluster, setEvmChain } = useWalletContext()
+  const evmWallet = useEvmWallet()
   const rootRef = useRef<HTMLDivElement>(null)
+
+  const networkEnv: NetworkEnv = networkEnvFromSolanaCluster(solanaCluster)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -80,6 +93,26 @@ export function HeaderSettingsPopover() {
     document.addEventListener('mousedown', onDocumentClick)
     return () => document.removeEventListener('mousedown', onDocumentClick)
   }, [isOpen])
+
+  const handleNetworkEnvChange = (value: NetworkEnv) => {
+    if (value === 'mainnet') {
+      setSolanaCluster('mainnet-beta')
+      setEvmChain('ethereum')
+      if (evmWallet.isConnected) {
+        void evmWallet.switchToChainAsync(preferredEvmChainId('ethereum', 'mainnet')).catch(() => {
+          evmWallet.switchToChain(preferredEvmChainId('ethereum', 'mainnet'))
+        })
+      }
+      return
+    }
+    setSolanaCluster('devnet')
+    setEvmChain('sepolia')
+    if (evmWallet.isConnected) {
+      void evmWallet.switchToChainAsync(preferredEvmChainId('sepolia', 'testnet')).catch(() => {
+        evmWallet.switchToChain(preferredEvmChainId('sepolia', 'testnet'))
+      })
+    }
+  }
 
   return (
     <div className="header-settings" ref={rootRef}>
@@ -102,6 +135,26 @@ export function HeaderSettingsPopover() {
         aria-label="Settings"
         aria-hidden={!isOpen}
       >
+        <div className="header-settings-row header-settings-row--network">
+          <SegmentedToggle
+            value={networkEnv}
+            className="header-settings-segmented--network"
+            options={[
+              {
+                value: 'mainnet',
+                icon: <span className="header-settings-segment-text">Mainnet</span>,
+                label: 'Mainnet',
+              },
+              {
+                value: 'testnet',
+                icon: <span className="header-settings-segment-text">Testnet</span>,
+                label: 'Testnet (Solana Devnet / Sepolia)',
+              },
+            ]}
+            onChange={handleNetworkEnvChange}
+            ariaLabel="Network"
+          />
+        </div>
         <div className="header-settings-row">
           <SegmentedToggle
             value={soundEnabled ? 'on' : 'off'}

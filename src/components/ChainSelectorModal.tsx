@@ -3,6 +3,11 @@ import { createPortal } from 'react-dom'
 import { useWalletContext } from '../providers/walletContext'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import {
+  networkEnvFromSolanaCluster,
+  preferredEvmChainId,
+  preferredSolanaCluster,
+} from '../wallet/networkEnv'
 import metamaskFoxIcon from '../assets/metamask-fox.svg'
 import { SolanaLogomark } from './SolanaLogomark'
 import { WalletIcon } from './WalletIcon'
@@ -97,9 +102,26 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   const [activeTab, setActiveTab] = useState<TabType>('evm')
   const [evmConnectError, setEvmConnectError] = useState('')
   const backdropDismissArmedRef = useRef(false)
-  const { setSelectedChainType, requestRainbowKit, isEvmStackReady } = useWalletContext()
+  const {
+    selectedChainType,
+    setSelectedChainType,
+    evmChain,
+    solanaCluster,
+    setSolanaCluster,
+    requestRainbowKit,
+    isEvmStackReady,
+  } = useWalletContext()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
+  const networkEnv = networkEnvFromSolanaCluster(solanaCluster)
+  const targetEvmChainId = preferredEvmChainId(evmChain, networkEnv)
+  const targetSolanaCluster = preferredSolanaCluster(networkEnv)
+
+  useEffect(() => {
+    if (!isOpen) return
+    setActiveTab(selectedChainType === 'solana' ? 'solana' : 'evm')
+    setEvmConnectError('')
+  }, [isOpen, selectedChainType])
 
   const openRainbowKit = useCallback(() => {
     requestRainbowKit()
@@ -131,7 +153,14 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
         // does not tear down the new EVM session if Solana was previously selected.
         setSelectedChainType('evm')
         if (solanaWallet.isConnected) {
-          await solanaWallet.disconnect()
+          const solanaIsMetaMask = solanaWallet.wallet?.adapter.name
+            .toLowerCase()
+            .includes('metamask')
+          // MetaMask Solana + MetaMask EVM share one extension session — do not
+          // disconnect Solana or the EVM connect will come back already dropped.
+          if (!(isMetaMaskConnector(connector) && solanaIsMetaMask)) {
+            await solanaWallet.disconnect()
+          }
         }
 
         // MetaMask may use WalletConnect under the hood when the extension is absent —
@@ -145,7 +174,8 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
           return
         }
 
-        await evmWallet.connectWithConnector(connector.uid)
+        // Connect onto the header Mainnet/Testnet selection (Sepolia vs Ethereum/…).
+        await evmWallet.connectWithConnector(connector.uid, targetEvmChainId)
         // Drop focus before aria-hidden flips on the backdrop.
         ;(document.activeElement as HTMLElement | null)?.blur?.()
         onClose()
@@ -160,17 +190,45 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
         }
       }
     },
-    [isWalletConnectConnector, openRainbowKit, setSelectedChainType, evmWallet, solanaWallet, onClose]
+    [
+      isWalletConnectConnector,
+      openRainbowKit,
+      setSelectedChainType,
+      evmWallet,
+      solanaWallet,
+      onClose,
+      targetEvmChainId,
+    ],
   )
 
   const handleSolanaWalletSelect = useCallback(async (walletName: string) => {
     setSelectedChainType('solana')
+    // Pin Solana RPC to header Mainnet/Testnet before the adapter connects.
+    if (solanaCluster !== targetSolanaCluster) {
+      setSolanaCluster(targetSolanaCluster)
+      // Let ConnectionProvider remount on the new RPC before select/connect.
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
     if (evmWallet.isConnected) {
-      await Promise.resolve(evmWallet.disconnect())
+      const connectingMetaMask = walletName.toLowerCase().includes('metamask')
+      const evmIsMetaMask =
+        Boolean(evmWallet.connector) && isMetaMaskConnector(evmWallet.connector!)
+      // Disconnecting MetaMask EVM also kills MetaMask Solana (shared session).
+      if (!(connectingMetaMask && evmIsMetaMask)) {
+        await Promise.resolve(evmWallet.disconnect())
+      }
     }
     await solanaWallet.selectWallet(walletName)
     onClose()
-  }, [setSelectedChainType, solanaWallet, evmWallet, onClose])
+  }, [
+    setSelectedChainType,
+    setSolanaCluster,
+    solanaCluster,
+    targetSolanaCluster,
+    solanaWallet,
+    evmWallet,
+    onClose,
+  ])
 
   const handleWalletConnectFallback = useCallback(async () => {
     setSelectedChainType('evm')

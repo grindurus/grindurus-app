@@ -52,19 +52,20 @@ export function GraiMintSubtitleRotatingAsset() {
   }, [assets])
   const [entryIndex, setEntryIndex] = useState(0)
   const currentEntry = rotateEntries[entryIndex] ?? { label: 'Assets' }
-  const innerRef = useRef<HTMLSpanElement>(null)
+  const wordRef = useRef<HTMLSpanElement>(null)
   const [slotWidth, setSlotWidth] = useState<number | null>(null)
   const [isWidthTransitionReady, setIsWidthTransitionReady] = useState(false)
 
-  const measureSlotWidth = useCallback(() => {
-    const el = innerRef.current
-    if (!el) return
-    setSlotWidth(el.scrollWidth)
+  const measureCurrentWidth = useCallback(() => {
+    const word = wordRef.current
+    if (!word) return
+    const width = Math.ceil(word.scrollWidth)
+    if (width > 0) setSlotWidth(width)
   }, [])
 
   useLayoutEffect(() => {
-    measureSlotWidth()
-  }, [currentEntry.label, currentEntry.icon?.src, measureSlotWidth])
+    measureCurrentWidth()
+  }, [currentEntry.label, currentEntry.icon?.src, measureCurrentWidth])
 
   useLayoutEffect(() => {
     if (slotWidth === null) return
@@ -94,7 +95,7 @@ export function GraiMintSubtitleRotatingAsset() {
     >
       <span
         key={currentEntry.label}
-        ref={innerRef}
+        ref={wordRef}
         className="grai-page-subtitle-rotating-word-current"
       >
         {currentEntry.icon ? (
@@ -104,7 +105,7 @@ export function GraiMintSubtitleRotatingAsset() {
               alt=""
               loading="lazy"
               decoding="async"
-              onLoad={measureSlotWidth}
+              onLoad={measureCurrentWidth}
             />
           </span>
         ) : null}

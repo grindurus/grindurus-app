@@ -11,7 +11,7 @@ import {
   type GrsCapGroupSpec,
 } from '../../grs/capTable'
 import type { GrsAllocation, GrsSnapshot } from '../../grs/evm/readProtocol'
-import { navigateToGrsSection } from '../../utils/grsNavigation'
+import { navigateToGrsSection, GRS_ALLOCATION_ID } from '../../utils/grsNavigation'
 
 type Props = {
   snapshot: GrsSnapshot | null
@@ -107,7 +107,11 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
   }
 
   return (
-    <aside className="grs-cap-infographic grai-liquidation-ops-block" aria-label="GRS 1 billion token cap table">
+    <aside
+      className="grs-cap-infographic grai-liquidation-ops-block"
+      id={GRS_ALLOCATION_ID}
+      aria-label="GRS 1 billion token cap table"
+    >
       <h3 className="grai-liquidation-ops-heading">
         <button
           type="button"

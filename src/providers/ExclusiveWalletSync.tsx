@@ -3,10 +3,20 @@ import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useSolanaWallet } from '../hooks/useSolanaWallet'
 import { useWalletContext } from './walletContext'
 
+function isMetaMaskName(name: string | undefined): boolean {
+  return (name ?? '').toLowerCase().includes('metamask')
+}
+
 /**
- * Enforce a single connected wallet: EVM XOR Solana.
- * When both are connected, keep the chain matching `selectedChainType`
- * (default EVM) and disconnect the other.
+ * Enforce a single *active* wallet for UX: EVM XOR Solana.
+ *
+ * Exception: MetaMask exposes both an EVM injected provider and a Solana
+ * Wallet-Standard adapter from one extension session. Calling wagmi
+ * `disconnect()` (or Solana adapter disconnect) tears down that shared
+ * session and immediately drops the other chain — which surfaces as
+ * `WalletDisconnectedError` right after connecting MetaMask on Solana.
+ * In that case we keep both adapters connected and rely on
+ * `selectedChainType` for which one the app uses.
  */
 export function ExclusiveWalletSync() {
   const { selectedChainType } = useWalletContext()
@@ -18,10 +28,15 @@ export function ExclusiveWalletSync() {
   const solanaConnected = solanaWallet.isConnected
   const disconnectEvm = evmWallet.disconnect
   const disconnectSolana = solanaWallet.disconnect
+  const sharedMetaMaskSession =
+    isMetaMaskName(evmWallet.connector?.name) || isMetaMaskName(evmWallet.connector?.id)
+      ? isMetaMaskName(solanaWallet.wallet?.adapter.name)
+      : false
 
   useEffect(() => {
     if (!evmConnected || !solanaConnected) return
     if (busyRef.current) return
+    if (sharedMetaMaskSession) return
 
     const keepSolana = selectedChainType === 'solana'
     busyRef.current = true
@@ -37,7 +52,14 @@ export function ExclusiveWalletSync() {
       }
     }
     void run()
-  }, [evmConnected, solanaConnected, selectedChainType, disconnectEvm, disconnectSolana])
+  }, [
+    evmConnected,
+    solanaConnected,
+    selectedChainType,
+    disconnectEvm,
+    disconnectSolana,
+    sharedMetaMaskSession,
+  ])
 
   return null
 }

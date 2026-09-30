@@ -40,15 +40,35 @@ export function GrsSubmit({
   disabled,
   pending,
   label,
+  connectLabel,
+  blockedLabel,
+  onBeforeConnect,
   onClick,
 }: {
   connected: boolean
   disabled: boolean
   pending: boolean
   label: string
+  connectLabel?: string
+  /** When set (and wallet connected), replaces Buy with a disabled CTA (e.g. empty amount). */
+  blockedLabel?: string | null
+  onBeforeConnect?: () => void
   onClick: () => void
 }) {
-  if (!connected) return <GraiActionConnectWalletButton />
+  if (!connected) {
+    return (
+      <GraiActionConnectWalletButton label={connectLabel} onBeforeOpen={onBeforeConnect} />
+    )
+  }
+  if (blockedLabel) {
+    return (
+      <div className="grai-action-submit">
+        <button type="button" className="grai-mint-btn" disabled>
+          {blockedLabel}
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="grai-action-submit">
       <button type="button" className="grai-mint-btn" disabled={disabled || pending} onClick={onClick}>

@@ -8,7 +8,11 @@ import {
 } from '@solana/web3.js'
 import { SendHelper } from '@layerzerolabs/lz-solana-sdk-v2'
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '../../grai/pdas'
-import { formatTokenBalance, parseTokenAmount, confirmSignatureViaHttp } from '../../grai/onchain'
+import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
+import {
+  sendWalletTransaction,
+  type SolanaSendTransaction,
+} from '../../solana/sendWalletTransaction'
 import type { GrsSolanaConfig } from '../deployments'
 import { decodeOftStore } from './layout'
 import { peerConfigPda, resolveGrsSolanaPdas } from './pdas'
@@ -194,6 +198,7 @@ export async function executeSolanaGrsBridge(params: {
   config: GrsSolanaConfig
   publicKey: PublicKey
   signTransaction: (transaction: Transaction) => Promise<Transaction>
+  sendTransaction?: SolanaSendTransaction | null
   dstEid: number
   to: Uint8Array
   amountInput: string
@@ -261,18 +266,17 @@ export async function executeSolanaGrsBridge(params: {
       data,
     }),
   )
-  tx.feePayer = params.publicKey
-  tx.recentBlockhash = (await params.connection.getLatestBlockhash()).blockhash
   // Fund LZ native fee from the signer (endpoint withdraws from remaining[1] signer seed —
   // payer must hold enough SOL; fee is passed as native_fee param).
-  const signed = await params.signTransaction(tx)
-  const signature = await params.connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: 'confirmed',
-    maxRetries: 3,
+  const signature = await sendWalletTransaction({
+    connection: params.connection,
+    transaction: tx,
+    feePayer: params.publicKey,
+    expectedCluster: params.config.cluster,
+    action: 'bridge GRS',
+    sendTransaction: params.sendTransaction,
+    signTransaction: params.signTransaction,
   })
-  // HTTP poll — WS confirm hangs on the Vite Solana RPC proxy after the tx is already live.
-  await confirmSignatureViaHttp(params.connection, signature, 'confirmed')
 
   return {
     signature,

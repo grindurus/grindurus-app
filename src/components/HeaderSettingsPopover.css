@@ -87,7 +87,7 @@
   padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.55rem;
   box-shadow: none;
   backdrop-filter: none;
   z-index: 120;
@@ -122,6 +122,23 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.header-settings-row--network {
+  width: 100%;
+}
+
+.header-settings-segmented--network {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.header-settings-segment-text {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .header-settings-segmented {

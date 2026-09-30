@@ -407,6 +407,7 @@ export function GraiMintBurnPanel({
   const detectedReferrerChain = detectGraiReferrerChain(referrerTrimmed)
   const referrerIsInvalid = referrerTrimmed.length > 0 && detectedReferrerChain === null
   const isDepositFlow = actionView === 'mint' && !isGraiSelected && assetFlowView === 'deposit'
+
   const depositWalletReady =
     detectedReferrerChain === 'evm'
       ? evmWallet.isConnected
@@ -1127,7 +1128,7 @@ export function GraiMintBurnPanel({
               how it works
             </button>
             <div className="grai-page-subtitle-head">
-              <p className="grai-page-subtitle is-fit-width">
+              <h3 className="grai-liquidation-distribute-title grai-page-subtitle">
                   <span
                     className={`grai-page-subtitle-mode-swap is-${
                       isGraiLock ? 'lock' : isGraiUnlock ? 'unlock' : isAssetClaim ? 'claim' : 'deposit'
@@ -1204,7 +1205,7 @@ export function GraiMintBurnPanel({
                       </>
                     ) : null}
                   </span>
-              </p>
+              </h3>
             </div>
           </div>
           )}

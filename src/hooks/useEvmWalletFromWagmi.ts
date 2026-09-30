@@ -2,6 +2,11 @@ import { useAccount, useDisconnect, useChainId, useSwitchChain, useConnect } fro
 import { mainnet, base, arbitrum, polygon, sepolia } from 'wagmi/chains'
 import { useMemo, useCallback, useState, useEffect } from 'react'
 import type { EvmWalletSnapshot } from '../providers/evmWalletTypes'
+import { useWalletContext } from '../providers/walletContext'
+import {
+  evmChainMatchesNetworkEnv,
+  networkEnvFromSolanaCluster,
+} from '../wallet/networkEnv'
 
 const chainNames: Record<number, string> = {
   [mainnet.id]: 'Ethereum',
@@ -11,12 +16,21 @@ const chainNames: Record<number, string> = {
   [sepolia.id]: 'Sepolia',
 }
 
+const ALL_SUPPORTED_CHAINS = [
+  { id: mainnet.id, name: 'Ethereum', icon: '⟠' },
+  { id: base.id, name: 'Base', icon: '🔵' },
+  { id: arbitrum.id, name: 'Arbitrum', icon: '🔷' },
+  { id: polygon.id, name: 'Polygon', icon: '⬡' },
+  { id: sepolia.id, name: 'Sepolia', icon: '🧪' },
+] as const
+
 export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
   const { address, isConnected, isConnecting, connector } = useAccount()
   const { disconnect } = useDisconnect()
   const chainId = useChainId()
   const { switchChain, switchChainAsync } = useSwitchChain()
   const { connectors, connectAsync: wagmiConnectAsync } = useConnect()
+  const { solanaCluster } = useWalletContext()
   const [installedConnectors, setInstalledConnectors] = useState<string[]>([])
 
   useEffect(() => {
@@ -47,15 +61,13 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
     return chainNames[chainId] || 'Unknown'
   }, [chainId])
 
+  const networkEnv = networkEnvFromSolanaCluster(solanaCluster)
   const supportedChains = useMemo(
-    () => [
-      { id: mainnet.id, name: 'Ethereum', icon: '⟠' },
-      { id: base.id, name: 'Base', icon: '🔵' },
-      { id: arbitrum.id, name: 'Arbitrum', icon: '🔷' },
-      { id: polygon.id, name: 'Polygon', icon: '⬡' },
-      { id: sepolia.id, name: 'Sepolia', icon: '🧪' },
-    ],
-    [],
+    () =>
+      ALL_SUPPORTED_CHAINS.filter((chain) => evmChainMatchesNetworkEnv(chain.id, networkEnv)).map(
+        (chain) => ({ ...chain }),
+      ),
+    [networkEnv],
   )
 
   const isCoinbaseConnector = useCallback((c: { id: string; name: string }) => {
@@ -161,14 +173,23 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
   }, [walletConnectConnector, wagmiConnectAsync])
 
   const connectWithConnector = useCallback(
-    async (connectorId: string) => {
+    async (connectorId: string, preferredChainId?: number) => {
       const found = connectors.find((c) => c.uid === connectorId || c.id === connectorId)
       if (!found) {
         throw new Error(`Connector not found: ${connectorId}`)
       }
-      await wagmiConnectAsync({ connector: found })
+      const chainId = preferredChainId
+      await wagmiConnectAsync(chainId != null ? { connector: found, chainId } : { connector: found })
+      // Some wallets ignore chainId on connect — switch after the session is up.
+      if (chainId != null && switchChainAsync) {
+        try {
+          await switchChainAsync({ chainId })
+        } catch {
+          // User rejected the switch or the wallet cannot change networks here.
+        }
+      }
     },
-    [connectors, wagmiConnectAsync],
+    [connectors, wagmiConnectAsync, switchChainAsync],
   )
 
   return useMemo(

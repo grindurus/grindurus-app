@@ -45,6 +45,7 @@ const BUY_NOTE = <>You buy {GRS_TERM} on token sale</>
 
 const NOTES: Record<GrsSection, ReactNode> = {
   'token-sale': BUY_NOTE,
+  allocation: <>Cap table for the fixed 1B {GRS_TERM} supply — five groups, remaining vs used.</>,
   bridge: (
     <>
       Move {GRS_TERM} between home and spokes via LayerZero OFT — send from any configured chain
@@ -117,7 +118,9 @@ function chainIdToEvmChain(chainId: number): EvmChain | null {
 
 function opsTabFromHash(section: GrsSection | null): GrsOpsTab {
   if (section === 'grant') return 'grant'
-  if (section && section !== 'sales' && section !== 'token-sale') return section
+  if (section && section !== 'sales' && section !== 'token-sale' && section !== 'allocation') {
+    return section
+  }
   return 'bridge'
 }
 
@@ -204,7 +207,7 @@ function GrsPage() {
     const applySection = (section: GrsSection) => {
       setIsOpsCollapsed(false)
       setSalesActive(section === 'sales')
-      if (section === 'sales' || section === 'token-sale') return
+      if (section === 'sales' || section === 'token-sale' || section === 'allocation') return
       setOpsView(section)
     }
     const onHash = () => {
@@ -268,6 +271,8 @@ function GrsPage() {
             ) : null}
           </div>
         )}
+
+        <GrsCapInfographic snapshot={snapshot} isLoading={isLoading} />
 
         <div className="grai-actions-block grai-liquidation-ops-block grs-ops-block" id={GRS_OPS_ID}>
           <h3 className="grai-liquidation-ops-heading">
@@ -341,7 +346,7 @@ function GrsPage() {
                       </span>
                       <span className="grs-ops-tab-copy">
                         <span className="grai-action-switch-label">{GRS_SECTION_LABELS.grant}</span>
-                        <span className="grs-ops-proprietor-badge">only proprietor</span>
+                        <span className="grs-ops-proprietor-badge">only owner</span>
                       </span>
                     </button>,
                     <button
@@ -359,7 +364,7 @@ function GrsPage() {
                       </span>
                       <span className="grs-ops-tab-copy">
                         <span className="grai-action-switch-label">{GRS_SECTION_LABELS.sales}</span>
-                        <span className="grs-ops-proprietor-badge">only proprietor</span>
+                        <span className="grs-ops-proprietor-badge">only owner</span>
                       </span>
                     </button>,
                   ]
@@ -422,8 +427,6 @@ function GrsPage() {
             </div>
           </div>
         </div>
-
-        <GrsCapInfographic snapshot={snapshot} isLoading={isLoading} />
 
         <div className="grs-page-ca-bar">
           <GrsCaNetworkSelect config={config} />

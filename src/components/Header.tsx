@@ -10,6 +10,9 @@ import { navigateToGrsSection, type GrsSection } from '../utils/grsNavigation'
 import { navigateToAffiliatesSection, type AffiliatesSection } from '../utils/affiliatesNavigation'
 import { navigateToBacktestSection, type BacktestSection } from '../utils/backtestNavigation'
 import { useHeaderNavClicks } from '../hooks/useHeaderNavClicks'
+import { useEvmWallet } from '../hooks/useEvmWallet'
+import { useWalletContext } from '../providers/walletContext'
+import { isTestnetEvmChainId, preferredEvmChainId } from '../wallet/networkEnv'
 import { assetUrl } from '../utils/appPaths'
 import './Header.css'
 
@@ -153,8 +156,16 @@ const GRANT_NAV_ICON = (
   </svg>
 )
 
+const ALLOCATION_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+    <path d="M22 12A10 10 0 0 0 12 2v10z" />
+  </svg>
+)
+
 const GRS_NAV_ITEMS: { section: GrsSection; label: string; icon: ReactNode }[] = [
   { section: 'token-sale', label: 'Token Sale', icon: SALE_NAV_ICON },
+  { section: 'allocation', label: 'Allocation', icon: ALLOCATION_NAV_ICON },
   { section: 'bridge', label: 'Bridge', icon: BRIDGE_NAV_ICON },
   { section: 'vesting', label: 'Release', icon: UNLOCK_NAV_ICON },
   { section: 'vest', label: 'Vest', icon: LOCK_NAV_ICON },
@@ -218,6 +229,13 @@ function HeaderNavPathButton({
 function Header() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const { setSolanaCluster, setEvmChain, solanaCluster } = useWalletContext()
+  const {
+    isConnected: evmConnected,
+    chainId: evmChainId,
+    switchToChainAsync,
+    switchToChain,
+  } = useEvmWallet()
   const isBacktestActive = pathname.startsWith('/backtest')
   const isAffiliatesActive = pathname.startsWith('/affiliate')
   const isGraiActive = pathname.startsWith('/grai')
@@ -227,12 +245,14 @@ function Header() {
   const [isAffiliatesMenuOpen, setIsAffiliatesMenuOpen] = useState(false)
   const [isGraiMenuOpen, setIsGraiMenuOpen] = useState(false)
   const [isGrsMenuOpen, setIsGrsMenuOpen] = useState(false)
+  const [navMode, setNavMode] = useState<'full' | 'compact' | 'mobile'>('full')
   const mobileNavId = useId()
   const backtestMenuRef = useRef<HTMLLIElement>(null)
   const affiliatesMenuRef = useRef<HTMLLIElement>(null)
   const graiMenuRef = useRef<HTMLLIElement>(null)
   const grsMenuRef = useRef<HTMLLIElement>(null)
   const headerRef = useRef<HTMLElement>(null)
+  const headerContainerRef = useRef<HTMLDivElement>(null)
   const desktopNavTrackRef = useRef<HTMLDivElement>(null)
   const [navIndicator, setNavIndicator] = useState({
     left: 0,
@@ -243,6 +263,33 @@ function Header() {
   })
   const [navIndicatorReady, setNavIndicatorReady] = useState(false)
 
+  const isNavCompact = navMode === 'compact'
+  const isNavMobile = navMode === 'mobile'
+  const showBurger = navMode !== 'full'
+
+  // Backtest / x402 needs the Mainnet env (not Testnet). Pin Solana to mainnet-beta and
+  // leave Sepolia → Ethereum, but do not yank the wallet off Base/Arbitrum/Polygon.
+  useEffect(() => {
+    if (!isBacktestActive) return
+    if (solanaCluster !== 'mainnet-beta') setSolanaCluster('mainnet-beta')
+    if (evmConnected && isTestnetEvmChainId(evmChainId)) {
+      setEvmChain('ethereum')
+      const mainnetId = preferredEvmChainId('ethereum', 'mainnet')
+      void switchToChainAsync(mainnetId).catch(() => {
+        switchToChain(mainnetId)
+      })
+    }
+  }, [
+    isBacktestActive,
+    solanaCluster,
+    setSolanaCluster,
+    setEvmChain,
+    evmConnected,
+    evmChainId,
+    switchToChainAsync,
+    switchToChain,
+  ])
+
   useEffect(() => {
     setIsMobileNavOpen(false)
     setIsBacktestMenuOpen(false)
@@ -252,8 +299,38 @@ function Header() {
   }, [pathname])
 
   useLayoutEffect(() => {
+    const container = headerContainerRef.current
+    if (!container) return
+
+    // Prefer a scrollable product strip for as long as the bar has room beside brand + wallet.
+    // Only drop to burger-only on very narrow viewports.
+    const FULL_MIN = 980
+    const COMPACT_MIN = 680
+
+    const update = () => {
+      const width = container.clientWidth
+      if (width >= FULL_MIN) setNavMode('full')
+      else if (width >= COMPACT_MIN) setNavMode('compact')
+      else setNavMode('mobile')
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (navMode === 'full') setIsMobileNavOpen(false)
+  }, [navMode])
+
+  useLayoutEffect(() => {
     const track = desktopNavTrackRef.current
-    if (!track) return
+    const scroller = track?.parentElement
+    if (!track || !scroller || isNavMobile) {
+      setNavIndicator((prev) => ({ ...prev, visible: false }))
+      return
+    }
 
     const update = () => {
       const currentLink = track.querySelector<HTMLElement>('.header-nav-link.is-current')
@@ -276,15 +353,25 @@ function Header() {
       requestAnimationFrame(() => setNavIndicatorReady(true))
     }
 
+    // On route / mode change, bring the active product into the scrollport once.
+    const currentLink = track.querySelector<HTMLElement>('.header-nav-link.is-current')
+    const currentItem = currentLink?.closest('.header-nav-item--grai') ?? currentLink
+    if (currentItem instanceof HTMLElement) {
+      currentItem.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+    }
+
     update()
     const observer = new ResizeObserver(update)
     observer.observe(track)
+    observer.observe(scroller)
+    scroller.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', update)
     return () => {
       observer.disconnect()
+      scroller.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
     }
-  }, [pathname])
+  }, [pathname, navMode, isNavMobile])
 
   useEffect(() => {
     if (
@@ -425,9 +512,9 @@ function Header() {
     {createPortal(
     <header
       ref={headerRef}
-      className={`header${isMobileNavOpen ? ' is-nav-open' : ''}`}
+      className={`header is-nav-${navMode}${isMobileNavOpen ? ' is-nav-open' : ''}`}
     >
-      <div className="header-container">
+      <div className="header-container" ref={headerContainerRef}>
         <div className="header-left">
           <div className="header-brand">
             <Link to="/" className="header-logo" onClick={() => setIsMobileNavOpen(false)}>
@@ -456,7 +543,7 @@ function Header() {
             <ul className="header-nav-list">
               <li
                 ref={backtestMenuRef}
-                className={`header-nav-item header-nav-item--grai${isBacktestMenuOpen ? ' is-open' : ''}`}
+                className={`header-nav-item header-nav-item--grai${isBacktestActive ? ' is-current-product' : ''}${isBacktestMenuOpen ? ' is-open' : ''}`}
               >
                 <HeaderNavPathButton
                   path="/backtest"
@@ -469,7 +556,10 @@ function Header() {
                     }
                   }}
                 >
-                  BACKTEST
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">BACKTEST</span>
+                    <span className="header-nav-link-sub">strategy calculator</span>
+                  </span>
                 </HeaderNavPathButton>
                 <button
                   type="button"
@@ -509,14 +599,17 @@ function Header() {
               </li>
               <li
                 ref={affiliatesMenuRef}
-                className={`header-nav-item header-nav-item--grai${isAffiliatesMenuOpen ? ' is-open' : ''}`}
+                className={`header-nav-item header-nav-item--grai${isAffiliatesActive ? ' is-current-product' : ''}${isAffiliatesMenuOpen ? ' is-open' : ''}`}
               >
                 <HeaderNavPathButton
                   path="/affiliate"
                   active={isAffiliatesActive}
                   onClick={closeMenus}
                 >
-                  AFFILIATES
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">AFFILIATES</span>
+                    <span className="header-nav-link-sub">referral program</span>
+                  </span>
                 </HeaderNavPathButton>
                 <button
                   type="button"
@@ -556,7 +649,7 @@ function Header() {
               </li>
               <li
                 ref={graiMenuRef}
-                className={`header-nav-item header-nav-item--grai${isGraiMenuOpen ? ' is-open' : ''}`}
+                className={`header-nav-item header-nav-item--grai${isGraiActive ? ' is-current-product' : ''}${isGraiMenuOpen ? ' is-open' : ''}`}
               >
                 <HeaderNavPathButton
                   path="/grai"
@@ -569,7 +662,10 @@ function Header() {
                     }
                   }}
                 >
-                  GRAI
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">GRAI</span>
+                    <span className="header-nav-link-sub">fund capital</span>
+                  </span>
                 </HeaderNavPathButton>
                 <button
                   type="button"
@@ -609,14 +705,17 @@ function Header() {
               </li>
               <li
                 ref={grsMenuRef}
-                className={`header-nav-item header-nav-item--grai${isGrsMenuOpen ? ' is-open' : ''}`}
+                className={`header-nav-item header-nav-item--grai${isGrsActive ? ' is-current-product' : ''}${isGrsMenuOpen ? ' is-open' : ''}`}
               >
                 <HeaderNavPathButton
                   path="/grs"
                   active={isGrsActive}
                   onClick={closeMenus}
                 >
-                  GRS
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">GRS</span>
+                    <span className="header-nav-link-sub">protocol equity</span>
+                  </span>
                 </HeaderNavPathButton>
                 <button
                   type="button"
@@ -661,20 +760,23 @@ function Header() {
           <div className="header-wallet-cluster">
             <ConnectWalletButton />
             <HeaderSettingsPopover />
-            <button
-              type="button"
-              className="header-menu-btn"
-              aria-expanded={isMobileNavOpen}
-              aria-controls={mobileNavId}
-              aria-label={isMobileNavOpen ? 'Close menu' : 'Open menu'}
-              onClick={() => setIsMobileNavOpen((open) => !open)}
-            >
-              {isMobileNavOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-            </button>
+            {showBurger ? (
+              <button
+                type="button"
+                className="header-menu-btn"
+                aria-expanded={isMobileNavOpen}
+                aria-controls={mobileNavId}
+                aria-label={isMobileNavOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => setIsMobileNavOpen((open) => !open)}
+              >
+                {isMobileNavOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
 
+      {showBurger ? (
       <div
         className={`header-mobile-nav${isMobileNavOpen ? ' is-open' : ''}`}
         id={mobileNavId}
@@ -682,54 +784,82 @@ function Header() {
       >
         <nav aria-label="Product sections">
           <ul className="header-mobile-nav-list">
+            {!isNavCompact || !isBacktestActive ? (
             <li>
               <HeaderNavPathButton
                 path="/backtest"
                 active={isBacktestActive}
                 onClick={(event) => {
                   closeMenus()
+                  setIsMobileNavOpen(false)
                   if (pathname.startsWith('/backtest')) {
                     event.preventDefault()
                     navigateToBacktestSection('create')
                   }
                 }}
               >
-                BACKTEST
+                <span className="header-nav-link-stack">
+                  <span className="header-nav-link-title">BACKTEST</span>
+                  <span className="header-nav-link-sub">strategy calculator</span>
+                </span>
               </HeaderNavPathButton>
             </li>
+            ) : null}
+            {!isNavCompact || !isAffiliatesActive ? (
             <li>
               <HeaderNavPathButton
                 path="/affiliate"
                 active={isAffiliatesActive}
-                onClick={closeMenus}
+                onClick={() => {
+                  closeMenus()
+                  setIsMobileNavOpen(false)
+                }}
               >
-                AFFILIATES
+                <span className="header-nav-link-stack">
+                  <span className="header-nav-link-title">AFFILIATES</span>
+                  <span className="header-nav-link-sub">referral program</span>
+                </span>
               </HeaderNavPathButton>
             </li>
+            ) : null}
+            {!isNavCompact || !isGraiActive ? (
             <li>
               <HeaderNavPathButton
                 path="/grai"
                 active={isGraiActive}
                 onClick={(event) => {
                   closeMenus()
+                  setIsMobileNavOpen(false)
                   if (pathname.startsWith('/grai')) {
                     event.preventDefault()
                     navigateToGraiSection('mint')
                   }
                 }}
               >
-                GRAI
+                <span className="header-nav-link-stack">
+                  <span className="header-nav-link-title">GRAI</span>
+                  <span className="header-nav-link-sub">fund capital</span>
+                </span>
               </HeaderNavPathButton>
             </li>
+            ) : null}
+            {!isNavCompact || !isGrsActive ? (
             <li>
               <HeaderNavPathButton
                 path="/grs"
                 active={isGrsActive}
-                onClick={closeMenus}
+                onClick={() => {
+                  closeMenus()
+                  setIsMobileNavOpen(false)
+                }}
               >
-                GRS
+                <span className="header-nav-link-stack">
+                  <span className="header-nav-link-title">GRS</span>
+                  <span className="header-nav-link-sub">protocol equity</span>
+                </span>
               </HeaderNavPathButton>
             </li>
+            ) : null}
             {isBacktestActive
               ? BACKTEST_NAV_ITEMS.map((item) => (
                   <li key={item.section}>
@@ -801,6 +931,7 @@ function Header() {
           </ul>
         </nav>
       </div>
+      ) : null}
 
       {isMobileNavOpen ? (
         <button

@@ -132,7 +132,14 @@ export function GraiWalletActorRow({
 }
 
 /** Opens the same ChainSelectorModal as the header Connect Wallet button. */
-export function GraiActionConnectWalletButton({ label }: { label?: string }) {
+export function GraiActionConnectWalletButton({
+  label,
+  onBeforeOpen,
+}: {
+  label?: string
+  /** e.g. setSelectedChainType('solana') so the modal opens on the right tab. */
+  onBeforeOpen?: () => void
+}) {
   const { isChainSelectorOpen, openChainSelector, warmEvmStack } = useWalletContext()
   const activeWallet = useActiveWallet()
   const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
@@ -140,8 +147,9 @@ export function GraiActionConnectWalletButton({ label }: { label?: string }) {
 
   const handleOpen = useCallback(() => {
     if (showConnecting) return
+    onBeforeOpen?.()
     openChainSelector()
-  }, [openChainSelector, showConnecting])
+  }, [onBeforeOpen, openChainSelector, showConnecting])
 
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
