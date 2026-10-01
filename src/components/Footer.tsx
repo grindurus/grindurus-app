@@ -72,7 +72,21 @@ function Footer() {
           </div>
         </div>
 
-        <p className="app-footer-tagline">Passively earn yield from price volatility.</p>
+        <div className="app-footer-bottom">
+          <p className="app-footer-tagline">Passively earn yield from price volatility.</p>
+
+          <nav className="app-footer-legal" aria-label="Legal">
+            <Link to="/privacy" className="app-footer-legal-link">
+              Privacy Policy
+            </Link>
+          <Link to="/terms" className="app-footer-legal-link">
+            Terms of Service
+          </Link>
+            <Link to="/risk" className="app-footer-legal-link">
+              Risk Disclosure
+            </Link>
+          </nav>
+        </div>
       </div>
     </footer>
   )

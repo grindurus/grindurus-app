@@ -189,16 +189,6 @@ function AffiliatesPage() {
         </div>
       </div>
 
-      <div id="affiliates-dashboard">
-      <GraiReferralTree
-        evmProtocol={chainKind === 'evm' ? evmProtocol : null}
-        solana={chainKind === 'solana' ? solana : null}
-        connection={chainKind === 'solana' ? connection : null}
-        highlightAddress={walletAddress}
-        graiDecimals={graiDecimals}
-      />
-      </div>
-
       <section
         className={`affiliates-terms${termsCollapsed ? ' is-collapsed' : ''}`}
         id="affiliates-program"
@@ -274,6 +264,16 @@ function AffiliatesPage() {
         </p>
         </div>
       </section>
+
+      <div id="affiliates-dashboard">
+      <GraiReferralTree
+        evmProtocol={chainKind === 'evm' ? evmProtocol : null}
+        solana={chainKind === 'solana' ? solana : null}
+        connection={chainKind === 'solana' ? connection : null}
+        highlightAddress={walletAddress}
+        graiDecimals={graiDecimals}
+      />
+      </div>
 
       <div className="grai-page-ca-bar">
         <GraiCaNetworkSelect

@@ -15,6 +15,7 @@ const GrsPage = lazy(() => import('./pages/GrsPage'))
 const AffiliatesPage = lazy(() => import('./pages/AffiliatesPage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
 const LandingPage = lazy(() => import('./pages/LandingPage'))
+const LegalPage = lazy(() => import('./pages/LegalPage'))
 
 function titleFromPath(pathname: string): string {
   if (pathname === '/') return 'GrindURUS'
@@ -22,6 +23,9 @@ function titleFromPath(pathname: string): string {
   if (pathname.startsWith('/grinders')) return 'Grinders'
   if (pathname.startsWith('/grs')) return 'GRS'
   if (pathname.startsWith('/affiliate')) return 'Affiliates'
+  if (pathname === '/privacy') return 'Privacy Policy'
+  if (pathname === '/terms') return 'Terms of Service'
+  if (pathname === '/risk') return 'Risk Disclosure'
   if (pathname === '/grai/manage') return 'GRAI — Grinder management'
   return 'GRAI'
 }
@@ -125,6 +129,20 @@ function BacktestRoute() {
   )
 }
 
+function LegalRoute() {
+  return (
+    <Suspense
+      fallback={
+        <div className="App-main-loading" role="status">
+          Loading…
+        </div>
+      }
+    >
+      <LegalPage />
+    </Suspense>
+  )
+}
+
 function AppNavigateBinder() {
   const navigate = useNavigate()
 
@@ -170,6 +188,9 @@ function App() {
           <Route path="/affiliates" element={<Navigate to="/affiliate" replace />} />
           <Route path="/grai/manage" element={<GraiManageRedirect />} />
           <Route path="/backtest" element={<BacktestRoute />} />
+          <Route path="/privacy" element={<LegalRoute />} />
+          <Route path="/terms" element={<LegalRoute />} />
+          <Route path="/risk" element={<LegalRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

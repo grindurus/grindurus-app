@@ -96,8 +96,9 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
     }
     if (salesRemaining != null) {
       const sales = GRS_CAP_GROUPS[0]?.buckets[0]
-      const usage = usageCap(allocations, 0, sales?.millions ?? 150, decimals, salesRemaining)
-      return `Token sales ${formatGrsCompact(salesRemaining, decimals)} of ${sales?.millions ?? 150}M listed · used ${formatUsedPercent(usage.spent, usage.cap)}%`
+      const salesMillions = sales?.millions ?? 100
+      const usage = usageCap(allocations, 0, salesMillions, decimals, salesRemaining)
+      return `Token sale ${formatGrsCompact(salesRemaining, decimals)} of ${salesMillions}M listed · used ${formatUsedPercent(usage.spent, usage.cap)}%`
     }
     return 'Five groups · 200M each · hover a bucket for gate and remaining'
   })()
@@ -204,6 +205,7 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
                     }`}
                     style={{
                       flexGrow: bucket.millions,
+                      flexBasis: 0,
                       ['--spent' as string]: `${usedLabel}%`,
                     }}
                     title={`${bucket.label}: ${bucket.pct}% · ${bucket.millions}M · used ${usedLabel}%`}

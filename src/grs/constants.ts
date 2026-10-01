@@ -1,16 +1,18 @@
 export const GRS_DECIMALS = 18
 export const GRS_SOLANA_DECIMALS = 9
 export const GRS_MAX_SUPPLY = 1_000_000_000n * 10n ** 18n
-/** Soft TokenSales policy size in Solana local decimals (150M × 1e9). On-chain bucket is uncapped. */
+/** Soft TokenSales policy size in Solana local decimals (100M Sales + 50M IDO plan × 1e9). On-chain bucket is uncapped. */
 export const GRS_TOKEN_SALES_CAP_LD = 150_000_000n * 10n ** 9n
-/** Soft TokenSales policy size in EVM local decimals (150M × 1e18). `capOf(TokenSales)` is `type(uint256).max`. */
+/** Soft TokenSales policy size in EVM local decimals (100M Sales + 50M IDO plan × 1e18). `capOf(TokenSales)` is `type(uint256).max`. */
 export const GRS_TOKEN_SALES_SOFT_CAP = 150_000_000n * 10n ** 18n
 
 export const TOKEN_SALES_BUCKET = 0
+/** Cap-table display only (not an on-chain `Bucket`); carved from the TokenSales soft plan. */
+export const IDO_BUCKET = 12
 export const HOLDER_BUCKET = 11
 export const NATIVE_QUOTE = '0x0000000000000000000000000000000000000000' as const
 
-/** On-chain TokenSales `capOf` is uncapped (`type(uint256).max`); UI uses the 150M soft policy. */
+/** On-chain TokenSales `capOf` is uncapped (`type(uint256).max`); UI uses the 150M soft policy (Sales 100M + IDO 50M). */
 export function normalizeTokenSalesCap(cap: bigint, decimals: number = GRS_DECIMALS): bigint {
   const soft =
     decimals === GRS_SOLANA_DECIMALS ? GRS_TOKEN_SALES_CAP_LD : GRS_TOKEN_SALES_SOFT_CAP
@@ -21,9 +23,9 @@ export function normalizeTokenSalesCap(cap: bigint, decimals: number = GRS_DECIM
 }
 
 export const BUCKET_LABELS = [
-  'Token sales',
+  'Token sale',
   'Pre-seed',
-  'Revenue share',
+  'Revenue Share Rewards',
   'Airdrops',
   'Core team',
   'Advisors',
@@ -109,5 +111,6 @@ export const GRS_BRIDGE_SOURCES: { chainId: number; name: string }[] = [
 ]
 
 export function bucketLabel(bucket: number): string {
+  if (bucket === IDO_BUCKET) return 'Initial DEX Offerings'
   return BUCKET_LABELS[bucket] ?? `Bucket ${bucket}`
 }

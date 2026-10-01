@@ -1,4 +1,4 @@
-import { GRS_DECIMALS } from './constants'
+import { GRS_DECIMALS, IDO_BUCKET } from './constants'
 
 export type GrsCapGate = 0 | 1 | 2 | 3
 export type GrsCapJump = 'sales' | 'vesting' | null
@@ -29,7 +29,8 @@ export const GRS_CAP_GROUPS: GrsCapGroupSpec[] = [
     millions: 200,
     pct: 20,
     buckets: [
-      { bucket: 0, label: 'Token sales', short: 'Sales', millions: 150, pct: 15, gate: 0, jump: 'sales' },
+      { bucket: 0, label: 'Token sale', short: 'Token sale', millions: 100, pct: 10, gate: 0, jump: 'sales' },
+      { bucket: IDO_BUCKET, label: 'Initial DEX Offerings', short: 'Initial DEX Offerings', millions: 50, pct: 5, gate: 0, jump: 'sales' },
       { bucket: 1, label: 'Pre-seed', short: 'Pre-seed', millions: 50, pct: 5, gate: 1, jump: 'vesting' },
     ],
   },
@@ -39,7 +40,7 @@ export const GRS_CAP_GROUPS: GrsCapGroupSpec[] = [
     millions: 200,
     pct: 20,
     buckets: [
-      { bucket: 2, label: 'Revenue share', short: 'Rev share', millions: 150, pct: 15, gate: 2, jump: null },
+      { bucket: 2, label: 'Revenue Share Rewards', short: 'Revenue Share Rewards', millions: 150, pct: 15, gate: 2, jump: null },
       { bucket: 3, label: 'Airdrops', short: 'Airdrop', millions: 50, pct: 5, gate: 2, jump: null },
     ],
   },

@@ -1432,9 +1432,11 @@
   appearance: none;
   position: relative;
   display: flex;
+  flex: 1 1 0;
   align-items: flex-end;
   width: 100%;
   min-height: 0;
+  overflow: hidden;
   margin: 0;
   padding: 0.18rem 0.32rem 0.22rem;
   border: 0;
@@ -1575,6 +1577,7 @@
   line-height: 1.35;
 }
 
+[data-theme='light'] .grs-cap-group--investments .grs-cap-bucket:nth-child(3) .grs-cap-bucket-label,
 [data-theme='light'] .grs-cap-group--investments .grs-cap-bucket:nth-child(4) .grs-cap-bucket-label,
 [data-theme='light'] .grs-cap-group--team .grs-cap-bucket:nth-child(2) .grs-cap-bucket-label,
 [data-theme='light'] .grs-cap-group--ecosystem .grs-cap-bucket:nth-child(2) .grs-cap-bucket-label,

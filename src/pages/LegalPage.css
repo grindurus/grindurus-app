@@ -1,0 +1,123 @@
+.legal-page {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.5rem 0 2.5rem;
+}
+
+.legal-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.legal-page-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.legal-page-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.legal-page-updated {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.legal-page-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.legal-page-toc-link {
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+
+.legal-page-toc-link:hover,
+.legal-page-toc-link:focus-visible {
+  color: #ff69b4;
+  outline: none;
+}
+
+.legal-page-toc-link.is-current {
+  color: var(--text-primary);
+}
+
+.legal-page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.legal-page-section h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.legal-page-subsection {
+  margin-top: 0.85rem;
+}
+
+.legal-page-subsection:first-of-type {
+  margin-top: 0.55rem;
+}
+
+.legal-page-subsection h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.legal-page-section p,
+.legal-page-subsection p {
+  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.legal-page-section > p:last-child,
+.legal-page-subsection p:last-child {
+  margin-bottom: 0;
+}
+
+.legal-page-bullets {
+  margin: 0.35rem 0 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.legal-page-bullets li {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+[data-theme='light'] .legal-page-toc-link:hover,
+[data-theme='light'] .legal-page-toc-link:focus-visible {
+  color: #e91e8c;
+}

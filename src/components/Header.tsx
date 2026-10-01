@@ -611,56 +611,6 @@ function Header() {
                 </div>
               </li>
               <li
-                ref={grsMenuRef}
-                className={`header-nav-item header-nav-item--grai${isGrsActive ? ' is-current-product' : ''}${isGrsMenuOpen ? ' is-open' : ''}`}
-              >
-                <HeaderNavPathButton
-                  path="/grs"
-                  active={isGrsActive}
-                  onClick={closeMenus}
-                >
-                  <span className="header-nav-link-stack">
-                    <span className="header-nav-link-title">GRS</span>
-                    <span className="header-nav-link-sub">protocol token</span>
-                  </span>
-                </HeaderNavPathButton>
-                <button
-                  type="button"
-                  className={`header-nav-caret-btn${isGrsMenuOpen ? ' is-open' : ''}`}
-                  aria-expanded={isGrsMenuOpen}
-                  aria-haspopup="menu"
-                  aria-label="GRS sections"
-                  onClick={() => {
-                    setIsBacktestMenuOpen(false)
-                    setIsAffiliatesMenuOpen(false)
-                    setIsGraiMenuOpen(false)
-                    setIsGrsMenuOpen((open) => !open)
-                  }}
-                >
-                  <GraiUiCaret className="header-nav-caret" />
-                </button>
-                <div
-                  className={`header-nav-dropdown${isGrsMenuOpen ? ' is-open' : ''}`}
-                  role="menu"
-                  aria-label="GRS sections"
-                  aria-hidden={!isGrsMenuOpen}
-                  hidden={!isGrsMenuOpen}
-                >
-                  {GRS_NAV_ITEMS.map((item) => (
-                    <button
-                      key={item.section}
-                      type="button"
-                      role="menuitem"
-                      className="header-nav-dropdown-item"
-                      onClick={() => handleGrsSectionClick(item.section)}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </li>
-              <li
                 ref={graiMenuRef}
                 className={`header-nav-item header-nav-item--grai${isGraiActive ? ' is-current-product' : ''}${isGraiMenuOpen ? ' is-open' : ''}`}
               >
@@ -766,6 +716,56 @@ function Header() {
                   ))}
                 </div>
               </li>
+              <li
+                ref={grsMenuRef}
+                className={`header-nav-item header-nav-item--grai${isGrsActive ? ' is-current-product' : ''}${isGrsMenuOpen ? ' is-open' : ''}`}
+              >
+                <HeaderNavPathButton
+                  path="/grs"
+                  active={isGrsActive}
+                  onClick={closeMenus}
+                >
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">GRS</span>
+                    <span className="header-nav-link-sub">protocol token</span>
+                  </span>
+                </HeaderNavPathButton>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn${isGrsMenuOpen ? ' is-open' : ''}`}
+                  aria-expanded={isGrsMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="GRS sections"
+                  onClick={() => {
+                    setIsBacktestMenuOpen(false)
+                    setIsAffiliatesMenuOpen(false)
+                    setIsGraiMenuOpen(false)
+                    setIsGrsMenuOpen((open) => !open)
+                  }}
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+                <div
+                  className={`header-nav-dropdown${isGrsMenuOpen ? ' is-open' : ''}`}
+                  role="menu"
+                  aria-label="GRS sections"
+                  aria-hidden={!isGrsMenuOpen}
+                  hidden={!isGrsMenuOpen}
+                >
+                  {GRS_NAV_ITEMS.map((item) => (
+                    <button
+                      key={item.section}
+                      type="button"
+                      role="menuitem"
+                      className="header-nav-dropdown-item"
+                      onClick={() => handleGrsSectionClick(item.section)}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </li>
             </ul>
             </div>
           </nav>
@@ -802,23 +802,6 @@ function Header() {
                 <span className="header-nav-link-stack">
                   <span className="header-nav-link-title">BACKTEST</span>
                   <span className="header-nav-link-sub">strategy calculator</span>
-                </span>
-              </HeaderNavPathButton>
-            </li>
-            ) : null}
-            {!isNavCompact || !isGrsActive ? (
-            <li>
-              <HeaderNavPathButton
-                path="/grs"
-                active={isGrsActive}
-                onClick={() => {
-                  closeMenus()
-                  setIsMobileNavOpen(false)
-                }}
-              >
-                <span className="header-nav-link-stack">
-                  <span className="header-nav-link-title">GRS</span>
-                  <span className="header-nav-link-sub">protocol token</span>
                 </span>
               </HeaderNavPathButton>
             </li>
@@ -861,6 +844,23 @@ function Header() {
               </HeaderNavPathButton>
             </li>
             ) : null}
+            {!isNavCompact || !isGrsActive ? (
+            <li>
+              <HeaderNavPathButton
+                path="/grs"
+                active={isGrsActive}
+                onClick={() => {
+                  closeMenus()
+                  setIsMobileNavOpen(false)
+                }}
+              >
+                <span className="header-nav-link-stack">
+                  <span className="header-nav-link-title">GRS</span>
+                  <span className="header-nav-link-sub">protocol token</span>
+                </span>
+              </HeaderNavPathButton>
+            </li>
+            ) : null}
             {isBacktestActive
               ? BACKTEST_NAV_ITEMS.map((item) => (
                   <li key={item.section}>
@@ -870,23 +870,6 @@ function Header() {
                       onClick={() => {
                         handleBacktestSectionClick(item.section)
                         setIsMobileNavOpen(false)
-                      }}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  </li>
-                ))
-              : null}
-            {isGrsActive
-              ? GRS_NAV_ITEMS.map((item) => (
-                  <li key={item.section}>
-                    <button
-                      type="button"
-                      className="header-nav-link header-mobile-nav-sublink"
-                      onClick={() => {
-                        setIsMobileNavOpen(false)
-                        handleGrsSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
@@ -921,6 +904,23 @@ function Header() {
                       onClick={() => {
                         setIsMobileNavOpen(false)
                         handleAffiliatesSectionClick(item.section)
+                      }}
+                    >
+                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                ))
+              : null}
+            {isGrsActive
+              ? GRS_NAV_ITEMS.map((item) => (
+                  <li key={item.section}>
+                    <button
+                      type="button"
+                      className="header-nav-link header-mobile-nav-sublink"
+                      onClick={() => {
+                        setIsMobileNavOpen(false)
+                        handleGrsSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
