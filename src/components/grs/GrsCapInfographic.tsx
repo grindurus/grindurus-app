@@ -171,19 +171,22 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
           >
             <div className="grs-cap-group-head">
               <span className="grs-cap-group-name">{group.label}</span>
-              <span className="grs-cap-group-amt">
-                {group.pct}% / {group.millions}M
-              </span>
-              <span className="grs-cap-group-used">
-                {formatUsedPercent(
-                  group.buckets.reduce((sum, bucket) => {
-                    return (
-                      sum + usageCap(allocations, bucket.bucket, bucket.millions, decimals, salesRemaining).spent
-                    )
-                  }, 0n),
-                  millionsToRaw(group.millions, decimals),
-                )}
-                % used
+              <span className="grs-cap-group-vals">
+                <span className="grs-cap-group-hint">alloc / value</span>
+                <span className="grs-cap-group-amt">
+                  {group.pct}% / {group.millions}M
+                </span>
+                <span className="grs-cap-group-used">
+                  {formatUsedPercent(
+                    group.buckets.reduce((sum, bucket) => {
+                      return (
+                        sum + usageCap(allocations, bucket.bucket, bucket.millions, decimals, salesRemaining).spent
+                      )
+                    }, 0n),
+                    millionsToRaw(group.millions, decimals),
+                  )}
+                  % used
+                </span>
               </span>
             </div>
             <div className="grs-cap-buckets">
@@ -214,11 +217,13 @@ export function GrsCapInfographic({ snapshot, isLoading }: Props) {
                     onClick={() => handleJump(bucket.jump)}
                   >
                     <span className="grs-cap-bucket-label">
-                      {bucket.short}
-                      <span className="grs-cap-bucket-amt">
-                        {bucket.millions}M · {bucket.pct}%
+                      <span className="grs-cap-bucket-name">{bucket.short}</span>
+                      <span className="grs-cap-bucket-vals">
+                        <span className="grs-cap-bucket-amt">
+                          {bucket.millions}M · {bucket.pct}%
+                        </span>
+                        <span className="grs-cap-bucket-used">{usedLabel}%</span>
                       </span>
-                      <span className="grs-cap-bucket-used">{usedLabel}%</span>
                     </span>
                   </button>
                 )

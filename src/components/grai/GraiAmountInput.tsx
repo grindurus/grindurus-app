@@ -144,6 +144,10 @@ export function GraiAmountInput({
   const isBalanceLoading = balanceLoading || balanceText === '…' || balanceLabel.trim() === '…'
   const showUsdSlot = Boolean(usdLabel || usdTrailingLabel)
   const usdCollapsed = Boolean(usdLabel) && !usdTrailingLabel && isGraiAsset
+  const usdStartIsPlaceholder =
+    !value.trim() ||
+    !usdLabel ||
+    /^\$?0(\.0+)?$/.test(usdLabel.replace(/,/g, '').trim())
   const assetSelectDetailLabel =
     showAssetDetail && !isBalanceLoading ? balanceText : null
   const assetSelectDetailLoading = showAssetDetail && isBalanceLoading
@@ -235,7 +239,7 @@ export function GraiAmountInput({
               aria-hidden={usdCollapsed}
             >
               {usdLabel ? (
-                <span className={`grai-amount-input-usd-start${value.trim() ? '' : ' is-placeholder'}`}>
+                <span className={`grai-amount-input-usd-start${usdStartIsPlaceholder ? ' is-placeholder' : ''}`}>
                   {usdLabel}
                 </span>
               ) : (

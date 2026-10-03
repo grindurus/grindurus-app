@@ -224,44 +224,30 @@ function AffiliatesPage() {
           hidden={termsCollapsed}
         >
         <p className="affiliates-terms-lead">
-          Instruction and terms. Onchain. Your wallet is the ref ID — share{' '}
-          <code className="affiliates-terms-code">/grai?ref=&lt;address&gt;</code>.
+          How it works — onchain, no signup. Share{' '}
+          <code className="affiliates-terms-code">/grai?ref=&lt;your wallet&gt;</code>.
         </p>
         <ol className="affiliates-terms-list">
           <li>
-            <strong>Join.</strong> Anyone who deposits GRAI with your address as referrer binds to
-            you. No forms, no approval.
+            <strong>Your wallet is the referral ID.</strong> Share your address (or the link above).
+            Revenue share lands in that wallet — no forms, no approval.
           </li>
           <li>
-            <strong>First deposit.</strong> The protocol mints an affiliate NFT. The referrer owns
-            that NFT. Leave referrer blank to self-bind.
+            <strong>You earn on claims.</strong> When a referral claims GRAI dividends, affiliates
+            get a slice of the yield (~5% by default). Level-1 referrer gets 80% of that slice;
+            level-2 gets 20%.
           </li>
           <li>
-            <strong>Sticky bind.</strong> The locker&apos;s referrer seat stays until the affiliate
-            NFT is transferred or someone poaches the seat.
+            <strong>Referrals are tradeable NFTs.</strong> Each referral is a semi-soulbound
+            affiliate NFT (token ID = the referred wallet). Ownership gives the right to earn
+            revenue share; the referral link can also be bought (poach) for GRAI.
           </li>
           <li>
-            <strong>Revenue share.</strong> On each <code className="affiliates-terms-code">claim</code>, a
-            protocol slice of yield (~5% by default) goes to affiliates. Two levels: L1 (direct)
-            takes 80% of that slice, L2 (one hop up) takes 20%. Pay follows the NFT owner.
-          </li>
-          <li>
-            <strong>Books.</strong> Deposits and claims add value to L1/L2 books. That raises the
-            poach ask. Redeem does not unwind it.
-          </li>
-          <li>
-            <strong>Poach.</strong> Anyone can buy a locker&apos;s referrer seat by paying GRAI to
-            the current referrer. The tree rebinds; the cashflow NFT does not move unless
-            transferred separately. Blocked while liquidation is open.
-          </li>
-          <li>
-            <strong>GRS incentive.</strong> Bring liquidity and you can also earn GRS. This is extra
-            to the GRAI yield share and comes from the GRS Affiliates allocation.
+            <strong>GRS airdrop.</strong> Affiliates who bring liquidity may receive GRS in a
+            future airdrop from the protocol&apos;s Affiliates allocation — separate from claim
+            revenue share.
           </li>
         </ol>
-        <p className="affiliates-terms-note">
-          Weights and levels are protocol parameters.
-        </p>
         </div>
       </section>
 

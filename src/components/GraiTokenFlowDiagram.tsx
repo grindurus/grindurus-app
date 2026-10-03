@@ -115,7 +115,7 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'allocate',
     title: 'Allocate',
     description:
-      'The protocol allocates from Grinders to independent grinder custodies.',
+      'The protocol allocates from Grinders to grinder custodies.',
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
       { id: 'grinders', type: 'graiFlow', position: { x: 0, y: 34 }, data: { label: 'Grinders', variant: 'custody' } },
@@ -162,8 +162,10 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
   {
     id: 'swap',
     title: 'Swap',
-    description:
-      'Grinder Custodian X submits a swap intent to Swap Aggregator; executed swaps are settled back into custody.',
+    description: [
+      'Grinder Custodian X submits a swap intent to Swap Aggregator.',
+      'Executed swaps are settled back into custody.',
+    ],
     height: 190,
     fitPadding: 0.24,
     centerInPane: true,
@@ -204,7 +206,7 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     title: 'Distribute',
     description: [
       'Generated yield is sent back to GRAI.',
-      'Treasury receives only protocol fees.',
+      'Treasury receives gross profit for distribution between protocol and affiliates.',
     ],
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
@@ -239,8 +241,8 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
     id: 'claim',
     title: 'Claim',
     description: [
-      'Users claim accrued yield dividends in listed assets from GRAI.',
-      'Claimable balances come from grinder yield distributed to lockers.',
+      'Claimable balances come from distributed yield to User.',
+      'User or a third party can claim accrued yield dividends on behalf of User.',
     ],
     height: FLOW_CANVAS_HEIGHT,
     nodes: [
@@ -262,7 +264,7 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
   },
   {
     id: 'vote',
-    title: 'Vote (optional)',
+    title: '(optional) Exit option 1: Vote',
     description: [
       'If user wants to exit from GRAI, user votes and briber will pay user the fair amount of voted GRAI.',
     ],
@@ -277,10 +279,10 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
         id: 'vote-cast',
         source: 'user',
         target: 'grai',
-        sourceHandle: 'bottom-out',
-        targetHandle: 'bottom-in',
+        sourceHandle: 'right',
+        targetHandle: 'left',
         label: '1. vote',
-        data: { labelAlong: 0.5 },
+        data: { straight: true, labelAlong: 0.5, labelAbove: true },
         ...edgeDefaults,
       },
       {
@@ -289,17 +291,28 @@ const FLOW_DIAGRAMS: FlowDiagramConfig[] = [
         target: 'user',
         sourceHandle: 'top-out',
         targetHandle: 'top',
-        label: '2. pay fair GRAI',
+        label: '2. pay X settlement asset to user',
         data: { labelAlong: 0.48, labelAbove: true, labelNowrap: true, labelOffsetY: -4 },
+        ...edgeDefaults,
+      },
+      {
+        id: 'vote-send-grai',
+        source: 'grai',
+        target: 'briber',
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        label: '3. send GRAI to Briber',
+        data: { straight: true, labelAlong: 0.5, labelBelow: true, labelNowrap: true },
         ...edgeDefaults,
       },
     ],
   },
   {
     id: 'liquidate-redeem',
-    title: 'Liquidate & Redeem (optional)',
+    title: '(optional) Exit option 2: Liquidate & Redeem',
     description: [
-      'Liquidation opens when vote quorum is reached and the Grinders health check fails — anyone can submit the liquidation transaction.',
+      'Liquidation needs two conditions: (1) vote quorum, and (2) Grinders health check fails.',
+      'Anyone can submit the liquidation transaction.',
       'After the liquidation period, users burn GRAI to redeem a pro-rata share of vault reserves.',
     ],
     height: 190,

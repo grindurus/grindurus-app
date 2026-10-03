@@ -30,9 +30,11 @@ import {
 import type { Connection } from '@solana/web3.js'
 import { toast } from 'react-toastify'
 import {
+  evmExplorerAccountUrl,
   getDefaultGraiSolanaCluster,
   listConfiguredEvmChains,
   resolveGraiEvmConfig,
+  solscanAccountUrl,
   type GraiEvmConfig,
   type GraiSolanaRuntime,
 } from '../../grai/deployments'
@@ -58,6 +60,7 @@ import { assetUrl } from '../../utils/appPaths'
 import { navigateToGraiSection } from '../../utils/graiNavigation'
 import { playBullSound } from '../../utils/playBullSound'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
+import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
 
 type Props = {
   evmProtocol: GraiEvmConfig | null
@@ -148,6 +151,90 @@ const COLORS = {
   l1: '#22c55e',
   l2: '#c9a227',
   edge: 'rgba(255, 105, 180, 0.55)',
+}
+
+type ReferralPieRow = { name: string; value: number; fill: string }
+
+const PIE_ANIMATION_MS = 520
+
+function formatUsd(value: number): string {
+  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+
+const pieTooltipStyle = {
+  background: 'var(--bg-secondary, #141414)',
+  border: '1px solid var(--border-color)',
+  borderRadius: 0,
+  fontSize: 12,
+  color: 'var(--text-primary)',
+} as const
+
+function ReferralPieInfographic({ data }: { data: ReferralPieRow[] }) {
+  const slices = data.filter((row) => row.value > 0)
+  const total = data.reduce((sum, row) => sum + row.value, 0)
+  const [valuesPulse, setValuesPulse] = useState(false)
+  const dataSignature = data.map((row) => `${row.name}:${row.value}`).join('|')
+
+  useEffect(() => {
+    setValuesPulse(true)
+    const timer = window.setTimeout(() => setValuesPulse(false), PIE_ANIMATION_MS)
+    return () => window.clearTimeout(timer)
+  }, [dataSignature])
+
+  if (slices.length === 0) return null
+
+  return (
+    <div className={`grai-referral-dash-pie${valuesPulse ? ' is-values-updating' : ''}`}>
+      <div className="grai-referral-dash-pie-plot">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={slices}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius="46%"
+              outerRadius="78%"
+              paddingAngle={2}
+              stroke="none"
+              isAnimationActive
+              animationBegin={0}
+              animationDuration={PIE_ANIMATION_MS}
+              animationEasing="ease-in-out"
+            >
+              {data.map((row) => (
+                <Cell key={row.name} fill={row.fill} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value) => formatUsd(Number(value))}
+              contentStyle={pieTooltipStyle}
+              labelStyle={{ color: 'var(--text-secondary)' }}
+              itemStyle={{ color: 'var(--text-primary)' }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="grai-referral-dash-pie-center" aria-hidden="true">
+          <span>Total</span>
+          <strong>{formatUsd(total)}</strong>
+        </div>
+      </div>
+      <ul className="grai-referral-dash-legend">
+        {data.map((row) => {
+          const pct = total > 0 ? Math.round((row.value / total) * 100) : 0
+          return (
+            <li key={row.name}>
+              <i style={{ background: row.fill }} aria-hidden="true" />
+              <span>{row.name}</span>
+              <em>{pct}%</em>
+              <strong>{formatUsd(row.value)}</strong>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 
 function shortAddress(address: string): string {
@@ -410,6 +497,81 @@ function GraphCopyAddress({ address }: { address: string }) {
   )
 }
 
+function CopyableAddressLink({
+  address,
+  label,
+  className = 'grai-referral-dash-addr',
+  explorerClassName = 'grai-referral-dash-addr-explorer',
+  explorerHref,
+  explorerAriaLabel = 'View on block explorer',
+}: {
+  address: string
+  label?: string
+  className?: string
+  explorerClassName?: string
+  explorerHref: string | null
+  explorerAriaLabel?: string
+}) {
+  const [copied, setCopied] = useState(false)
+  const display = label ?? shortAddress(address)
+
+  return (
+    <span className="grai-referral-dash-addr-wrap">
+      <button
+        type="button"
+        className={`${className}${copied ? ' is-copied' : ''}`}
+        title={copied ? 'Copied!' : `Copy ${address}`}
+        aria-label={copied ? 'Copied!' : `Copy ${address}`}
+        onClick={(event) => {
+          event.stopPropagation()
+          void navigator.clipboard.writeText(address).then(() => {
+            setCopied(true)
+            window.setTimeout(() => setCopied(false), 1000)
+          }).catch(() => {
+            // ignore clipboard errors
+          })
+        }}
+      >
+        {copied ? 'Copied!' : display}
+      </button>
+      {explorerHref ? (
+        <a
+          href={explorerHref}
+          target="_blank"
+          rel="noreferrer"
+          className={explorerClassName}
+          aria-label={explorerAriaLabel}
+          title="View on block explorer"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {MINT_ASSET_SOLSCAN_ICON}
+        </a>
+      ) : null}
+    </span>
+  )
+}
+
+function PanelLockerTitle({
+  address,
+  explorerHref,
+}: {
+  address: string
+  explorerHref: string | null
+}) {
+  return (
+    <h4 className="grai-referral-dash-panel-title">
+      Locker:{' '}
+      <CopyableAddressLink
+        address={address}
+        className="grai-referral-dash-panel-title-addr"
+        explorerClassName="grai-referral-dash-panel-title-explorer"
+        explorerHref={explorerHref}
+        explorerAriaLabel="View locker on block explorer"
+      />
+    </h4>
+  )
+}
+
 function GraphArrowSample({ dashed }: { dashed?: boolean }) {
   const stroke = dashed ? COLORS.own : COLORS.edge
   return (
@@ -458,12 +620,22 @@ function GraphArrowLegend({
         <div id="grai-referral-graph-legend" className="grai-referral-dash-graph-legend-card" role="note">
           <div className="grai-referral-dash-graph-legend-row">
             <GraphArrowSample />
-            <span>Solid: locker → referrer</span>
+            <span>Solid: locker → referrer (upline)</span>
           </div>
           <div className="grai-referral-dash-graph-legend-row">
             <GraphArrowSample dashed />
-            <span>Dashed: revshare to this upline</span>
+            <span>Dashed: revshare path to this upline</span>
           </div>
+          <ul className="grai-referral-dash-graph-legend-defs">
+            <li>
+              <strong>Locker</strong>
+              <span>receiver of dividends</span>
+            </li>
+            <li>
+              <strong>Owner</strong>
+              <span>earner of revenue share</span>
+            </li>
+          </ul>
         </div>
       ) : null}
     </Panel>
@@ -670,6 +842,15 @@ export function GraiReferralTree({
       : null
   const networkSolanaCluster =
     chainKind === 'solana' ? (solanaCluster ?? getDefaultGraiSolanaCluster()) : null
+  const accountExplorerHref = useCallback(
+    (address: string) => {
+      if (!address) return null
+      if (networkChainId != null) return evmExplorerAccountUrl(networkChainId, address)
+      if (networkSolanaCluster) return solscanAccountUrl(networkSolanaCluster, address)
+      return null
+    },
+    [networkChainId, networkSolanaCluster],
+  )
   const isSelectionControlled = onSelectLocker != null
   const [forest, setForest] = useState<GraiReferralTreeNode[]>([])
   const [isExample, setIsExample] = useState(true)
@@ -958,11 +1139,13 @@ export function GraiReferralTree({
     const l1 = toNumber(totals.l1, graiDecimals)
     const l2 = toNumber(totals.l2, graiDecimals)
     return [
-      { name: 'Own books', value: own, fill: COLORS.own },
-      { name: 'L1 books', value: l1, fill: COLORS.l1 },
-      { name: 'L2 books', value: l2, fill: COLORS.l2 },
-    ].filter((row) => row.value > 0)
+      { name: 'Own', value: own, fill: COLORS.own },
+      { name: 'L1', value: l1, fill: COLORS.l1 },
+      { name: 'L2', value: l2, fill: COLORS.l2 },
+    ]
   }, [totals, graiDecimals])
+
+  const chartStageKey = selected ? 'pie' : sideView === 'top' ? 'top-bars' : 'pie'
 
   const TOP_PAGE_SIZE = 6
 
@@ -1205,115 +1388,83 @@ export function GraiReferralTree({
 
         <aside className="grai-referral-dash-side">
           <div className="grai-referral-dash-panel">
-            {!selected ? (
-              <div className="grai-referral-dash-panel-toolbar">
-                <h4 className="grai-referral-dash-panel-title">
-                  {sideView === 'total' ? 'Total' : 'Top lockers'}
-                </h4>
-                <div className="grai-referral-dash-view-switch" role="tablist" aria-label="Chart view">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={sideView === 'total'}
-                    className={`grai-referral-dash-view-btn${sideView === 'total' ? ' is-active' : ''}`}
-                    onClick={() => setSideView('total')}
-                  >
-                    Total
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={sideView === 'top'}
-                    className={`grai-referral-dash-view-btn${sideView === 'top' ? ' is-active' : ''}`}
-                    onClick={() => setSideView('top')}
-                  >
-                    Top
-                  </button>
-                </div>
-              </div>
-            ) : null}
-            {!selected ? (
-              <p className="grai-referral-dash-panel-sub">
-                {sideView === 'total'
+            <div className="grai-referral-dash-panel-toolbar">
+              {selected ? (
+                <PanelLockerTitle
+                  address={selected.locker}
+                  explorerHref={accountExplorerHref(selected.locker)}
+                />
+              ) : (
+                <>
+                  <h4 className="grai-referral-dash-panel-title">
+                    {sideView === 'total' ? 'Total' : 'Top lockers'}
+                  </h4>
+                  <div className="grai-referral-dash-view-switch" role="tablist" aria-label="Chart view">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={sideView === 'total'}
+                      className={`grai-referral-dash-view-btn${sideView === 'total' ? ' is-active' : ''}`}
+                      onClick={() => setSideView('total')}
+                    >
+                      Total
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={sideView === 'top'}
+                      className={`grai-referral-dash-view-btn${sideView === 'top' ? ' is-active' : ''}`}
+                      onClick={() => setSideView('top')}
+                    >
+                      Top
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            <p className="grai-referral-dash-panel-sub">
+              {selected
+                ? 'Own vs L1 vs L2 book for this locker'
+                : sideView === 'total'
                   ? 'Own vs L1 vs L2 book across the visible tree'
                   : 'Ranked by own book, with L1 / L2 stacked'}
-              </p>
-            ) : null}
+            </p>
             <div
               ref={chartHostRef}
-              className="grai-referral-dash-chart"
+              className={`grai-referral-dash-chart${!selected && sideView === 'top' ? ' is-fill' : ''}`}
               onFocusCapture={() => {
                 disarmChartFocus()
               }}
             >
+              <div key={chartStageKey} className="grai-referral-dash-chart-stage">
               {selected ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={selectedBars}
-                    margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                    barCategoryGap="12%"
-                    barGap={8}
-                  >
-                    <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis
-                      tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={42}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'transparent' }}
-                      formatter={(value) =>
-                        `$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-                      }
-                      contentStyle={{
-                        background: 'var(--bg-secondary, #141414)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 0,
-                        fontSize: 12,
-                        color: 'var(--text-primary)',
-                      }}
-                      labelStyle={{ color: 'var(--text-secondary)' }}
-                      itemStyle={{ color: 'var(--text-primary)' }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      radius={[4, 4, 0, 0]}
-                      maxBarSize={72}
-                      isAnimationActive
-                      animationDuration={420}
-                      animationEasing="ease-in-out"
-                    >
-                      {selectedBars.map((row) => (
-                        <Cell key={row.name} fill={row.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <ReferralPieInfographic data={selectedBars} />
               ) : sideView === 'top' ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={topLockers}
                       layout="vertical"
-                      margin={{ top: 4, right: 12, left: 4, bottom: 4 }}
+                      margin={{ top: 2, right: 10, left: 0, bottom: 2 }}
                     >
                       <XAxis type="number" hide />
                       <YAxis
                         type="category"
                         dataKey="name"
-                        width={108}
+                        width={118}
+                        interval={0}
                         tick={({ x, y, payload }) => {
                           const row = topLockers.find((item) => item.name === payload.value)
                           const lockerId = row?.id
                           return (
                             <text
-                              x={x}
+                              x={Number(x) - 4}
                               y={y}
-                              dy={5}
+                              dy={4}
                               textAnchor="end"
-                              fill="var(--text-secondary)"
-                              fontSize={13}
-                              fontWeight={600}
+                              className="grai-referral-dash-top-tick"
+                              fill="currentColor"
+                              fontSize={12}
+                              fontWeight={650}
                               style={{ cursor: lockerId ? 'pointer' : 'default' }}
                               onClick={() => {
                                 if (lockerId) onTopAxisTickClick(lockerId)
@@ -1347,7 +1498,9 @@ export function GraiReferralTree({
                         fill={COLORS.own}
                         name="Own"
                         cursor="pointer"
-                        isAnimationActive={false}
+                        isAnimationActive
+                        animationDuration={PIE_ANIMATION_MS}
+                        animationEasing="ease-in-out"
                         onClick={onTopBarClick}
                       />
                       <Bar
@@ -1356,7 +1509,9 @@ export function GraiReferralTree({
                         fill={COLORS.l1}
                         name="L1"
                         cursor="pointer"
-                        isAnimationActive={false}
+                        isAnimationActive
+                        animationDuration={PIE_ANIMATION_MS}
+                        animationEasing="ease-in-out"
                         onClick={onTopBarClick}
                       />
                       <Bar
@@ -1366,112 +1521,75 @@ export function GraiReferralTree({
                         name="L2"
                         radius={[0, 2, 2, 0]}
                         cursor="pointer"
-                        isAnimationActive={false}
+                        isAnimationActive
+                        animationDuration={PIE_ANIMATION_MS}
+                        animationEasing="ease-in-out"
                         onClick={onTopBarClick}
                       />
                     </BarChart>
                   </ResponsiveContainer>
-              ) : mixPie.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={mixPie}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={42}
-                      outerRadius={68}
-                      paddingAngle={2}
-                      stroke="none"
-                      isAnimationActive={false}
-                    >
-                      {mixPie.map((row) => (
-                        <Cell key={row.name} fill={row.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) =>
-                        `$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-                      }
-                      contentStyle={{
-                        background: 'var(--bg-secondary, #141414)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 0,
-                        fontSize: 12,
-                        color: 'var(--text-primary)',
-                      }}
-                      labelStyle={{ color: 'var(--text-secondary)' }}
-                      itemStyle={{ color: 'var(--text-primary)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : null}
-            </div>
-            {!selected ? (
-              <div className="grai-referral-dash-panel-footer">
-                {sideView === 'top' ? (
-                  topLockersAll.length > TOP_PAGE_SIZE ? (
-                    <div className="grai-referral-dash-pager" aria-label="Top lockers pages">
-                      <button
-                        type="button"
-                        className="grai-referral-dash-pager-btn"
-                        disabled={topPage <= 0}
-                        aria-label="Previous page"
-                        onClick={() => setTopPage((page) => Math.max(0, page - 1))}
-                      >
-                        ‹
-                      </button>
-                      <span className="grai-referral-dash-pager-label">{topRangeLabel}</span>
-                      <button
-                        type="button"
-                        className="grai-referral-dash-pager-btn"
-                        disabled={topPage >= topPageCount - 1}
-                        aria-label="Next page"
-                        onClick={() => setTopPage((page) => Math.min(topPageCount - 1, page + 1))}
-                      >
-                        ›
-                      </button>
-                    </div>
-                  ) : null
-                ) : mixPie.length > 0 ? (
-                  <ul className="grai-referral-dash-legend">
-                    {mixPie.map((row) => (
-                      <li key={row.name}>
-                        <i style={{ background: row.fill }} aria-hidden="true" />
-                        <span>{row.name}</span>
-                        <strong>
-                          ${row.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                        </strong>
-                      </li>
-                    ))}
-                    <li className="is-total">
-                      <i aria-hidden="true" />
-                      <span>Total</span>
-                      <strong>
-                        $
-                        {(
-                          toNumber(totals.own, graiDecimals) +
-                          toNumber(totals.l1, graiDecimals) +
-                          toNumber(totals.l2, graiDecimals)
-                        ).toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                      </strong>
-                    </li>
-                  </ul>
-                ) : null}
+              ) : (
+                <ReferralPieInfographic data={mixPie} />
+              )}
               </div>
-            ) : null}
-            {selected ? (
-              <div className="grai-referral-dash-poach">
+            </div>
+            {!selected && sideView === 'top' && topLockersAll.length > TOP_PAGE_SIZE ? (
+              <div className="grai-referral-dash-panel-footer">
+                <div className="grai-referral-dash-pager" aria-label="Top lockers pages">
+                  <button
+                    type="button"
+                    className="grai-referral-dash-pager-btn"
+                    disabled={topPage <= 0}
+                    aria-label="Previous page"
+                    onClick={() => setTopPage((page) => Math.max(0, page - 1))}
+                  >
+                    ‹
+                  </button>
+                  <span className="grai-referral-dash-pager-label">{topRangeLabel}</span>
+                  <button
+                    type="button"
+                    className="grai-referral-dash-pager-btn"
+                    disabled={topPage >= topPageCount - 1}
+                    aria-label="Next page"
+                    onClick={() => setTopPage((page) => Math.min(topPageCount - 1, page + 1))}
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="grai-referral-dash-panel-footer is-collapsed"
+                aria-hidden="true"
+              />
+            )}
+            <div
+              className={`grai-referral-dash-poach${
+                selected ? '' : sideView === 'top' ? ' is-collapsed' : ' is-placeholder'
+              }`}
+            >
+              {selected ? (
+                <>
                 <div className="grai-action-metrics">
                   <div className="grai-action-metric-row">
                     <span className="grai-action-metric-label">Locker:</span>
-                    <span className="grai-action-metric-value" title={selected.locker}>
-                      {shortAddress(selected.locker)}
+                    <span className="grai-action-metric-value">
+                      <CopyableAddressLink
+                        address={selected.locker}
+                        explorerHref={accountExplorerHref(selected.locker)}
+                        explorerAriaLabel="View locker on block explorer"
+                      />
                     </span>
                   </div>
                   <div className="grai-action-metric-row">
                     <span className="grai-action-metric-label">Referrer:</span>
-                    <span className="grai-action-metric-value" title={selected.referrer}>
-                      {poachSellerLabel}
+                    <span className="grai-action-metric-value">
+                      <CopyableAddressLink
+                        address={selected.referrer}
+                        label={poachSellerLabel ?? shortAddress(selected.referrer)}
+                        explorerHref={accountExplorerHref(selected.referrer)}
+                        explorerAriaLabel="View referrer on block explorer"
+                      />
                     </span>
                   </div>
                   <div className={`grai-action-metric-row${needsGraiDeposit ? ' is-insufficient' : ''}`}>
@@ -1540,11 +1658,12 @@ export function GraiReferralTree({
                   </button>
                 )}
                 <p className="grai-liquidation-buyback-vote-note">
-                  You pay GRAI to the locker&apos;s current referrer to become their direct
-                  referrer.
+                  You pay GRAI to the locker&apos;s current referrer to become the
+                  locker&apos;s direct referrer.
                 </p>
-              </div>
-            ) : null}
+                </>
+              ) : null}
+            </div>
           </div>
         </aside>
       </div>

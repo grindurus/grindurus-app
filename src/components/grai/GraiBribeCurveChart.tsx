@@ -123,11 +123,12 @@ export function GraiBribeCurveChart({
   totalVoted,
   totalSupply,
   totalValue,
-  title = 'Vote',
+  title,
   titleHint,
 }: Props) {
   const gradientId = useId().replace(/:/g, '')
   const plotRef = useRef<HTMLDivElement>(null)
+  const [chartOpen, setChartOpen] = useState(true)
   const halfBps = Math.floor(quorumBps / 2)
   const halfShare = halfBps / BPS
   const quorumShare = quorumBps / BPS
@@ -207,20 +208,61 @@ export function GraiBribeCurveChart({
 
   return (
     <section
-      className="grai-bribe-curve-chart"
+      className={`grai-bribe-curve-chart${chartOpen ? '' : ' is-collapsed'}`}
       aria-label="Bribe ask versus voted share of supply"
     >
-      {titleHint ? (
-        <GraiFieldInfoButton
-          className="grai-liquidation-distribute-title-info"
-          ariaLabel={`About ${title}`}
-          hint={titleHint}
+      <h3 className="grai-referral-dash-title grai-bribe-curve-chart-heading">
+        <button
+          type="button"
+          className={`grai-referral-dash-collapse${chartOpen ? '' : ' is-collapsed'}`}
+          aria-expanded={chartOpen}
+          aria-controls="grai-bribe-curve-chart-body"
+          aria-label={chartOpen ? 'Hide bribe pricing model' : 'Show bribe pricing model'}
+          onClick={() => setChartOpen((open) => !open)}
         >
+          <svg
+            className="grai-donut-legend-toggle-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="grai-referral-dash-title-action"
+          aria-expanded={chartOpen}
+          aria-controls="grai-bribe-curve-chart-body"
+          onClick={() => setChartOpen((open) => !open)}
+        >
+          Bribe Pricing Model
+        </button>
+      </h3>
+      {title ? (
+        titleHint ? (
+          <GraiFieldInfoButton
+            className="grai-liquidation-distribute-title-info"
+            ariaLabel={`About ${title}`}
+            hint={titleHint}
+          >
+            <h3 className="grai-bribe-curve-chart-title">{title}</h3>
+          </GraiFieldInfoButton>
+        ) : (
           <h3 className="grai-bribe-curve-chart-title">{title}</h3>
-        </GraiFieldInfoButton>
-      ) : (
-        <h3 className="grai-bribe-curve-chart-title">{title}</h3>
-      )}
+        )
+      ) : null}
+      <div
+        className={`grai-bribe-curve-chart-collapse${chartOpen ? ' is-open' : ''}`}
+        id="grai-bribe-curve-chart-body"
+        aria-hidden={!chartOpen}
+      >
+        <div className="grai-bribe-curve-chart-collapse-inner">
+          <div className="grai-bribe-curve-chart-body">
       <header className="grai-bribe-curve-chart-head">
         <div className="grai-bribe-curve-chart-meta">
           <span className="grai-bribe-curve-chart-meta-col">
@@ -238,10 +280,6 @@ export function GraiBribeCurveChart({
             >
               {regime}
             </span>
-          </span>
-          <span className="grai-bribe-curve-chart-meta-col is-end">
-            <span className="grai-bribe-curve-chart-meta-label">Deposit price</span>
-            <span className="grai-bribe-curve-chart-meta-value">{formatPrice(mintPrice)}</span>
           </span>
         </div>
       </header>
@@ -334,7 +372,7 @@ export function GraiBribeCurveChart({
                   return renderTick('quorum', formatVotePct(quorumShare))
                 }
                 if (value <= 0) return renderTick('0%', undefined, 'start')
-                if (value >= 1) return renderTick('100%', undefined, 'end')
+                if (value >= 1) return renderTick('total supply GRAI', '100%', 'end')
                 return null
               }}
               axisLine={{ stroke: 'var(--border-color)' }}
@@ -453,12 +491,16 @@ export function GraiBribeCurveChart({
 
       <div className="grai-bribe-curve-chart-legend" aria-hidden="true">
         <span className="grai-bribe-curve-chart-legend-item is-ask">bribe price</span>
+        <span className="grai-bribe-curve-chart-legend-item is-deposit">deposit price</span>
         <span className="grai-bribe-curve-chart-legend-item is-premium">
           premium area (better vote GRAI)
         </span>
         <span className="grai-bribe-curve-chart-legend-item is-discount">
           discount area (better bribe GRAI)
         </span>
+      </div>
+          </div>
+        </div>
       </div>
     </section>
   )

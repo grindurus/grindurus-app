@@ -5,15 +5,14 @@ import { Menu, X } from 'lucide-react'
 import { ConnectWalletButton } from './ConnectWalletButton'
 import { HeaderSettingsPopover } from './HeaderSettingsPopover'
 import { GraiUiCaret } from './grai/GraiUiCaret'
-import { navigateToGraiSection, type GraiSection } from '../utils/graiNavigation'
+import { navigateToGraiSection, resetGraiLiquidateView, resetGraiMintToDeposit, type GraiSection } from '../utils/graiNavigation'
 import { navigateToGrsSection, type GrsSection } from '../utils/grsNavigation'
 import { navigateToAffiliatesSection, type AffiliatesSection } from '../utils/affiliatesNavigation'
 import { navigateToBacktestSection, type BacktestSection } from '../utils/backtestNavigation'
-import { useHeaderNavClicks } from '../hooks/useHeaderNavClicks'
 import { useEvmWallet } from '../hooks/useEvmWallet'
 import { useWalletContext } from '../providers/walletContext'
 import { isTestnetEvmChainId, preferredEvmChainId } from '../wallet/networkEnv'
-import { assetUrl } from '../utils/appPaths'
+import { assetUrl, stripBasePath, toAppPath } from '../utils/appPaths'
 import './Header.css'
 
 const CREATE_NAV_ICON = (
@@ -126,10 +125,10 @@ const GRAI_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[]
   { section: 'claim', label: 'Claim', icon: CLAIM_NAV_ICON },
   { section: 'lock', label: 'Lock', icon: LOCK_NAV_ICON },
   { section: 'unlock', label: 'Unlock', icon: UNLOCK_NAV_ICON },
-  { section: 'assets', label: 'Distribute', icon: DISTRIBUTE_NAV_ICON },
+  { section: 'distribute', label: 'Distribute', icon: DISTRIBUTE_NAV_ICON },
   { section: 'vote', label: 'Vote', icon: VOTE_NAV_ICON },
   { section: 'bribe', label: 'Bribe', icon: BRIBE_NAV_ICON },
-  { section: 'auctions', label: 'Liquidate', icon: LIQUIDATE_NAV_ICON },
+  { section: 'liquidation', label: 'Liquidate', icon: LIQUIDATE_NAV_ICON },
 ]
 
 const BRIDGE_NAV_ICON = (
@@ -203,6 +202,11 @@ const AFFILIATES_NAV_ITEMS: { section: AffiliatesSection; label: string; icon: R
   { section: 'program', label: 'Program', icon: REGISTER_NAV_ICON },
 ]
 
+function isOnAppPath(path: string): boolean {
+  const here = stripBasePath(window.location.pathname)
+  return here === path || here.startsWith(`${path}/`)
+}
+
 function HeaderNavPathButton({
   path,
   active,
@@ -214,11 +218,26 @@ function HeaderNavPathButton({
   children: ReactNode
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void
 }) {
+  const navigate = useNavigate()
   return (
     <NavLink
-      to={{ pathname: path, search: '', hash: '' }}
+      to={path}
       data-app-path={path}
       className={`header-nav-link${active ? ' is-current' : ''}`}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return
+        if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return
+        // Stay on this product: the click handler scrolls / resets sections.
+        if (isOnAppPath(path)) return
+        // Leave before the click. A GRAI liquidation re-render was dropping that click,
+        // so the router transition never started.
+        event.preventDefault()
+        navigate({ pathname: path, search: '', hash: '' })
+        onClick?.(event as unknown as MouseEvent<HTMLAnchorElement>)
+        queueMicrotask(() => {
+          if (!isOnAppPath(path)) window.location.assign(toAppPath(path))
+        })
+      }}
       onClick={onClick}
     >
       {children}
@@ -228,7 +247,6 @@ function HeaderNavPathButton({
 
 function Header() {
   const { pathname } = useLocation()
-  const navigate = useNavigate()
   const { setSolanaCluster, setEvmChain, solanaCluster } = useWalletContext()
   const {
     isConnected: evmConnected,
@@ -490,23 +508,12 @@ function Header() {
     setIsMobileNavOpen(false)
   }, [])
 
-  const goToPath = useCallback(
-    (path: string) => {
-      closeMenus()
-      if (path === '/grai' && pathname.startsWith('/grai')) {
-        navigateToGraiSection('mint')
-        return
-      }
-      if (path === '/backtest' && pathname.startsWith('/backtest')) {
-        navigateToBacktestSection('create')
-        return
-      }
-      navigate({ pathname: path, search: '', hash: '' })
-    },
-    [closeMenus, navigate, pathname],
-  )
-
-  useHeaderNavClicks(headerRef, goToPath)
+  useEffect(() => {
+    // After the route has committed. Doing this on pointerdown cancelled the
+    // header link while Exit by Liquidation was open.
+    resetGraiLiquidateView()
+    resetGraiMintToDeposit()
+  }, [pathname])
 
   return (
     <>

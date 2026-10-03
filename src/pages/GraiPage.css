@@ -9179,6 +9179,88 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   max-width: var(--grai-mint-controls-width);
 }
 
+/* Redeem: same two-column geometry as liquidate quorum block. */
+.grai-action-card.grai-mint .grai-action-content:has(> .grai-liquidation-aside-collapse) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: var(--grai-action-content-gap);
+  align-items: start;
+  justify-content: stretch;
+  width: 100%;
+  max-width: 100%;
+}
+
+.grai-action-card.grai-mint .grai-action-content:has(> .grai-liquidation-aside-collapse) > .grai-liquidation-aside-collapse {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  justify-self: stretch;
+}
+
+.grai-action-card.grai-mint .grai-action-content:has(> .grai-liquidation-aside-collapse) > .grai-redeem-controls {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  align-self: start;
+}
+
+.grai-action-card.grai-mint
+  .grai-action-content:has(> .grai-liquidation-aside-collapse:not(.is-open)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.grai-action-card.grai-mint
+  .grai-action-content:has(> .grai-liquidation-aside-collapse:not(.is-open))
+  > .grai-redeem-controls {
+  grid-column: 1;
+  max-width: min(100%, var(--grai-mint-controls-width));
+  justify-self: center;
+}
+
+/* Mint keeps direct children layout; wrapper is transparent. */
+.grai-action-card.grai-mint .grai-mint-controls {
+  display: contents;
+}
+
+/*
+ * display:contents skips the wrapper for `>` max-width on .grai-action-content,
+ * so pin mint children to the same column as .grai-liquidation-escrow-body (25.3125rem).
+ */
+.grai-action-card.grai-mint .grai-mint-controls > * {
+  width: 100%;
+  max-width: var(--grai-mint-controls-width);
+  box-sizing: border-box;
+}
+
+/* One block like .grai-liquidation-bribe-amount */
+.grai-action-card.grai-mint .grai-redeem-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  max-width: var(--grai-mint-controls-width);
+  min-width: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.grai-action-card.grai-mint .grai-redeem-controls > .grai-amount-input:not(.is-fill-layout) {
+  width: 100%;
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.grai-action-card.grai-mint .grai-redeem-controls > .grai-amount-input:not(.is-fill-layout) .grai-amount-input-header {
+  display: none;
+}
+
 .grai-action-card.grai-mint .grai-amount-input:not(.is-fill-layout) {
   gap: 0;
   padding: 0;
@@ -9206,7 +9288,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-action-card.grai-mint .grai-action-content-shell:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open),
 .grai-action-card.grai-mint .grai-action-content-shell:has(.grai-mint-referrer-info:hover),
 .grai-action-card.grai-mint .grai-action-content-shell:has(.grai-mint-referrer-info:focus-within),
-.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-mint-referrer-info.is-open) {
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-mint-referrer-info.is-open),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-redeemable-balances-blocked-info:hover),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-redeemable-balances-blocked-info:focus-within),
+.grai-action-card.grai-mint .grai-action-content-shell:has(.grai-redeemable-balances-blocked-info.is-open) {
   overflow: visible;
 }
 
@@ -12044,6 +12129,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   overflow-x: clip;
 }
 
+.grai-liquidation-actions:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-actions:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-actions:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-actions:has(.grai-redeemable-balances-blocked-info:hover),
+.grai-liquidation-actions:has(.grai-redeemable-balances-blocked-info:focus-within),
+.grai-liquidation-actions:has(.grai-redeemable-balances-blocked-info.is-open),
+.grai-liquidation-actions:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-actions:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-actions:has(.grai-liquidation-condition-info.is-open) {
+  overflow: visible;
+}
+
 .grai-liquidation-ops-layout {
   display: grid;
   grid-template-columns: 12.5rem minmax(0, 1fr);
@@ -12338,6 +12435,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
   overflow-x: clip;
   overflow-anchor: none;
+  container-type: inline-size;
+  container-name: grai-ops-main;
 }
 
 .grai-liquidation-ops-panel {
@@ -12363,23 +12462,27 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     top: auto;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     margin-inline: 0;
     padding-right: 0;
     border-right: 0;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border-color);
     overflow-x: clip;
+    box-sizing: border-box;
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
     width: 100%;
     max-width: 100%;
-    gap: 0.1rem;
+    min-width: 0;
+    gap: 0.35rem;
     overflow: visible;
     border: 0;
+    box-sizing: border-box;
   }
 
   .grai-action-switch--ops::after {
@@ -12395,16 +12498,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     gap: 0.22rem;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     margin-top: 0;
-    padding: 0.4rem 0.15rem 0.45rem;
-    font-size: clamp(0.48rem, 2.35vw, 0.58rem);
+    padding: 0.45rem 0.2rem 0.5rem;
+    font-size: clamp(0.58rem, 2.6vw, 0.72rem);
     font-weight: 600;
-    line-height: 1.1;
+    line-height: 1.15;
     letter-spacing: 0.01em;
     text-align: center;
     white-space: normal;
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 8px;
+    box-sizing: border-box;
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn,
@@ -12422,9 +12527,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     gap: 0.22rem;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     margin-top: 0;
-    padding: 0.4rem 0.15rem 0.45rem;
+    padding: 0.45rem 0.2rem 0.5rem;
     border-radius: 8px;
+    box-sizing: border-box;
   }
 
   .grai-action-switch-liquidate-slot.is-active::before {
@@ -12443,15 +12550,17 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     gap: 0.22rem;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     padding: 0;
-    font-size: clamp(0.48rem, 2.35vw, 0.58rem);
+    font-size: clamp(0.58rem, 2.6vw, 0.72rem);
     font-weight: 600;
-    line-height: 1.1;
+    line-height: 1.15;
     letter-spacing: 0.01em;
     text-align: center;
     border: 0;
     background: transparent;
     transform: none;
+    box-sizing: border-box;
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
@@ -12593,19 +12702,97 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-distribute-title-info .grai-field-info-tooltip {
-  left: 50%;
+  left: 0;
   right: auto;
   top: calc(100% + 8px);
   bottom: auto;
-  transform: translateX(-50%);
+  transform: none;
   width: max-content;
   max-width: min(22rem, 80vw);
+  z-index: 80;
   text-transform: none;
   letter-spacing: normal;
   font-weight: 500;
   line-height: 1.4;
   white-space: normal;
   text-align: left;
+}
+
+.grai-liquidation-ops-main:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-ops-main:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-ops-main:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-ops-main:has(.grai-redeemable-balances-blocked-info:hover),
+.grai-liquidation-ops-main:has(.grai-redeemable-balances-blocked-info:focus-within),
+.grai-liquidation-ops-main:has(.grai-redeemable-balances-blocked-info.is-open),
+.grai-liquidation-ops-main:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-ops-main:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-ops-main:has(.grai-liquidation-condition-info.is-open),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-redeemable-balances-blocked-info:hover),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-redeemable-balances-blocked-info:focus-within),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-redeemable-balances-blocked-info.is-open),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-liquidation-condition-info.is-open),
+.grai-liquidation-liquidate-screen:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-liquidate-screen:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-liquidate-screen:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-liquidate-screen:has(.grai-redeemable-balances-blocked-info:hover),
+.grai-liquidation-liquidate-screen:has(.grai-redeemable-balances-blocked-info:focus-within),
+.grai-liquidation-liquidate-screen:has(.grai-redeemable-balances-blocked-info.is-open),
+.grai-liquidation-liquidate-screen:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-liquidate-screen:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-liquidate-screen:has(.grai-liquidation-condition-info.is-open),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-redeemable-balances-blocked-info:hover),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-redeemable-balances-blocked-info:focus-within),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-redeemable-balances-blocked-info.is-open),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-ops-row.is-liquidate-redeem:has(.grai-liquidation-condition-info.is-open),
+.grai-liquidation-market-aside:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-market-aside:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-market-aside:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-market-aside:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-market-aside:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-market-aside:has(.grai-liquidation-condition-info.is-open),
+.grai-liquidation-vote-slot:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-vote-slot:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-vote-slot:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-bribe-slot:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-bribe-slot:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-bribe-slot:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-ops-row.is-vote-bribe:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-ops-row.is-vote-bribe:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-ops-row.is-vote-bribe:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-redeem-slot:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-redeem-slot:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-redeem-slot:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-redeem-slot:has(.grai-redeemable-balances-blocked-info:hover),
+.grai-liquidation-redeem-slot:has(.grai-redeemable-balances-blocked-info:focus-within),
+.grai-liquidation-redeem-slot:has(.grai-redeemable-balances-blocked-info.is-open),
+.grai-liquidation-liquidate-header:has(.grai-liquidation-distribute-title-info:hover),
+.grai-liquidation-liquidate-header:has(.grai-liquidation-distribute-title-info:focus-within),
+.grai-liquidation-liquidate-header:has(.grai-liquidation-distribute-title-info.is-open),
+.grai-liquidation-quorum-slot:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-quorum-slot:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-quorum-slot:has(.grai-liquidation-condition-info.is-open),
+.grai-liquidation-open:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-open:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-open:has(.grai-liquidation-condition-info.is-open),
+.grai-liquidation-open-panel:has(.grai-liquidation-condition-info:hover),
+.grai-liquidation-open-panel:has(.grai-liquidation-condition-info:focus-within),
+.grai-liquidation-open-panel:has(.grai-liquidation-condition-info.is-open) {
+  overflow: visible;
+}
+
+.grai-liquidation-liquidate-header > .grai-liquidation-distribute-title-info {
+  position: relative;
+  z-index: 5;
 }
 
 .grai-liquidation-distribute-title-info .grai-field-info-tooltip .grai-note-accent {
@@ -12694,6 +12881,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-liquidation-liquidate-screen {
+  --grai-ops-section-rule: color-mix(in srgb, #ff69b4 28%, var(--border-color));
+  --grai-ops-section-rule-accent: color-mix(in srgb, #ff69b4 70%, transparent);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -12701,20 +12890,122 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding-top: 0.85rem;
+  position: relative;
+  padding-top: 1.05rem;
+  padding-bottom: 1.05rem;
   box-sizing: border-box;
 }
 
-.grai-liquidation-liquidate-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+[data-theme='light'] .grai-liquidation-liquidate-screen {
+  --grai-ops-section-rule: color-mix(in srgb, #e91e8c 22%, var(--border-color));
+  --grai-ops-section-rule-accent: color-mix(in srgb, #e91e8c 65%, transparent);
 }
 
-.grai-liquidation-liquidate-header > .grai-liquidation-distribute-title-info {
-  align-self: center;
-  justify-content: center;
+/* Top + bottom rules across the whole ops panel (same as Exit by Voting). */
+.grai-liquidation-liquidate-screen::before,
+.grai-liquidation-liquidate-screen::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin-left: -50cqw;
+  width: 100cqw;
+  height: 2px;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, var(--grai-ops-section-rule-accent) 0 2.75rem, transparent 2.75rem),
+    linear-gradient(to right, var(--grai-ops-section-rule), var(--grai-ops-section-rule));
+  background-size: 100% 2px, 100% 1px;
+  background-position: left top, left center;
+  background-repeat: no-repeat;
+}
+
+.grai-liquidation-liquidate-screen::before {
+  top: 0;
+}
+
+.grai-liquidation-liquidate-screen::after {
+  bottom: 0;
+}
+
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem > .grai-liquidation-market-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem > .grai-liquidation-market-section.is-collapsed {
+  gap: 0;
+}
+
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem .grai-liquidation-market-section-heading {
+  align-self: flex-start;
+}
+
+.grai-liquidation-liquidate-screen
+  > .grai-liquidation-ops-row.is-liquidate-redeem
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section {
+  margin-top: 0.45rem;
+  padding-top: 1.05rem;
+  position: relative;
+  border-top: 0;
+}
+
+.grai-liquidation-liquidate-screen
+  > .grai-liquidation-ops-row.is-liquidate-redeem
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::before,
+.grai-liquidation-liquidate-screen
+  > .grai-liquidation-ops-row.is-liquidate-redeem
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin-left: -50cqw;
+  width: 100cqw;
+  pointer-events: none;
+}
+
+.grai-liquidation-liquidate-screen
+  > .grai-liquidation-ops-row.is-liquidate-redeem
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::before {
+  top: 0;
+  height: 1px;
+  background: var(--grai-ops-section-rule);
+}
+
+.grai-liquidation-liquidate-screen
+  > .grai-liquidation-ops-row.is-liquidate-redeem
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::after {
+  top: -1px;
+  width: 2.75rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--grai-ops-section-rule-accent);
+}
+
+.grai-liquidation-liquidate-screen
+  > .grai-liquidation-ops-row.is-liquidate-redeem
+  .grai-liquidation-market-section-collapse-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-redeem-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  min-width: 0;
+  overflow: visible;
 }
 
 .grai-liquidation-liquidate-screen > .grai-liquidation-quorum-infographic {
@@ -12728,8 +13019,106 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   width: min(100%, 25.3125rem);
 }
 
-.grai-liquidation-liquidate-screen.is-redeem > .grai-liquidation-ops-row {
-  width: min(100%, 25.3125rem);
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 0.85rem;
+  width: min(100%, 52.375rem);
+  max-width: 52.375rem;
+  margin-inline: auto;
+  justify-content: stretch;
+  justify-items: stretch;
+  align-items: start;
+}
+
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem > .grai-liquidation-market-aside,
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem > .grai-liquidation-redeem-slot {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-section-head-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-section-head-row > .grai-liquidation-aside-heading {
+  grid-column: 1;
+  justify-self: start;
+  align-self: center;
+  margin: 0;
+}
+
+.grai-liquidation-section-head-row > .grai-liquidation-market-section-heading {
+  grid-column: 2;
+  justify-self: start;
+  align-self: center;
+  margin: 0;
+}
+
+.grai-liquidation-market-section.is-collapsed > .grai-liquidation-section-head-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.grai-liquidation-market-section.is-collapsed
+  > .grai-liquidation-section-head-row
+  > .grai-liquidation-aside-heading {
+  visibility: hidden;
+}
+
+.grai-liquidation-aside-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease;
+}
+
+.grai-liquidation-aside-collapse.is-open {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.grai-liquidation-aside-collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grai-liquidation-aside-collapse.is-open .grai-liquidation-aside-collapse-inner {
+  overflow: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-liquidation-aside-collapse {
+    transition: none;
+  }
+}
+
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem .grai-action-card.grai-mint,
+.grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem .grai-actions-row {
+  width: 100%;
+  max-width: 100%;
+}
+
+/*
+ * Open Redeem with reserves: match bribe market width
+ * (.grai-liquidation-market-stack.is-bribe-side → 52.375rem).
+ */
+
+.grai-liquidation-liquidate-screen.is-redeem > .grai-liquidation-ops-row.is-liquidate-redeem {
+  width: min(100%, 52.375rem);
+  max-width: 52.375rem;
+  margin-inline: auto;
 }
 
 .grai-liquidation-liquidate-screen.is-redeem .grai-action-card.grai-mint {
@@ -12771,7 +13160,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-redeemable-balances-head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.55rem;
   min-width: 0;
   position: relative;
@@ -12820,6 +13209,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   margin-left: 0;
 }
 
+.grai-redeemable-balances-blocked-info {
+  position: relative;
+  z-index: 30;
+}
+
 .grai-redeemable-balances-blocked-info .grai-field-info-btn {
   width: 1rem;
   height: 1rem;
@@ -12832,8 +13226,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-redeemable-balances-blocked-info .grai-field-info-tooltip {
+  left: auto;
+  right: 0;
+  top: calc(100% + 8px);
   width: min(16rem, 70vw);
+  max-width: min(16rem, calc(100vw - 1.5rem));
   white-space: normal;
+  transform: none;
+  z-index: 40;
 }
 
 [data-theme='light'] .grai-redeemable-balances-countdown.is-ready {
@@ -13261,8 +13661,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   grid-template-columns: minmax(0, 1.45fr) minmax(16rem, 0.9fr);
   gap: 0.85rem;
   align-items: stretch;
-  height: 26rem;
-  min-height: 26rem;
+  height: 32rem;
+  min-height: 32rem;
 }
 
 .grai-referral-dash-graph {
@@ -13316,7 +13716,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-referral-dash-graph-legend-card {
-  max-width: 16.5rem;
+  max-width: 17.5rem;
   padding: 0.55rem 0.65rem;
   border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color));
   background: color-mix(in srgb, var(--bg-primary, #0a0a0a) 92%, transparent);
@@ -13334,6 +13734,48 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-size: 0.72rem;
   font-weight: 500;
   line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.grai-referral-dash-graph-legend-defs {
+  list-style: none;
+  margin: 0.1rem 0 0;
+  padding: 0.4rem 0 0;
+  border-top: 1px dashed color-mix(in srgb, #ff69b4 35%, var(--border-color));
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.grai-referral-dash-graph-legend-defs li {
+  display: grid;
+  grid-template-columns: 4.4rem minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: baseline;
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.grai-referral-dash-graph-legend-defs li strong {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.grai-referral-dash-graph-legend-defs li.is-note {
+  display: block;
+  margin-top: 0.1rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed color-mix(in srgb, var(--border-color) 70%, transparent);
+  color: var(--text-secondary);
+}
+
+.grai-referral-dash-graph-legend-defs li.is-note em {
+  font-style: normal;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -13795,23 +14237,134 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-referral-dash-panel-title {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-primary);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
 }
 
 .grai-referral-dash-panel-title-addr {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   text-transform: none;
   color: var(--text-secondary);
   font-weight: 600;
+  cursor: pointer;
+}
+
+.grai-referral-dash-panel-title-addr:hover,
+.grai-referral-dash-panel-title-addr.is-copied {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-referral-dash-panel-title-addr:hover,
+[data-theme='light'] .grai-referral-dash-panel-title-addr.is-copied {
+  color: #e91e8c;
+}
+
+.grai-referral-dash-panel-title-explorer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  line-height: 0;
+}
+
+.grai-referral-dash-panel-title-explorer svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.grai-referral-dash-panel-title-explorer:hover {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-referral-dash-panel-title-explorer:hover {
+  color: #e91e8c;
+}
+
+.grai-referral-dash-addr-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.grai-referral-dash-addr {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+.grai-referral-dash-addr:hover,
+.grai-referral-dash-addr.is-copied {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-referral-dash-addr:hover,
+[data-theme='light'] .grai-referral-dash-addr.is-copied {
+  color: #e91e8c;
+}
+
+.grai-referral-dash-addr-explorer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 0;
+  opacity: 0.9;
+}
+
+.grai-referral-dash-addr-explorer svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+}
+
+.grai-referral-dash-addr-explorer:hover {
+  color: #ff69b4;
+  opacity: 1;
+}
+
+[data-theme='light'] .grai-referral-dash-addr-explorer:hover {
+  color: #e91e8c;
+}
+
+.grai-referral-dash-poach .grai-action-metric-value .grai-referral-dash-addr-wrap {
+  justify-content: flex-end;
+}
+
+.grai-referral-dash-poach .grai-action-metric-value .grai-referral-dash-addr-explorer {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.grai-referral-dash-poach .grai-action-metric-value .grai-referral-dash-addr-explorer svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .grai-referral-dash-panel-title-hint {
@@ -13826,7 +14379,12 @@ button.grai-referral-graph-node-addr.is-copied {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex: 0 0 1.85rem;
+  height: 1.85rem;
+  min-height: 1.85rem;
+  max-height: 1.85rem;
+  overflow: hidden;
 }
 
 .grai-referral-dash-view-switch {
@@ -13847,6 +14405,7 @@ button.grai-referral-graph-node-addr.is-copied {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
+  transition: color 220ms ease, opacity 220ms ease;
 }
 
 .grai-referral-dash-view-btn.is-active {
@@ -13863,26 +14422,138 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-referral-dash-panel-sub {
   margin: 0;
+  flex: 0 0 2rem;
+  height: 2rem;
+  min-height: 2rem;
+  max-height: 2rem;
+  overflow: hidden;
   font-size: 0.72rem;
   line-height: 1.35;
   color: var(--text-secondary);
+  transition: opacity 280ms ease;
 }
 
 .grai-referral-dash-chart {
   width: 100%;
-  flex: 1 1 auto;
-  min-height: 0;
-  height: auto;
+  flex: 0 0 11.25rem;
+  height: 11.25rem;
+  min-height: 11.25rem;
+  max-height: 11.25rem;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-.grai-referral-dash-panel:has(.grai-referral-dash-poach) .grai-referral-dash-chart {
-  flex: 0 0 12rem;
-  height: 12rem;
-  min-height: 12rem;
-  max-height: 12rem;
+.grai-referral-dash-chart.is-fill {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.grai-referral-dash-chart-stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  animation: grai-referral-dash-stage-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes grai-referral-dash-stage-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.grai-referral-dash-pie {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0.15rem 0.1rem;
+  box-sizing: border-box;
+}
+
+.grai-referral-dash-pie.is-values-updating .grai-referral-dash-pie-center strong,
+.grai-referral-dash-pie.is-values-updating .grai-referral-dash-legend em,
+.grai-referral-dash-pie.is-values-updating .grai-referral-dash-legend strong {
+  animation: grai-referral-dash-value-tick 520ms ease-out;
+}
+
+@keyframes grai-referral-dash-value-tick {
+  0% {
+    opacity: 0.45;
+    transform: translateY(3px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.grai-referral-dash-pie-plot {
+  position: relative;
+  flex: 1 1 48%;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.grai-referral-dash-pie-plot > .recharts-responsive-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.grai-referral-dash-pie-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  pointer-events: none;
+  text-align: center;
+}
+
+.grai-referral-dash-pie-center span {
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.grai-referral-dash-pie-center strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.grai-referral-dash-pie .grai-referral-dash-legend {
+  flex: 0 1 52%;
+  min-width: 9.5rem;
+  max-width: 14rem;
+  margin: 0;
+}
+
+.grai-referral-dash-pie .grai-referral-dash-legend li {
+  transition: opacity 280ms ease, transform 280ms ease;
 }
 
 .grai-referral-dash-chart > .recharts-responsive-container {
@@ -13890,6 +14561,21 @@ button.grai-referral-graph-node-addr.is-copied {
   min-height: 0 !important;
   width: 100% !important;
   height: 100% !important;
+}
+
+.grai-referral-dash-chart .grai-referral-dash-top-tick {
+  fill: var(--text-secondary);
+  color: var(--text-secondary);
+}
+
+.grai-referral-dash-chart .grai-referral-dash-top-tick:hover {
+  fill: #ff69b4;
+  color: #ff69b4;
+}
+
+[data-theme='light'] .grai-referral-dash-chart .grai-referral-dash-top-tick:hover {
+  fill: #e91e8c;
+  color: #e91e8c;
 }
 
 .grai-referral-dash-chart .recharts-wrapper,
@@ -13936,15 +14622,26 @@ button.grai-referral-graph-node-addr.is-copied {
 .grai-referral-dash-panel-footer {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  flex: 0 0 auto;
+  justify-content: center;
+  flex: 0 0 2rem;
+  height: 2rem;
   min-height: 2rem;
+  max-height: 2rem;
   overflow: hidden;
 }
 
+.grai-referral-dash-panel-footer.is-spacer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.grai-referral-dash-panel-footer.is-collapsed {
+  display: none;
+}
+
 .grai-referral-dash-panel-footer:has(.grai-referral-dash-legend) {
-  min-height: 7.75rem;
-  max-height: 7.75rem;
+  min-height: 2rem;
+  max-height: 2rem;
 }
 
 .grai-referral-dash-pager {
@@ -13998,10 +14695,10 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-referral-dash-legend li {
   display: grid;
-  grid-template-columns: 0.7rem minmax(0, 1fr) auto;
+  grid-template-columns: 0.7rem minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.88rem;
+  gap: 0.45rem;
+  font-size: 0.82rem;
   line-height: 1.25;
   color: var(--text-primary);
 }
@@ -14025,11 +14722,23 @@ button.grai-referral-graph-node-addr.is-copied {
   border-radius: 1px;
 }
 
+.grai-referral-dash-legend em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  text-align: right;
+  min-width: 2.1rem;
+}
+
 .grai-referral-dash-legend strong {
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.86rem;
+  text-align: right;
+  min-width: 3.5rem;
 }
 
 .grai-referral-dash-selected-stats {
@@ -14063,17 +14772,45 @@ button.grai-referral-graph-node-addr.is-copied {
 .grai-referral-dash-poach {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  justify-content: flex-start;
+  gap: 0.35rem;
   flex: 1 1 auto;
-  margin-top: 0.35rem;
-  padding-top: 0.55rem;
-  border-top: 1px dashed color-mix(in srgb, #ff69b4 40%, var(--border-color));
-  overflow: hidden;
   min-height: 0;
+  margin-top: 0;
+  padding-top: 0.45rem;
+  padding-bottom: 0.1rem;
+  border-top: 1px dashed color-mix(in srgb, #ff69b4 40%, var(--border-color));
+  overflow: visible;
+}
+
+.grai-referral-dash-poach.is-placeholder {
+  border-top-color: transparent;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.grai-referral-dash-poach.is-collapsed {
+  display: none;
+}
+
+.grai-referral-dash-poach:not(.is-placeholder) {
+  animation: grai-referral-dash-poach-in 360ms ease-out;
+}
+
+@keyframes grai-referral-dash-poach-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .grai-referral-dash-poach .grai-action-metrics {
-  gap: 0.35rem;
+  gap: 0.3rem;
+  flex: 0 0 auto;
 }
 
 .grai-referral-dash-poach .grai-action-metric-value--grai {
@@ -14099,12 +14836,13 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-referral-dash-poach-warn {
   margin: 0;
-  min-height: 2.7em;
+  min-height: 0;
   font-size: 0.78rem;
   font-weight: 500;
   line-height: 1.35;
   color: #ff8faa;
   text-align: center;
+  flex: 0 0 auto;
 }
 
 .grai-referral-dash-poach-warn.is-spacer {
@@ -14123,11 +14861,19 @@ button.grai-referral-graph-node-addr.is-copied {
   white-space: normal;
   line-height: 1.25;
   padding-inline: 0.75rem;
+  flex: 0 0 auto;
 }
 
 .grai-referral-dash-poach > .connect-wallet-btn.grai-action-connect-wallet-btn {
   width: 100%;
   min-height: 2.4rem;
+  flex: 0 0 auto;
+}
+
+.grai-referral-dash-poach > .grai-liquidation-buyback-vote-note {
+  flex: 0 0 auto;
+  margin: 0.1rem 0 0;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 980px) {
@@ -14143,7 +14889,8 @@ button.grai-referral-graph-node-addr.is-copied {
 
   .grai-referral-dash-side,
   .grai-referral-dash-panel {
-    height: 26rem;
+    height: auto;
+    min-height: 32rem;
   }
 }
 
@@ -15138,6 +15885,36 @@ button.grai-referral-graph-node-addr.is-copied {
   color: var(--text-primary);
 }
 
+.grai-liquidation-open-panel .grai-liquidation-condition-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 30;
+  width: 1rem;
+  height: 1rem;
+}
+
+.grai-liquidation-open-panel .grai-liquidation-condition-info .grai-field-info-btn {
+  width: 100%;
+  height: 100%;
+}
+
+.grai-liquidation-open-panel .grai-liquidation-condition-info .grai-field-info-btn svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.grai-liquidation-open-panel .grai-liquidation-condition-info .grai-field-info-tooltip {
+  left: 0;
+  right: auto;
+  width: min(16rem, 70vw);
+  max-width: min(16rem, calc(100vw - 1.5rem));
+  transform: none;
+  z-index: 40;
+}
+
 .grai-liquidation-open-panel .grai-action-result-value {
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
@@ -15308,15 +16085,15 @@ button.grai-referral-graph-node-addr.is-copied {
 }
 
 .grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-escrow {
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.05rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.28rem;
 }
 
 .grai-liquidation-market-aside.is-expanded .grai-liquidation-voter-escrow-share {
-  display: block;
+  display: inline;
   font-size: 0.78rem;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .grai-liquidation-market-aside.is-expanded .grai-liquidation-voters-pagination {
@@ -15367,8 +16144,9 @@ button.grai-referral-graph-node-addr.is-copied {
   flex-direction: column;
   gap: 0.35rem;
   min-width: 0;
-  min-height: 0;
+  min-height: min-content;
   height: auto;
+  flex: 0 0 auto;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -15759,6 +16537,427 @@ button.grai-referral-graph-node-addr.is-copied {
   min-width: 0;
 }
 
+.grai-liquidation-market-stack.is-bribe-side {
+  --grai-market-row-control-height: 2.5rem;
+  --grai-exit-controls-width: min(100%, 25.3125rem);
+  --grai-ops-section-rule: color-mix(in srgb, #ff69b4 28%, var(--border-color));
+  --grai-ops-section-rule-accent: color-mix(in srgb, #ff69b4 70%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  width: min(100%, 52.375rem);
+  margin-inline: auto;
+  position: relative;
+  /* Room for full-bleed rules above Vote and below Bribe. */
+  padding-top: 1.05rem;
+  padding-bottom: 1.05rem;
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .grai-liquidation-market-stack.is-bribe-side {
+  --grai-ops-section-rule: color-mix(in srgb, #e91e8c 22%, var(--border-color));
+  --grai-ops-section-rule-accent: color-mix(in srgb, #e91e8c 65%, transparent);
+}
+
+/* Top + bottom rules across the whole ops panel. */
+.grai-liquidation-market-stack.is-bribe-side::before,
+.grai-liquidation-market-stack.is-bribe-side::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin-left: -50cqw;
+  width: 100cqw;
+  height: 2px;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, var(--grai-ops-section-rule-accent) 0 2.75rem, transparent 2.75rem),
+    linear-gradient(to right, var(--grai-ops-section-rule), var(--grai-ops-section-rule));
+  background-size: 100% 2px, 100% 1px;
+  background-position: left top, left center;
+  background-repeat: no-repeat;
+}
+
+.grai-liquidation-market-stack.is-bribe-side::before {
+  top: 0;
+}
+
+.grai-liquidation-market-stack.is-bribe-side::after {
+  bottom: 0;
+}
+
+/* Step titles (Vote / Voters / Bribe) centered like Distribute / Claim. */
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-liquidate-header {
+  justify-content: center;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-liquidate-header > .grai-liquidation-distribute-title-info {
+  align-self: center;
+  justify-content: center;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-voters-picker--chart
+  > .grai-liquidation-liquidate-header
+  .grai-liquidation-distribute-title {
+  align-self: center;
+  text-align: center;
+}
+
+.grai-liquidation-market-stack.is-bribe-side > .grai-liquidation-ops-row.is-vote-bribe {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  justify-content: center;
+  justify-items: stretch;
+  align-items: start;
+}
+
+.grai-liquidation-market-stack.is-bribe-side > .grai-liquidation-ops-row.is-vote-bribe > .grai-liquidation-vote-slot {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  > .grai-liquidation-market-section:not(.grai-liquidation-bribe-slot) {
+  width: 100%;
+  max-width: var(--grai-exit-controls-width);
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--grai-exit-controls-width);
+  column-gap: 1rem;
+  row-gap: 0.85rem;
+  align-items: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 0.45rem;
+  padding-top: 1.05rem;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/*
+ * Collapsed Bribe: promote chart children into the row grid so
+ * "Bribe Pricing Model" and "2. Bribe" share one heading row,
+ * then the chart body spans full width beneath.
+ */
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+  > .grai-bribe-curve-chart {
+  display: contents;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+  .grai-bribe-curve-chart-heading {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+  > .grai-liquidation-bribe-slot {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  max-width: var(--grai-exit-controls-width);
+  justify-self: stretch;
+  align-self: start;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+  .grai-bribe-curve-chart-collapse {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/*
+ * Chart collapsed + Bribe open: keep both headings in place;
+ * center the bribe form under the full row.
+ */
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+    :has(> .grai-liquidation-bribe-slot.is-collapsed)
+  )
+  > .grai-bribe-curve-chart {
+  display: contents;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+    :has(> .grai-liquidation-bribe-slot.is-collapsed)
+  )
+  .grai-bribe-curve-chart-heading {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+    :has(> .grai-liquidation-bribe-slot.is-collapsed)
+  )
+  .grai-bribe-curve-chart-collapse {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+    :has(> .grai-liquidation-bribe-slot.is-collapsed)
+  )
+  > .grai-liquidation-bribe-slot {
+  display: contents;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+    :has(> .grai-liquidation-bribe-slot.is-collapsed)
+  )
+  > .grai-liquidation-bribe-slot
+  > .grai-liquidation-market-section-heading {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+    :has(> .grai-liquidation-bribe-slot.is-collapsed)
+  )
+  > .grai-liquidation-bribe-slot
+  > .grai-liquidation-market-section-collapse {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: center;
+  width: min(100%, var(--grai-exit-controls-width));
+  max-width: var(--grai-exit-controls-width);
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row::before,
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin-left: -50cqw;
+  width: 100cqw;
+  pointer-events: none;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row::before {
+  top: 0;
+  height: 1px;
+  background: var(--grai-ops-section-rule);
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row::after {
+  top: -1px;
+  width: 2.75rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--grai-ops-section-rule-accent);
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-bribe-curve-chart {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin-inline: 0;
+  align-self: stretch;
+  /* Match Bribe section heading baseline (section has no top padding). */
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0.85rem;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-liquidation-bribe-slot {
+  width: 100%;
+  max-width: var(--grai-exit-controls-width);
+  min-width: 0;
+  justify-self: stretch;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-vote-slot > .grai-liquidation-market-section,
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-liquidation-bribe-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-liquidation-bribe-slot {
+  gap: 0.85rem;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-vote-slot > .grai-liquidation-market-section.is-collapsed,
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-liquidation-bribe-slot.is-collapsed {
+  gap: 0;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-market-section-heading {
+  align-self: flex-start;
+}
+
+/* Full-bleed dividers across .grai-liquidation-ops-main (not just the 405px column). */
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section {
+  margin-top: 0.45rem;
+  padding-top: 1.05rem;
+  position: relative;
+  border-top: 0;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::before,
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin-left: -50cqw;
+  width: 100cqw;
+  pointer-events: none;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::before {
+  top: 0;
+  height: 1px;
+  background: var(--grai-ops-section-rule);
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  > .grai-liquidation-market-section
+  + .grai-liquidation-market-section::after {
+  top: -1px;
+  width: 2.75rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--grai-ops-section-rule-accent);
+}
+
+.grai-liquidation-market-section-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-liquidation-market-section-collapse.is-open {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
+}
+
+.grai-liquidation-market-section-collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grai-liquidation-market-section-collapse.is-open .grai-liquidation-market-section-collapse-inner {
+  overflow: visible;
+}
+
+/* Field-info tooltips (e.g. Might Receive) sit below the trigger and were clipped
+   by the collapse overflow + ops-main overflow-x: clip. */
+.grai-liquidation-market-section-collapse:has(.grai-field-info-wrap:hover),
+.grai-liquidation-market-section-collapse:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-market-section-collapse:has(.grai-field-info-wrap.is-open),
+.grai-liquidation-market-section:has(.grai-field-info-wrap:hover),
+.grai-liquidation-market-section:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-market-section:has(.grai-field-info-wrap.is-open),
+.grai-liquidation-vote-slot:has(.grai-field-info-wrap:hover),
+.grai-liquidation-vote-slot:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-vote-slot:has(.grai-field-info-wrap.is-open),
+.grai-liquidation-ops-row.is-vote-bribe:has(.grai-field-info-wrap:hover),
+.grai-liquidation-ops-row.is-vote-bribe:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-ops-row.is-vote-bribe:has(.grai-field-info-wrap.is-open),
+.grai-liquidation-market-stack:has(.grai-field-info-wrap:hover),
+.grai-liquidation-market-stack:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-market-stack:has(.grai-field-info-wrap.is-open),
+.grai-liquidation-ops-panel:has(.grai-field-info-wrap:hover),
+.grai-liquidation-ops-panel:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-ops-panel:has(.grai-field-info-wrap.is-open),
+.grai-liquidation-ops-main:has(.grai-field-info-wrap:hover),
+.grai-liquidation-ops-main:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-ops-main:has(.grai-field-info-wrap.is-open),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-field-info-wrap:hover),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-field-info-wrap:focus-within),
+.grai-liquidation-ops-body.is-open .grai-liquidation-ops-body-inner:has(.grai-field-info-wrap.is-open) {
+  overflow: visible;
+}
+
+.grai-liquidation-vote-line > .grai-field-info-wrap.grai-liquidation-vote-line-info:hover,
+.grai-liquidation-vote-line > .grai-field-info-wrap.grai-liquidation-vote-line-info:focus-within,
+.grai-liquidation-vote-line > .grai-field-info-wrap.grai-liquidation-vote-line-info.is-open {
+  z-index: 40;
+}
+
+.grai-liquidation-vote-line-info .grai-field-info-tooltip {
+  z-index: 40;
+  /* Prefer above the row so Voters section below does not cover it. */
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-liquidation-market-section-collapse {
+    transition: none;
+  }
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  .grai-liquidation-bribe-voters-picker--chart,
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-slot > .grai-liquidation-bribe-voters-picker--chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  align-self: stretch;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  padding: 0;
+}
+
+.grai-liquidation-market-stack.is-bribe-side > .grai-liquidation-market-row {
+  grid-area: amount;
+  width: var(--grai-exit-controls-width);
+  max-width: var(--grai-exit-controls-width);
+  margin-inline: auto;
+  justify-self: center;
+}
+
 .grai-liquidation-market-stack > .grai-liquidation-market-row {
   width: min(100%, 25.3125rem);
   max-width: 100%;
@@ -15770,7 +16969,6 @@ button.grai-referral-graph-node-addr.is-copied {
   max-width: 100%;
   margin-inline: auto;
   align-self: center;
-  min-height: 22.9375rem;
   box-sizing: border-box;
 }
 
@@ -15788,15 +16986,32 @@ button.grai-referral-graph-node-addr.is-copied {
   box-sizing: border-box;
 }
 
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-vote-block > .grai-action-switch--market {
+  height: var(--grai-market-row-control-height);
+  min-height: var(--grai-market-row-control-height);
+  max-height: var(--grai-market-row-control-height);
+  box-sizing: border-box;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-vote-block > .grai-action-switch--market .grai-action-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding-block: 0;
+  box-sizing: border-box;
+}
+
 .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-toolbar.is-inline {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 0.45rem;
   margin-bottom: 0;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  height: var(--grai-market-row-control-height, 2.5rem);
+  min-height: var(--grai-market-row-control-height, 2.5rem);
+  max-height: var(--grai-market-row-control-height, 2.5rem);
   box-sizing: border-box;
   overflow: visible;
 }
@@ -15822,9 +17037,9 @@ button.grai-referral-graph-node-addr.is-copied {
 }
 
 .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-back {
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  height: var(--grai-market-row-control-height, 2.5rem);
+  min-height: var(--grai-market-row-control-height, 2.5rem);
+  max-height: var(--grai-market-row-control-height, 2.5rem);
   padding: 0 0.65rem;
   box-sizing: border-box;
   line-height: 1;
@@ -15833,8 +17048,8 @@ button.grai-referral-graph-node-addr.is-copied {
 .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-search,
 .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-filter {
   min-width: 0;
-  height: 40px;
-  max-height: 40px;
+  height: var(--grai-market-row-control-height, 2.5rem);
+  max-height: var(--grai-market-row-control-height, 2.5rem);
 }
 
 .grai-liquidation-bribe-voters-picker--chart .grai-toolbar-sort {
@@ -15865,9 +17080,10 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-search input,
 .grai-liquidation-bribe-voters-picker--chart .grai-toolbar-sort-trigger {
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  height: var(--grai-market-row-control-height, 2.5rem);
+  min-height: var(--grai-market-row-control-height, 2.5rem);
+  max-height: var(--grai-market-row-control-height, 2.5rem);
+  box-sizing: border-box;
 }
 
 .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel,
@@ -15878,6 +17094,113 @@ button.grai-referral-graph-node-addr.is-copied {
   min-height: 15rem;
   max-height: none;
   box-sizing: border-box;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel,
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel.is-grid {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-viewport {
+  position: relative;
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-scroller {
+  overflow: visible;
+  scroll-snap-type: none;
+  touch-action: pan-y;
+  height: auto;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-pages {
+  overflow: visible;
+}
+
+/* Soft blur on peeking prev/next voter pages (left + right of the active track). */
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-voters-carousel.is-grid
+  .grai-liquidation-voters-pages
+  .grai-liquidation-voters-track[aria-hidden='true'] {
+  filter: blur(3.5px);
+  opacity: 0.55;
+  pointer-events: none;
+  transition:
+    filter 0.28s ease,
+    opacity 0.28s ease;
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-voters-carousel.is-grid
+  .grai-liquidation-voters-pages
+  .grai-liquidation-voters-track:not([aria-hidden='true']) {
+  filter: none;
+  opacity: 1;
+  transition:
+    filter 0.28s ease,
+    opacity 0.28s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-voters-carousel.is-grid
+    .grai-liquidation-voters-pages
+    .grai-liquidation-voters-track[aria-hidden='true'],
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-voters-carousel.is-grid
+    .grai-liquidation-voters-pages
+    .grai-liquidation-voters-track:not([aria-hidden='true']) {
+    transition: none;
+  }
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-track,
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-pages .grai-liquidation-voters-track {
+  --grai-voter-row-height: 3.4375rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, var(--grai-voter-row-height));
+  gap: 0.45rem;
+  min-height: calc(3 * var(--grai-voter-row-height) + 2 * 0.45rem);
+  height: calc(3 * var(--grai-voter-row-height) + 2 * 0.45rem);
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item,
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item-select {
+  min-height: var(--grai-voter-row-height, 3.4375rem);
+  height: var(--grai-voter-row-height, 3.4375rem);
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voter {
+  height: 100%;
+  min-height: 0;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-item.is-grid-slot-empty {
+  visibility: hidden;
+  pointer-events: none;
+  min-height: var(--grai-voter-row-height, 3.4375rem);
+  height: var(--grai-voter-row-height, 3.4375rem);
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-toolbar.is-inline {
+  flex-wrap: nowrap;
+  height: var(--grai-market-row-control-height);
+  min-height: var(--grai-market-row-control-height);
+  max-height: var(--grai-market-row-control-height);
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-bribe-filter {
+  width: 8.5rem;
+  max-width: 8.5rem;
+  flex: 0 0 8.5rem;
 }
 
 .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-viewport {
@@ -15891,13 +17214,213 @@ button.grai-referral-graph-node-addr.is-copied {
 }
 
 @media (max-width: 900px) {
-  .grai-liquidation-market-stack > .grai-bribe-curve-chart,
+  .grai-liquidation-market-stack.is-bribe-side {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side > .grai-liquidation-ops-row.is-vote-bribe {
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: center;
+    justify-items: center;
+    width: 100%;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side > .grai-liquidation-ops-row.is-vote-bribe > .grai-liquidation-vote-slot {
+    width: 100%;
+    max-width: 100%;
+    /* Keep Vote / Bribe amount blocks from being flex-shrunk away by the voters carousel. */
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-vote-slot
+    > .grai-liquidation-market-section:not(.grai-liquidation-bribe-slot) {
+    width: min(100%, 25.3125rem);
+    max-width: 25.3125rem;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    width: 100%;
+  }
+
+  /* Mobile stack: Bribe controls first, pricing chart below. */
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-liquidation-bribe-slot {
+    order: 1;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-bribe-curve-chart {
+    order: 2;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-bribe-curve-chart,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row > .grai-liquidation-bribe-slot {
+    width: min(100%, 25.3125rem);
+    max-width: 25.3125rem;
+    justify-self: center;
+  }
+
+  /* Undo desktop display:contents placement on mobile. */
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+    > .grai-bribe-curve-chart,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+      :has(> .grai-liquidation-bribe-slot.is-collapsed)
+    )
+    > .grai-bribe-curve-chart,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+      :has(> .grai-liquidation-bribe-slot.is-collapsed)
+    )
+    > .grai-liquidation-bribe-slot {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+    .grai-bribe-curve-chart-heading,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+    .grai-bribe-curve-chart-collapse,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-liquidation-bribe-slot.is-collapsed)
+    > .grai-liquidation-bribe-slot,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+      :has(> .grai-liquidation-bribe-slot.is-collapsed)
+    )
+    .grai-bribe-curve-chart-heading,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+      :has(> .grai-liquidation-bribe-slot.is-collapsed)
+    )
+    .grai-bribe-curve-chart-collapse,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+      :has(> .grai-liquidation-bribe-slot.is-collapsed)
+    )
+    > .grai-liquidation-bribe-slot
+    > .grai-liquidation-market-section-heading,
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-bribe-row:has(> .grai-bribe-curve-chart.is-collapsed):not(
+      :has(> .grai-liquidation-bribe-slot.is-collapsed)
+    )
+    > .grai-liquidation-bribe-slot
+    > .grai-liquidation-market-section-collapse {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: center;
+    width: min(100%, 25.3125rem);
+    max-width: 25.3125rem;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-amount,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-body,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-slot .grai-liquidation-field {
+    margin-inline: auto;
+    width: min(100%, 25.3125rem);
+    max-width: 25.3125rem;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-vote-slot > .grai-liquidation-vote-block,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-slot > .grai-liquidation-vote-block,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-slot {
+    flex: 0 0 auto;
+    min-height: min-content;
+    height: auto;
+    overflow: visible;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-vote-amount,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-amount,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-body,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-field {
+    flex: 0 0 auto;
+    min-height: min-content;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side > .grai-liquidation-market-row {
+    justify-self: stretch;
+    margin-inline: auto;
+  }
+
   .grai-liquidation-market-stack > .grai-liquidation-bribe-voters-picker--chart {
     min-height: 19.5rem;
   }
 
   .grai-liquidation-market-stack > .grai-liquidation-bribe-voters-picker--chart {
     height: 19.5rem;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-vote-slot .grai-liquidation-bribe-voters-picker--chart,
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-slot > .grai-liquidation-bribe-voters-picker--chart {
+    height: auto;
+    min-height: 0;
+    flex: 0 0 auto;
+  }
+
+  /*
+   * Keep 3-per-page carousel on mobile. Clip only the scroller window —
+   * overflow:hidden on .voters-pages would paint-clip later tracks so
+   * translate3d page changes show empty space.
+   */
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-viewport {
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-scroller {
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    touch-action: pan-x;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-carousel.is-grid .grai-liquidation-voters-pages {
+    overflow: visible;
+    flex-direction: row;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-voters-carousel.is-grid
+    .grai-liquidation-voters-pages
+    .grai-liquidation-voters-track {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(3, var(--grai-voter-row-height, 3.4375rem));
+    height: calc(3 * var(--grai-voter-row-height, 3.4375rem) + 2 * 0.45rem);
+    min-height: calc(3 * var(--grai-voter-row-height, 3.4375rem) + 2 * 0.45rem);
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-voters-carousel.is-grid
+    .grai-liquidation-voters-pages
+    .grai-liquidation-voters-track[aria-hidden='true'] {
+    filter: none;
+    opacity: 1;
+  }
+
+  .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-voters-pagination {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(5.75rem, auto) 2.25rem;
+    justify-content: center;
+    column-gap: 0.65rem;
+    width: 100%;
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
   }
 
   .grai-claim-screen > .grai-referral-dash-graph-embed {
@@ -15907,7 +17430,7 @@ button.grai-referral-graph-node-addr.is-copied {
 
   .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel,
   .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel.is-grid {
-    min-height: 12rem;
+    min-height: 0;
   }
 }
 
@@ -15924,6 +17447,60 @@ button.grai-referral-graph-node-addr.is-copied {
   border-radius: 0;
   background: transparent;
   box-sizing: border-box;
+  transition: gap 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-bribe-curve-chart.is-collapsed {
+  gap: 0;
+}
+
+.grai-bribe-curve-chart-heading {
+  align-self: flex-start;
+}
+
+.grai-bribe-curve-chart-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease;
+}
+
+.grai-bribe-curve-chart-collapse.is-open {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.grai-bribe-curve-chart-collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grai-bribe-curve-chart-collapse.is-open .grai-bribe-curve-chart-collapse-inner {
+  overflow: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-bribe-curve-chart {
+    transition: none;
+  }
+
+  .grai-bribe-curve-chart-collapse {
+    transition: none;
+  }
+}
+
+.grai-bribe-curve-chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 .grai-bribe-curve-chart-head {
@@ -15952,7 +17529,7 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-bribe-curve-chart-meta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   justify-items: center;
   column-gap: 0.75rem;
@@ -16047,9 +17624,10 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-bribe-curve-chart-legend {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.85rem 1.15rem;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 0.35rem;
   font-size: 0.72rem;
   color: var(--text-secondary);
 }
@@ -16069,13 +17647,25 @@ button.grai-referral-graph-node-addr.is-copied {
   flex-shrink: 0;
 }
 
-.grai-bribe-curve-chart-legend-item.is-ask::before {
+.grai-bribe-curve-chart-legend-item.is-ask::before,
+.grai-bribe-curve-chart-legend-item.is-deposit::before {
   width: 0.75rem;
   height: 0.2rem;
   border-radius: 999px;
 }
 
-.grai-bribe-curve-chart-legend-item.is-ask {
+.grai-bribe-curve-chart-legend-item.is-deposit::before {
+  background: repeating-linear-gradient(
+    90deg,
+    currentColor 0,
+    currentColor 0.22rem,
+    transparent 0.22rem,
+    transparent 0.38rem
+  );
+}
+
+.grai-bribe-curve-chart-legend-item.is-ask,
+.grai-bribe-curve-chart-legend-item.is-deposit {
   color: #ff69b4;
 }
 
@@ -16110,14 +17700,15 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-liquidation-step-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.55rem;
   width: 100%;
-  /* Don't dim the whole row when one of Confirm/Liquidate is disabled. */
+  /* Don't dim the whole row when Liquidate is disabled. */
   opacity: 1;
 }
 
-.grai-liquidation-step-actions > .connect-wallet-btn.grai-action-connect-wallet-btn {
+.grai-liquidation-step-actions > .connect-wallet-btn.grai-action-connect-wallet-btn,
+.grai-liquidation-step-actions > .grai-liquidation-step-action {
   grid-column: 1 / -1;
   width: 100%;
 }
@@ -16157,8 +17748,50 @@ button.grai-referral-graph-node-addr.is-copied {
   text-wrap: balance;
 }
 
+.grai-liquidation-quorum-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.grai-liquidation-quorum-block > .grai-liquidation-aside-collapse {
+  grid-column: 1;
+  width: 100%;
+  min-width: 0;
+  align-self: start;
+}
+
+.grai-liquidation-quorum-block > .grai-liquidation-aside-collapse .grai-liquidation-quorum-infographic {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  padding: 0;
+}
+
+.grai-liquidation-quorum-block > .grai-liquidation-quorum-slot {
+  grid-column: 2;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin-top: 0;
+  justify-self: stretch;
+}
+
+.grai-liquidation-quorum-block.is-aside-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.grai-liquidation-quorum-block.is-aside-collapsed > .grai-liquidation-quorum-slot {
+  grid-column: 1;
+  max-width: min(100%, 25.3125rem);
+  justify-self: center;
+}
+
 .grai-liquidation-step-ready {
-  margin: 0 0 0.35rem;
+  margin: 0.35rem 0 0;
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -16213,6 +17846,229 @@ button.grai-referral-graph-node-addr.is-copied {
     width: 100%;
     max-width: 100%;
     margin-inline: 0;
+  }
+
+  .grai-liquidation-liquidate-screen {
+    padding-inline: 0.85rem;
+    box-sizing: border-box;
+  }
+
+  .grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem,
+  .grai-liquidation-liquidate-screen.is-redeem > .grai-liquidation-ops-row.is-liquidate-redeem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+
+  .grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem > .grai-liquidation-market-aside,
+  .grai-liquidation-liquidate-screen > .grai-liquidation-ops-row.is-liquidate-redeem > .grai-liquidation-redeem-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    width: min(100%, 25.3125rem);
+    max-width: 25.3125rem;
+  }
+
+  /*
+   * Mobile stack (like Bribe): action heading + controls first,
+   * then aside heading + aside panel.
+   */
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    > .grai-liquidation-section-head-row,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    > .grai-liquidation-section-head-row {
+    display: contents;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    > .grai-liquidation-market-section-collapse.is-open,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    > .grai-liquidation-market-section-collapse.is-open
+    > .grai-liquidation-market-section-collapse-inner,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    .grai-liquidation-quorum-block,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    > .grai-liquidation-market-section-collapse.is-open,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    > .grai-liquidation-market-section-collapse.is-open
+    > .grai-liquidation-market-section-collapse-inner,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    .grai-actions-row,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    .grai-action-card.grai-mint,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    .grai-action-content-shell,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    .grai-action-content:has(> .grai-liquidation-aside-collapse) {
+    display: contents;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    > .grai-liquidation-section-head-row
+    > .grai-liquidation-market-section-heading,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    > .grai-liquidation-section-head-row
+    > .grai-liquidation-market-section-heading {
+    order: 1;
+    align-self: stretch;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    .grai-liquidation-quorum-slot,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    .grai-redeem-controls {
+    order: 2;
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    > .grai-liquidation-section-head-row
+    > .grai-liquidation-aside-heading,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    > .grai-liquidation-section-head-row
+    > .grai-liquidation-aside-heading {
+    order: 3;
+    align-self: stretch;
+    width: 100%;
+    margin-top: 0.35rem;
+    justify-content: center;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-aside:not(.is-collapsed)
+    .grai-liquidation-aside-collapse,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-redeem-slot:not(.is-collapsed)
+    .grai-action-content
+    > .grai-liquidation-aside-collapse {
+    order: 4;
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    .grai-liquidation-market-section-heading,
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    .grai-liquidation-aside-heading {
+    align-self: stretch;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-section.is-collapsed
+    > .grai-liquidation-section-head-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-section.is-collapsed
+    > .grai-liquidation-section-head-row
+    > .grai-liquidation-aside-heading {
+    display: none;
+  }
+
+  .grai-liquidation-liquidate-screen
+    > .grai-liquidation-ops-row.is-liquidate-redeem
+    > .grai-liquidation-market-section.is-collapsed
+    > .grai-liquidation-section-head-row
+    > .grai-liquidation-market-section-heading {
+    justify-content: center;
+  }
+
+  .grai-liquidation-quorum-stats {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .grai-liquidation-quorum-stat,
+  .grai-liquidation-quorum-stat--center,
+  .grai-liquidation-quorum-stat--bribe {
+    text-align: center;
+    align-items: center;
+  }
+
+  .grai-liquidation-quorum-stat-value,
+  .grai-liquidation-quorum-stat--center .grai-liquidation-quorum-stat-value,
+  .grai-liquidation-quorum-stat--bribe .grai-liquidation-quorum-stat-value {
+    align-items: center;
+  }
+
+  .grai-liquidation-quorum-stat-amount {
+    font-size: 1rem;
+  }
+
+  .grai-liquidation-quorum-stat-unit {
+    font-size: 0.72rem;
+  }
+
+  .grai-liquidation-open,
+  .grai-liquidation-open-panel,
+  .grai-liquidation-open-panel-inner,
+  .grai-liquidation-quorum-infographic,
+  .grai-liquidation-quorum-body,
+  .grai-redeemable-balances {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .grai-liquidation-quorum-block.is-aside-collapsed > .grai-liquidation-quorum-slot,
+  .grai-action-card.grai-mint
+    .grai-action-content:has(> .grai-liquidation-aside-collapse:not(.is-open))
+    > .grai-redeem-controls {
+    max-width: 100%;
+    justify-self: stretch;
   }
 
   .grai-liquidation-liquidate-screen.is-redeem .grai-actions-row,
@@ -16498,7 +18354,7 @@ button.grai-referral-graph-node-addr.is-copied {
 
   .grai-bribe-curve-chart-meta {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
     justify-items: center;
     column-gap: 0.5rem;
@@ -16523,12 +18379,6 @@ button.grai-referral-graph-node-addr.is-copied {
 
   .grai-bribe-curve-chart-plot {
     height: 12rem;
-  }
-
-  .grai-bribe-curve-chart-legend {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.45rem;
   }
 
   .grai-liquidation-market-stack,
@@ -17591,14 +19441,14 @@ button.grai-referral-graph-node-addr.is-copied {
   margin-inline: 0;
 }
 
-.grai-liquidation-vote-amount > .grai-amount-input {
+.grai-liquidation-vote-amount > .grai-amount-input:not(.is-fill-layout) {
   gap: 0;
   padding: 0;
   border: none;
   border-radius: 0;
 }
 
-.grai-liquidation-vote-amount > .grai-amount-input .grai-amount-input-header {
+.grai-liquidation-vote-amount > .grai-amount-input:not(.is-fill-layout) .grai-amount-input-header {
   display: none;
 }
 
@@ -17688,7 +19538,9 @@ button.grai-referral-graph-node-addr.is-copied {
 }
 
 .grai-liquidation-vote-amount .grai-amount-input-footer-start,
-.grai-liquidation-vote-amount .grai-amount-input-usd {
+.grai-liquidation-vote-amount .grai-amount-input-usd,
+.grai-liquidation-bribe-amount .grai-amount-input-footer-start,
+.grai-liquidation-bribe-amount .grai-amount-input-usd {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -17696,26 +19548,33 @@ button.grai-referral-graph-node-addr.is-copied {
   white-space: nowrap;
 }
 
-.grai-liquidation-vote-amount .grai-amount-input-footer-start {
+.grai-liquidation-vote-amount .grai-amount-input-footer-start,
+.grai-liquidation-bribe-amount .grai-amount-input-footer-start {
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .grai-liquidation-vote-amount .grai-amount-input-footer-start.is-placeholder,
-.grai-liquidation-vote-amount .grai-amount-input-usd.is-placeholder {
+.grai-liquidation-vote-amount .grai-amount-input-usd.is-placeholder,
+.grai-liquidation-bribe-amount .grai-amount-input-footer-start.is-placeholder,
+.grai-liquidation-bribe-amount .grai-amount-input-usd.is-placeholder,
+.grai-liquidation-bribe-amount .grai-amount-input-usd-start.is-placeholder {
   color: var(--text-secondary);
 }
 
-.grai-liquidation-vote-amount .grai-amount-input-usd {
+.grai-liquidation-vote-amount .grai-amount-input-usd,
+.grai-liquidation-bribe-amount .grai-amount-input-usd {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
 }
 
-.grai-liquidation-vote-amount .grai-amount-input-usd.has-trailing {
+.grai-liquidation-vote-amount .grai-amount-input-usd.has-trailing,
+.grai-liquidation-bribe-amount .grai-amount-input-usd.has-trailing {
   padding-right: 0.12rem;
 }
 
-.grai-liquidation-vote-amount .grai-amount-input-usd-trailing {
+.grai-liquidation-vote-amount .grai-amount-input-usd-trailing,
+.grai-liquidation-bribe-amount .grai-amount-input-usd-trailing {
   margin-right: 0;
   padding-right: 0;
 }
@@ -17845,7 +19704,8 @@ button.grai-referral-graph-node-addr.is-copied {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem;
   width: 100%;
-  min-width: 0;
+  /* Keep page tracks at full scroller width; min-width:0 collapsed later pages. */
+  min-width: 100%;
   padding: 0;
 }
 
@@ -18054,7 +19914,7 @@ button.grai-referral-graph-node-addr.is-copied {
   min-width: 0;
 }
 
-.grai-liquidation-bribe-amount > .grai-amount-input {
+.grai-liquidation-bribe-amount > .grai-amount-input:not(.is-fill-layout) {
   width: 100%;
   gap: 0;
   padding: 0;
@@ -18062,7 +19922,11 @@ button.grai-referral-graph-node-addr.is-copied {
   border-radius: 0;
 }
 
-.grai-liquidation-bribe-amount > .grai-amount-input .grai-amount-input-header {
+.grai-liquidation-bribe-amount > .grai-amount-input.is-fill-layout {
+  width: 100%;
+}
+
+.grai-liquidation-bribe-amount > .grai-amount-input:not(.is-fill-layout) .grai-amount-input-header {
   display: none;
 }
 
@@ -18302,14 +20166,14 @@ button.grai-referral-graph-node-addr.is-copied {
 .grai-liquidation-voter-escrow,
 .grai-liquidation-voter-cost {
   min-width: 0;
-  max-width: 58%;
+  max-width: none;
   font-size: 0.9rem;
   font-weight: 600;
   color: #fff;
   text-align: right;
   line-height: 1.3;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .grai-liquidation-voter-cost {
@@ -18322,18 +20186,37 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-liquidation-voter-escrow {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 0;
+  white-space: nowrap;
+}
+
+.grai-liquidation-voter-escrow-amount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.grai-liquidation-voter-escrow-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .grai-liquidation-voter-escrow-share {
-  display: block;
+  display: inline;
   font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
   font-size: 0.78rem;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .grai-liquidation-voter-bribe-btn {

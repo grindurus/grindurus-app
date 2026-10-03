@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { flushSync } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { Info } from 'lucide-react'
 import { toast } from 'react-toastify'
@@ -62,6 +61,8 @@ type Props = {
   actionView: ActionView
   actionSubtitle: ReactNode
   onOpenHowItWorks: () => void
+  /** When burn: whether the left-side redeemable reserves panel is expanded. */
+  reservesAsideOpen?: boolean
 }
 
 const REDEEM_BLOCKED_HINT =
@@ -250,6 +251,7 @@ export function GraiMintBurnPanel({
   actionView,
   actionSubtitle,
   onOpenHowItWorks,
+  reservesAsideOpen = true,
 }: Props) {
   const { chainKind, solana, staticSolana, evm, connection, explorerTxUrl } = useGraiDeployment()
   const { setSelectedChainType } = useWalletContext()
@@ -306,6 +308,11 @@ export function GraiMintBurnPanel({
   >({})
 
   useEffect(() => {
+    // Only the primary mint/deposit panel should react to header section/mint-flow
+    // events. A second Redeem (`actionView="burn"`) instance would otherwise also
+    // flushSync on every header click and steal navigation (e.g. to Affiliates).
+    if (actionView !== 'mint') return
+
     const focusGraiEscrow = (view: 'lock' | 'unlock') => {
       setForcedDefaultAsset('GRAI')
       setAssetFlowView(view === 'unlock' ? 'claim' : 'deposit')
@@ -337,7 +344,9 @@ export function GraiMintBurnPanel({
 
     const onMintFlow = (event: Event) => {
       if ((event as CustomEvent<string>).detail !== 'deposit') return
-      flushSync(applyDepositFlow)
+      // Soft apply — flushSync here raced with header product navigation when
+      // Redeem (burn panel) was mounted under Exit by Liquidation.
+      applyDepositFlow()
     }
 
     window.addEventListener('grai-section-nav', onSectionNav)
@@ -346,7 +355,7 @@ export function GraiMintBurnPanel({
       window.removeEventListener('grai-section-nav', onSectionNav)
       window.removeEventListener(GRAI_MINT_FLOW_EVENT, onMintFlow)
     }
-  }, [])
+  }, [actionView])
 
   useEffect(() => {
     const fromUrl = new URLSearchParams(search).get('ref')?.trim() ?? ''
@@ -1038,83 +1047,90 @@ export function GraiMintBurnPanel({
           <div className="grai-action-content" ref={actionContentRef}>
           {actionView === 'burn' ? (
             <div
-              className="grai-redeemable-balances"
-              role="region"
-              aria-label="Redeemable GRAI reserves"
+              className={`grai-liquidation-aside-collapse${reservesAsideOpen ? ' is-open' : ''}`}
+              id="grai-redeemable-reserves-body"
+              aria-hidden={!reservesAsideOpen}
             >
-              <div className="grai-redeemable-balances-head">
-                <span className="grai-redeemable-balances-title">Redeemable reserves</span>
-                {liquidationOpen && redeemCountdownLabel ? (
-                  <span
-                    className={`grai-redeemable-balances-countdown${
-                      redeemCountdownLabel === 'Ready' ? ' is-ready' : ''
-                    }`}
-                    aria-live="polite"
-                    title="Time until redeem is allowed"
-                  >
-                    {redeemCountdownLabel}
-                  </span>
-                ) : (
-                  <span className="grai-redeemable-balances-blocked" aria-live="polite">
-                    <span className="grai-redeemable-balances-countdown is-blocked">
-                      Redeem forbidden
-                    </span>
-                    <GraiFieldInfoButton
-                      hint={REDEEM_BLOCKED_HINT}
-                      ariaLabel="Why redeem is forbidden"
-                      className="grai-redeemable-balances-blocked-info"
-                    />
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className="header-nav-link header-nav-info grai-page-how-it-works-hint grai-redeemable-balances-hint"
-                  onClick={onOpenHowItWorks}
-                  aria-haspopup="dialog"
+              <div className="grai-liquidation-aside-collapse-inner">
+                <div
+                  className="grai-redeemable-balances"
+                  role="region"
+                  aria-label="Redeemable GRAI reserves"
                 >
-                  <Info className="header-nav-info-icon" aria-hidden="true" />
-                  How it works?
-                </button>
-              </div>
-              <div className="grai-redeemable-balances-body">
-                <div className="grai-redeemable-balances-donut grai-donut-slot">
-                  <GraiNavDonut
-                    slices={redeemableDonutSlices}
-                    totalNavLabel={liquidationOpen ? redeemableTotalUsdLabel : '—'}
-                    centerLabel="Total"
-                    valueUnit="USD"
-                    isLoading={false}
-                    showSliceIcons
-                  />
-                </div>
-                <ul className="grai-redeemable-balances-list">
-                  {redeemableBalanceRows.length === 0 ? (
-                    <li className="grai-redeemable-balances-empty">No reserves</li>
-                  ) : (
-                    redeemableBalanceRows.map((row) => (
-                      <li key={row.asset.mint} className="grai-redeemable-balances-item">
-                        <span
-                          className="grai-redeemable-balances-swatch"
-                          style={{ background: row.color }}
-                          aria-hidden="true"
-                        />
-                        <span className="grai-redeemable-balances-amount">
-                          {liquidationOpen ? row.senior : '—'}
+                  <div className="grai-redeemable-balances-head">
+                    {liquidationOpen && redeemCountdownLabel ? (
+                      <span
+                        className={`grai-redeemable-balances-countdown${
+                          redeemCountdownLabel === 'Ready' ? ' is-ready' : ''
+                        }`}
+                        aria-live="polite"
+                        title="Time until redeem is allowed"
+                      >
+                        {redeemCountdownLabel}
+                      </span>
+                    ) : (
+                      <span className="grai-redeemable-balances-blocked" aria-live="polite">
+                        <span className="grai-redeemable-balances-countdown is-blocked">
+                          Redeem forbidden
                         </span>
-                        <img
-                          className="grai-redeemable-balances-icon"
-                          src={row.asset.icon.src}
-                          alt=""
-                          width={16}
-                          height={16}
-                          loading="lazy"
-                          decoding="async"
+                        <GraiFieldInfoButton
+                          hint={REDEEM_BLOCKED_HINT}
+                          ariaLabel="Why redeem is forbidden"
+                          className="grai-redeemable-balances-blocked-info"
                         />
-                        <span className="grai-redeemable-balances-symbol">{row.asset.symbol}</span>
-                      </li>
-                    ))
-                  )}
-                </ul>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="header-nav-link header-nav-info grai-page-how-it-works-hint grai-redeemable-balances-hint"
+                      onClick={onOpenHowItWorks}
+                      aria-haspopup="dialog"
+                    >
+                      <Info className="header-nav-info-icon" aria-hidden="true" />
+                      How it works?
+                    </button>
+                  </div>
+                  <div className="grai-redeemable-balances-body">
+                    <div className="grai-redeemable-balances-donut grai-donut-slot">
+                      <GraiNavDonut
+                        slices={redeemableDonutSlices}
+                        totalNavLabel={liquidationOpen ? redeemableTotalUsdLabel : '—'}
+                        centerLabel="Total"
+                        valueUnit="USD"
+                        isLoading={false}
+                        showSliceIcons
+                      />
+                    </div>
+                    <ul className="grai-redeemable-balances-list">
+                      {redeemableBalanceRows.length === 0 ? (
+                        <li className="grai-redeemable-balances-empty">No reserves</li>
+                      ) : (
+                        redeemableBalanceRows.map((row) => (
+                          <li key={row.asset.mint} className="grai-redeemable-balances-item">
+                            <span
+                              className="grai-redeemable-balances-swatch"
+                              style={{ background: row.color }}
+                              aria-hidden="true"
+                            />
+                            <span className="grai-redeemable-balances-amount">
+                              {liquidationOpen ? row.senior : '—'}
+                            </span>
+                            <img
+                              className="grai-redeemable-balances-icon"
+                              src={row.asset.icon.src}
+                              alt=""
+                              width={16}
+                              height={16}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            <span className="grai-redeemable-balances-symbol">{row.asset.symbol}</span>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
@@ -1255,6 +1271,7 @@ export function GraiMintBurnPanel({
               </button>
             </div>
           ) : null}
+          <div className={actionView === 'burn' ? 'grai-redeem-controls' : 'grai-mint-controls'}>
           <GraiAmountInput
             key={`${actionView}-${assetSelectKey}`}
             label={
@@ -1296,7 +1313,7 @@ export function GraiMintBurnPanel({
                   : isGraiUnlock
                     ? 'escrow:'
                     : 'balance:'
-                : undefined
+                : 'balance:'
             }
             showVolatility={false}
             disabled={isClaimAllAssetDividends}
@@ -1374,15 +1391,15 @@ export function GraiMintBurnPanel({
                       className={`grai-mint-referrer-field${referrerIsInvalid ? ' is-invalid' : ''}`}
                     >
                       <div className="grai-mint-referrer-label-row">
-                        <label className="grai-mint-referrer-label" htmlFor="grai-mint-referrer-input">
-                          Referrer
-                        </label>
                         <GraiFieldInfoButton
                           className="grai-mint-referrer-info"
                           ariaLabel="About referrer"
                           hint={buildReferrerAffiliateHint()}
                           structured
                         />
+                        <label className="grai-mint-referrer-label" htmlFor="grai-mint-referrer-input">
+                          Referrer
+                        </label>
                       </div>
                       <input
                         id="grai-mint-referrer-input"
@@ -1682,7 +1699,6 @@ export function GraiMintBurnPanel({
                     isPreviewOpen={isPreviewOpen}
                     onTogglePreview={togglePreview}
                   >
-                    <span className="grai-action-result-sigma" aria-hidden="true">Σ</span>
                     You receive:
                   </GraiActionResultLabel>
                   <span className="grai-action-result-value">{redeemUsdLabel}</span>
@@ -1871,6 +1887,7 @@ export function GraiMintBurnPanel({
               <>Redeem GRAI for your share of vault assets after a liquidation opens.</>
             )}
           </ActionDepositNote>
+          </div>
           </div>
         </div>
       </div>

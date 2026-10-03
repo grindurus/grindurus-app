@@ -12,9 +12,9 @@ export type GraiSection =
   | 'allocate'
   | 'deallocate'
   | 'distribute'
-  | 'auctions'
   | 'vote'
   | 'bribe'
+  | 'liquidation'
   | 'liquidate'
   | 'custodian'
   | 'register'
@@ -29,10 +29,12 @@ export const GRAI_SECTION_IDS: Record<GraiSection, string> = {
   grinders: 'grai-grinders-summary',
   allocate: 'grai-manage-section',
   deallocate: 'grai-manage-section',
-  distribute: 'grai-manage-section',
-  auctions: 'grai-liquidation-market',
+  // GRAI ops tabs (not Grinders manage).
+  distribute: 'grai-assets-section',
   vote: 'grai-liquidation-market',
   bribe: 'grai-liquidation-market',
+  liquidation: 'grai-liquidation-market',
+  // Grinders manage liquidate action.
   liquidate: 'grai-manage-section',
   custodian: 'grai-manage-section',
   register: 'grai-manage-section',
@@ -49,9 +51,9 @@ export const GRAI_SECTION_HASHES: GraiSection[] = [
   'allocate',
   'deallocate',
   'distribute',
-  'auctions',
   'vote',
   'bribe',
+  'liquidation',
   'liquidate',
   'custodian',
   'register',
@@ -60,7 +62,6 @@ export const GRAI_SECTION_HASHES: GraiSection[] = [
 const GRINDERS_PAGE_SECTIONS: ReadonlySet<GraiSection> = new Set([
   'allocate',
   'deallocate',
-  'distribute',
   'liquidate',
   'custodian',
   'register',
@@ -70,7 +71,6 @@ export function isManageSectionHash(hash: string): boolean {
   return (
     hash === 'allocate' ||
     hash === 'deallocate' ||
-    hash === 'distribute' ||
     hash === 'liquidate' ||
     hash === 'custodian' ||
     hash === 'register' ||
@@ -81,6 +81,9 @@ export function isManageSectionHash(hash: string): boolean {
 export function readGraiSectionFromHash(): GraiSection | null {
   const hash = window.location.hash.slice(1)
   if (hash === 'manage') return 'allocate'
+  // Legacy GRAI ops hashes.
+  if (hash === 'assets') return 'distribute'
+  if (hash === 'burn') return 'liquidation'
   if (GRAI_SECTION_HASHES.includes(hash as GraiSection)) {
     return hash as GraiSection
   }
@@ -92,9 +95,15 @@ function sectionAppPath(section: GraiSection): '/grai' | '/grinders' {
 }
 
 export const GRAI_MINT_FLOW_EVENT = 'grai-mint-flow'
+export const GRAI_RESET_LIQUIDATE_EVENT = 'grai-reset-liquidate'
 
 export function resetGraiMintToDeposit(): void {
   window.dispatchEvent(new CustomEvent(GRAI_MINT_FLOW_EVENT, { detail: 'deposit' }))
+}
+
+/** Header product nav: leave Redeem and show Liquidate again. */
+export function resetGraiLiquidateView(): void {
+  window.dispatchEvent(new Event(GRAI_RESET_LIQUIDATE_EVENT))
 }
 
 export function navigateToGraiSection(
