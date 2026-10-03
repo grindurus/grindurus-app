@@ -1147,6 +1147,17 @@ export function GraiLiquidationActions() {
     [marketView, state?.liquidationOpen],
   )
 
+  /** Leave Liquidate on pointerdown — unmounting that tree was dropping the click on mobile. */
+  const onOpsTabPointerDown = useCallback(
+    (view: 'claim' | 'distribute' | 'market' | 'liquidate') =>
+      (event: ReactPointerEvent<HTMLButtonElement>) => {
+        if (event.button !== 0) return
+        event.preventDefault()
+        handleOpsViewChange(view)
+      },
+    [handleOpsViewChange],
+  )
+
   const handleMarketViewChange = useCallback((view: 'vote' | 'bribe') => {
     setOpsView('market')
     setMarketView(view)
@@ -1813,6 +1824,7 @@ export function GraiLiquidationActions() {
         role="tab"
         aria-selected={opsView === 'claim'}
         className={`grai-action-switch-btn is-claim ${opsView === 'claim' ? 'is-active' : ''}`}
+        onPointerDown={onOpsTabPointerDown('claim')}
         onClick={() => handleOpsViewChange('claim')}
       >
         <span className="grai-action-switch-icon" aria-hidden="true">
@@ -1828,6 +1840,7 @@ export function GraiLiquidationActions() {
         role="tab"
         aria-selected={opsView === 'distribute'}
         className={`grai-action-switch-btn is-distribute ${opsView === 'distribute' ? 'is-active' : ''}`}
+        onPointerDown={onOpsTabPointerDown('distribute')}
         onClick={() => handleOpsViewChange('distribute')}
       >
         <span className="grai-action-switch-icon" aria-hidden="true">
@@ -1846,6 +1859,7 @@ export function GraiLiquidationActions() {
         role="tab"
         aria-selected={opsView === 'market'}
         className={`grai-action-switch-btn is-bribe ${opsView === 'market' ? 'is-active' : ''}`}
+        onPointerDown={onOpsTabPointerDown('market')}
         onClick={() => handleOpsViewChange('market')}
       >
         <span className="grai-action-switch-icon" aria-hidden="true">
@@ -1873,6 +1887,7 @@ export function GraiLiquidationActions() {
           aria-label="Exit by Liquidation"
           title="Exit by Liquidation"
           className={`grai-action-switch-btn is-liquidate ${opsView === 'liquidate' ? 'is-active' : ''}`}
+          onPointerDown={onOpsTabPointerDown('liquidate')}
           onClick={() => handleOpsViewChange('liquidate')}
         >
           <span className="grai-action-switch-icon" aria-hidden="true">

@@ -12458,7 +12458,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-liquidation-ops-tabs {
-    position: static;
+    position: relative;
+    z-index: 2;
     top: auto;
     width: 100%;
     max-width: 100%;
