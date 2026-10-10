@@ -8,13 +8,13 @@ import {
   X,
 } from 'lucide-react'
 import { readSoundEnabled, writeSoundEnabled } from '../utils/soundPreference'
-import { useWalletContext } from '../providers/walletContext'
-import { useEvmWallet } from '../hooks/useEvmWallet'
+import { useWalletContext } from '../wallets/walletContext'
+import { useEvmWallet } from '../wallets/useEvmWallet'
 import {
   networkEnvFromSolanaCluster,
   preferredEvmChainId,
   type NetworkEnv,
-} from '../wallet/networkEnv'
+} from '../wallets/networkEnv'
 import './HeaderSettingsPopover.css'
 
 type Theme = 'light' | 'dark'

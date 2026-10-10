@@ -13,7 +13,7 @@ import {
 } from './deployments'
 import { fetchGrsSnapshot, type GrsSale } from './evm/readProtocol'
 import { fetchSolanaGrsSnapshot, GRS_SOLANA_DECIMALS } from './solana/readProtocol'
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from '../wallets/AppWalletProvider'
 
 export type GrsSaleBookRow = GrsSale & {
   /** Stable key across chains (ids collide: Solana #5 vs Sepolia #5). */

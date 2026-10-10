@@ -8,31 +8,31 @@ import {
   useRef,
   useState,
 } from 'react'
-import { fetchGraiRegistryAssets } from '../grai/fetchAssets'
-import { fetchGraiVaultBalances, type GraiAssetVaultBalances } from '../grai/fetchVaultBalances'
-import { fetchGraiMintSupply } from '../grai/fetchGraiMintSupply'
+import { fetchGraiRegistryAssets } from './fetchAssets'
+import { fetchGraiVaultBalances, type GraiAssetVaultBalances } from './fetchVaultBalances'
+import { fetchGraiMintSupply } from './fetchGraiMintSupply'
 import {
   fetchEvmGraiAssets,
   fetchEvmGraiTotalSupply,
   fetchEvmGraiVaultBalances,
-} from '../grai/evm/readProtocol'
+} from './evm/readProtocol'
 import {
   fetchGrinderCustodyHoldings,
   indexGrinderCustodyHoldings,
   mergeGrinderCustodyHoldings,
   solanaClusterToCustodyNetwork,
-} from '../grai/custodyHoldings'
-import { grinderCustodyAddress, type GrinderConfig } from '../grai/grinders'
-import { fetchCustodyWalletBalances } from '../grai/fetchCustodyWalletBalances'
-import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
-import { type GraiAsset } from '../grai/knownMints'
+} from './custodyHoldings'
+import { grinderCustodyAddress, type GrinderConfig } from './grinders'
+import { fetchCustodyWalletBalances } from './fetchCustodyWalletBalances'
+import { useGraiDeployment } from './GraiDeploymentProvider'
+import { type GraiAsset } from './knownMints'
 import {
   type GrinderCustodyState,
   toGrinderCustodyRow,
   parseCustodyWallet,
-} from '../grai/grinderCustodyState'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
-import { useEvmWallet } from '../hooks/useEvmWallet'
+} from './grinderCustodyState'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
 
 type GraiDataContextValue = {
   assets: GraiAsset[]

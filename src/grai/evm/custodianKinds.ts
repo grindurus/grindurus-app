@@ -11,7 +11,7 @@ function kindHash(label: string): Hex {
   return keccak256(stringToHex(label))
 }
 
-/** Known GrindURUS custodian kind hashes (must match on-chain `custodianKind()`). */
+/** Known GrindURUS custodian kind hashes (must match on-chain `label()`). */
 export const KNOWN_CUSTODIAN_KINDS: readonly CustodianKindOption[] = [
   {
     id: 'cow',

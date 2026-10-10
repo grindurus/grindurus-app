@@ -9,7 +9,7 @@ import {
   writeContract,
 } from '@wagmi/core'
 import { erc20Abi, getAddress } from 'viem'
-import { wagmiConfig } from '../../providers/evmConfig'
+import { wagmiConfig } from '../../wallets/evmConfig'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import { GRS_DECIMALS } from '../constants'
 import { parseBridgeRecipient, parseSaleAsset, ZERO_BYTES32, evmAddressToBytes32 } from '../bytes32'

@@ -8,8 +8,8 @@ import {
 import { estimateSolanaClaimAll } from '../grai/estimateSolanaClaim'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance } from '../grai/onchain'
-import { useEvmWallet } from './useEvmWallet'
-import { useSolanaWallet } from './useSolanaWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 
 const EMPTY_CLAIM: EvmClaimEstimate = {
   assetAddress: '0x0000000000000000000000000000000000000000',

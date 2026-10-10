@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { useEvmWallet } from './useEvmWallet'
+import { useSolanaWallet } from './useSolanaWallet'
 import { useWalletContext } from './walletContext'
 
 function isMetaMaskName(name: string | undefined): boolean {
@@ -37,6 +37,9 @@ export function ExclusiveWalletSync() {
     if (!evmConnected || !solanaConnected) return
     if (busyRef.current) return
     if (sharedMetaMaskSession) return
+    // Wait until the user picks a chain — otherwise a null selection on /backtest
+    // (both stacks mounted) would tear down Solana immediately after connect.
+    if (selectedChainType !== 'solana' && selectedChainType !== 'evm') return
 
     const keepSolana = selectedChainType === 'solana'
     busyRef.current = true

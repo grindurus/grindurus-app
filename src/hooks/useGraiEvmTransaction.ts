@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
-import { useEvmWallet } from './useEvmWallet'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useWalletContext } from '../wallets/AppWalletProvider'
 import { isGraiTransactionPending, type GraiTransactionStatus } from './useGraiTransaction'
 
 export function useGraiEvmTransaction() {

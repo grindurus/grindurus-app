@@ -73,7 +73,7 @@ function Footer() {
         </div>
 
         <div className="app-footer-bottom">
-          <p className="app-footer-tagline">Passively earn yield from price volatility.</p>
+          <p className="app-footer-tagline">Turning Price Volatility into Indexed Yields</p>
 
           <nav className="app-footer-legal" aria-label="Legal">
             <Link to="/privacy" className="app-footer-legal-link">

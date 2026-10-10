@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useEvmWallet } from './useEvmWallet'
-import { useSolanaWallet } from './useSolanaWallet'
-import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useWalletContext, type EvmChain } from '../wallets/AppWalletProvider'
 import {
   createGrsSolanaConnection,
   getDefaultGrsSolanaCluster,

@@ -7,8 +7,8 @@ import { isNativeEvmAsset } from '../grai/evm/knownAssets'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance, fetchMintDecimals, fetchWalletAssetBalance } from '../grai/onchain'
 import { isPlaceholderGraiAssetMint, NATIVE_MINT } from '../grai/knownMints'
-import { useSolanaWallet } from './useSolanaWallet'
-import { useEvmWallet } from './useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
 
 function placeholderDecimals(symbol: string | undefined): number {
   const upper = symbol?.toUpperCase() ?? ''
@@ -17,11 +17,32 @@ function placeholderDecimals(symbol: string | undefined): number {
   return 6
 }
 
+function tryPublicKey(value: string | undefined | null): PublicKey | null {
+  if (!value) return null
+  try {
+    return new PublicKey(value)
+  } catch {
+    return null
+  }
+}
+
+/** App-cluster RPC + owner from adapter publicKey or base58 address. */
+function useSolanaBalanceConnection() {
+  const { address, publicKey, isConnected } = useSolanaWallet()
+  const { connection } = useGraiDeployment()
+  const owner = publicKey ?? tryPublicKey(address)
+  // Treat a resolved owner as connected — snapshot `isConnected` can lag after stack remounts.
+  return { connection, owner, isConnected: Boolean(owner) || isConnected }
+}
+
 export function useWalletAssetBalance(assetMint: string | undefined, symbol: string | undefined) {
-  const { publicKey, isConnected: isSolanaConnected, connection: walletConnection } = useSolanaWallet()
   const { address: evmAddress, isConnected: isEvmConnected } = useEvmWallet()
-  const { connection: graiConnection, clusterMismatch, chainKind, evm } = useGraiDeployment()
-  const connection = clusterMismatch ? graiConnection : (walletConnection ?? graiConnection)
+  const { chainKind, evm } = useGraiDeployment()
+  const {
+    connection: solanaConnection,
+    owner: solanaOwner,
+    isConnected: isSolanaConnected,
+  } = useSolanaBalanceConnection()
   const [formattedBalance, setFormattedBalance] = useState<string | null>(null)
   const [maxAmount, setMaxAmount] = useState('')
   const [raw, setRaw] = useState(0n)
@@ -29,7 +50,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
   const [isLoading, setIsLoading] = useState(false)
 
   const isConnected =
-    chainKind === 'evm' ? isEvmConnected : chainKind === 'solana' ? isSolanaConnected : false
+    chainKind === 'evm' ? isEvmConnected : chainKind === 'solana' ? isSolanaConnected : isSolanaConnected || isEvmConnected
   const isPlaceholderMint = Boolean(assetMint && isPlaceholderGraiAssetMint(assetMint))
 
   useEffect(() => {
@@ -78,15 +99,15 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       return
     }
 
-    if (!graiConnection) {
+    if (!solanaConnection) {
       setDecimals(null)
       return
     }
 
-    void fetchMintDecimals(graiConnection, new PublicKey(assetMint))
+    void fetchMintDecimals(solanaConnection, new PublicKey(assetMint))
       .then(setDecimals)
       .catch(() => setDecimals(null))
-  }, [assetMint, chainKind, evm, graiConnection, isPlaceholderMint, symbol])
+  }, [assetMint, chainKind, evm, isPlaceholderMint, solanaConnection, symbol])
 
   const refresh = useCallback(async () => {
     if (!assetMint) {
@@ -133,7 +154,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       return
     }
 
-    if (!publicKey || !connection) {
+    if (!solanaOwner || !solanaConnection) {
       setFormattedBalance(null)
       setMaxAmount('')
       setRaw(0n)
@@ -145,8 +166,8 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       const mint = new PublicKey(assetMint)
       const isNativeSol = assetMint === NATIVE_MINT
       const { raw: walletRaw, maxRaw, decimals: assetDecimals } = await fetchWalletAssetBalance(
-        connection,
-        publicKey,
+        solanaConnection,
+        solanaOwner,
         mint,
         isNativeSol,
       )
@@ -161,7 +182,16 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
     } finally {
       setIsLoading(false)
     }
-  }, [assetMint, chainKind, connection, evm, evmAddress, isPlaceholderMint, publicKey, symbol])
+  }, [
+    assetMint,
+    chainKind,
+    evm,
+    evmAddress,
+    isPlaceholderMint,
+    solanaConnection,
+    solanaOwner,
+    symbol,
+  ])
 
   useEffect(() => {
     if (!assetMint) {
@@ -189,7 +219,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
         setIsLoading(false)
         return
       }
-    } else if (!publicKey || !connection) {
+    } else if (!solanaOwner || !solanaConnection) {
       setFormattedBalance(null)
       setMaxAmount('')
       setRaw(0n)
@@ -199,11 +229,23 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
 
     setIsLoading(true)
     void refresh()
-  }, [assetMint, chainKind, connection, evm, evmAddress, isPlaceholderMint, publicKey, refresh, symbol])
+  }, [
+    assetMint,
+    chainKind,
+    evm,
+    evmAddress,
+    isPlaceholderMint,
+    refresh,
+    solanaConnection,
+    solanaOwner,
+    symbol,
+  ])
 
   const balanceLabel = isLoading
     ? '…'
-    : `${formattedBalance ?? '0'} ${symbol ?? ''}`.trim()
+    : formattedBalance == null
+      ? '—'
+      : `${formattedBalance} ${symbol ?? ''}`.trim()
 
   return {
     balanceLabel,
@@ -223,15 +265,18 @@ export type WalletBalanceAsset = {
 
 /** Parallel wallet balances keyed by lowercased address (display amounts only). */
 export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
-  const { publicKey, isConnected: isSolanaConnected, connection: walletConnection } = useSolanaWallet()
   const { address: evmAddress, isConnected: isEvmConnected } = useEvmWallet()
-  const { connection: graiConnection, clusterMismatch, chainKind, evm } = useGraiDeployment()
-  const connection = clusterMismatch ? graiConnection : (walletConnection ?? graiConnection)
+  const { chainKind, evm } = useGraiDeployment()
+  const {
+    connection: solanaConnection,
+    owner: solanaOwner,
+    isConnected: isSolanaConnected,
+  } = useSolanaBalanceConnection()
   const [balancesByAddress, setBalancesByAddress] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
 
   const isConnected =
-    chainKind === 'evm' ? isEvmConnected : chainKind === 'solana' ? isSolanaConnected : false
+    chainKind === 'evm' ? isEvmConnected : chainKind === 'solana' ? isSolanaConnected : isSolanaConnected || isEvmConnected
 
   const assetsKey = useMemo(
     () => assets.map((asset) => `${asset.address.toLowerCase()}:${asset.symbol}`).join('|'),
@@ -251,8 +296,8 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
     const toFetch: WalletBalanceAsset[] = []
     for (const asset of assets) {
       const key = asset.address.toLowerCase()
-      if (isPlaceholderGraiAssetMint(asset.address)) {
-        placeholders[key] = '0'
+      if (!asset.address || isPlaceholderGraiAssetMint(asset.address)) {
+        placeholders[key || asset.symbol.toLowerCase()] = '0'
       } else {
         toFetch.push(asset)
       }
@@ -299,7 +344,7 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
             }),
           )
         }
-      } else if (!publicKey || !connection) {
+      } else if (!solanaOwner || !solanaConnection) {
         for (const asset of toFetch) next[asset.address.toLowerCase()] = '—'
       } else {
         await Promise.all(
@@ -308,8 +353,8 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
             try {
               const mint = new PublicKey(asset.address)
               const { raw, decimals } = await fetchWalletAssetBalance(
-                connection,
-                publicKey,
+                solanaConnection,
+                solanaOwner,
                 mint,
                 asset.address === NATIVE_MINT,
               )
@@ -330,7 +375,16 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
     return () => {
       cancelled = true
     }
-  }, [assets, assetsKey, chainKind, connection, evm, evmAddress, isConnected, publicKey])
+  }, [
+    assets,
+    assetsKey,
+    chainKind,
+    evm,
+    evmAddress,
+    isConnected,
+    solanaConnection,
+    solanaOwner,
+  ])
 
   return { balancesByAddress, isLoading, isConnected }
 }

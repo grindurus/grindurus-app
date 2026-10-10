@@ -9,9 +9,9 @@ import { navigateToGraiSection, resetGraiLiquidateView, resetGraiMintToDeposit, 
 import { navigateToGrsSection, type GrsSection } from '../utils/grsNavigation'
 import { navigateToAffiliatesSection, type AffiliatesSection } from '../utils/affiliatesNavigation'
 import { navigateToBacktestSection, type BacktestSection } from '../utils/backtestNavigation'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useWalletContext } from '../providers/walletContext'
-import { isTestnetEvmChainId, preferredEvmChainId } from '../wallet/networkEnv'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useWalletContext } from '../wallets/walletContext'
+import { isTestnetEvmChainId, preferredEvmChainId } from '../wallets/networkEnv'
 import { assetUrl, stripBasePath, toAppPath } from '../utils/appPaths'
 import './Header.css'
 
@@ -219,14 +219,21 @@ function HeaderNavPathButton({
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void
 }) {
   const navigate = useNavigate()
+  const warmRoute = () => {
+    if (path === '/grs') void import('../pages/GrsPage')
+    else if (path === '/backtest') void import('../pages/BacktestPage')
+  }
   return (
     <NavLink
       to={path}
       data-app-path={path}
       className={`header-nav-link${active ? ' is-current' : ''}`}
+      onPointerEnter={warmRoute}
+      onFocus={warmRoute}
       onPointerDown={(event) => {
         if (event.button !== 0) return
         if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return
+        warmRoute()
         // Stay on this product: the click handler scrolls / resets sections.
         if (isOnAppPath(path)) return
         // Leave before the click. A GRAI liquidation re-render was dropping that click,
@@ -634,7 +641,7 @@ function Header() {
                 >
                   <span className="header-nav-link-stack">
                     <span className="header-nav-link-title">GRAI</span>
-                    <span className="header-nav-link-sub">fund capital</span>
+                    <span className="header-nav-link-sub">fund share</span>
                   </span>
                 </HeaderNavPathButton>
                 <button
@@ -829,7 +836,7 @@ function Header() {
               >
                 <span className="header-nav-link-stack">
                   <span className="header-nav-link-title">GRAI</span>
-                  <span className="header-nav-link-sub">fund capital</span>
+                  <span className="header-nav-link-sub">fund share</span>
                 </span>
               </HeaderNavPathButton>
             </li>

@@ -12,7 +12,7 @@ export type EvmCustodianData = {
   custodian: `0x${string}`
   id: bigint
   owner: `0x${string}`
-  kind: Hex
+  label: Hex
   baseAsset: `0x${string}`
   quoteAsset: `0x${string}`
   ethBalance: bigint
@@ -29,8 +29,8 @@ function custodyNetworkForChainId(chainId: number): NormalizedCustodyHolding['ne
   return 'ethereum'
 }
 
-function kindLabel(kind: Hex): string {
-  const known = KNOWN_CUSTODIAN_KINDS.find((entry) => entry.kindHash === kind)
+function kindLabel(label: Hex): string {
+  const known = KNOWN_CUSTODIAN_KINDS.find((entry) => entry.kindHash === label)
   return known?.label ?? 'Custodian'
 }
 
@@ -159,7 +159,7 @@ export async function fetchEvmCustodiansData(
       custodian: item.custodian,
       id: item.id,
       owner: item.owner,
-      kind: item.kind,
+      label: item.label,
       baseAsset: item.baseAsset,
       quoteAsset: item.quoteAsset,
       ethBalance: item.ethBalance,
@@ -180,7 +180,7 @@ export async function fetchEvmCustodiansData(
 
     rows.push({
       id: `evm-${data.id.toString()}`,
-      name: `${kindLabel(data.kind)} #${data.id.toString()}`,
+      name: `${kindLabel(data.label)} #${data.id.toString()}`,
       custodyWallet: null,
       custodyWalletAddress: data.custodian,
       balances,

@@ -1,4 +1,4 @@
-import { useGraiData } from '../providers/GraiDataProvider'
+import { useGraiData } from '../grai/GraiDataProvider'
 
 export function useGraiVaultBalances() {
   const { vaultBalances, vaultBalancesLoading, vaultBalancesError, refreshVaultBalances } = useGraiData()

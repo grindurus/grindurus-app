@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useWalletContext } from '../providers/walletContext'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { useWalletContext } from '../wallets/walletContext'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 import {
   networkEnvFromSolanaCluster,
   preferredEvmChainId,
   preferredSolanaCluster,
-} from '../wallet/networkEnv'
+} from '../wallets/networkEnv'
 import metamaskFoxIcon from '../assets/metamask-fox.svg'
 import { SolanaLogomark } from './SolanaLogomark'
 import { WalletIcon } from './WalletIcon'
@@ -101,6 +101,7 @@ interface ChainSelectorModalProps {
 export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('evm')
   const [evmConnectError, setEvmConnectError] = useState('')
+  const [evmConnectorsPending, setEvmConnectorsPending] = useState(false)
   const backdropDismissArmedRef = useRef(false)
   const {
     selectedChainType,
@@ -110,6 +111,9 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
     setSolanaCluster,
     requestRainbowKit,
     isEvmStackReady,
+    isSolanaStackReady,
+    warmEvmStack,
+    warmSolanaStack,
   } = useWalletContext()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
@@ -117,11 +121,80 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   const targetEvmChainId = preferredEvmChainId(evmChain, networkEnv)
   const targetSolanaCluster = preferredSolanaCluster(networkEnv)
 
+  const wasOpenRef = useRef(false)
   useEffect(() => {
-    if (!isOpen) return
-    setActiveTab(selectedChainType === 'solana' ? 'solana' : 'evm')
+    // Only seed the tab when the modal opens. Re-running on selectedChainType
+    // (e.g. clearing 'evm' while switching to Solana) snapped the tab back to EVM.
+    if (isOpen && !wasOpenRef.current) {
+      // Disconnected → EVM tab, but always warm both so every wallet list is ready.
+      const tab: TabType = selectedChainType === 'solana' ? 'solana' : 'evm'
+      setActiveTab(tab)
+      setEvmConnectError('')
+      warmEvmStack()
+      warmSolanaStack()
+    }
+    wasOpenRef.current = isOpen
+  }, [isOpen, selectedChainType, warmEvmStack, warmSolanaStack])
+
+  // After Solana disconnect the EVM stack may report ready before wagmi republishes
+  // connectors — keep the loading panel briefly instead of a false empty state.
+  useEffect(() => {
+    if (!isOpen) {
+      setEvmConnectorsPending(false)
+      return
+    }
+    if (evmWallet.connectors.length > 0) {
+      setEvmConnectorsPending(false)
+      return
+    }
+    setEvmConnectorsPending(true)
+    const id = window.setTimeout(() => setEvmConnectorsPending(false), 1200)
+    return () => window.clearTimeout(id)
+  }, [isOpen, isEvmStackReady, evmWallet.connectors.length])
+
+  const selectEvmTab = useCallback(() => {
+    setActiveTab('evm')
     setEvmConnectError('')
-  }, [isOpen, selectedChainType])
+    // Clear selection before disconnect so XOR / needs* gates do not block the
+    // newly warmed stack while the other wallet tears down.
+    if (selectedChainType === 'solana') {
+      setSelectedChainType(null)
+    }
+    warmEvmStack()
+    void (async () => {
+      if (solanaWallet.isConnected) {
+        await solanaWallet.disconnect()
+      }
+    })()
+  }, [
+    selectedChainType,
+    setSelectedChainType,
+    solanaWallet,
+    warmEvmStack,
+  ])
+
+  const selectSolanaTab = useCallback(() => {
+    setActiveTab('solana')
+    setEvmConnectError('')
+    if (selectedChainType === 'evm') {
+      setSelectedChainType(null)
+    }
+    warmSolanaStack()
+    void (async () => {
+      if (evmWallet.isConnected) {
+        try {
+          await Promise.resolve(evmWallet.disconnect())
+        } catch {
+          // Tab switch must not depend on a successful EVM disconnect.
+        }
+      }
+    })()
+  }, [
+    evmWallet,
+    selectedChainType,
+    setSelectedChainType,
+    warmSolanaStack,
+  ])
 
   const openRainbowKit = useCallback(() => {
     requestRainbowKit()
@@ -310,7 +383,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
           <button
             type="button"
             className={`wallet-tab ${activeTab === 'evm' ? 'active' : ''}`}
-            onClick={() => setActiveTab('evm')}
+            onClick={selectEvmTab}
           >
             <div className="wallet-tab-icon ethereum-icon">
               <img
@@ -328,7 +401,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
           <button
             type="button"
             className={`wallet-tab ${activeTab === 'solana' ? 'active' : ''}`}
-            onClick={() => setActiveTab('solana')}
+            onClick={selectSolanaTab}
           >
             <div className="wallet-tab-icon solana-icon">
               <SolanaLogomark size={16} />
@@ -374,7 +447,7 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
               hidden={activeTab !== 'evm'}
             >
               <div className="wallet-options">
-                {!isEvmStackReady ? (
+                {!isEvmStackReady || (evmWallet.connectors.length === 0 && evmConnectorsPending) ? (
                   <EvmWalletsLoadingPanel />
                 ) : evmWallet.connectors.length > 0 ? (
                   evmWallet.connectors.map((connector) => (
@@ -441,7 +514,14 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
               hidden={activeTab !== 'solana'}
             >
               <div className="wallet-options">
-                {solanaWallet.detectedWallets.length > 0 ? (
+                {!isSolanaStackReady ? (
+                  <div className="wallet-evm-loading" aria-busy="true" aria-live="polite">
+                    <div className="wallet-evm-loading-status">
+                      <span className="wallet-evm-loading-spinner" aria-hidden="true" />
+                      <span className="wallet-evm-loading-text">Initializing Solana wallets…</span>
+                    </div>
+                  </div>
+                ) : solanaWallet.detectedWallets.length > 0 ? (
                   solanaWallet.detectedWallets.map((w) => (
                     <button
                       key={w.adapter.name}

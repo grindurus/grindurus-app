@@ -13,12 +13,13 @@ import {
   previewSolanaPoach,
 } from './fetchSolanaReferralBooks'
 import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
   referrerPda,
   TOKEN_PROGRAM_ID,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
 import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor `global:poach` discriminator. */
@@ -144,6 +145,11 @@ export async function buildPoachTransaction({
 
   const poacherGraiAta = getAssociatedTokenAddress(config.graiMint, poacher)
   const sellerGraiAta = getAssociatedTokenAddress(config.graiMint, seller)
+  const grindersState = protocol.grinders
+  if (grindersState.equals(PublicKey.default)) {
+    throw new Error('Grinders is not linked on-chain; cannot route poach fee')
+  }
+  const grindersGraiAta = getAssociatedTokenAddress(config.graiMint, grindersState)
 
   const fixedKeys: AccountMeta[] = [
     { pubkey: poacher, isSigner: true, isWritable: true },
@@ -157,7 +163,10 @@ export async function buildPoachTransaction({
     { pubkey: config.graiMint, isSigner: false, isWritable: false },
     { pubkey: poacherGraiAta, isSigner: false, isWritable: true },
     { pubkey: sellerGraiAta, isSigner: false, isWritable: true },
+    { pubkey: grindersState, isSigner: false, isWritable: false },
+    { pubkey: grindersGraiAta, isSigner: false, isWritable: true },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ]
 

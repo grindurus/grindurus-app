@@ -16,9 +16,12 @@ export interface WalletContextType {
   closeChainSelector: () => void
   disconnect: () => void
   requestRainbowKit: () => void
-  /** Prefetch / warm EVM wallet stack (safe to call on hover). */
+  /** Prefetch / warm EVM wallet stack (safe to call on hover / EVM tab). */
   warmEvmStack: () => void
+  /** Prefetch / warm Solana wallet stack (safe to call on Solana tab). */
+  warmSolanaStack: () => void
   isEvmStackReady: boolean
+  isSolanaStackReady: boolean
   pendingWalletConnectOpen: boolean
   clearPendingWalletConnectOpen: () => void
 }

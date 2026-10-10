@@ -1,14 +1,25 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { GrsBridgePanel } from '../components/grs/GrsBridgePanel'
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { GrsCapInfographic } from '../components/grs/GrsCapInfographic'
 import { GrsCaNetworkSelect } from '../components/grs/GrsCaNetworkSelect'
-import { GrsGrantPanel } from '../components/grs/GrsGrantPanel'
-import { GrsListSalePanel } from '../components/grs/GrsListSalePanel'
-import { GrsSalesPanel } from '../components/grs/GrsSalesPanel'
-import { GrsVestingPanel } from '../components/grs/GrsVestingPanel'
 import { GraiFieldInfoButton } from '../components/grai/GraiFieldInfo'
+
+const loadGrsSalesPanel = () =>
+  import('../components/grs/GrsSalesPanel').then((m) => ({ default: m.GrsSalesPanel }))
+const GrsSalesPanel = lazy(loadGrsSalesPanel)
+const GrsBridgePanel = lazy(() =>
+  import('../components/grs/GrsBridgePanel').then((m) => ({ default: m.GrsBridgePanel })),
+)
+const GrsGrantPanel = lazy(() =>
+  import('../components/grs/GrsGrantPanel').then((m) => ({ default: m.GrsGrantPanel })),
+)
+const GrsListSalePanel = lazy(() =>
+  import('../components/grs/GrsListSalePanel').then((m) => ({ default: m.GrsListSalePanel })),
+)
+const GrsVestingPanel = lazy(() =>
+  import('../components/grs/GrsVestingPanel').then((m) => ({ default: m.GrsVestingPanel })),
+)
 import { MINT_ASSET_SOLSCAN_ICON } from '../components/grai/graiPageIcons'
-import { useEvmWallet } from '../hooks/useEvmWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
 import { useGrsSnapshot } from '../hooks/useGrsSnapshot'
 import {
   grsExplorerTokenUrl,
@@ -16,7 +27,7 @@ import {
   resolveGrsHomeChain,
   resolveGrsSolanaConfig,
 } from '../grs/deployments'
-import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
+import { useWalletContext, type EvmChain } from '../wallets/AppWalletProvider'
 import {
   GRS_OPS_ID,
   GRS_OPS_TABS,
@@ -202,6 +213,11 @@ function GrsPage() {
   }
 
   useEffect(() => {
+    // Sale book is above the fold — start its chunk ASAP after the shell mounts.
+    void loadGrsSalesPanel()
+  }, [])
+
+  useEffect(() => {
     const applySection = (section: GrsSection) => {
       setIsOpsCollapsed(false)
       setSalesActive(section === 'sales')
@@ -236,13 +252,21 @@ function GrsPage() {
       </p>
       <div className="grai-content-row">
         <section className="grs-sales-section" id={GRS_SALES_ID}>
-          <GrsSalesPanel
-            config={config}
-            snapshot={snapshot}
-            isLoading={isLoading}
-            refresh={refresh}
-            note={GRS_TERM}
-          />
+          <Suspense
+            fallback={
+              <div className="grs-panel-loading" role="status">
+                Loading sale…
+              </div>
+            }
+          >
+            <GrsSalesPanel
+              config={config}
+              snapshot={snapshot}
+              isLoading={isLoading}
+              refresh={refresh}
+              note={GRS_TERM}
+            />
+          </Suspense>
         </section>
 
         {(error || !configured || (configured && !config)) && (
@@ -371,55 +395,65 @@ function GrsPage() {
             </aside>
 
             <div className="grai-liquidation-ops-main">
-              {salesActive ? (
-                <GrsOpsPanel section="sales" footerNote={false}>
-                  <GrsListSalePanel
-                    config={config?.kind === 'evm' ? config : null}
-                    snapshot={snapshot}
-                    refresh={refresh}
-                    solanaSpoke={config?.kind === 'solana' && snapshot ? !snapshot.home : Boolean(solanaConfig)}
-                    note={NOTES.sales}
-                  />
-                </GrsOpsPanel>
-              ) : null}
+              <Suspense
+                fallback={
+                  <div className="grs-panel-loading" role="status">
+                    Loading…
+                  </div>
+                }
+              >
+                {salesActive ? (
+                  <GrsOpsPanel section="sales" footerNote={false}>
+                    <GrsListSalePanel
+                      config={config?.kind === 'evm' ? config : null}
+                      snapshot={snapshot}
+                      refresh={refresh}
+                      solanaSpoke={
+                        config?.kind === 'solana' && snapshot ? !snapshot.home : Boolean(solanaConfig)
+                      }
+                      note={NOTES.sales}
+                    />
+                  </GrsOpsPanel>
+                ) : null}
 
-              {!salesActive && opsView === 'bridge' ? (
-                <GrsOpsPanel section="bridge" footerNote={false}>
-                  <GrsBridgePanel
-                    config={config}
-                    snapshot={snapshot}
-                    isLoading={isLoading}
-                    refresh={refresh}
-                    note={NOTES.bridge}
-                  />
-                </GrsOpsPanel>
-              ) : null}
+                {!salesActive && opsView === 'bridge' ? (
+                  <GrsOpsPanel section="bridge" footerNote={false}>
+                    <GrsBridgePanel
+                      config={config}
+                      snapshot={snapshot}
+                      isLoading={isLoading}
+                      refresh={refresh}
+                      note={NOTES.bridge}
+                    />
+                  </GrsOpsPanel>
+                ) : null}
 
-              {!salesActive && opsView === 'grant' ? (
-                <GrsOpsPanel section="grant" footerNote={false}>
-                  <GrsGrantPanel
-                    config={config?.kind === 'evm' ? config : null}
-                    snapshot={snapshot}
-                    isLoading={isLoading}
-                    refresh={refresh}
-                    solanaSelected={chainKind === 'solana'}
-                    note={NOTES.grant}
-                  />
-                </GrsOpsPanel>
-              ) : null}
+                {!salesActive && opsView === 'grant' ? (
+                  <GrsOpsPanel section="grant" footerNote={false}>
+                    <GrsGrantPanel
+                      config={config?.kind === 'evm' ? config : null}
+                      snapshot={snapshot}
+                      isLoading={isLoading}
+                      refresh={refresh}
+                      solanaSelected={chainKind === 'solana'}
+                      note={NOTES.grant}
+                    />
+                  </GrsOpsPanel>
+                ) : null}
 
-              {!salesActive && (opsView === 'vesting' || opsView === 'vest') ? (
-                <GrsOpsPanel section={opsView} footerNote={false}>
-                  <GrsVestingPanel
-                    config={config}
-                    snapshot={snapshot}
-                    isLoading={isLoading}
-                    refresh={refresh}
-                    view={opsView === 'vest' ? 'lock' : 'claim'}
-                    note={NOTES[opsView]}
-                  />
-                </GrsOpsPanel>
-              ) : null}
+                {!salesActive && (opsView === 'vesting' || opsView === 'vest') ? (
+                  <GrsOpsPanel section={opsView} footerNote={false}>
+                    <GrsVestingPanel
+                      config={config}
+                      snapshot={snapshot}
+                      isLoading={isLoading}
+                      refresh={refresh}
+                      view={opsView === 'vest' ? 'lock' : 'claim'}
+                      note={NOTES[opsView]}
+                    />
+                  </GrsOpsPanel>
+                ) : null}
+              </Suspense>
             </div>
           </div>
             </div>

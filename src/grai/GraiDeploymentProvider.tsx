@@ -1,10 +1,9 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react'
 import { Connection } from '@solana/web3.js'
-import { useConnection } from '@solana/wallet-adapter-react'
-import { useWalletContext, type EvmChain, type SolanaCluster } from '../providers/walletContext'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { useWalletContext, type EvmChain, type SolanaCluster } from '../wallets/walletContext'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 import { deferAfterPaint } from '../utils/deferAfterPaint'
-import { useEvmWallet } from '../hooks/useEvmWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
 import {
   getDefaultGraiSolanaCluster,
   GraiEvmConfig,
@@ -16,10 +15,12 @@ import {
   resolveGraiEvmConfig,
   resolveGraiSolanaConfig,
   resolveGraiSolanaRuntime,
+  resolveSolanaRpcUrl,
   solscanTokenUrl,
   solscanTxUrl,
   solscanAccountUrl,
 } from './deployments'
+import { getSharedJsonRpcBatchFetch } from './jsonRpcBatchFetch'
 
 function chainIdToEvmChain(chainId: number): EvmChain | null {
   if (chainId === 1) return 'ethereum'
@@ -75,17 +76,23 @@ export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
   const {
     walletClusterMismatch,
     isConnected: isSolanaConnected,
+    connection: walletConnection,
   } = useSolanaWallet()
   const evmWallet = useEvmWallet()
-  const { connection: walletConnection } = useConnection()
 
   // Follow the header / Connect Wallet cluster — same as GRS (never ignore Devnet).
   const solanaCluster = appSolanaCluster || getDefaultGraiSolanaCluster()
   const staticSolana = useMemo(() => resolveGraiSolanaConfig(solanaCluster), [solanaCluster])
-  const connection = useMemo(
-    () => (staticSolana ? walletConnection : null),
-    [staticSolana, walletConnection],
-  )
+  // Prefer the wallet-adapter Connection when Solana stack is mounted; otherwise a
+  // standalone RPC client so protocol reads still work without loading adapters.
+  const connection = useMemo(() => {
+    if (!staticSolana) return null
+    if (walletConnection) return walletConnection
+    return new Connection(resolveSolanaRpcUrl(solanaCluster), {
+      commitment: 'confirmed',
+      fetch: getSharedJsonRpcBatchFetch(),
+    })
+  }, [staticSolana, walletConnection, solanaCluster])
   const [solana, setSolana] = useState<GraiSolanaRuntime | null>(null)
   const [isProtocolResolving, setIsProtocolResolving] = useState(() => staticSolana !== null)
   const [protocolError, setProtocolError] = useState<string | null>(null)

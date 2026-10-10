@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Settings } from 'lucide-react'
-import { useActiveWallet } from '../../hooks/useActiveWallet'
+import { useActiveWallet } from '../../wallets/useActiveWallet'
 import { useBossGrinderTable } from '../../hooks/useBossGrinderTable'
 import { useBossEndpointUrls } from '../../hooks/useBossEndpointUrls'
 import { useGrinderLastTx } from '../../hooks/useGrinderLastTx'
 import { summarizeGrinderTableRows } from '../../boss/grinderTable'
-import { grinderRowMatchesCaip2Network } from '../../wallet/caip2Network'
+import { grinderRowMatchesCaip2Network } from '../../wallets/caip2Network'
 import {
   GraiGrinderCountValue,
   GraiGrinderLastTxCell,

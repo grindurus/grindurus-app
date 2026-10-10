@@ -7,7 +7,7 @@ import { SOLANA_DEVNET_CHAIN, SOLANA_MAINNET_CHAIN, SOLANA_TESTNET_CHAIN } from 
 import { Transaction, VersionedTransaction, type Connection } from '@solana/web3.js'
 import { getWallets } from '@wallet-standard/app'
 import bs58 from 'bs58'
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from './AppWalletProvider'
 import { clusterFromRpcEndpoint } from './sendWalletTransaction'
 
 /**

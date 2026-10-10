@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, ChevronRight, LogOut } from 'lucide-react'
-import { useActiveWallet } from '../hooks/useActiveWallet'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
-import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
-import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
+import { useActiveWallet } from '../wallets/useActiveWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useWalletContext, type EvmChain } from '../wallets/AppWalletProvider'
+import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallets/caip2Network'
 import { GraiUiCaret } from './grai/GraiUiCaret'
 import { SolanaClusterIcon } from './SolanaClusterIcon'
 import { EvmChainListIcon } from './WalletNetworkSelect'
@@ -30,7 +30,14 @@ function chainIdToEvmChain(chainId: number): EvmChain | null {
 }
 
 export function ConnectWalletButton() {
-  const { isChainSelectorOpen, openChainSelector, warmEvmStack, setEvmChain } = useWalletContext()
+  const {
+    isChainSelectorOpen,
+    openChainSelector,
+    warmEvmStack,
+    warmSolanaStack,
+    selectedChainType,
+    setEvmChain,
+  } = useWalletContext()
   const activeWallet = useActiveWallet()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
@@ -40,6 +47,11 @@ export function ConnectWalletButton() {
   const rootRef = useRef<HTMLDivElement>(null)
   const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
   const touchOpenedRef = useRef(false)
+
+  const warmActiveStack = useCallback(() => {
+    if (selectedChainType === 'solana') warmSolanaStack()
+    else warmEvmStack()
+  }, [selectedChainType, warmEvmStack, warmSolanaStack])
 
   const handleOpen = useCallback(() => {
     if (showConnecting) return
@@ -93,8 +105,14 @@ export function ConnectWalletButton() {
   }, [activeWallet.address])
 
   const handleDisconnect = useCallback(async () => {
-    await activeWallet.disconnect()
-    closeMenu()
+    try {
+      await activeWallet.disconnect()
+    } finally {
+      // Do not reset wallet snapshots here — both stacks stay mounted when
+      // disconnected, and a reset wiped live EVM/Solana connector lists
+      // ("No EVM wallets detected" on the next Connect Wallet open).
+      closeMenu()
+    }
   }, [activeWallet, closeMenu])
 
   const handleNetworkSelect = useCallback(
@@ -219,7 +237,9 @@ export function ConnectWalletButton() {
             <span className="header-settings-action-label">
               <span className="header-settings-action-name">{activeWallet.networkName}</span>
               {activeWallet.networkCaip2 ? (
-                <span className="header-settings-action-caip2">{activeWallet.networkCaip2}</span>
+                <span className="header-settings-action-caip2" title={activeWallet.networkCaip2}>
+                  {activeWallet.networkCaip2}
+                </span>
               ) : null}
             </span>
             <ChevronRight className="header-settings-action-chevron" size={16} strokeWidth={2.2} aria-hidden="true" />
@@ -285,8 +305,8 @@ export function ConnectWalletButton() {
       <button
         className="connect-wallet-btn"
         type="button"
-        onPointerEnter={warmEvmStack}
-        onFocus={warmEvmStack}
+        onPointerEnter={warmActiveStack}
+        onFocus={warmActiveStack}
         onPointerUp={handlePointerUp}
         onClick={handleClick}
         disabled={showConnecting}

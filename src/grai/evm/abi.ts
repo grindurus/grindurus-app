@@ -33,6 +33,19 @@ export const graiAbi = [
   },
   {
     type: 'function',
+    name: 'previewDeposit',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [
+      { name: 'value', type: 'uint256' },
+      { name: 'graiOut', type: 'uint256' },
+    ],
+  },
+  {
+    type: 'function',
     name: 'distribute',
     stateMutability: 'payable',
     inputs: [
@@ -74,37 +87,7 @@ export const graiAbi = [
     name: 'getAssets',
     stateMutability: 'view',
     inputs: [],
-    outputs: [
-      {
-        type: 'tuple[]',
-        components: [
-          { name: 'asset', type: 'address' },
-          { name: 'startTime', type: 'uint48' },
-          { name: 'period', type: 'uint32' },
-          { name: 'remaining', type: 'uint256' },
-          { name: 'initial', type: 'uint256' },
-          { name: 'maxPayment', type: 'uint256' },
-          { name: 'minPayment', type: 'uint256' },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'function',
-    name: 'getVaultsData',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [
-      {
-        type: 'tuple[]',
-        components: [
-          { name: 'asset', type: 'address' },
-          { name: 'seniorBalance', type: 'uint256' },
-          { name: 'juniorBalance', type: 'uint256' },
-          { name: 'activeAmount', type: 'uint256' },
-        ],
-      },
-    ],
+    outputs: [{ type: 'address[]' }],
   },
   {
     type: 'function',
@@ -124,7 +107,9 @@ export const graiAbi = [
     outputs: [
       { name: 'asset_', type: 'address' },
       { name: 'id', type: 'uint32' },
-      { name: 'paused', type: 'bool' },
+      { name: 'bribeable', type: 'bool' },
+      { name: 'accShare', type: 'uint256' },
+      { name: 'totalClaimable', type: 'uint256' },
     ],
   },
   {
@@ -136,19 +121,10 @@ export const graiAbi = [
   },
   {
     type: 'function',
-    name: 'buyback',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'asset', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    outputs: [],
-  },
-  {
-    type: 'function',
     name: 'bribe',
     stateMutability: 'payable',
     inputs: [
+      { name: 'asset', type: 'address' },
       { name: 'voter', type: 'address' },
       { name: 'graiAmount', type: 'uint256' },
     ],
@@ -159,6 +135,7 @@ export const graiAbi = [
     name: 'previewBribe',
     stateMutability: 'view',
     inputs: [
+      { name: 'asset', type: 'address' },
       { name: 'voter', type: 'address' },
       { name: 'graiAmount', type: 'uint256' },
     ],
@@ -170,26 +147,13 @@ export const graiAbi = [
   },
   {
     type: 'function',
-    name: 'votes',
-    stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [
-      { name: 'amount', type: 'uint256' },
-      { name: 'votedAt', type: 'uint48' },
-      { name: 'id', type: 'uint32' },
-      { name: 'rewardDebt', type: 'uint256' },
-      { name: 'claimableReward', type: 'uint256' },
-    ],
-  },
-  {
-    type: 'function',
     name: 'escrows',
     stateMutability: 'view',
     inputs: [{ name: 'account', type: 'address' }],
     outputs: [
       { name: 'account_', type: 'address' },
       { name: 'lockerId', type: 'uint32' },
-      { name: 'amount', type: 'uint256' },
+      { name: 'locked', type: 'uint256' },
       { name: 'voted', type: 'uint256' },
       { name: 'voterId', type: 'uint32' },
       { name: 'votedAt', type: 'uint48' },
@@ -197,9 +161,10 @@ export const graiAbi = [
   },
   {
     type: 'function',
-    name: 'getVoters',
+    name: 'getEscrows',
     stateMutability: 'view',
     inputs: [
+      { name: 'voters_', type: 'bool' },
       { name: 'fromId', type: 'uint256' },
       { name: 'toId', type: 'uint256' },
     ],
@@ -209,29 +174,7 @@ export const graiAbi = [
         components: [
           { name: 'account', type: 'address' },
           { name: 'lockerId', type: 'uint32' },
-          { name: 'amount', type: 'uint256' },
-          { name: 'voted', type: 'uint256' },
-          { name: 'voterId', type: 'uint32' },
-          { name: 'votedAt', type: 'uint48' },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'function',
-    name: 'getLockers',
-    stateMutability: 'view',
-    inputs: [
-      { name: 'fromId', type: 'uint256' },
-      { name: 'toId', type: 'uint256' },
-    ],
-    outputs: [
-      {
-        type: 'tuple[]',
-        components: [
-          { name: 'account', type: 'address' },
-          { name: 'lockerId', type: 'uint32' },
-          { name: 'amount', type: 'uint256' },
+          { name: 'locked', type: 'uint256' },
           { name: 'voted', type: 'uint256' },
           { name: 'voterId', type: 'uint32' },
           { name: 'votedAt', type: 'uint48' },
@@ -262,13 +205,6 @@ export const graiAbi = [
   },
   {
     type: 'function',
-    name: 'confirmed',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ type: 'bool' }],
-  },
-  {
-    type: 'function',
     name: 'liquidation',
     stateMutability: 'view',
     inputs: [],
@@ -283,25 +219,10 @@ export const graiAbi = [
   },
   {
     type: 'function',
-    name: 'bribeAsset',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ type: 'address' }],
-  },
-  {
-    type: 'function',
-    name: 'settlementAsset',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ type: 'address' }],
-  },
-  {
-    type: 'function',
     name: 'config',
     stateMutability: 'view',
     inputs: [],
     outputs: [
-      { name: 'buybackCutBps', type: 'uint16' },
       { name: 'dividendCutBps', type: 'uint16' },
       { name: 'treasuryCutBps', type: 'uint16' },
       { name: 'revenueShareBps', type: 'uint16' },
@@ -309,7 +230,6 @@ export const graiAbi = [
       { name: 'bribePremiumBps', type: 'uint16' },
       { name: 'quorumBps', type: 'uint16' },
       { name: 'unlockPenaltyBps', type: 'uint16' },
-      { name: 'buybackPeriod', type: 'uint32' },
       { name: 'liquidationPeriod', type: 'uint32' },
       { name: 'redeemPeriod', type: 'uint32' },
     ],
@@ -519,13 +439,6 @@ export const grindersAbi = [
   },
   {
     type: 'function',
-    name: 'confirmed',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ type: 'bool' }],
-  },
-  {
-    type: 'function',
     name: 'grinding',
     stateMutability: 'view',
     inputs: [],
@@ -547,10 +460,10 @@ export const grindersAbi = [
   },
   {
     type: 'function',
-    name: 'confirm',
-    stateMutability: 'nonpayable',
-    inputs: [],
-    outputs: [],
+    name: 'balance',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
   },
   {
     type: 'function',
@@ -575,7 +488,7 @@ export const grindersAbi = [
           { name: 'custodian', type: 'address' },
           { name: 'id', type: 'uint256' },
           { name: 'owner', type: 'address' },
-          { name: 'kind', type: 'bytes32' },
+          { name: 'label', type: 'bytes32' },
           { name: 'baseAsset', type: 'address' },
           { name: 'quoteAsset', type: 'address' },
           { name: 'ethBalance', type: 'uint256' },

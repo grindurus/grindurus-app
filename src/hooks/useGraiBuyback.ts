@@ -1,7 +1,6 @@
 import { useCallback } from 'react'
 import { PublicKey } from '@solana/web3.js'
 import { executeBuyback } from '../grai/buildBuybackTransaction'
-import { executeEvmBuyback } from '../grai/evm/executeTransactions'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { useGraiEvmTransaction } from './useGraiEvmTransaction'
 import { useGraiTransaction, type GraiTransactionStatus } from './useGraiTransaction'
@@ -9,7 +8,7 @@ import { useGraiTransaction, type GraiTransactionStatus } from './useGraiTransac
 export type GraiBuybackStatus = GraiTransactionStatus
 
 export function useGraiBuyback() {
-  const { chainKind, evm } = useGraiDeployment()
+  const { chainKind } = useGraiDeployment()
   const {
     run: runSolana,
     reset: resetSolana,
@@ -19,7 +18,6 @@ export function useGraiBuyback() {
     isPending: isSolanaPending,
   } = useGraiTransaction()
   const {
-    run: runEvm,
     reset: resetEvm,
     status: evmStatus,
     error: evmError,
@@ -36,26 +34,7 @@ export function useGraiBuyback() {
       paymentMaxGrai?: bigint
     }) => {
       if (chainKind === 'evm') {
-        if (!evm) throw new Error('GRAI is not configured for this EVM network')
-        if (params.assetDecimals === undefined) {
-          throw new Error('Asset decimals are required for EVM buyback')
-        }
-
-        const { hash } = await runEvm({
-          connectMessage: 'Connect an EVM wallet to buyback',
-          chainAction: 'buyback',
-          failureMessage: 'Buyback transaction failed',
-          amountInput: params.amountInput,
-          emptyAmountMessage: 'Enter an amount to buyback',
-          execute: () =>
-            executeEvmBuyback({
-              config: evm,
-              assetAddress: params.assetMint,
-              amountInput: params.amountInput,
-              assetDecimals: params.assetDecimals!,
-            }),
-        })
-        return hash
+        throw new Error('Buyback was removed from EVM GRAI')
       }
 
       if (chainKind !== 'solana') {
@@ -89,7 +68,7 @@ export function useGraiBuyback() {
       })
       return signature
     },
-    [chainKind, evm, runEvm, runSolana],
+    [chainKind, runSolana],
   )
 
   const reset = useCallback(() => {

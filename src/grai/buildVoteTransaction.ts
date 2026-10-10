@@ -18,7 +18,7 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
 import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::vote` (`sha256("global:vote")[0..8]`). */

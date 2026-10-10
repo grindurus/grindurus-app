@@ -1,6 +1,15 @@
 # GrindURUS
 
-> Automated market-taking protocol that turns crypto price volatility into yield. Dual-sided buy-low/sell-high and sell-high/buy-low strategies run via Grinders custodians; passive holders get the same harvest through GRAI, a dollar book-priced fund share.
+> Onchain hedge fund (Solana + EVM) — infrastructure that turns price volatility into indexed yields.
+>
+> LPs deposit into GRAI (Grinders Artificial Index), the dollar book-priced fund share with local TVL and yield per chain.
+> Grinders (NFT custodies + off-chain bots) allocate capital as an automated market taker (CoW, Jupiter, LiFi, …), observe market prices, and run dual-sided Buy Low → Sell High and Sell High → Buy Low — no manual trading.
+>
+> Flow: user deposit (onchain) → Grinders allocate (onchain) → volatility capture (offchain) → yield distribute (onchain).
+> Passive holders lock GRAI and claim dividends; the protocol accrues via treasury and GRAI/GRS buybacks.
+> Exit is secondary market GRAI ↔ native token (no live redeem until post-quorum liquidation).
+> Affiliate market shares ~5% revenue.
+> GRS (1B, LayerZero OFT 1:1) ties local GRAI markets into cross-chain liquidity.
 
 Canonical site: https://grindurus.xyz/ (there is no separate app subdomain). Protocol docs live at https://docs.grindurus.xyz/. Source: https://github.com/grindurus.
 
@@ -23,35 +32,36 @@ Agent notes:
 
 ## GRAI
 
-- [GRAI overview](https://docs.grindurus.xyz/grai/overview.md): Grinders Artificial Index — passive fund share
-- [Deposit and mint](https://docs.grindurus.xyz/grai/deposit-and-mint.md): How deposits mint GRAI at book price
-- [Lock, vote, dividends](https://docs.grindurus.xyz/grai/lock-vote-and-dividends.md): Locking, voting, and dividend eligibility
-- [Liquidation](https://docs.grindurus.xyz/grai/liquidation.md): Quorum + Grinders confirm → redeem a share of the basket
-- [Treasury and affiliates](https://docs.grindurus.xyz/grai/treasury-and-affiliates.md): Fee share and Treasury NFT claims
+- [GRAI overview](https://docs.grindurus.xyz/protocol/grai/overview.md): Grinders Artificial Index — passive fund share
+- [Deposit and mint](https://docs.grindurus.xyz/protocol/grai/deposit-and-mint.md): How deposits mint GRAI at book price
+- [Lock, vote, dividends](https://docs.grindurus.xyz/protocol/grai/lock-vote-and-dividends.md): Locking, voting, and dividend eligibility
+- [Liquidation](https://docs.grindurus.xyz/protocol/grai/liquidation.md): Quorum + Grinders confirm → redeem a share of the basket
+- [Treasury and affiliates](https://docs.grindurus.xyz/protocol/grai/treasury-and-affiliates.md): Fee share and Treasury NFT claims
 - [GRAI app](https://grindurus.xyz/grai): Mint, burn, lock, and manage shares (EVM or Solana wallet)
 
 ## GRS
 
-- [GRS overview](https://docs.grindurus.xyz/grs/overview.md): Grindurus Token — fixed-supply protocol equity
-- [Cap table](https://docs.grindurus.xyz/grs/cap-table.md): Supply allocation
-- [Bridge](https://docs.grindurus.xyz/grs/bridge.md): Home chain and spoke bridging
-- [Token sales](https://docs.grindurus.xyz/grs/token-sales.md): How GRS is sold
+- [GRS overview](https://docs.grindurus.xyz/protocol/grs/overview.md): Grindurus Token — fixed-supply protocol equity
+- [Cap table](https://docs.grindurus.xyz/protocol/grs/cap-table.md): Supply allocation
+- [Bridge](https://docs.grindurus.xyz/protocol/grs/bridge.md): Home chain and spoke bridging
+- [Token sales](https://docs.grindurus.xyz/protocol/grs/token-sales.md): How GRS is sold
 - [GRS app](https://grindurus.xyz/grs): GRS surface in the product app
 
 ## Grinders & protocol
 
-- [Grinders overview](https://docs.grindurus.xyz/grinders/overview.md): Custodian NFTs and where capital trades
-- [Protocol overview](https://docs.grindurus.xyz/protocol/overview.md): URUS accounting, strategy, Boss / adapters
+- [Protocol overview](https://docs.grindurus.xyz/protocol/overview.md): Why GRAI, Grinders, Treasury, and GRS exist
+- [Cross-chain markets](https://docs.grindurus.xyz/protocol/cross-chain-pricing.md): Local GRAI / native markets tied by bridgeable GRS
+- [Grinders overview](https://docs.grindurus.xyz/protocol/grinders/overview.md): Custodian NFTs and where capital trades
+- [Grinders off-chain](https://docs.grindurus.xyz/protocol/grinders/off-chain.md): URUS accounting, strategy, Boss / adapters
 - [Grinders app](https://grindurus.xyz/grinders): Allocation and grinder management UI
 - [Affiliates app](https://grindurus.xyz/affiliate): Treasury NFT / affiliate fee claims UI
 - [Backtest](https://grindurus.xyz/backtest): Historical strategy backtests (paid via x402 or promocode)
 
 ## Developers
 
-- [Mechanics](https://docs.grindurus.xyz/developers/mechanics.md): On-chain specs index
-- [GRAI mechanics](https://docs.grindurus.xyz/developers/mechanics/grai.md): GRAI contract / program behavior
-- [GRS mechanics](https://docs.grindurus.xyz/developers/mechanics/grs.md): GRS contract / program behavior
-- [Grinders mechanics](https://docs.grindurus.xyz/developers/mechanics/grinders.md): Grinders custodian mechanics
+- [GRAI mechanics](https://docs.grindurus.xyz/protocol/grai/mechanics.md): GRAI contract / program behavior
+- [GRS mechanics](https://docs.grindurus.xyz/protocol/grs/mechanics.md): GRS contract / program behavior
+- [Grinders mechanics](https://docs.grindurus.xyz/protocol/grinders/mechanics.md): Grinders custodian mechanics
 - [EVM contracts](https://docs.grindurus.xyz/developers/evm-contracts.md): EVM deployment references
 - [Solana programs](https://docs.grindurus.xyz/developers/solana-programs.md): Solana program references
 - [Repositories](https://docs.grindurus.xyz/developers/repositories.md): Source repo map

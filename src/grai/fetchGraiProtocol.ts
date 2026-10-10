@@ -1,7 +1,12 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { graiStatePda } from './deployments'
 import { onJsonRpcMutation } from './jsonRpcBatchFetch'
-import { decodeMintAuthority, decodeMintDecimals, decodeMintSupply } from './onchain'
+import {
+  decodeMintAuthority,
+  decodeMintDecimals,
+  decodeMintSupply,
+  resolveFirstBribeableMint,
+} from './onchain'
 
 export type GraiProtocolConfig = {
   dividendCutBps: number
@@ -12,16 +17,10 @@ export type GraiProtocolConfig = {
   quorumBps: number
   /** Flat unlock fee in bps (on-chain `unlock_penalty_bps`). */
   unlockPenaltyBps: number
-  /** @deprecated Alias of `unlockPenaltyBps` for older UI. */
-  unlockFeeBps: number
+  /** Flat poach fee in bps (on-chain `poach_fee_bps`). */
+  poachFeeBps: number
   liquidationPeriod: number
   redeemPeriod: number
-  /** @deprecated Removed from Solana Config — always 0. */
-  buybackCutBps: number
-  /** @deprecated Removed from Solana Config — always 0. */
-  buybackPeriod: number
-  /** @deprecated Time-decay unlock removed — always 0. */
-  unlockPenaltyPeriod: number
 }
 
 export type GraiProtocolSnapshot = {
@@ -36,10 +35,6 @@ export type GraiProtocolSnapshot = {
   pendingOwner: PublicKey
   /** Fee recipient (`GraiState.beneficiar`). */
   beneficiar: PublicKey
-  /** @deprecated Prefer `beneficiar`. */
-  treasuryWallet: PublicKey
-  /** @deprecated Prefer `beneficiar`. */
-  treasury: PublicKey
   grinders: PublicKey
   settlementAsset: PublicKey
   /** NAV in USD with 6 decimals (`GraiState::DECIMALS`). */
@@ -48,16 +43,9 @@ export type GraiProtocolSnapshot = {
   totalLocked: bigint
   /** Voted GRAI toward liquidation (raw base units). */
   totalVoted: bigint
-  /** @deprecated Depositor allowlist removed — always 0. */
-  totalDepositors: bigint
   liquidation: boolean
   /** Grinders heartbeat still active (`grinding()`). */
   grinding: boolean
-  /**
-   * Liquidate-ready limb: Grinders heartbeat stale (`!grinding`).
-   * @deprecated Prefer `!grinding`.
-   */
-  confirmed: boolean
   liquidationAt: bigint
   config: GraiProtocolConfig
   royaltyBps: number
@@ -76,21 +64,18 @@ export type GraiStateFixedFields = {
   /** Two-step handoff target (`GraiState.pending_owner`). Default pubkey = none. */
   pendingOwner: PublicKey
   beneficiar: PublicKey
-  /** @deprecated Prefer `beneficiar`. */
-  treasuryWallet: PublicKey
-  /** @deprecated Prefer `beneficiar`. */
-  treasury: PublicKey
   grinders: PublicKey
   settlementAsset: PublicKey
 }
 
 /**
  * GraiState layout (after 8-byte discriminator):
- * owner(32) pending_owner(32) beneficiar(32) grinders(32) settlement_asset(32)
+ * owner(32) pending_owner(32) beneficiar(32) grinders(32)
  * total_value(16) total_locked(8) total_voted(8) liquidation(1)
- * liquidation_at(8) grai_mint(32) Config(22) royalty_bps(2) affiliate_levels(1)
+ * liquidation_at(8) grai_mint(32) Config(24) royalty_bps(2) affiliate_levels(1)
  * affiliate_share_bps(4) then asset_mints / lockers / voters / referrers vecs, then bump.
  *
+ * Bribe payment mint is per-asset `AssetConfig.bribeable` (no global settlement field).
  * Owner liquidation arm (`confirmed`) lives on GrindersState, not here.
  */
 /** Canonical share mint, immediately before `config` (includes 8-byte discriminator). */
@@ -100,7 +85,6 @@ const GRAI_STATE_GRAI_MINT_OFFSET =
   32 + // pending_owner
   32 + // beneficiar
   32 + // grinders
-  32 + // settlement_asset
   16 + // total_value
   8 + // total_locked
   8 + // total_voted
@@ -110,8 +94,8 @@ const GRAI_STATE_GRAI_MINT_OFFSET =
 /** Bytes before `config` in GraiState (includes 8-byte Anchor discriminator). */
 export const GRAI_STATE_CONFIG_OFFSET = GRAI_STATE_GRAI_MINT_OFFSET + 32
 
-/** Config::LEN = 7×u16 + 2×u32 */
-export const GRAI_STATE_CONFIG_LEN = 22
+/** Config::LEN = 8×u16 + 2×u32 (includes `poach_fee_bps`). */
+export const GRAI_STATE_CONFIG_LEN = 24
 
 /** Bytes before `asset_mints` vec length prefix (excludes trailing bump after vecs). */
 const GRAI_STATE_ASSET_MINTS_OFFSET =
@@ -139,17 +123,11 @@ export function decodeGrindersGrinding(data: Buffer, nowSec = Math.floor(Date.no
   return nowSec <= heartbeatAt + grindingPeriod
 }
 
-/** @deprecated Use `decodeGrindersGrinding`; confirmed arm was replaced by heartbeat health. */
-export function decodeGrindersConfirmed(data: Buffer): boolean {
-  return !decodeGrindersGrinding(data)
-}
-
 function decodeGraiStateConfig(data: Buffer): GraiProtocolConfig {
   const o = GRAI_STATE_CONFIG_OFFSET
   if (data.length < o + GRAI_STATE_CONFIG_LEN) {
     throw new Error('GRAI state account data too short for config')
   }
-  const unlockPenaltyBps = data.readUInt16LE(o + 12)
   return {
     dividendCutBps: data.readUInt16LE(o),
     treasuryCutBps: data.readUInt16LE(o + 2),
@@ -157,13 +135,10 @@ function decodeGraiStateConfig(data: Buffer): GraiProtocolConfig {
     claimTipBps: data.readUInt16LE(o + 6),
     bribePremiumBps: data.readUInt16LE(o + 8),
     quorumBps: data.readUInt16LE(o + 10),
-    unlockPenaltyBps,
-    unlockFeeBps: unlockPenaltyBps,
-    liquidationPeriod: data.readUInt32LE(o + 14),
-    redeemPeriod: data.readUInt32LE(o + 18),
-    buybackCutBps: 0,
-    buybackPeriod: 0,
-    unlockPenaltyPeriod: 0,
+    unlockPenaltyBps: data.readUInt16LE(o + 12),
+    poachFeeBps: data.readUInt16LE(o + 14),
+    liquidationPeriod: data.readUInt32LE(o + 16),
+    redeemPeriod: data.readUInt32LE(o + 20),
   }
 }
 
@@ -172,7 +147,6 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
   totalLocked: bigint
   totalVoted: bigint
   liquidation: boolean
-  confirmed: boolean
   grinding: boolean
   liquidationAt: bigint
   config: GraiProtocolConfig
@@ -187,25 +161,22 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
   const pendingOwner = new PublicKey(data.subarray(40, 72))
   const beneficiar = new PublicKey(data.subarray(72, 104))
   const grinders = new PublicKey(data.subarray(104, 136))
-  const settlementAsset = new PublicKey(data.subarray(136, 168))
+  // Bribe payment mint is per-asset `AssetConfig.bribeable` (no global settlement field).
+  const settlementAsset = PublicKey.default
   const configEnd = GRAI_STATE_CONFIG_OFFSET + GRAI_STATE_CONFIG_LEN
   return {
     authority: owner,
     owner,
     pendingOwner,
     beneficiar,
-    treasury: beneficiar,
-    treasuryWallet: beneficiar,
     grinders,
     settlementAsset,
-    totalValue: readU128LE(data, 168),
-    totalLocked: data.readBigUInt64LE(184),
-    totalVoted: data.readBigUInt64LE(192),
-    liquidation: data[200] !== 0,
-    /** Populated by callers from GrindersState; GraiState no longer stores the arm. */
-    confirmed: false,
+    totalValue: readU128LE(data, 136),
+    totalLocked: data.readBigUInt64LE(152),
+    totalVoted: data.readBigUInt64LE(160),
+    liquidation: data[168] !== 0,
     grinding: true,
-    liquidationAt: data.readBigInt64LE(201),
+    liquidationAt: data.readBigInt64LE(169),
     config: decodeGraiStateConfig(data),
     royaltyBps: data.readUInt16LE(configEnd),
     affiliateLevels: data[configEnd + 2] ?? 0,
@@ -213,15 +184,10 @@ function decodeGraiStateFixedFields(data: Buffer): GraiStateFixedFields & {
   }
 }
 
-/** u128 total_value at offset 8 + 5*32 = 168 (owner + pending_owner + beneficiar + grinders + settlement). */
+/** u128 total_value at offset 8 + 4*32 = 136 (owner + pending_owner + beneficiar + grinders). */
 export function decodeGraiStateTotalValue(data: Buffer): bigint {
-  if (data.length < 168 + 16) return 0n
-  return readU128LE(data, 168)
-}
-
-export function decodeGraiStateTotalVoted(data: Buffer): bigint {
-  if (data.length < 200) return 0n
-  return data.readBigUInt64LE(192)
+  if (data.length < 136 + 16) return 0n
+  return readU128LE(data, 136)
 }
 
 /**
@@ -243,27 +209,6 @@ function decodePubkeyVecAt(data: Buffer, offset: number): { keys: PublicKey[]; n
     cursor += 32
   }
   return { keys, nextOffset: cursor }
-}
-
-/** `voters` vec after `asset_mints` and `lockers`. */
-export function decodeGraiStateVoters(data: Buffer): PublicKey[] {
-  const assets = decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET)
-  const lockers = decodePubkeyVecAt(data, assets.nextOffset)
-  return decodePubkeyVecAt(data, lockers.nextOffset).keys
-}
-
-/** `lockers` vec after `asset_mints`. */
-export function decodeGraiStateLockers(data: Buffer): PublicKey[] {
-  const assets = decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET)
-  return decodePubkeyVecAt(data, assets.nextOffset).keys
-}
-
-/** `referrers` vec after `asset_mints` / `lockers` / `voters`. */
-export function decodeGraiStateReferrers(data: Buffer): PublicKey[] {
-  const assets = decodePubkeyVecAt(data, GRAI_STATE_ASSET_MINTS_OFFSET)
-  const lockers = decodePubkeyVecAt(data, assets.nextOffset)
-  const voters = decodePubkeyVecAt(data, lockers.nextOffset)
-  return decodePubkeyVecAt(data, voters.nextOffset).keys
 }
 
 const cacheByMint = new Map<string, GraiProtocolSnapshot>()
@@ -343,6 +288,13 @@ export async function fetchGraiProtocol(
       }
     }
 
+    // Bribe payment mint = first listed `AssetConfig.bribeable` (no global field on GraiState).
+    const settlementAsset = await resolveFirstBribeableMint(
+      connection,
+      programId,
+      assets.keys,
+    )
+
     const snapshot: GraiProtocolSnapshot = {
       graiMint,
       graiState,
@@ -354,17 +306,13 @@ export async function fetchGraiProtocol(
       authority: fixed.authority,
       owner: fixed.owner,
       beneficiar: fixed.beneficiar,
-      treasury: fixed.beneficiar,
-      treasuryWallet: fixed.beneficiar,
       grinders: fixed.grinders,
-      settlementAsset: fixed.settlementAsset,
+      settlementAsset,
       pendingOwner: fixed.pendingOwner,
       totalValue: fixed.totalValue,
       totalLocked: fixed.totalLocked,
       totalVoted: fixed.totalVoted,
-      totalDepositors: 0n,
       liquidation: fixed.liquidation,
-      confirmed: !grinding,
       grinding,
       liquidationAt: fixed.liquidationAt,
       config: fixed.config,

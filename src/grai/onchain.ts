@@ -1,36 +1,59 @@
 import { Connection, PublicKey, type Commitment } from '@solana/web3.js'
-import { getAssociatedTokenAddress } from './pdas'
+import { fetchAccountsByKey, getAccountData } from './accountBatch'
+import { assetConfigPda, getAssociatedTokenAddress } from './pdas'
 
 /**
- * AssetConfig layout after 8-byte discriminator:
- * asset_mint(32) price_feed(32) paused(1) id(4) auction… bump(1)
+ * AssetConfig layout after 8-byte Anchor discriminator:
+ * asset_mint(32) price_feed(32) paused(1) bribeable(1) id(4)
+ * acc_share(16) total_claimable(8) bump(1) pyth_feed_id(32)
  */
+export const ASSET_CONFIG_PRICE_FEED_OFFSET = 40
+/** `paused(1)` at 72, `bribeable(1)` at 73 (absolute, with discriminator). */
+export const ASSET_CONFIG_BRIBEABLE_OFFSET = 73
+export const ASSET_CONFIG_ACC_SHARE_OFFSET = 78
+export const ASSET_CONFIG_TOTAL_CLAIMABLE_OFFSET = 94
+
 export function decodeAssetConfigPriceFeed(data: Buffer): PublicKey {
-  return new PublicKey(data.subarray(40, 72))
+  return new PublicKey(
+    data.subarray(ASSET_CONFIG_PRICE_FEED_OFFSET, ASSET_CONFIG_PRICE_FEED_OFFSET + 32),
+  )
 }
 
-export function decodeAssetConfigPaused(data: Buffer): boolean {
-  return data[72] === 1
+export function decodeAssetConfigBribeable(data: Buffer): boolean {
+  if (data.length <= ASSET_CONFIG_BRIBEABLE_OFFSET) return false
+  return data[ASSET_CONFIG_BRIBEABLE_OFFSET] !== 0
 }
 
-/** @deprecated Senior vaults removed — use `decodeAssetConfigPriceFeed`. */
-export function decodeSeniorVaultPriceFeed(data: Buffer): PublicKey {
-  return decodeAssetConfigPriceFeed(data)
+/** First listed mint with `AssetConfig.bribeable`, or `Pubkey::default` if none. */
+export async function resolveFirstBribeableMint(
+  connection: Connection,
+  programId: PublicKey,
+  assetMints: PublicKey[],
+): Promise<PublicKey> {
+  if (assetMints.length === 0) return PublicKey.default
+  const configKeys = assetMints.map((mint) => assetConfigPda(mint, programId))
+  const configAccounts = await fetchAccountsByKey(connection, configKeys)
+  for (let i = 0; i < assetMints.length; i += 1) {
+    const configData = getAccountData(configAccounts, configKeys[i]!)
+    if (configData && decodeAssetConfigBribeable(configData)) {
+      return assetMints[i]!
+    }
+  }
+  return PublicKey.default
 }
 
-/** @deprecated */
-export function decodeSeniorVaultTotalValue(_data: Buffer): bigint {
-  return 0n
+export function decodeAssetConfigAccShare(data: Buffer): bigint {
+  if (data.length < ASSET_CONFIG_ACC_SHARE_OFFSET + 16) return 0n
+  let value = 0n
+  for (let i = 0; i < 16; i += 1) {
+    value |= BigInt(data[ASSET_CONFIG_ACC_SHARE_OFFSET + i]!) << BigInt(i * 8)
+  }
+  return value
 }
 
-/** @deprecated */
-export function decodeSeniorVaultMintSplit(_data: Buffer): number {
-  return 0
-}
-
-/** @deprecated */
-export function decodeSeniorVaultYieldSplit(_data: Buffer): number {
-  return 0
+export function decodeAssetConfigTotalClaimable(data: Buffer): bigint {
+  if (data.length < ASSET_CONFIG_TOTAL_CLAIMABLE_OFFSET + 8) return 0n
+  return data.readBigUInt64LE(ASSET_CONFIG_TOTAL_CLAIMABLE_OFFSET)
 }
 
 export async function fetchAssetConfigPriceFeed(
@@ -42,14 +65,6 @@ export async function fetchAssetConfigPriceFeed(
     throw new Error('Asset config account not found for this asset')
   }
   return decodeAssetConfigPriceFeed(Buffer.from(account.data))
-}
-
-/** @deprecated Prefer `fetchAssetConfigPriceFeed`. */
-export async function fetchSeniorVaultPriceFeed(
-  connection: Connection,
-  seniorVault: PublicKey,
-): Promise<PublicKey> {
-  return fetchAssetConfigPriceFeed(connection, seniorVault)
 }
 
 /** SPL mint account: mint_authority COption<Pubkey> at offset 0. */

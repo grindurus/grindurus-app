@@ -5,10 +5,6 @@ import { fetchAccountsByKey } from './accountBatch'
 import { decodeMintDecimals } from './onchain'
 import { resolveGraiAsset } from './knownMints'
 import { assetConfigPda } from './pdas'
-import { graiAbi } from './evm/abi'
-import { createGraiEvmPublicClient, resolveGraiContractAddress } from './evm/client'
-import { isNativeEvmAsset, resolveEvmGraiAsset } from './evm/knownAssets'
-import { erc20Abi } from 'viem'
 
 export type GraiBuybackAuction = {
   address: string
@@ -63,50 +59,11 @@ export function decodeAssetConfigAuction(data: Buffer): {
   }
 }
 
-async function readEvmAssetDecimals(
-  config: GraiEvmConfig,
-  asset: `0x${string}`,
-): Promise<number> {
-  if (isNativeEvmAsset(asset)) return 18
-  const client = createGraiEvmPublicClient(config)
-  const decimals = await client.readContract({
-    address: asset,
-    abi: erc20Abi,
-    functionName: 'decimals',
-  })
-  return Number(decimals)
-}
-
+/** EVM GRAI no longer has Dutch buyback auctions — return empty. */
 export async function fetchEvmBuybackAuctions(
-  config: GraiEvmConfig,
+  _config: GraiEvmConfig,
 ): Promise<GraiBuybackAuction[]> {
-  const client = createGraiEvmPublicClient(config)
-  const graiAddress = resolveGraiContractAddress(config)
-  const entries = await client.readContract({
-    address: graiAddress,
-    abi: graiAbi,
-    functionName: 'getAssets',
-  })
-
-  return Promise.all(
-    entries.map(async (entry) => {
-      const address = entry.asset
-      const meta = resolveEvmGraiAsset(address)
-      const decimals = await readEvmAssetDecimals(config, address)
-      return {
-        address,
-        symbol: meta.symbol,
-        icon: meta.icon.src,
-        decimals,
-        available: BigInt(entry.remaining),
-        initial: BigInt(entry.initial),
-        maxPaymentGrai: BigInt(entry.maxPayment),
-        minPaymentGrai: BigInt(entry.minPayment),
-        startTime: Number(entry.startTime),
-        period: Number(entry.period),
-      }
-    }),
-  )
+  return []
 }
 
 export async function fetchSolanaBuybackAuctions(

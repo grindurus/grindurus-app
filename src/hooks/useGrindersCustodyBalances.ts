@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { GrinderConfig } from '../grai/grinders'
-import { useGraiData } from '../providers/GraiDataProvider'
+import { useGraiData } from '../grai/GraiDataProvider'
 
 export type { GrinderCustodyState } from '../grai/grinderCustodyState'
 

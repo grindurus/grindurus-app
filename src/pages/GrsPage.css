@@ -2,6 +2,15 @@
   overflow: visible;
 }
 
+.grs-panel-loading {
+  margin: 0.75rem 0;
+  padding: 1.25rem 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 .grs-page-ca-bar {
   display: flex;
   align-items: center;

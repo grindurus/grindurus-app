@@ -14,8 +14,6 @@ export async function fetchGraiStateFixedFields(
     owner: protocol.owner,
     pendingOwner: protocol.pendingOwner,
     beneficiar: protocol.beneficiar,
-    treasury: protocol.treasury,
-    treasuryWallet: protocol.treasury,
     grinders: protocol.grinders,
     settlementAsset: protocol.settlementAsset,
   }
@@ -28,5 +26,3 @@ export async function fetchGraiStateAssetMints(
   const protocol = await fetchGraiProtocol(connection, config.graiMint)
   return protocol.assetMints
 }
-
-export { clearGraiProtocolCache as clearGraiStateCache } from './fetchGraiProtocol'

@@ -10,12 +10,14 @@ import { resolveSolanaRpcUrl, getDefaultGraiSolanaCluster } from '../grai/deploy
 import { getSharedJsonRpcBatchFetch } from '../grai/jsonRpcBatchFetch'
 import { deferAfterPaint } from '../utils/deferAfterPaint'
 import { useWalletContext } from './walletContext'
+import { SolanaWalletPublisher } from './SolanaWalletPublisher'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
 export type SolanaNetwork = 'mainnet-beta' | 'testnet' | 'devnet'
 
 interface SolanaProviderProps {
   children: ReactNode
+  onReady?: () => void
 }
 
 // wallet-adapter ships nested @types/react that conflict with the app's React 18 types (TS2786).
@@ -31,7 +33,7 @@ const SolanaWalletProvider = WalletProvider as ComponentType<{
 }>
 const SolanaWalletModalProvider = WalletModalProvider as ComponentType<{ children?: ReactNode }>
 
-export function SolanaProvider({ children }: SolanaProviderProps) {
+export function SolanaProvider({ children, onReady }: SolanaProviderProps) {
   const { solanaCluster } = useWalletContext()
   const cluster = solanaCluster || getDefaultGraiSolanaCluster()
   const endpoint = useMemo(() => resolveSolanaRpcUrl(cluster), [cluster])
@@ -57,7 +59,9 @@ export function SolanaProvider({ children }: SolanaProviderProps) {
     // Remount connection when cluster/RPC changes so wallets never stay on a stale network.
     <SolanaConnectionProvider key={endpoint} endpoint={endpoint} config={connectionConfig}>
       <SolanaWalletProvider wallets={wallets} autoConnect={autoConnect}>
-        <SolanaWalletModalProvider>{children}</SolanaWalletModalProvider>
+        <SolanaWalletModalProvider>
+          <SolanaWalletPublisher onReady={onReady}>{children}</SolanaWalletPublisher>
+        </SolanaWalletModalProvider>
       </SolanaWalletProvider>
     </SolanaConnectionProvider>
   )

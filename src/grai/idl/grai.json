@@ -1,5 +1,5 @@
 {
-  "address": "3Bc99GroACdqAVPbPUt7eHR8sPvKxh2m3suYfcnCtsCh",
+  "address": "DBAmy36cyMnAdL1YMRM81mNSwRzGSVASjJYvaniyGiSS",
   "metadata": {
     "name": "grai",
     "version": "0.1.0",
@@ -10,7 +10,7 @@
     {
       "name": "accept_ownership",
       "docs": [
-        "Pending owner takes over; clears `confirmed` so prior liquidation consent dies with the old owner."
+        "Pending owner takes over (EVM Ownable2Step). Grinders liquidation arm is separate."
       ],
       "discriminator": [
         172,
@@ -67,7 +67,10 @@
           "writable": true
         },
         {
-          "name": "settlement_mint"
+          "name": "settlement_mint",
+          "docs": [
+            "Bribe payment mint (must be listed and `bribeable`; EVM `bribe(asset, …)`)."
+          ]
         },
         {
           "name": "settlement_asset_config",
@@ -121,7 +124,8 @@
       "name": "claim",
       "docs": [
         "Claim yield dividends for one listed asset.",
-        "`amount == u64::MAX` claims the full accrued balance; otherwise `min(amount, claimable)`.",
+        "`amount == u64::MAX` claims the full accrued balance; otherwise",
+        "`min(amount, claimable, vault, total_claimable)`.",
         "Tip (`claim_tip_bps`) is paid to `payer`; remainder to `holder`."
       ],
       "discriminator": [
@@ -161,6 +165,9 @@
         },
         {
           "name": "position",
+          "docs": [
+            "Do not use `init_if_needed` + `bump == 0` as is-new: a real PDA bump can be 0 (M-10)."
+          ],
           "writable": true
         },
         {
@@ -188,6 +195,9 @@
         },
         {
           "name": "holder_referrer",
+          "docs": [
+            "Created unbound on first claim if `lock` never deposited (M-08)."
+          ],
           "writable": true
         },
         {
@@ -607,34 +617,6 @@
       }
     },
     {
-      "name": "get_redeemables",
-      "docs": [
-        "EVM `getRedeemables` — redeemable basket while liquidation is open.",
-        "Remaining: `[asset_config, vault_ata]` × N."
-      ],
-      "discriminator": [
-        190,
-        32,
-        35,
-        230,
-        63,
-        63,
-        53,
-        238
-      ],
-      "accounts": [
-        {
-          "name": "grai_state"
-        }
-      ],
-      "args": [],
-      "returns": {
-        "defined": {
-          "name": "RedeemQuote"
-        }
-      }
-    },
-    {
       "name": "get_lockers_data",
       "docs": [
         "EVM GRAI `getLockersData(fromId, toId)`: bound lockers plus `previewClaimAll`.",
@@ -672,6 +654,34 @@
           "defined": {
             "name": "LockerDataView"
           }
+        }
+      }
+    },
+    {
+      "name": "get_redeemables",
+      "docs": [
+        "EVM `getRedeemables` — redeemable basket while liquidation is open.",
+        "Remaining: `[asset_config, vault_ata]` × N."
+      ],
+      "discriminator": [
+        190,
+        32,
+        35,
+        230,
+        63,
+        63,
+        53,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "grai_state"
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "RedeemQuote"
         }
       }
     },
@@ -805,6 +815,12 @@
           "writable": true
         },
         {
+          "name": "grinders_state",
+          "docs": [
+            "Linked Grinders state (`grai_state.grinders`) with heartbeat fields."
+          ]
+        },
+        {
           "name": "grai_mint"
         },
         {
@@ -930,7 +946,10 @@
           "writable": true
         },
         {
-          "name": "grai_mint"
+          "name": "grai_mint",
+          "docs": [
+            "Protocol GRAI mint only (C-02) — junk SPL cannot buy a referral slot."
+          ]
         },
         {
           "name": "poacher_grai_ata",
@@ -941,7 +960,20 @@
           "writable": true
         },
         {
+          "name": "grinders_state"
+        },
+        {
+          "name": "grinders_grai_ata",
+          "docs": [
+            "Grinders ATA for the GRAI mint — receives `ceil(price * poach_fee_bps / BPS)`."
+          ],
+          "writable": true
+        },
+        {
           "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
         },
         {
           "name": "system_program"
@@ -953,7 +985,7 @@
       "name": "preview_bribe",
       "docs": [
         "Dynamic bribe ask for `grai_amount` of `voter`'s vote: `(bribe_amount, premium, discount)`",
-        "in `settlement_asset` units. Exactly one of `premium` / `discount` is non-zero."
+        "in the payment mint's units (`settlement_mint`, must be `bribeable`)."
       ],
       "discriminator": [
         213,
@@ -979,7 +1011,10 @@
           "name": "escrow"
         },
         {
-          "name": "settlement_mint"
+          "name": "settlement_mint",
+          "docs": [
+            "Bribe payment mint (must be listed and `bribeable`; EVM `previewBribe(asset, …)`)."
+          ]
         },
         {
           "name": "settlement_asset_config"
@@ -1316,6 +1351,16 @@
           "writable": true
         },
         {
+          "name": "grinders_state",
+          "docs": [
+            "Linked Grinders state — mutated by CPI `grinders::revive`."
+          ],
+          "writable": true
+        },
+        {
+          "name": "grinders_program"
+        },
+        {
           "name": "grai_mint"
         },
         {
@@ -1350,6 +1395,44 @@
         {
           "name": "beneficiar",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_bribeable",
+      "docs": [
+        "EVM `setConfig(BRIBEABLE, packed)` — toggle `assets[mint].bribeable`."
+      ],
+      "discriminator": [
+        88,
+        142,
+        93,
+        200,
+        91,
+        88,
+        35,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "grai_state"
+        },
+        {
+          "name": "asset_mint"
+        },
+        {
+          "name": "asset_config",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "bribeable",
+          "type": "bool"
         }
       ]
     },
@@ -1554,39 +1637,6 @@
       ]
     },
     {
-      "name": "set_settlement_asset",
-      "discriminator": [
-        136,
-        125,
-        240,
-        24,
-        103,
-        4,
-        38,
-        219
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "grai_state",
-          "writable": true
-        },
-        {
-          "name": "settlement_mint"
-        },
-        {
-          "name": "settlement_asset_config"
-        },
-        {
-          "name": "settlement_price_feed"
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "transfer_ownership",
       "docs": [
         "Propose a new owner (EVM `Ownable2Step.transferOwnership`).",
@@ -1657,7 +1707,20 @@
           "writable": true
         },
         {
+          "name": "grinders_state"
+        },
+        {
+          "name": "grinders_grai_ata",
+          "docs": [
+            "Grinders ATA for the GRAI mint — receives unlock penalty (EVM → `address(grinders)`)."
+          ],
+          "writable": true
+        },
+        {
           "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
         },
         {
           "name": "system_program"
@@ -1900,151 +1963,146 @@
     },
     {
       "code": 6021,
-      "name": "BribeAssetUnset",
-      "msg": "Bribe asset is unset"
+      "name": "NotBribeable",
+      "msg": "Asset is not marked bribeable"
     },
     {
       "code": 6022,
-      "name": "SettlementAssetUnset",
-      "msg": "Settlement asset is unset"
-    },
-    {
-      "code": 6023,
       "name": "InvalidCuts",
       "msg": "Yield cuts must sum to 10_000"
     },
     {
-      "code": 6024,
+      "code": 6023,
       "name": "VotesOpen",
       "msg": "Cannot change asset while votes are open"
     },
     {
-      "code": 6025,
+      "code": 6024,
       "name": "LiquidationOpen",
       "msg": "Liquidation is open"
     },
     {
-      "code": 6026,
+      "code": 6025,
       "name": "LiquidationClosed",
       "msg": "Liquidation is closed"
     },
     {
-      "code": 6027,
+      "code": 6026,
       "name": "LiquidationQuorumNotMet",
       "msg": "Liquidation quorum not met"
     },
     {
-      "code": 6028,
+      "code": 6027,
       "name": "LiquidationDelay",
       "msg": "Liquidation delay has not elapsed"
     },
     {
-      "code": 6029,
+      "code": 6028,
       "name": "RedeemPeriodActive",
       "msg": "Redeem period is still active"
     },
     {
-      "code": 6030,
+      "code": 6029,
       "name": "ChainlinkReadError",
       "msg": "Failed to read Chainlink feed account"
     },
     {
-      "code": 6031,
+      "code": 6030,
       "name": "ChainlinkRoundMissing",
       "msg": "Chainlink feed has no latest round data"
     },
     {
-      "code": 6032,
+      "code": 6031,
       "name": "InvalidChainlinkPrice",
       "msg": "Chainlink price must be positive"
     },
     {
-      "code": 6033,
+      "code": 6032,
       "name": "StaleChainlinkPrice",
       "msg": "Chainlink price is stale"
     },
     {
-      "code": 6034,
+      "code": 6033,
       "name": "InvalidChainlinkFeed",
       "msg": "Price feed does not match asset config"
     },
     {
-      "code": 6035,
+      "code": 6034,
       "name": "InvalidCustomPriceFeed",
       "msg": "Custom price feed does not match asset mint"
     },
     {
-      "code": 6036,
+      "code": 6035,
       "name": "PythReadError",
       "msg": "Failed to read Pyth price feed account"
     },
     {
-      "code": 6037,
+      "code": 6036,
       "name": "StalePythPrice",
       "msg": "Pyth price is stale"
     },
     {
-      "code": 6038,
+      "code": 6037,
       "name": "InvalidPythPrice",
       "msg": "Pyth price must be positive"
     },
     {
-      "code": 6039,
+      "code": 6038,
       "name": "InvalidRemainingAccounts",
       "msg": "Remaining accounts do not match asset registry"
     },
     {
-      "code": 6040,
+      "code": 6039,
       "name": "InvalidVoteEscrow",
       "msg": "Vote escrow does not match voter"
     },
     {
-      "code": 6041,
+      "code": 6040,
       "name": "InsufficientGraiBalance",
       "msg": "Insufficient GRAI balance"
     },
     {
-      "code": 6042,
+      "code": 6041,
       "name": "InsolventRevive",
       "msg": "Leftover NAV would dilute remaining shares"
     },
     {
-      "code": 6043,
+      "code": 6042,
       "name": "InsolventBook",
       "msg": "Deposit book is zero while shares remain"
     },
     {
-      "code": 6044,
-      "name": "LiquidationNotConfirmed",
-      "msg": "Liquidation has not been confirmed by the owner"
+      "code": 6043,
+      "name": "GrindersGrinding",
+      "msg": "Grinders heartbeat is still active"
     },
     {
-      "code": 6045,
+      "code": 6044,
       "name": "InvalidLockerRange",
       "msg": "Invalid get_lockers range"
     },
     {
-      "code": 6046,
+      "code": 6045,
       "name": "InvalidVoterRange",
       "msg": "Invalid get_voters range"
     },
     {
-      "code": 6047,
+      "code": 6046,
       "name": "InvalidReferrer",
       "msg": "Sticky referrer / poach target is a protocol sink (GRAI, treasury, WSOL)"
     },
     {
-      "code": 6048,
+      "code": 6047,
       "name": "InvalidReferralRange",
       "msg": "Invalid get_lockers_data range"
     },
     {
-      "code": 6049,
+      "code": 6048,
       "name": "InvalidPdaInit",
       "msg": "PDA must be system-owned and empty to initialize"
     },
     {
-      "code": 6050,
+      "code": 6049,
       "name": "InvalidPythFeedId",
       "msg": "Pyth PriceUpdateV2 feed_id mismatch or unset"
     }
@@ -2065,6 +2123,13 @@
           },
           {
             "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "bribeable",
+            "docs": [
+              "When true, mint may be used as bribe payment (EVM `AssetConfig.bribeable`)."
+            ],
             "type": "bool"
           },
           {
@@ -2208,6 +2273,14 @@
             "name": "unlock_penalty_bps",
             "docs": [
               "Flat unlock fee in bps of unlocked GRAI (EVM `unlockPenaltyBps`)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "poach_fee_bps",
+            "docs": [
+              "Flat poach fee in bps of the poach ask (`value + l1_value`); sent to Grinders",
+              "(EVM `poachFeeBps`)."
             ],
             "type": "u16"
           },
@@ -2364,13 +2437,6 @@
             "type": "pubkey"
           },
           {
-            "name": "settlement_asset",
-            "docs": [
-              "Asset used for bribe payments (EVM `settlementAsset`). `Pubkey::default()` means unset."
-            ],
-            "type": "pubkey"
-          },
-          {
             "name": "total_value",
             "type": "u128"
           },
@@ -2390,15 +2456,15 @@
             "type": "bool"
           },
           {
-            "name": "confirmed",
-            "docs": [
-              "Owner consent bit for 2-of-2 liquidation open (EVM `confirmed`)."
-            ],
-            "type": "bool"
-          },
-          {
             "name": "liquidation_at",
             "type": "i64"
+          },
+          {
+            "name": "grai_mint",
+            "docs": [
+              "Canonical share mint created in `initialize` (C-01). Never inferred from mint authority."
+            ],
+            "type": "pubkey"
           },
           {
             "name": "config",
@@ -2411,7 +2477,8 @@
           {
             "name": "royalty_bps",
             "docs": [
-              "Secondary-sale royalty in bps (EVM ERC-2981 `royaltyBps`); receiver = locker."
+              "Secondary-sale royalty in bps written to Treasury NFT Metaplex metadata.",
+              "Receiver is `beneficiar` (or `owner` if unset), snapshotted at mint."
             ],
             "type": "u16"
           },

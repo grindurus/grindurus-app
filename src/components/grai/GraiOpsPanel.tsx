@@ -23,14 +23,15 @@ import { useGraiDistribute } from '../../hooks/useGraiDistribute'
 import { useGraiLock } from '../../hooks/useGraiLock'
 import { useGraiClaimEstimate } from '../../hooks/useGraiClaimEstimate'
 import { useGraiAssets } from '../../hooks/useGraiAssets'
-import { useActiveWallet } from '../../hooks/useActiveWallet'
-import { useSolanaWallet } from '../../hooks/useSolanaWallet'
-import { useEvmWallet } from '../../hooks/useEvmWallet'
+import { useActiveWallet } from '../../wallets/useActiveWallet'
+import { useSolanaWallet } from '../../wallets/useSolanaWallet'
+import { useEvmWallet } from '../../wallets/useEvmWallet'
 import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useGraiAssetUsdLabel } from '../../hooks/useGraiAssetUsdLabel'
 import { estimateEvmClaimAll } from '../../grai/evm/estimateClaim'
 import { estimateSolanaClaimAll } from '../../grai/estimateSolanaClaim'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
+import { resolveGraiAsset } from '../../grai/knownMints'
 import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import { assetUrl } from '../../utils/appPaths'
 import { replaceAppHash } from '../../utils/navigate'
@@ -46,6 +47,7 @@ import { GraiDistributeMoneyFlow } from './GraiDistributeMoneyFlow'
 import { GraiReferralTree } from './GraiReferralTree'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiMintBurnPanel } from './GraiMintBurnPanel'
+import { GraiSwapPanel } from './GraiSwapPanel'
 import { GraiTransactionToast } from './GraiTransactionToast'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
 import { HowItWorksModal } from '../HowItWorksModal'
@@ -88,6 +90,36 @@ const MOCK_VOTERS: EvmVoterEntry[] = [
 const BPS = 10_000n
 /** On-chain / EVM `USD_DECIMALS` — `totalValue` book units. */
 const USD_DECIMALS = 6
+const EVM_ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const SOLANA_DEFAULT_PUBKEY = '11111111111111111111111111111111'
+
+function isUnsetSettlementAsset(mint: string | null | undefined): boolean {
+  if (!mint) return true
+  const lower = mint.toLowerCase()
+  return lower === EVM_ZERO_ADDRESS || mint === SOLANA_DEFAULT_PUBKEY
+}
+
+function GraiAmountTicker({
+  amount,
+  iconSrc,
+  symbol,
+  className,
+}: {
+  amount: string
+  iconSrc?: string | null
+  symbol: string
+  className: string
+}) {
+  return (
+    <span className={className}>
+      {amount}
+      {iconSrc ? (
+        <img src={iconSrc} alt="" width={18} height={18} loading="lazy" decoding="async" />
+      ) : null}
+      {symbol}
+    </span>
+  )
+}
 
 type ToolbarSortOption<T extends string> = { value: T; label: string }
 
@@ -406,6 +438,7 @@ type VoterPickerProps = {
   costByVoter: Record<string, bigint>
   totalVoted: bigint
   settlementSymbol: string
+  settlementIconSrc?: string | null
   settlementDecimals: number
   bribePremiumBps: number
   graiAsset: GraiAmountAsset
@@ -426,6 +459,7 @@ function GraiLiquidationVoterPicker({
   costByVoter,
   totalVoted,
   settlementSymbol,
+  settlementIconSrc = null,
   settlementDecimals,
   bribePremiumBps,
   graiAsset,
@@ -762,15 +796,21 @@ function GraiLiquidationVoterPicker({
                 {shortAddress(selectedVoter.address)}
               </span>
             </span>
-            <span className="grai-liquidation-bribe-amount-value">
-              {amountRaw > 0n ? selectedCostLabel : '0'} {settlementSymbol}
-            </span>
+            <GraiAmountTicker
+              className="grai-liquidation-bribe-amount-value"
+              amount={amountRaw > 0n ? selectedCostLabel : '0'}
+              iconSrc={settlementIconSrc}
+              symbol={settlementSymbol}
+            />
           </div>
           <div className="grai-liquidation-bribe-amount-row">
             <span className="grai-liquidation-bribe-amount-label">You receive</span>
-            <span className="grai-liquidation-bribe-amount-value">
-              {amountRaw > 0n ? formatTokenBalance(amountRaw, graiDecimals) : '0'} GRAI
-            </span>
+            <GraiAmountTicker
+              className="grai-liquidation-bribe-amount-value"
+              amount={amountRaw > 0n ? formatTokenBalance(amountRaw, graiDecimals) : '0'}
+              iconSrc={graiAsset.icon}
+              symbol={graiAsset.symbol}
+            />
           </div>
         </>
       ) : null}
@@ -1004,7 +1044,7 @@ function GraiLiquidationVoterPicker({
   return <>{children({ carousel, amount, empty: null })}</>
 }
 
-export function GraiLiquidationActions() {
+export function GraiOpsPanel() {
   const { chainKind, evm: connectedEvm, connection, solana, explorerTxUrl, solscanAccountUrl } =
     useGraiDeployment()
   const configuredEvmChains = useMemo(() => listConfiguredEvmChains(), [])
@@ -1056,9 +1096,10 @@ export function GraiLiquidationActions() {
     return 'vote'
   })
   const [liquidateView, setLiquidateView] = useState<'liquidate' | 'redeem'>('liquidate')
-  const [opsView, setOpsView] = useState<'claim' | 'distribute' | 'market' | 'liquidate'>(() => {
+  const [opsView, setOpsView] = useState<'claim' | 'distribute' | 'market' | 'liquidate' | 'swap'>(() => {
     const section = readGraiSectionFromHash()
     if (section === 'claim') return 'claim'
+    if (section === 'swap') return 'swap'
     if (section === 'liquidation' || section === 'burn') return 'liquidate'
     if (section === 'vote' || section === 'bribe') return 'market'
     if (section === 'distribute' || section === 'assets') return 'distribute'
@@ -1084,6 +1125,8 @@ export function GraiLiquidationActions() {
       } else if (section === 'vote') {
         setOpsView('market')
         setMarketView('vote')
+      } else if (section === 'swap') {
+        setOpsView('swap')
       } else if (section === 'liquidation' || section === 'burn') {
         setOpsView('liquidate')
       } else if (section === 'distribute' || section === 'assets') {
@@ -1101,6 +1144,7 @@ export function GraiLiquidationActions() {
         section === 'claim' ||
         section === 'vote' ||
         section === 'bribe' ||
+        section === 'swap' ||
         section === 'liquidation' ||
         section === 'burn' ||
         section === 'distribute' ||
@@ -1131,12 +1175,16 @@ export function GraiLiquidationActions() {
   }, [])
 
   const handleOpsViewChange = useCallback(
-    (view: 'claim' | 'distribute' | 'market' | 'liquidate') => {
+    (view: 'claim' | 'distribute' | 'market' | 'liquidate' | 'swap') => {
       setOpsView(view)
       if (view === 'liquidate') {
         const next = state?.liquidationOpen ? 'redeem' : 'liquidate'
         setLiquidateView(next)
         replaceAppHash('/grai', '#liquidation')
+        return
+      }
+      if (view === 'swap') {
+        replaceAppHash('/grai', '#swap')
         return
       }
       replaceAppHash(
@@ -1149,7 +1197,7 @@ export function GraiLiquidationActions() {
 
   /** Leave Liquidate on pointerdown — unmounting that tree was dropping the click on mobile. */
   const onOpsTabPointerDown = useCallback(
-    (view: 'claim' | 'distribute' | 'market' | 'liquidate') =>
+    (view: 'claim' | 'distribute' | 'market' | 'liquidate' | 'swap') =>
       (event: ReactPointerEvent<HTMLButtonElement>) => {
         if (event.button !== 0) return
         event.preventDefault()
@@ -1216,7 +1264,28 @@ export function GraiLiquidationActions() {
   // Never fall back to EVM mock voters on Solana — show empty until RPC returns real escrows.
   const usingMockVoters = chainKind !== 'solana' && onchainVoters.length === 0
   const voterEntries = usingMockVoters ? MOCK_VOTERS : onchainVoters
-  const settlementSymbol = state?.settlementSymbol ?? '—'
+  const settlementTicker = useMemo(() => {
+    const mint = state?.settlementAsset
+    if (isUnsetSettlementAsset(mint)) {
+      return { symbol: '—', iconSrc: null as string | null }
+    }
+    const listed = graiAssets.find(
+      (asset) => asset.mint.toLowerCase() === mint!.toLowerCase(),
+    )
+    if (listed) {
+      return { symbol: listed.symbol, iconSrc: listed.icon.src }
+    }
+    if (!mint!.startsWith('0x')) {
+      const known = resolveGraiAsset(mint!)
+      return { symbol: known.symbol, iconSrc: known.icon.src }
+    }
+    const symbol = state?.settlementSymbol && state.settlementSymbol !== '—'
+      ? state.settlementSymbol
+      : '—'
+    return { symbol, iconSrc: null as string | null }
+  }, [graiAssets, state?.settlementAsset, state?.settlementSymbol])
+  const settlementSymbol = settlementTicker.symbol
+  const settlementIconSrc = settlementTicker.iconSrc
   const settlementDecimals = state?.settlementDecimals ?? (chainKind === 'solana' ? 6 : 18)
   const bribePremiumBps = state?.bribePremiumBps ?? 200
   const explorerAccountUrl = useMemo(() => {
@@ -1234,7 +1303,39 @@ export function GraiLiquidationActions() {
       return
     }
 
-    if (usingMockVoters || !evmProtocol) {
+    // Demo / disconnected EVM: GRAI-raw × (1 + premium) as a stand-in ask.
+    if (usingMockVoters) {
+      const next: Record<string, bigint> = {}
+      for (const voter of voterEntries) {
+        next[voter.address.toLowerCase()] = estimateMockBribeCost(voter.escrowGrai, bribePremiumBps)
+      }
+      setCostByVoter(next)
+      return
+    }
+
+    // Solana: same book-value ask as on-chain `preview_bribe` (assumes ~$1 settlement oracle).
+    if (chainKind === 'solana') {
+      if (!state) {
+        setCostByVoter({})
+        return
+      }
+      const next: Record<string, bigint> = {}
+      for (const voter of voterEntries) {
+        next[voter.address.toLowerCase()] = estimateBribeReceive(
+          voter.escrowGrai,
+          state.totalSupply,
+          state.totalValue,
+          state.totalVoted,
+          state.liquidationQuorumBps,
+          bribePremiumBps,
+          settlementDecimals,
+        )
+      }
+      setCostByVoter(next)
+      return
+    }
+
+    if (!evmProtocol) {
       const next: Record<string, bigint> = {}
       for (const voter of voterEntries) {
         next[voter.address.toLowerCase()] = estimateMockBribeCost(voter.escrowGrai, bribePremiumBps)
@@ -1248,7 +1349,12 @@ export function GraiLiquidationActions() {
       const entries = await Promise.all(
         voterEntries.map(async (voter) => {
           try {
-            const { bribeAmount } = await previewEvmBribe(evmProtocol, voter.address, voter.escrowGrai)
+            const { bribeAmount } = await previewEvmBribe(
+              evmProtocol,
+              voter.address,
+              voter.escrowGrai,
+              state?.settlementAsset,
+            )
             return [voter.address.toLowerCase(), bribeAmount] as const
           } catch {
             return [voter.address.toLowerCase(), estimateMockBribeCost(voter.escrowGrai, bribePremiumBps)] as const
@@ -1263,10 +1369,13 @@ export function GraiLiquidationActions() {
     }
   }, [
     bribePremiumBps,
+    chainKind,
     evmProtocol,
     graiDecimals,
     settlementDecimals,
     settlementSymbol,
+    state,
+    state?.settlementAsset,
     usingMockVoters,
     voterEntries,
   ])
@@ -1482,7 +1591,7 @@ export function GraiLiquidationActions() {
             abi: graiAbi,
             functionName: 'config',
           })
-          if (!cancelled) setClaimTipBps(Number(config[3]))
+          if (!cancelled) setClaimTipBps(Number(config[3])) // claimTipBps
           return
         }
         if (chainKind === 'solana' && connection && solana) {
@@ -1786,6 +1895,7 @@ export function GraiLiquidationActions() {
         voter: voter.address,
         amountInput,
         graiDecimals,
+        asset: state?.settlementAsset,
       })
       toast.update(toastId, {
         render: (
@@ -1902,6 +2012,30 @@ export function GraiLiquidationActions() {
           </span>
         </button>
       </div>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={opsView === 'swap'}
+        aria-label="Exit by Swap"
+        title="Exit by Swap"
+        className={`grai-action-switch-btn is-swap ${opsView === 'swap' ? 'is-active' : ''}`}
+        onPointerDown={onOpsTabPointerDown('swap')}
+        onClick={() => handleOpsViewChange('swap')}
+      >
+        <span className="grai-action-switch-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 3h5v5" />
+            <path d="M8 21H3v-5" />
+            <path d="M21 3 14 10" />
+            <path d="m3 21 7-7" />
+          </svg>
+        </span>
+        <span className="grai-action-switch-label">
+          Exit by
+          <br />
+          Swap
+        </span>
+      </button>
     </div>
   )
 
@@ -2057,7 +2191,7 @@ export function GraiLiquidationActions() {
   )
 
   return (
-    <div className="grai-liquidation-actions" aria-live="polite">
+    <div className="grai-ops-panel" aria-live="polite">
       {!evmProtocol ? (
         <p className="grai-liquidation-notice" role="status">
           {solana ? 'EVM NOT CONFIGURED, SOLANA CONFIGURED' : 'EVM NOT CONFIGURED'}
@@ -2315,6 +2449,21 @@ export function GraiLiquidationActions() {
       </div>
       ) : null}
 
+      {opsView === 'swap' ? (
+        <div className="grai-liquidation-distribute-screen grai-swap-screen" id="grai-swap-section">
+          <GraiFieldInfoButton
+            className="grai-liquidation-distribute-title-info"
+            ariaLabel="About Exit by Swap"
+            hint="Swap GRAI for a listed asset via DEX aggregators (market price). Separate from liquidation redeem."
+          >
+            <h3 className="grai-liquidation-distribute-title">Exit by Swap</h3>
+          </GraiFieldInfoButton>
+          <div className="grai-liquidation-ops-row is-swap-exit">
+            <GraiSwapPanel />
+          </div>
+        </div>
+      ) : null}
+
       {opsView === 'liquidate' ? (
         <div
           className={`grai-liquidation-liquidate-screen${
@@ -2324,96 +2473,88 @@ export function GraiLiquidationActions() {
         >
           <div className="grai-liquidation-ops-row is-liquidate-redeem">
             <section
-              className={`grai-liquidation-market-section grai-liquidation-market-aside${
+              className={`grai-liquidation-market-section grai-liquidation-market-aside is-quorum-stacked${
                 liquidateSectionOpen ? '' : ' is-collapsed'
               }`}
             >
-              <div className="grai-liquidation-section-head-row">
-                <h3 className="grai-referral-dash-title grai-liquidation-aside-heading">
-                  <button
-                    type="button"
-                    className={`grai-referral-dash-collapse${quorumAsideOpen ? '' : ' is-collapsed'}`}
-                    aria-expanded={quorumAsideOpen}
-                    aria-controls="grai-quorum-aside-body"
-                    aria-label={quorumAsideOpen ? 'Hide quorum progress' : 'Show quorum progress'}
-                    onClick={() => setQuorumAsideOpen((open) => !open)}
+              <h3 className="grai-referral-dash-title grai-liquidation-aside-heading">
+                <button
+                  type="button"
+                  className={`grai-referral-dash-collapse${quorumAsideOpen ? '' : ' is-collapsed'}`}
+                  aria-expanded={quorumAsideOpen}
+                  aria-controls="grai-quorum-aside-body"
+                  aria-label={quorumAsideOpen ? 'Hide quorum progress' : 'Show quorum progress'}
+                  onClick={() => setQuorumAsideOpen((open) => !open)}
+                >
+                  <svg
+                    className="grai-donut-legend-toggle-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
                   >
-                    <svg
-                      className="grai-donut-legend-toggle-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="grai-referral-dash-title-action"
-                    aria-expanded={quorumAsideOpen}
-                    aria-controls="grai-quorum-aside-body"
-                    onClick={() => setQuorumAsideOpen((open) => !open)}
-                  >
-                    Quorum Progress
-                  </button>
-                </h3>
-                <h3 className="grai-referral-dash-title grai-liquidation-market-section-heading">
-                  <button
-                    type="button"
-                    className={`grai-referral-dash-collapse${liquidateSectionOpen ? '' : ' is-collapsed'}`}
-                    aria-expanded={liquidateSectionOpen}
-                    aria-controls="grai-liquidate-section-body"
-                    aria-label={liquidateSectionOpen ? 'Hide liquidate' : 'Show liquidate'}
-                    onClick={() => setLiquidateSectionOpen((open) => !open)}
-                  >
-                    <svg
-                      className="grai-donut-legend-toggle-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="grai-referral-dash-title-action"
-                    aria-expanded={liquidateSectionOpen}
-                    aria-controls="grai-liquidate-section-body"
-                    onClick={() => setLiquidateSectionOpen((open) => !open)}
-                  >
-                    1. Liquidate
-                  </button>
-                </h3>
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="grai-referral-dash-title-action"
+                  aria-expanded={quorumAsideOpen}
+                  aria-controls="grai-quorum-aside-body"
+                  onClick={() => setQuorumAsideOpen((open) => !open)}
+                >
+                  Quorum Progress
+                </button>
+              </h3>
+              <div
+                className={`grai-liquidation-aside-collapse${quorumAsideOpen ? ' is-open' : ''}`}
+                id="grai-quorum-aside-body"
+                aria-hidden={!quorumAsideOpen}
+              >
+                <div className="grai-liquidation-aside-collapse-inner">{quorumInfographic}</div>
               </div>
+              <h3 className="grai-referral-dash-title grai-liquidation-market-section-heading">
+                <button
+                  type="button"
+                  className={`grai-referral-dash-collapse${liquidateSectionOpen ? '' : ' is-collapsed'}`}
+                  aria-expanded={liquidateSectionOpen}
+                  aria-controls="grai-liquidate-section-body"
+                  aria-label={liquidateSectionOpen ? 'Hide liquidate' : 'Show liquidate'}
+                  onClick={() => setLiquidateSectionOpen((open) => !open)}
+                >
+                  <svg
+                    className="grai-donut-legend-toggle-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="grai-referral-dash-title-action"
+                  aria-expanded={liquidateSectionOpen}
+                  aria-controls="grai-liquidate-section-body"
+                  onClick={() => setLiquidateSectionOpen((open) => !open)}
+                >
+                  1. Liquidate
+                </button>
+              </h3>
               <div
                 className={`grai-liquidation-market-section-collapse${liquidateSectionOpen ? ' is-open' : ''}`}
                 id="grai-liquidate-section-body"
                 aria-hidden={!liquidateSectionOpen}
               >
                 <div className="grai-liquidation-market-section-collapse-inner">
-                  <div
-                    className={`grai-liquidation-quorum-block${
-                      quorumAsideOpen ? '' : ' is-aside-collapsed'
-                    }`}
-                  >
-                    <div
-                      className={`grai-liquidation-aside-collapse${quorumAsideOpen ? ' is-open' : ''}`}
-                      id="grai-quorum-aside-body"
-                      aria-hidden={!quorumAsideOpen}
-                    >
-                      <div className="grai-liquidation-aside-collapse-inner">{quorumInfographic}</div>
-                    </div>
-                    <div className="grai-liquidation-quorum-slot">{liquidatePanel}</div>
-                  </div>
+                  <div className="grai-liquidation-quorum-slot">{liquidatePanel}</div>
                 </div>
               </div>
             </section>
@@ -2524,6 +2665,7 @@ export function GraiLiquidationActions() {
         costByVoter={costByVoter}
         totalVoted={totalVotedForShare}
         settlementSymbol={settlementSymbol}
+        settlementIconSrc={settlementIconSrc}
         settlementDecimals={settlementDecimals}
         bribePremiumBps={bribePremiumBps}
         graiAsset={voteAssetOptions[0]!}
@@ -2652,9 +2794,12 @@ export function GraiLiquidationActions() {
                             />
                             <div className="grai-liquidation-bribe-amount-row">
                               <span className="grai-liquidation-bribe-amount-label">You vote</span>
-                              <span className="grai-liquidation-bribe-amount-value">
-                                {voteAmount.trim() || '0'} GRAI
-                              </span>
+                              <GraiAmountTicker
+                                className="grai-liquidation-bribe-amount-value"
+                                amount={voteAmount.trim() || '0'}
+                                iconSrc={voteAssetOptions[0]?.icon}
+                                symbol="GRAI"
+                              />
                             </div>
                             <p
                               className={`grai-liquidation-vote-min-receive${voteMightReceiveLabel ? '' : ' is-placeholder'}`}
@@ -2667,9 +2812,12 @@ export function GraiLiquidationActions() {
                                   hint="If bribed out: vote × dynamic bribe ask (mint price ± premium vs half quorum)."
                                 />
                                 <span className="grai-liquidation-vote-line-label">Might Receive:</span>
-                                <span className="grai-liquidation-vote-line-value">
-                                  {`${voteMightReceiveLabel ?? '—'} ${settlementSymbol}`}
-                                </span>
+                                <GraiAmountTicker
+                                  className="grai-liquidation-vote-line-value"
+                                  amount={voteMightReceiveLabel ?? '—'}
+                                  iconSrc={settlementIconSrc}
+                                  symbol={settlementSymbol}
+                                />
                               </span>
                             </p>
                           </div>

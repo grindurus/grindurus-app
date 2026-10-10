@@ -6,7 +6,7 @@ import {
   type TransactionSignature,
 } from '@solana/web3.js'
 import { confirmSignatureViaHttp } from '../grai/onchain'
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from './AppWalletProvider'
 
 /** Wallet Standard / Mobile Wallet Adapter: missing chain defaults to mainnet. */
 export function clusterFromRpcEndpoint(endpoint: string): SolanaCluster {

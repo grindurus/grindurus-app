@@ -11,6 +11,7 @@ import { graiStatePda } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { parseTokenAmount } from './onchain'
 import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   assetConfigPda,
   escrowPda,
   getAssociatedTokenAddress,
@@ -19,7 +20,7 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
 import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 const LOCK_DISCRIMINATOR = Buffer.from([21, 19, 208, 43, 237, 62, 255, 87])
@@ -209,6 +210,11 @@ export async function buildUnlockTransaction({
   const escrow = escrowPda(account, programId)
   const accountGraiAta = getAssociatedTokenAddress(config.graiMint, account)
   const graiVaultAta = vaultAtaPda(config.graiMint, programId)
+  const grindersState = protocol.grinders
+  if (grindersState.equals(PublicKey.default)) {
+    throw new Error('Grinders is not linked on-chain; cannot route unlock penalty')
+  }
+  const grindersGraiAta = getAssociatedTokenAddress(config.graiMint, grindersState)
 
   const unlockIx = new TransactionInstruction({
     programId,
@@ -219,7 +225,10 @@ export async function buildUnlockTransaction({
       { pubkey: escrow, isSigner: false, isWritable: true },
       { pubkey: accountGraiAta, isSigner: false, isWritable: true },
       { pubkey: graiVaultAta, isSigner: false, isWritable: true },
+      { pubkey: grindersState, isSigner: false, isWritable: false },
+      { pubkey: grindersGraiAta, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       ...unlockRemainingAccountMetas(account, protocol.assetMints, programId),
     ],

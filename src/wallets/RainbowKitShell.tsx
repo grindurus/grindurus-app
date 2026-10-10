@@ -8,7 +8,7 @@ import { useWalletContext } from './walletContext'
 import {
   networkEnvFromSolanaCluster,
   preferredEvmChainId,
-} from '../wallet/networkEnv'
+} from './networkEnv'
 import { RainbowKitConnectBridge } from './RainbowKitConnectBridge'
 import { RainbowKitLoadingOverlay } from './RainbowKitLoadingOverlay'
 

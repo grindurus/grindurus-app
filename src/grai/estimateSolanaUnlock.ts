@@ -17,18 +17,10 @@ function decodeEscrow(data: Buffer): { amount: bigint } {
 }
 
 /** `Config.unlock_penalty_bps` (u16 @ +12) — flat fee, no time decay. */
-function decodeUnlockConfig(graiStateData: Buffer): {
-  unlockFeeBps: number
-  unlockPenaltyPeriod: number
-} {
+function decodeUnlockPenaltyBps(graiStateData: Buffer): number {
   const base = GRAI_STATE_CONFIG_OFFSET
-  if (graiStateData.length < base + 14) {
-    return { unlockFeeBps: 0, unlockPenaltyPeriod: 0 }
-  }
-  return {
-    unlockFeeBps: graiStateData.readUInt16LE(base + 12),
-    unlockPenaltyPeriod: 0,
-  }
+  if (graiStateData.length < base + 14) return 0
+  return graiStateData.readUInt16LE(base + 12)
 }
 
 function formatUnlockAmountLabel(amountRaw: bigint, decimals: number): string {
@@ -43,29 +35,28 @@ function formatUnlockAmountLabel(amountRaw: bigint, decimals: number): string {
 export function previewSolanaUnlock(
   graiAmount: bigint,
   escrowAmount: bigint,
-  unlockFeeBps: number,
+  unlockPenaltyBps: number,
 ): { unlockAmount: bigint; penalty: bigint } {
   if (graiAmount > escrowAmount) {
     return { unlockAmount: 0n, penalty: 0n }
   }
-  if (unlockFeeBps === 0 || graiAmount === 0n) {
+  if (unlockPenaltyBps === 0 || graiAmount === 0n) {
     return { unlockAmount: graiAmount, penalty: 0n }
   }
 
-  const minUnlock = (BPS + BigInt(unlockFeeBps) - 1n) / BigInt(unlockFeeBps)
+  const minUnlock = (BPS + BigInt(unlockPenaltyBps) - 1n) / BigInt(unlockPenaltyBps)
   if (graiAmount < minUnlock) {
     return { unlockAmount: 0n, penalty: 0n }
   }
 
-  const penalty = (graiAmount * BigInt(unlockFeeBps) + BPS - 1n) / BPS
+  const penalty = (graiAmount * BigInt(unlockPenaltyBps) + BPS - 1n) / BPS
   const unlockAmount = graiAmount > penalty ? graiAmount - penalty : 0n
   return { unlockAmount, penalty }
 }
 
 export type SolanaLockedGrai = {
   locked: bigint
-  unlockFeeBps: number
-  unlockPenaltyPeriod: number
+  unlockPenaltyBps: number
   decimals: number
 }
 
@@ -79,18 +70,15 @@ export async function fetchSolanaLockedGrai(
   const [escrowInfo, stateInfo] = await connection.getMultipleAccountsInfo([escrow, graiState])
 
   const decimals = GRAI_DECIMALS
+  const unlockPenaltyBps = stateInfo?.data
+    ? decodeUnlockPenaltyBps(Buffer.from(stateInfo.data))
+    : 0
   if (!escrowInfo?.data) {
-    const cfg = stateInfo?.data
-      ? decodeUnlockConfig(Buffer.from(stateInfo.data))
-      : { unlockFeeBps: 0, unlockPenaltyPeriod: 0 }
-    return { locked: 0n, ...cfg, decimals }
+    return { locked: 0n, unlockPenaltyBps, decimals }
   }
 
   const { amount } = decodeEscrow(Buffer.from(escrowInfo.data))
-  const cfg = stateInfo?.data
-    ? decodeUnlockConfig(Buffer.from(stateInfo.data))
-    : { unlockFeeBps: 0, unlockPenaltyPeriod: 0 }
-  return { locked: amount, ...cfg, decimals }
+  return { locked: amount, unlockPenaltyBps, decimals }
 }
 
 /** Local preview matching Solana `preview_unlock` (same math as on-chain). */
@@ -102,7 +90,7 @@ export async function estimateSolanaUnlockPreview(
   _nowSec = Math.floor(Date.now() / 1000),
 ): Promise<EvmUnlockPreview & { locked: bigint }> {
   const escrow = await fetchSolanaLockedGrai(connection, programId, owner)
-  const { locked, unlockFeeBps, decimals } = escrow
+  const { locked, unlockPenaltyBps, decimals } = escrow
 
   let amountRaw = 0n
   const trimmed = amountInput.trim()
@@ -118,7 +106,7 @@ export async function estimateSolanaUnlockPreview(
   const { unlockAmount, penalty } = previewSolanaUnlock(
     amountRaw,
     locked,
-    unlockFeeBps,
+    unlockPenaltyBps,
   )
 
   return {
@@ -128,8 +116,7 @@ export async function estimateSolanaUnlockPreview(
     unlockAmountLabel: formatUnlockAmountLabel(unlockAmount, decimals),
     penaltyLabel: formatUnlockAmountLabel(penalty, decimals),
     secondsLeft: 0,
-    unlockPenaltyPeriod: 0,
-    unlockPenaltyBps: unlockFeeBps,
+    unlockPenaltyBps,
     decimals,
   }
 }

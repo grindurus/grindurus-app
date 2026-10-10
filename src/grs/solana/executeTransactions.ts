@@ -15,7 +15,7 @@ import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import {
   sendWalletTransaction,
   type SolanaSendTransaction,
-} from '../../solana/sendWalletTransaction'
+} from '../../wallets/sendWalletTransaction'
 import type { GrsSolanaConfig } from '../deployments'
 import { decodeGrsConfig, decodeOftStore, decodeSaleAccount, decodeSaleRegistry, quoteSaleCost } from './layout'
 import { isEvmPackedPubkey } from './quoteAssets'

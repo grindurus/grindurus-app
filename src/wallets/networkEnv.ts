@@ -1,4 +1,4 @@
-import type { EvmChain, SolanaCluster } from '../providers/walletContext'
+import type { EvmChain, SolanaCluster } from './walletContext'
 
 /** App-wide environment from the header Mainnet / Testnet toggle. */
 export type NetworkEnv = 'mainnet' | 'testnet'

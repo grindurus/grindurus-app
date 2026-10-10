@@ -1,11 +1,7 @@
 import type { GraiEvmConfig } from '../deployments'
 import { parseTokenAmount } from '../onchain'
-import { depositValue, graiMintAmount, mintSplit } from '../tokenomics'
-import { graiAbi, priceOracleAbi } from './abi'
+import { graiAbi } from './abi'
 import { createGraiEvmPublicClient, resolveGraiContractAddress } from './client'
-import { USD_SCALE_EVM } from './constants'
-import { isNativeEvmAsset } from './knownAssets'
-import { erc20Abi } from 'viem'
 
 export type EvmGraiMintEstimate = {
   graiRaw: bigint
@@ -39,60 +35,30 @@ export async function estimateEvmGraiMintOutput(
   const graiAddress = resolveGraiContractAddress(config)
   const asset = assetAddress.toLowerCase() as `0x${string}`
 
-  const [totalValue, totalSupply, assetConfig] = await Promise.all([
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'totalValue',
-    }),
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'totalSupply',
-    }),
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'assets',
-      args: [asset],
-    }),
-  ])
-
-  if (!assetConfig[0]) {
-    throw new Error('Asset is not registered in GRAI protocol')
-  }
-
-  const [price, priceDecimals] = await client.readContract({
+  const assetConfig = await client.readContract({
     address: graiAddress,
-    abi: priceOracleAbi,
-    functionName: 'getPrice',
+    abi: graiAbi,
+    functionName: 'assets',
     args: [asset],
   })
 
-  const decimals =
-    assetDecimals ??
-    (isNativeEvmAsset(asset)
-      ? 18
-      : Number(
-          await client.readContract({
-            address: asset,
-            abi: erc20Abi,
-            functionName: 'decimals',
-          }),
-        ))
+  if (!assetConfig[0] || assetConfig[0] === '0x0000000000000000000000000000000000000000') {
+    throw new Error('Asset is not registered in GRAI protocol')
+  }
 
-  const depositValueUsd = depositValue(
-    depositAmount,
-    decimals,
-    price,
-    Number(priceDecimals),
-    USD_SCALE_EVM,
-  )
-  const graiRaw = graiMintAmount(depositValueUsd, totalSupply, totalValue)
-  const mintSplitBps = Number(assetConfig[1])
-  const [seniorRaw, juniorRaw] = mintSplit(depositAmount, mintSplitBps)
-  const seniorUsdRaw = depositValue(seniorRaw, decimals, price, Number(priceDecimals), USD_SCALE_EVM)
-  const juniorUsdRaw = depositValue(juniorRaw, decimals, price, Number(priceDecimals), USD_SCALE_EVM)
+  // Prefer on-chain preview (no senior/junior split on current GRAI).
+  const [depositValueUsd, graiRaw] = await client.readContract({
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'previewDeposit',
+    args: [asset, depositAmount],
+  })
 
-  return { graiRaw, seniorRaw, juniorRaw, seniorUsdRaw, juniorUsdRaw }
+  return {
+    graiRaw,
+    seniorRaw: depositAmount,
+    juniorRaw: 0n,
+    seniorUsdRaw: depositValueUsd,
+    juniorUsdRaw: 0n,
+  }
 }

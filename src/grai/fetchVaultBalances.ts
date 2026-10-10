@@ -2,7 +2,11 @@ import { Connection, PublicKey } from '@solana/web3.js'
 import { decodeTokenAccountAmount, fetchAccountsByKey, getAccountData } from './accountBatch'
 import type { GraiSolanaConfig } from './deployments'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
-import { decodeAssetConfigPriceFeed, decodeMintDecimals } from './onchain'
+import {
+  decodeAssetConfigPriceFeed,
+  decodeAssetConfigTotalClaimable,
+  decodeMintDecimals,
+} from './onchain'
 import { parseOraclePriceFeed } from './oraclePrice'
 import { NATIVE_MINT } from './knownMints'
 import { assetConfigPda, vaultAtaPda } from './pdas'
@@ -17,19 +21,8 @@ export type GraiAssetVaultBalances = {
   navUsdRaw: bigint
   /** Vault idle balance priced in USD (`USD_SCALE`). */
   seniorUsdRaw: bigint
-  /** @deprecated Junior vaults removed — always 0. */
   juniorUsdRaw: bigint
-  /** @deprecated Allocated pool removed — always 0. */
   allocatedUsdRaw: bigint
-}
-
-/**
- * AssetConfig after 8-byte discriminator:
- * mint(32) feed(32) paused(1) id(4) acc_share(16) total_claimable(8) …
- */
-function decodeAssetConfigTotalClaimable(data: Buffer): bigint {
-  if (data.length < 101) return 0n
-  return data.readBigUInt64LE(93)
 }
 
 function priceVaultBalanceUsd(

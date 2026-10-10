@@ -15,10 +15,10 @@ import { GraiCaNetworkSelect } from '../components/grai/GraiCaNetworkSelect'
 import { GraiReferralTree } from '../components/grai/GraiReferralTree'
 import { GraiActionConnectWalletButton } from '../components/grai/GraiWalletAction'
 import { MINT_ASSET_SOLSCAN_ICON } from '../components/grai/graiPageIcons'
-import { useActiveWallet } from '../hooks/useActiveWallet'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useActiveWallet } from '../wallets/useActiveWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useWalletContext } from '../wallets/AppWalletProvider'
 import { toAppPath } from '../utils/appPaths'
 import { readAffiliatesSectionFromHash, type AffiliatesSection } from '../utils/affiliatesNavigation'
 import './GraiPage.css'
@@ -112,7 +112,7 @@ function AffiliatesPage() {
         }
         if (chainKind === 'solana' && connection && solana) {
           const protocol = await fetchGraiProtocol(connection, solana.graiMint)
-          if (!cancelled) setTreasuryCa(protocol.treasury.toBase58())
+          if (!cancelled) setTreasuryCa(protocol.beneficiar.toBase58())
           return
         }
         if (!cancelled) setTreasuryCa(null)

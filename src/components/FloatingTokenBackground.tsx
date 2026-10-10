@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import {
+  formatProjectedYieldPct,
+  formatVolatilityPct,
+  lookupGraiAssetYieldMetrics,
+} from '../grai/assetYieldMetrics'
 import { FALLBACK_GRAI_ASSETS, type GraiAssetIcon } from '../grai/knownMints'
 import { assetUrl } from '../utils/appPaths'
 import './FloatingTokenBackground.css'
 
 export type FloatingTokenSpec = {
   icon: GraiAssetIcon
+  symbol: string
   x: number
   y: number
   size: number
@@ -15,7 +21,7 @@ export type FloatingTokenSpec = {
 
 const REVEAL_RADIUS = 210
 const FULL_REVEAL_DISTANCE = 90
-const FLOATING_TOKEN_COUNT = 22
+const FLOATING_TOKEN_COUNT = 6
 const TOKEN_DRIFT_PX = 16
 const TOKEN_MIST_BLEED_PX = 22
 const FLOATING_BG_REFERENCE_HEIGHT = 380
@@ -58,9 +64,12 @@ function captureFrozenLayout(container: HTMLElement, current: FrozenLayout | nul
   return { width: rect.width, height: rect.height }
 }
 
+/** 3 in the left gutter + 3 in the right — keeps tokens clear of the center form. */
 function buildSpreadLayout(count: number) {
-  const cols = 6
-  const rows = Math.ceil(count / cols)
+  const leftXs = [11, 8, 13]
+  const rightXs = [89, 92, 87]
+  const ys = [24, 50, 76]
+  const perSide = Math.ceil(count / 2)
   const items: Array<{
     x: number
     y: number
@@ -71,20 +80,20 @@ function buildSpreadLayout(count: number) {
   }> = []
 
   for (let i = 0; i < count; i++) {
-    const col = i % cols
-    const row = Math.floor(i / cols)
-    const baseX = 6 + (col / Math.max(1, cols - 1)) * 88
-    const baseY = 5 + (row / Math.max(1, rows - 1)) * 90
-    const jitterX = Math.sin(i * 2.17 + 0.5) * 6
-    const jitterY = Math.cos(i * 1.83 + 1.2) * 7
+    const onLeft = i < perSide
+    const sideIndex = onLeft ? i : i - perSide
+    const xBase = onLeft ? leftXs[sideIndex % leftXs.length]! : rightXs[sideIndex % rightXs.length]!
+    const yBase = ys[sideIndex % ys.length]!
+    const jitterX = Math.sin(i * 2.17 + 0.5) * 1.5
+    const jitterY = Math.cos(i * 1.83 + 1.2) * 2.5
 
     items.push({
-      x: Math.round(Math.min(94, Math.max(6, baseX + jitterX))),
-      y: Math.round(Math.min(95, Math.max(5, baseY + jitterY))),
-      size: 48 + (i % 7) * 5,
+      x: Math.round(Math.min(94, Math.max(6, xBase + jitterX))),
+      y: Math.round(Math.min(88, Math.max(14, yBase + jitterY))),
+      size: 46 + (sideIndex % 3) * 6,
       delay: Number(((i * 0.47) % 4.8).toFixed(1)),
       duration: Number((19 + (i % 5) * 1.6).toFixed(1)),
-      rotate: Number((Math.sin(i * 4.73 + 1.1) * 32).toFixed(1)),
+      rotate: Number((Math.sin(i * 4.73 + 1.1) * 28).toFixed(1)),
     })
   }
 
@@ -112,8 +121,9 @@ export function buildFloatingTokens(icons: GraiAssetIcon[]): FloatingTokenSpec[]
   if (pool.length === 0) return []
 
   return FLOATING_LAYOUT.map((layout, index) => {
-    const icon = pool[index % pool.length]
-    return { icon, ...layout }
+    const icon = pool[index % pool.length]!
+    const symbol = (icon.alt || 'TOKEN').toUpperCase()
+    return { icon, symbol, ...layout }
   })
 }
 
@@ -132,8 +142,10 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
   const tokenRefs = useRef<(HTMLDivElement | null)[]>([])
   const rafRef = useRef(0)
   const mouseRef = useRef<{ x: number; y: number } | null>(null)
+  const hoveredIndexRef = useRef<number | null>(null)
   const frozenLayoutRef = useRef<FrozenLayout | null>(null)
   const [frozenLayout, setFrozenLayout] = useState<FrozenLayout | null>(null)
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   const lockLayout = useCallback((container: HTMLElement) => {
     const next = captureFrozenLayout(container, frozenLayoutRef.current)
@@ -184,7 +196,9 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
       }
 
       let reveal = 0
-      if (mouse) {
+      if (hoveredIndexRef.current === index) {
+        reveal = 1
+      } else if (mouse) {
         const distance = Math.hypot(mouse.x - centerX, mouse.y - centerY)
         if (distance <= FULL_REVEAL_DISTANCE) {
           reveal = 1
@@ -242,8 +256,27 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
 
   const onMouseLeave = useCallback(() => {
     mouseRef.current = null
+    hoveredIndexRef.current = null
+    setHoveredIndex(null)
     scheduleApply()
   }, [scheduleApply])
+
+  const hoveredToken = hoveredIndex == null ? null : tokens[hoveredIndex] ?? null
+  const hoveredMetrics = useMemo(
+    () => (hoveredToken ? lookupGraiAssetYieldMetrics(hoveredToken.symbol) : null),
+    [hoveredToken],
+  )
+  const tooltipSide = hoveredToken && hoveredToken.x >= 50 ? 'right' : 'left'
+  const tooltipStyle =
+    hoveredToken && frozenLayout
+      ? {
+          left: `${
+            tokenCenterX(hoveredToken.x, frozenLayout.width) +
+            (tooltipSide === 'left' ? hoveredToken.size / 2 + 12 : -(hoveredToken.size / 2 + 12))
+          }px`,
+          top: `${tokenCenterY(hoveredToken.y)}px`,
+        }
+      : undefined
 
   const wrapClass = ['floating-token-bg-wrap', className].filter(Boolean).join(' ')
 
@@ -256,40 +289,78 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
       onMouseLeave={onMouseLeave}
     >
       {tokens.length > 0 && frozenLayout && (
-        <div className="floating-token-bg is-layout-ready" aria-hidden="true">
-          {tokens.map((token, index) => (
-            <div
-              key={`${index}-${token.x}-${token.y}`}
-              className="floating-token-bg__token"
-              style={{
-                left: `${tokenCenterX(token.x, frozenLayout.width)}px`,
-                top: `${tokenCenterY(token.y)}px`,
-                width: token.size,
-                height: token.size,
-                ['--float-delay' as string]: `${token.delay}s`,
-                ['--float-duration' as string]: `${token.duration}s`,
-                ['--token-rotate' as string]: `${token.rotate}deg`,
-              }}
-            >
+        <div className="floating-token-bg is-layout-ready">
+          {tokens.map((token, index) => {
+            const isHovered = hoveredIndex === index
+            return (
               <div
-                ref={(el) => {
-                  tokenRefs.current[index] = el
+                key={`${index}-${token.x}-${token.y}`}
+                className={`floating-token-bg__token${isHovered ? ' is-hovered' : ''}`}
+                style={{
+                  left: `${tokenCenterX(token.x, frozenLayout.width)}px`,
+                  top: `${tokenCenterY(token.y)}px`,
+                  width: token.size,
+                  height: token.size,
+                  ['--float-delay' as string]: `${token.delay}s`,
+                  ['--float-duration' as string]: `${token.duration}s`,
+                  ['--token-rotate' as string]: `${token.rotate}deg`,
                 }}
-                className="floating-token-bg__token-inner"
+                onMouseEnter={() => {
+                  hoveredIndexRef.current = index
+                  setHoveredIndex(index)
+                  scheduleApply()
+                }}
+                onMouseLeave={() => {
+                  if (hoveredIndexRef.current === index) {
+                    hoveredIndexRef.current = null
+                    setHoveredIndex(null)
+                    scheduleApply()
+                  }
+                }}
               >
-                <img
-                  className="floating-token-bg__img"
-                  src={token.icon.src}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                />
+                <div
+                  ref={(el) => {
+                    tokenRefs.current[index] = el
+                  }}
+                  className="floating-token-bg__token-inner"
+                >
+                  <img
+                    className="floating-token-bg__img"
+                    src={token.icon.src}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
+      {hoveredToken && tooltipStyle ? (
+        <div
+          className={`floating-token-bg__tooltip is-${tooltipSide}`}
+          style={tooltipStyle}
+          role="tooltip"
+        >
+          <div className="floating-token-bg__tooltip-ticker">{hoveredToken.symbol}</div>
+          <div className="floating-token-bg__tooltip-row">
+            <span>Avg. Volatility</span>
+            <strong>
+              {hoveredMetrics ? formatVolatilityPct(hoveredMetrics.volatilityPct) : '—'}
+            </strong>
+          </div>
+          <div className="floating-token-bg__tooltip-row">
+            <span>Indexed Yield</span>
+            <strong className="is-yield">
+              {hoveredMetrics
+                ? formatProjectedYieldPct(hoveredMetrics.projectedAnnualYieldPct)
+                : '—'}
+            </strong>
+          </div>
+        </div>
+      ) : null}
       <div className="floating-token-bg-content">{children}</div>
     </div>
   )

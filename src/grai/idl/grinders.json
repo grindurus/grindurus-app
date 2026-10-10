@@ -1229,7 +1229,7 @@
           {
             "name": "custodian_kind",
             "docs": [
-              "`keccak256(\"grindurus.custodian.<name>\")` — same as EVM `custodianKind()`."
+              "`keccak256(\"grindurus.custodian.<name>\")` — same as EVM `label()`."
             ],
             "type": {
               "array": [

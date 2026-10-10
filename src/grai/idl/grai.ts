@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/grai.json`.
  */
 export type Grai = {
-  "address": "3Bc99GroACdqAVPbPUt7eHR8sPvKxh2m3suYfcnCtsCh",
+  "address": "DBAmy36cyMnAdL1YMRM81mNSwRzGSVASjJYvaniyGiSS",
   "metadata": {
     "name": "grai",
     "version": "0.1.0",

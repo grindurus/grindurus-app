@@ -27,7 +27,7 @@ import { createAssociatedTokenAccountIdempotentInstruction } from './splInstruct
 import { depositAffiliateRemainingMetas } from './referralAccounts'
 import { lockRemainingAccountMetas } from './buildLockTransaction'
 import { fetchAccountsByKey } from './accountBatch'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
 import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182])
@@ -255,6 +255,3 @@ export async function executeMint({
   })
   return { signature, amount }
 }
-
-export const buildDepositTransaction = buildMintTransaction
-export const executeDeposit = executeMint

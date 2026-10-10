@@ -9,6 +9,8 @@ import {
   Position,
   ReactFlow,
   MarkerType,
+  useEdgesState,
+  useNodesState,
   useReactFlow,
   type Edge,
   type Node,
@@ -40,9 +42,10 @@ import {
 } from '../../grai/deployments'
 import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
-import { useEvmWallet } from '../../hooks/useEvmWallet'
-import { useWalletContext } from '../../providers/AppWalletProvider'
+import { useEvmWallet } from '../../wallets/useEvmWallet'
+import { useWalletContext } from '../../wallets/AppWalletProvider'
 import { GraiCaNetworkSelect } from './GraiCaNetworkSelect'
+import { invalidateJsonRpcReadCaches } from '../../grai/jsonRpcBatchFetch'
 import {
   buildExampleReferralForest,
   buildReferralForest,
@@ -141,7 +144,8 @@ type ReferralNodeData = {
   claimUsdLabel: string | null
 }
 
-const NODE_WIDTH = 208
+/** Shared card size for every graph node (root / you / selected). */
+const NODE_WIDTH = 256
 const NODE_HEIGHT = 118
 const GAP_X = 56
 const GAP_Y = 88
@@ -287,11 +291,11 @@ function layoutForest(
 
   const place = (node: GraiReferralTreeNode, depth: number, leftX: number, parentId?: string) => {
     const leaves = subtreeLeafCount(node)
+    const id = addressKey(node.locker)
+    const isYou = Boolean(highlight) && addressesEqual(id, highlight)
     const blockWidth = leaves * (NODE_WIDTH + GAP_X) - GAP_X
     const x = leftX + blockWidth / 2 - NODE_WIDTH / 2
     const y = depth * (NODE_HEIGHT + GAP_Y)
-    const id = addressKey(node.locker)
-    const isYou = Boolean(highlight) && addressesEqual(id, highlight)
 
     if (parentId) parentOf.set(id, parentId)
 
@@ -774,6 +778,31 @@ function FindLockerInputBar({
   )
 }
 
+function RefreshControlButton({
+  busy,
+  onRefresh,
+}: {
+  busy: boolean
+  onRefresh: () => void
+}) {
+  return (
+    <ControlButton
+      className={`grai-referral-dash-refresh${busy ? ' is-busy' : ''}`}
+      disabled={busy}
+      onClick={onRefresh}
+      title="Обновить"
+      aria-label="Обновить"
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12a9 9 0 0 1 15.5-6.36" />
+        <path d="M18.5 2v4.5H14" />
+        <path d="M21 12a9 9 0 0 1-15.5 6.36" />
+        <path d="M5.5 22v-4.5H10" />
+      </svg>
+    </ControlButton>
+  )
+}
+
 function MeControlButton({
   address,
   onSelect,
@@ -880,8 +909,10 @@ export function GraiReferralTree({
   const [isPoaching, setIsPoaching] = useState(false)
   const [mapRequested, setMapRequested] = useState(true)
   const [isLoadingMap, setIsLoadingMap] = useState(false)
+  const [graphEpoch, setGraphEpoch] = useState(0)
   const [isDashCollapsed, setIsDashCollapsed] = useState(false)
   const chartHostRef = useRef<HTMLDivElement | null>(null)
+  const reloadSeqRef = useRef(0)
 
   useEffect(() => {
     const onAffiliatesNav = (event: Event) => {
@@ -912,30 +943,39 @@ export function GraiReferralTree({
     return () => observer.disconnect()
   }, [disarmChartFocus, selectedId, sideView, topPage])
 
-  const reloadForest = useCallback(async () => {
+  const reloadForest = useCallback(async (opts?: { fresh?: boolean }) => {
     const hasSolana = Boolean(connection && solana)
     const hasEvm = Boolean(evmProtocol?.protocolAddress || evmProtocol?.graiToken)
-
-    if (!hasSolana && !hasEvm) {
-      setForest(buildExampleReferralForest())
-      setIsExample(true)
-      setError(null)
-      return
-    }
+    const fresh = opts?.fresh === true
+    const seq = ++reloadSeqRef.current
 
     setError(null)
     setIsLoadingMap(true)
+    if (fresh) {
+      // Drop Solana read TTLs + GraiState snapshot; otherwise refresh keeps the
+      // first referrers list until a full page reload.
+      invalidateJsonRpcReadCaches()
+    }
     try {
+      if (!hasSolana && !hasEvm) {
+        if (seq !== reloadSeqRef.current) return
+        setForest(buildExampleReferralForest())
+        setIsExample(true)
+        return
+      }
+
       const rows = hasSolana
         ? await fetchSolanaReferralBooks(connection!, solana!.graiMint, {
+            bypassCache: fresh,
             onPartial: (partial) => {
               if (partial.length === 0) return
+              if (seq !== reloadSeqRef.current) return
               setForest(buildReferralForest(partial))
               setIsExample(false)
-              setIsLoadingMap(false)
             },
           })
         : await fetchEvmReferralBooks(evmProtocol!)
+      if (seq !== reloadSeqRef.current) return
       if (rows.length === 0) {
         setForest(buildExampleReferralForest())
         setIsExample(true)
@@ -944,22 +984,22 @@ export function GraiReferralTree({
       setForest(buildReferralForest(rows))
       setIsExample(false)
     } catch (err) {
+      if (seq !== reloadSeqRef.current) return
       setForest(buildExampleReferralForest())
       setIsExample(true)
       setError(err instanceof Error ? err.message : 'Failed to load referral tree')
     } finally {
-      setIsLoadingMap(false)
+      if (seq === reloadSeqRef.current) {
+        setIsLoadingMap(false)
+        if (fresh) setGraphEpoch((epoch) => epoch + 1)
+      }
     }
   }, [connection, evmProtocol, solana])
 
   const startMapLoad = useCallback(() => {
-    if (isLoadingMap) return
-    if (mapRequested) {
-      void reloadForest()
-      return
-    }
     setMapRequested(true)
-  }, [isLoadingMap, mapRequested, reloadForest])
+    void reloadForest({ fresh: true })
+  }, [reloadForest])
 
   useEffect(() => {
     if (!mapRequested) return
@@ -990,10 +1030,18 @@ export function GraiReferralTree({
     return { own, l1, l2, lockers: flat.length, roots: forest.length }
   }, [flat, forest.length])
 
-  const { nodes, edges } = useMemo(
+  const layouted = useMemo(
     () => layoutForest(forest, highlightAddress, graiDecimals, selectedId, claimUsdByLocker),
     [forest, highlightAddress, graiDecimals, selectedId, claimUsdByLocker],
   )
+  // React Flow keeps an internal store — without controlled handlers, prop updates
+  // after refresh are ignored and the pane stays on the previous graph.
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<ReferralNodeData>>(layouted.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(layouted.edges)
+  useEffect(() => {
+    setNodes(layouted.nodes)
+    setEdges(layouted.edges)
+  }, [layouted, setNodes, setEdges])
 
   const selected = useMemo(
     () => flat.find((node) => addressKey(node.locker) === selectedId) ?? null,
@@ -1219,7 +1267,8 @@ export function GraiReferralTree({
     [updateSelectedId],
   )
 
-  const showLoadOverlay = layout !== 'graph-only' && (!mapRequested || (isLoadingMap && forest.length === 0))
+  const showLoadOverlay =
+    isLoadingMap || (layout !== 'graph-only' && !mapRequested)
 
   const graphPanel = (
     <div className="grai-referral-dash-graph" aria-label="Referral graph">
@@ -1228,10 +1277,13 @@ export function GraiReferralTree({
           <span className="grai-referral-dash-graph-load-spinner" aria-hidden />
           Loading...
         </div>
-      ) : (
+      ) : null}
       <ReactFlow
+        key={graphEpoch}
         nodes={nodes}
         edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.18 }}
@@ -1249,6 +1301,7 @@ export function GraiReferralTree({
           onToggle={() => setLegendOpen((open) => !open)}
         />
         <Controls showInteractive={false} showFitView={false}>
+          <RefreshControlButton busy={isLoadingMap} onRefresh={startMapLoad} />
           <MeControlButton address={highlightAddress} onSelect={updateSelectedId} />
           <FitHomeControlButton />
           <FindLockerControlButton
@@ -1308,7 +1361,6 @@ export function GraiReferralTree({
           />
         ) : null}
       </ReactFlow>
-      )}
     </div>
   )
 

@@ -47,29 +47,3 @@ export function buildVaultCompositionRows(
     navUsdRaw: row.valueUsdRaw,
   }))
 }
-
-export function buildTotalAssetCompositionRows(
-  mintAssets: GraiAsset[],
-  vaultBalances: Record<string, GraiAssetVaultBalances>,
-  chartColors: readonly string[],
-) {
-  if (mintAssets.length === 0) return []
-
-  const rows = mintAssets.map((asset, index) => {
-    const vault = vaultBalances[asset.mint]
-    const valueUsdRaw = (vault?.seniorUsdRaw ?? 0n) + (vault?.juniorUsdRaw ?? 0n)
-    return {
-      asset,
-      color: chartColors[index % chartColors.length],
-      valueUsdRaw,
-    }
-  })
-  const totalUsdRaw = rows.reduce((sum, row) => sum + row.valueUsdRaw, 0n)
-
-  return rows.map((row) => ({
-    asset: row.asset,
-    color: row.color,
-    pct: navSharePct(row.valueUsdRaw, totalUsdRaw),
-    navUsdRaw: row.valueUsdRaw,
-  }))
-}

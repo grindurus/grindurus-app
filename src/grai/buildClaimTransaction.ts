@@ -24,7 +24,7 @@ import {
 } from './pdas'
 import { claimAffiliateRemainingMetas } from './referralAccounts'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
 import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor `global:claim` discriminator. */

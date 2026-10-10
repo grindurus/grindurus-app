@@ -175,8 +175,6 @@ export type EvmUnlockPreview = {
   penaltyLabel: string
   /** Always 0 — unlock fee is flat (no time decay). */
   secondsLeft: number
-  /** @deprecated Flat fee; always 0. Kept for UI callers. */
-  unlockPenaltyPeriod: number
   unlockPenaltyBps: number
   decimals: number
 }
@@ -207,7 +205,8 @@ export async function estimateEvmUnlockPreview(
   ])
 
   const decimals = Number(decimalsRaw)
-  const unlockPenaltyBps = Number(protocolConfig[7])
+  // config: … unlockPenaltyBps @ index 6
+  const unlockPenaltyBps = Number(protocolConfig[6])
 
   let amountRaw = 0n
   const trimmed = amountInput.trim()
@@ -247,22 +246,9 @@ export async function estimateEvmUnlockPreview(
     unlockAmountLabel: formatClaimAmountLabel(unlockAmount, decimals),
     penaltyLabel: formatClaimAmountLabel(penalty, decimals),
     secondsLeft: 0,
-    unlockPenaltyPeriod: 0,
     unlockPenaltyBps,
     decimals,
   }
-}
-
-export function formatUnlockPenaltyDuration(secondsLeft: number): string {
-  if (secondsLeft <= 0) return 'no penalty'
-  const d = Math.floor(secondsLeft / 86_400)
-  const h = Math.floor((secondsLeft % 86_400) / 3600)
-  const m = Math.floor((secondsLeft % 3600) / 60)
-  const s = secondsLeft % 60
-  if (d > 0) return h > 0 ? `${d}d ${h}h` : `${d}d`
-  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
-  if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`
-  return `${s}s`
 }
 
 /** Flat `unlockPenaltyBps` (100 = 1%). */

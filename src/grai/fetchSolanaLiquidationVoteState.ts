@@ -105,7 +105,6 @@ export async function fetchSolanaLiquidationVoteState(
     voterOwners.length,
   )
 
-  // `GraiState.bribe_asset` (decoded as settlementAsset) — payment mint for bribes.
   const bribeAsset = protocol.settlementAsset
   const bribeUnset = bribeAsset.equals(PublicKey.default)
   let settlementSymbol = '—'
@@ -127,8 +126,7 @@ export async function fetchSolanaLiquidationVoteState(
     totalSupply,
     totalValue: protocol.totalValue,
     hasQuorum: hasQuorum(totalVoted, totalSupply, quorumBps),
-    grinding: protocol.grinding ?? !protocol.confirmed,
-    confirmed: protocol.confirmed,
+    grinding: protocol.grinding,
     liquidationOpen: protocol.liquidation,
     settlementAsset: bribeAsset.toBase58() as `0x${string}`,
     settlementDecimals,

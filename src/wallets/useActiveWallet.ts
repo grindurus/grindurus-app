@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { useEvmWallet } from './useEvmWallet'
 import { useSolanaWallet } from './useSolanaWallet'
-import { useWalletContext, type ChainType } from '../providers/walletContext'
-import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
+import { useWalletContext, type ChainType } from './walletContext'
+import { evmChainIdToCaip2, solanaClusterToCaip2 } from './caip2Network'
 
 export interface ActiveWalletState {
   isConnected: boolean
@@ -21,6 +21,14 @@ export function useActiveWallet(): ActiveWalletState {
   const solanaWallet = useSolanaWallet()
 
   const activeWallet = useMemo((): ActiveWalletState => {
+    const disconnectAll = async () => {
+      await Promise.allSettled([
+        solanaWallet.isConnected ? solanaWallet.disconnect() : Promise.resolve(),
+        evmWallet.isConnected ? Promise.resolve(evmWallet.disconnect()) : Promise.resolve(),
+      ])
+      contextDisconnect()
+    }
+
     // Prefer the wallet that matches the GRAI / CA selection — but never hide a connected
     // Solana session behind a stale EVM chain type, or an EVM session behind Solana.
     if (
@@ -36,13 +44,7 @@ export function useActiveWallet(): ActiveWalletState {
         chainType: 'solana',
         networkName: solanaWallet.clusterName,
         networkCaip2,
-        disconnect: async () => {
-          await Promise.allSettled([
-            solanaWallet.isConnected ? solanaWallet.disconnect() : Promise.resolve(),
-            evmWallet.isConnected ? Promise.resolve(evmWallet.disconnect()) : Promise.resolve(),
-          ])
-          contextDisconnect()
-        },
+        disconnect: disconnectAll,
       }
     }
 
@@ -59,13 +61,7 @@ export function useActiveWallet(): ActiveWalletState {
         chainType: 'evm',
         networkName: evmWallet.chainName,
         networkCaip2,
-        disconnect: async () => {
-          await Promise.allSettled([
-            solanaWallet.isConnected ? solanaWallet.disconnect() : Promise.resolve(),
-            Promise.resolve(evmWallet.disconnect()),
-          ])
-          contextDisconnect()
-        },
+        disconnect: disconnectAll,
       }
     }
 
@@ -77,7 +73,8 @@ export function useActiveWallet(): ActiveWalletState {
       chainType: null,
       networkName: '',
       networkCaip2: null,
-      disconnect: async () => {},
+      // Still tear down any half-mounted session (e.g. after stack unmount races).
+      disconnect: disconnectAll,
     }
   }, [selectedChainType, evmWallet, solanaWallet, contextDisconnect])
 

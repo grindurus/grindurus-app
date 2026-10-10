@@ -15,13 +15,13 @@ import { VersionedTransaction, PublicKey, type Connection } from '@solana/web3.j
 import { Buffer } from 'buffer'
 import { createPublicClient, erc20Abi, formatUnits, type Chain } from 'viem'
 import { mainnet, base, arbitrum, polygon } from 'viem/chains'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useActiveWallet } from '../hooks/useActiveWallet'
-import { useEvmWalletClient } from '../providers/EvmWalletClientContext'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useActiveWallet } from '../wallets/useActiveWallet'
+import { useEvmWalletClient } from '../wallets/EvmWalletClientContext'
 import { stripTrailingSlash } from '../utils/urlUtils'
-import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
-import { evmHttpTransport } from '../providers/evmTransports'
+import { useWalletContext, type EvmChain } from '../wallets/AppWalletProvider'
+import { evmHttpTransport } from '../wallets/evmTransports'
 import { InventoryHistoryChart, type InventoryHistoryPoint } from '../components/InventoryHistoryChart'
 import { YieldChart, type YieldHistoryPoint } from '../components/YieldChart'
 import { BacktestHowItWorksModal } from '../components/BacktestHowItWorksModal'
@@ -35,7 +35,7 @@ import {
   BACKTEST_SECTION_IDS,
   readBacktestSectionFromHash,
 } from '../utils/backtestNavigation'
-import { SOLANA_MAINNET_GENESIS } from '../wallet/caip2Network'
+import { SOLANA_MAINNET_GENESIS } from '../wallets/caip2Network'
 import './BacktestPage.css'
 
 const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const

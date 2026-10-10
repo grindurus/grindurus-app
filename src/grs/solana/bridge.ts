@@ -12,7 +12,7 @@ import { formatTokenBalance, parseTokenAmount } from '../../grai/onchain'
 import {
   sendWalletTransaction,
   type SolanaSendTransaction,
-} from '../../solana/sendWalletTransaction'
+} from '../../wallets/sendWalletTransaction'
 import type { GrsSolanaConfig } from '../deployments'
 import { decodeOftStore } from './layout'
 import { peerConfigPda, resolveGrsSolanaPdas } from './pdas'

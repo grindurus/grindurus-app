@@ -1,8 +1,8 @@
 import { useCallback, useRef } from 'react'
 import { assetUrl } from '../../utils/appPaths'
 import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
-import { useActiveWallet } from '../../hooks/useActiveWallet'
-import { useWalletContext } from '../../providers/AppWalletProvider'
+import { useActiveWallet } from '../../wallets/useActiveWallet'
+import { useWalletContext } from '../../wallets/AppWalletProvider'
 import { WalletIcon } from '../WalletIcon'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
@@ -141,12 +141,23 @@ export function GraiActionConnectWalletButton({
   /** e.g. setSelectedChainType('solana') so the modal opens on the right tab. */
   onBeforeOpen?: () => void
 }) {
-  const { isChainSelectorOpen, openChainSelector, warmEvmStack, setSelectedChainType, setSolanaCluster } =
-    useWalletContext()
+  const {
+    isChainSelectorOpen,
+    openChainSelector,
+    warmEvmStack,
+    warmSolanaStack,
+    setSelectedChainType,
+    setSolanaCluster,
+  } = useWalletContext()
   const { chainKind, solanaCluster } = useGraiDeployment()
   const activeWallet = useActiveWallet()
   const showConnecting = isChainSelectorOpen && activeWallet.isConnecting
   const touchOpenedRef = useRef(false)
+
+  const warmPreferredStack = useCallback(() => {
+    if (chainKind === 'evm') warmEvmStack()
+    else warmSolanaStack()
+  }, [chainKind, warmEvmStack, warmSolanaStack])
 
   const handleOpen = useCallback(() => {
     if (showConnecting) return
@@ -190,8 +201,8 @@ export function GraiActionConnectWalletButton({
     <button
       type="button"
       className="connect-wallet-btn grai-action-connect-wallet-btn"
-      onPointerEnter={warmEvmStack}
-      onFocus={warmEvmStack}
+      onPointerEnter={warmPreferredStack}
+      onFocus={warmPreferredStack}
       onPointerUp={handlePointerUp}
       onClick={handleClick}
       disabled={showConnecting}

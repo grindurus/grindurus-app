@@ -1,9 +1,7 @@
 import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js'
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from '../wallets/AppWalletProvider'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { getSharedJsonRpcBatchFetch } from './jsonRpcBatchFetch'
-
-export type GraiChainKind = 'solana' | 'evm'
 
 export type GraiSolanaConfig = {
   kind: 'solana'
@@ -19,9 +17,9 @@ export type GraiSolanaRuntime = GraiSolanaConfig & {
 }
 
 const DEVNET_DEFAULTS = {
-  programId: '3Bc99GroACdqAVPbPUt7eHR8sPvKxh2m3suYfcnCtsCh',
-  graiState: 'Hig6qqBHLLCXpMynPv5RDDCLsYhT9MsHARUn7LKLyu7w',
-  graiMint: 'YTWRSw6PVK2EFpHKBBzED7nByzvrQ7Cgb6FSmUYgrai',
+  programId: 'DBAmy36cyMnAdL1YMRM81mNSwRzGSVASjJYvaniyGiSS',
+  graiState: 'BtEjrZQ8PiQkM7VfQaBdYBy689g63WjaphXV8xo6hfMA',
+  graiMint: 'nJoFYfY5xcA8aZ2Wiq79RNKfqyEwS9nF13goghEgrai',
 } as const
 
 export type GraiEvmConfig = {

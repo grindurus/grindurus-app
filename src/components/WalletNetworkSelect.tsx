@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import baseNetworkIcon from '../assets/base-network.svg'
 import ethereumNetworkIcon from '../assets/ethereum-network.svg'
-import { useActiveWallet } from '../hooks/useActiveWallet'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
-import { useWalletContext, type EvmChain } from '../providers/AppWalletProvider'
-import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
+import sepoliaNetworkIcon from '../assets/sepolia-network.png'
+import { useActiveWallet } from '../wallets/useActiveWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useWalletContext, type EvmChain } from '../wallets/AppWalletProvider'
+import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallets/caip2Network'
 import { SolanaClusterIcon } from './SolanaClusterIcon'
 import './WalletStyles.css'
 
@@ -43,7 +44,6 @@ function chainIdToEvmChain(chainId: number): EvmChain | null {
 }
 
 export function EvmChainListIcon({ name }: { name: string }) {
-  const reactId = useId().replace(/:/g, '')
   if (name === 'Ethereum') {
     return (
       <img
@@ -78,41 +78,14 @@ export function EvmChainListIcon({ name }: { name: string }) {
     )
   }
   if (name === 'Sepolia') {
-    const bgId = `sepolia-bg-${reactId}`
-    const sheenId = `sepolia-sheen-${reactId}`
     return (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden="true"
+      <img
+        src={sepoliaNetworkIcon}
+        alt=""
+        width={20}
+        height={20}
         className="network-logo-img network-logo-img--sepolia"
-      >
-        <circle cx="16" cy="16" r="16" fill={`url(#${bgId})`} />
-        <circle cx="16" cy="16" r="15.25" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
-        <circle cx="11" cy="10" r="7" fill={`url(#${sheenId})`} opacity="0.35" />
-        {/* Ethereum diamond — light on purple testnet badge */}
-        <g transform="translate(9.2, 5.2) scale(0.053)">
-          <path d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z" fill="#F4F6FF" />
-          <path d="M127.962 0L0 212.32l127.962 75.639V154.158z" fill="#C8D0F5" />
-          <path d="M127.961 287.958l127.96-75.637-127.96-58.162z" fill="#FFFFFF" />
-          <path d="M0 212.32l127.96 75.638v-133.8z" fill="#AAB4E8" />
-          <path d="M127.961 312.187l-2.795 3.41v89.767l2.795 8.162L256 236.587z" fill="#F4F6FF" fillOpacity="0.92" />
-          <path d="M127.962 413.527V315.597L0 236.587z" fill="#C8D0F5" />
-        </g>
-        <defs>
-          <linearGradient id={bgId} x1="5" y1="3" x2="27" y2="29" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#8B9AFA" />
-            <stop offset="0.5" stopColor="#627EEA" />
-            <stop offset="1" stopColor="#3A49B0" />
-          </linearGradient>
-          <radialGradient id={sheenId} cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(11 10) rotate(90) scale(7)">
-            <stop stopColor="#FFFFFF" />
-            <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-      </svg>
+      />
     )
   }
   if (name === 'Base' || name === 'Base Sepolia') {

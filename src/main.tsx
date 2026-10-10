@@ -1,9 +1,9 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
-import { AppWalletProvider } from './providers/AppWalletProvider'
+import { AppWalletProvider } from './wallets'
 import { GraiDeploymentProvider } from './grai/GraiDeploymentProvider'
-import { GraiDataProvider } from './providers/GraiDataProvider'
+import { GraiDataProvider } from './grai/GraiDataProvider'
 import { stripBasePath } from './utils/appPaths'
 import './index.css'
 

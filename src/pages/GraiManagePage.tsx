@@ -4,13 +4,11 @@ import type { GraiAsset } from '../grai/knownMints'
 import type { GraiAssetVaultBalances } from '../grai/fetchVaultBalances'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { fetchGraiStateFixedFields } from '../grai/graiStateCache'
-import { decodeSeniorVaultYieldSplit, fetchMintDecimals, formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../grai/onchain'
+import { fetchMintDecimals, formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../grai/onchain'
 import { formatVaultBalanceDisplay } from '../grai/formatVaultBalance'
-import { seniorVaultPda } from '../grai/pdas'
 import { KNOWN_GRINDERS, grinderCustodyAddress } from '../grai/grinders'
 import type { GrinderCustodyState } from '../hooks/useGrindersCustodyBalances'
 import type { CustodyNetwork } from '../grai/custodyHoldings'
-import { yieldSplit } from '../grai/tokenomics'
 import { useGraiAllocate } from '../hooks/useGraiAllocate'
 import { useGraiDeallocate } from '../hooks/useGraiDeallocate'
 import { shortenAddress } from '../utils/shortenAddress'
@@ -20,7 +18,7 @@ import { useGraiVaultBalances } from '../hooks/useGraiVaultBalances'
 import { useCustodyWalletBalances } from '../hooks/useCustodyWalletBalances'
 import { useEvmCustodiansData } from '../hooks/useEvmCustodiansData'
 import { useGrindersCustodyBalances } from '../hooks/useGrindersCustodyBalances'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 import { VaultBalanceTableValue, vaultBalanceUsdRaw } from '../components/VaultBalanceTableValue'
 import { GraiActionConnectWalletButton } from '../components/grai/GraiWalletAction'
 import { GraiLiquidateForm } from '../components/grai/GraiLiquidateForm'
@@ -692,7 +690,6 @@ export function GraiManageSection() {
     solscanTokenUrl,
     solscanTxUrl,
     solscanAccountUrl,
-    isConfigured,
     hasStaticConfig,
     protocolError,
   } = useGraiDeployment()
@@ -737,7 +734,6 @@ export function GraiManageSection() {
   const [isCustodyTableHidden, setIsCustodyTableHidden] = useState(false)
   const [custodyPage, setCustodyPage] = useState(0)
   const [isOpsCollapsed, setIsOpsCollapsed] = useState(false)
-  const [distributeYieldSplitBps, setDistributeYieldSplitBps] = useState<number | null>(null)
   const [manageActionView, setManageActionView] = useState<ManageActionView>('allocate')
 
   const handleManageActionViewChange = useCallback((view: ManageActionView) => {
@@ -1008,39 +1004,18 @@ export function GraiManageSection() {
     setDeallocateAssetMint(deallocateAsset.mint)
   }, [deallocateAsset, deallocateAssetMint])
 
-  useEffect(() => {
-    if (!distributeAsset?.mint || !connection || !solana || !isConfigured) {
-      setDistributeYieldSplitBps(null)
-      return
-    }
-
-    let cancelled = false
-    const seniorVault = seniorVaultPda(new PublicKey(distributeAsset.mint), solana.programId)
-
-    void connection.getAccountInfo(seniorVault).then((account) => {
-      if (cancelled) return
-      if (!account?.data) {
-        setDistributeYieldSplitBps(null)
-        return
-      }
-      setDistributeYieldSplitBps(decodeSeniorVaultYieldSplit(Buffer.from(account.data)))
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [connection, distributeAsset?.mint, isConfigured, solana])
-
   const distributeTreasuryLabel = useMemo(() => {
-    if (!distributeAmount.trim() || distributeYieldSplitBps === null) return null
+    if (!distributeAmount.trim()) return null
     try {
-      const amount = parseTokenAmount(distributeAmount, distributeAssetDecimals)
-      const [, treasury] = yieldSplit(amount, distributeYieldSplitBps)
-      return formatTokenBalance(treasury, distributeAssetDecimals)
+      // On-chain distribute has no yield split — full amount goes to treasury path.
+      return formatTokenBalance(
+        parseTokenAmount(distributeAmount, distributeAssetDecimals),
+        distributeAssetDecimals,
+      )
     } catch {
       return null
     }
-  }, [distributeAmount, distributeAssetDecimals, distributeYieldSplitBps])
+  }, [distributeAmount, distributeAssetDecimals])
 
   useEffect(() => {
     if (distributeGrinderAssets.length === 0) {

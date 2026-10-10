@@ -56,12 +56,18 @@ const READ_TTL_MS: Record<string, number> = {
 }
 
 const mutationListeners = new Set<() => void>()
+const readCacheInvalidators = new Set<() => void>()
 
 export function onJsonRpcMutation(listener: () => void): () => void {
   mutationListeners.add(listener)
   return () => {
     mutationListeners.delete(listener)
   }
+}
+
+/** Drop batched read / account TTLs (and notify mutation listeners → protocol cache). */
+export function invalidateJsonRpcReadCaches(): void {
+  for (const invalidate of readCacheInvalidators) invalidate()
 }
 
 function parseJsonRpcBody(body: unknown): JsonRpcMessage | null {
@@ -216,6 +222,7 @@ export function createJsonRpcBatchFetch(
     accountTtl.clear()
     for (const listener of mutationListeners) listener()
   }
+  readCacheInvalidators.add(invalidateReads)
 
   const resolveGroup = (url: string, fp: string, outcome: RpcBody) => {
     const group = inflight.get(cacheKey(url, fp)) ?? []

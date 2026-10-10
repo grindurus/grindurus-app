@@ -9,9 +9,10 @@ import {
 } from './walletContext'
 import { getDefaultGraiSolanaCluster } from '../grai/deployments'
 import { stripBasePath } from '../utils/appPaths'
-import { SolanaProvider } from './SolanaProvider'
+import { LazySolanaShell, preloadSolanaProvider } from './LazySolanaShell'
 import { LazyEvmShell, preloadEvmProvider } from './LazyEvmShell'
 import { EvmWalletSnapshotProvider } from './EvmWalletSnapshotContext'
+import { SolanaWalletSnapshotProvider } from './SolanaWalletSnapshotContext'
 import { ChainSelectorModal } from '../components/ChainSelectorModal'
 import { ExclusiveWalletSync } from './ExclusiveWalletSync'
 
@@ -22,9 +23,10 @@ interface AppWalletProviderProps {
   children: ReactNode
 }
 
+/** Routes that require the EVM stack even before a wallet is selected. */
 function pathNeedsEvmStack(pathname: string): boolean {
   const path = stripBasePath(pathname)
-  return path === '/grai' || path.startsWith('/grai/') || path === '/backtest'
+  return path === '/backtest'
 }
 
 export function AppWalletProvider({ children }: AppWalletProviderProps) {
@@ -45,14 +47,21 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
+  const initialPathNeedsEvm =
+    typeof window !== 'undefined' && pathNeedsEvmStack(window.location.pathname)
+  const initialSelectedChain =
+    typeof window !== 'undefined' ? localStorage.getItem('selectedChainType') : null
+  // No wallet selected → both stacks eager (no "Initializing…" in the modal).
+  // Connected → only the active chain's stack (XOR below).
   const [evmStackRequested, setEvmStackRequested] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      (pathNeedsEvmStack(window.location.pathname) ||
-        localStorage.getItem('selectedChainType') === 'evm'),
+    () => initialPathNeedsEvm || initialSelectedChain !== 'solana',
+  )
+  const [solanaStackRequested, setSolanaStackRequested] = useState(
+    () => initialSelectedChain !== 'evm',
   )
   const [rainbowKitEnabled, setRainbowKitEnabled] = useState(false)
   const [isEvmStackReady, setIsEvmStackReady] = useState(false)
+  const [isSolanaStackReady, setIsSolanaStackReady] = useState(false)
   const [pendingWalletConnectOpen, setPendingWalletConnectOpen] = useState(false)
 
   useEffect(() => {
@@ -77,35 +86,42 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
     localStorage.setItem('solanaCluster', solanaCluster)
   }, [solanaCluster])
 
+  // Keep stacks warm once requested. Tearing down EVM while Solana is connected
+  // (and vice versa) emptied connector lists after disconnect until a full remount.
+  useEffect(() => {
+    if (selectedChainType === 'solana') {
+      setSolanaStackRequested(true)
+      setRainbowKitEnabled(false)
+      setPendingWalletConnectOpen(false)
+    } else if (selectedChainType === 'evm') {
+      setEvmStackRequested(true)
+    } else {
+      setEvmStackRequested(true)
+      setSolanaStackRequested(true)
+    }
+  }, [selectedChainType])
+
   const warmEvmStack = useCallback(() => {
-    preloadEvmProvider()
+    // Do not tear down Solana here — unmounting LazySolanaShell remounts the app
+    // tree. XOR teardown stays on selectedChainType below.
     setEvmStackRequested(true)
+    preloadEvmProvider()
   }, [])
 
-  // Prefetch wagmi chunk on idle so Connect Wallet is not blocked on first open.
-  useEffect(() => {
-    if (evmStackRequested) {
-      preloadEvmProvider()
-      return
-    }
-
-    const warm = () => {
-      preloadEvmProvider()
-      setEvmStackRequested(true)
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-      const idleId = window.requestIdleCallback(warm, { timeout: 2000 })
-      return () => window.cancelIdleCallback(idleId)
-    }
-
-    const timeoutId = window.setTimeout(warm, 1200)
-    return () => window.clearTimeout(timeoutId)
-  }, [evmStackRequested])
+  const warmSolanaStack = useCallback(() => {
+    // Same: warming a tab must not unmount the other stack (that remounted the
+    // chain-selector modal and snapped the Solana tab back to EVM).
+    setRainbowKitEnabled(false)
+    setPendingWalletConnectOpen(false)
+    setSolanaStackRequested(true)
+    preloadSolanaProvider()
+  }, [])
 
   const requestRainbowKit = useCallback(() => {
+    setEvmStackRequested(true)
     setRainbowKitEnabled(true)
     setPendingWalletConnectOpen(true)
+    preloadEvmProvider()
   }, [])
 
   const clearPendingWalletConnectOpen = useCallback(() => {
@@ -113,9 +129,12 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   }, [])
 
   const openChainSelector = useCallback(() => {
+    // Always warm both — Connect Wallet must list EVM + Solana options even
+    // after disconnecting one chain (XOR teardown used to leave the other empty).
     warmEvmStack()
+    warmSolanaStack()
     setIsChainSelectorOpen(true)
-  }, [warmEvmStack])
+  }, [warmEvmStack, warmSolanaStack])
 
   const closeChainSelector = useCallback(() => {
     setIsChainSelectorOpen(false)
@@ -124,22 +143,42 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   const disconnect = useCallback(() => {
     setSelectedChainType(null)
     localStorage.removeItem('selectedChainType')
+    setEvmStackRequested(true)
+    setSolanaStackRequested(true)
+    setRainbowKitEnabled(false)
   }, [])
 
+  const pathWantsEvm =
+    typeof window !== 'undefined' && pathNeedsEvmStack(window.location.pathname)
+
+  // Disconnected → both stacks always mounted (no lazy gate in Connect Wallet).
+  // Connected → honor stack requests / selection (XOR tears the other down).
+  const disconnected = selectedChainType == null
   const needsEvmStack =
+    pathWantsEvm ||
+    disconnected ||
     evmStackRequested ||
     rainbowKitEnabled ||
-    selectedChainType === 'evm' ||
-    isChainSelectorOpen ||
-    pathNeedsEvmStack(typeof window !== 'undefined' ? window.location.pathname : '')
+    selectedChainType === 'evm'
+
+  const needsSolanaStack =
+    disconnected || solanaStackRequested || selectedChainType === 'solana'
 
   const handleEvmStackReady = useCallback(() => {
     setIsEvmStackReady(true)
   }, [])
 
+  const handleSolanaStackReady = useCallback(() => {
+    setIsSolanaStackReady(true)
+  }, [])
+
   useEffect(() => {
     if (!needsEvmStack) setIsEvmStackReady(false)
   }, [needsEvmStack])
+
+  useEffect(() => {
+    if (!needsSolanaStack) setIsSolanaStackReady(false)
+  }, [needsSolanaStack])
 
   const value = useMemo<WalletContextType>(
     () => ({
@@ -155,7 +194,9 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       disconnect,
       requestRainbowKit,
       warmEvmStack,
+      warmSolanaStack,
       isEvmStackReady,
+      isSolanaStackReady,
       pendingWalletConnectOpen,
       clearPendingWalletConnectOpen,
     }),
@@ -169,7 +210,9 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
       disconnect,
       requestRainbowKit,
       warmEvmStack,
+      warmSolanaStack,
       isEvmStackReady,
+      isSolanaStackReady,
       pendingWalletConnectOpen,
       clearPendingWalletConnectOpen,
     ],
@@ -178,17 +221,20 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   return (
     <WalletContext.Provider value={value}>
       <EvmWalletSnapshotProvider>
-        <SolanaProvider>
-          <LazyEvmShell
-            enabled={needsEvmStack}
-            rainbowKitEnabled={rainbowKitEnabled}
-            onReady={handleEvmStackReady}
-          >
-            <ExclusiveWalletSync />
-            {children}
-            <ChainSelectorModal isOpen={isChainSelectorOpen} onClose={closeChainSelector} />
-          </LazyEvmShell>
-        </SolanaProvider>
+        <SolanaWalletSnapshotProvider>
+          <LazySolanaShell enabled={needsSolanaStack} onReady={handleSolanaStackReady}>
+            <LazyEvmShell
+              enabled={needsEvmStack}
+              rainbowKitEnabled={rainbowKitEnabled}
+              onReady={handleEvmStackReady}
+            >
+              <ExclusiveWalletSync />
+              {children}
+            </LazyEvmShell>
+          </LazySolanaShell>
+          {/* Outside lazy shells so stack mount/unmount does not remount the modal. */}
+          <ChainSelectorModal isOpen={isChainSelectorOpen} onClose={closeChainSelector} />
+        </SolanaWalletSnapshotProvider>
       </EvmWalletSnapshotProvider>
     </WalletContext.Provider>
   )

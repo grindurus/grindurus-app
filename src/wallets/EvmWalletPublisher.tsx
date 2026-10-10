@@ -1,5 +1,5 @@
 import { ReactNode, useLayoutEffect, useRef } from 'react'
-import { useEvmWalletFromWagmi } from '../hooks/useEvmWalletFromWagmi'
+import { useEvmWalletFromWagmi } from './useEvmWalletFromWagmi'
 import { useEvmWalletSnapshotApi } from './EvmWalletSnapshotContext'
 import { EvmWalletClientPublisher } from './EvmWalletClientContext'
 
@@ -12,6 +12,12 @@ export function EvmWalletPublisher({ children, onReady }: { children: ReactNode;
   useLayoutEffect(() => {
     api.setSnapshot(wallet)
   }, [api, wallet])
+
+  useLayoutEffect(() => {
+    return () => {
+      api.resetSnapshot()
+    }
+  }, [api])
 
   useLayoutEffect(() => {
     if (readySentRef.current) return

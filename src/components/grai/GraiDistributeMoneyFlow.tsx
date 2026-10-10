@@ -15,6 +15,14 @@ const MIN_SIDE_MARGIN = 96
 const MIN_RIGHT_LABEL_MARGIN = 118
 const COLUMN_COUNT = 3
 const LABEL_LINE_HEIGHT = 13
+/** Source amount uses ~1.25rem tabular figures left of the bar. */
+const SOURCE_AMOUNT_FONT_PX = 20
+const SOURCE_LABEL_PAD_PX = 16
+
+function estimateSourceLabelWidth(text: string): number {
+  // Tabular / semi-bold sans — ~0.62em per character is a safe upper bound.
+  return Math.ceil(text.length * SOURCE_AMOUNT_FONT_PX * 0.62) + SOURCE_LABEL_PAD_PX
+}
 
 type Props = {
   amountLabel: string
@@ -223,12 +231,20 @@ export function GraiDistributeMoneyFlow({ amountLabel, assetSymbol }: Props) {
   const margin = useMemo(() => {
     const hop = FLOW_WIDTH_REM * readRemPx()
     const contentWidth = hop * (COLUMN_COUNT - 1) + NODE_WIDTH * COLUMN_COUNT
-    const width = chartWidth > 0 ? chartWidth : contentWidth + MIN_SIDE_MARGIN + MIN_RIGHT_LABEL_MARGIN
+    // Keep "100 USDC" (and "Asset in") fully inside the SVG — short amounts used to fit
+    // in 96px, but three-digit totals clipped the leading digit off the left edge.
+    const leftMin = Math.max(
+      MIN_SIDE_MARGIN,
+      estimateSourceLabelWidth(sourceName),
+      estimateSourceLabelWidth('Asset in'),
+    )
+    const width =
+      chartWidth > 0 ? chartWidth : contentWidth + leftMin + MIN_RIGHT_LABEL_MARGIN
     const leftover = Math.max(0, width - contentWidth)
-    const left = Math.max(MIN_SIDE_MARGIN, leftover / 2)
+    const left = Math.max(leftMin, leftover / 2)
     const right = Math.max(MIN_RIGHT_LABEL_MARGIN, leftover - left)
     return { top: 14, right, bottom: 14, left }
-  }, [chartWidth])
+  }, [chartWidth, sourceName])
 
   const sankeyData = useMemo(() => {
     const primary = 1

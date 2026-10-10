@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js'
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from '../wallets/AppWalletProvider'
 
 const GRINDERS_PROGRAM_ID_DEFAULT = '7W9uhZZvmHSyhRmdDRnbZPZfaUdJaMbGMWsBLjSRWT5v'
 
@@ -24,9 +24,6 @@ export function resolveSolanaGrindersProgramId(cluster: SolanaCluster): PublicKe
   return new PublicKey(raw)
 }
 
-/** @deprecated Use `resolveSolanaGrindersProgramId`. */
-export const resolveSolanaTreasuryProgramId = resolveSolanaGrindersProgramId
-
 /** Assert `custodyWallet` is a grinders `CustodianState` PDA. */
 export async function assertSolanaCustodianWallet(
   connection: Pick<Connection, 'getAccountInfo'>,
@@ -37,15 +34,4 @@ export async function assertSolanaCustodianWallet(
   if (!account || !account.owner.equals(programId)) {
     throw new Error('Custody wallet is not registered with grinders')
   }
-}
-
-/** @deprecated Prefer `assertSolanaCustodianWallet`. */
-export async function resolveSolanaAllocateCustodyAccounts(
-  connection: Pick<Connection, 'getAccountInfo'>,
-  custodyWallet: PublicKey,
-  programId: PublicKey,
-): Promise<{ custodianIndex: PublicKey; custodianRecord: PublicKey }> {
-  await assertSolanaCustodianWallet(connection, custodyWallet, programId)
-  // Legacy return shape — callers should stop using index/record PDAs.
-  return { custodianIndex: custodyWallet, custodianRecord: custodyWallet }
 }

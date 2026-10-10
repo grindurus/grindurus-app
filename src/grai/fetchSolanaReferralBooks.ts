@@ -103,15 +103,6 @@ export async function resolveNftOwners(
   return owners
 }
 
-export async function resolveNftOwner(
-  connection: Connection,
-  nftMint: PublicKey,
-  fallback: PublicKey,
-): Promise<PublicKey> {
-  const [owner] = await resolveNftOwners(connection, [nftMint], [fallback])
-  return owner ?? fallback
-}
-
 /**
  * Load sticky referral books from `GraiState.referrers` + each locker's Referrer PDA.
  * Shape matches EVM `getLockersData` rows so the tree UI can reuse `buildReferralForest`.
@@ -122,9 +113,15 @@ export async function resolveNftOwner(
 export async function fetchSolanaReferralBooks(
   connection: Connection,
   graiMint: PublicKey,
-  options?: { onPartial?: (rows: EvmReferralBookEntry[]) => void },
+  options?: {
+    onPartial?: (rows: EvmReferralBookEntry[]) => void
+    /** Skip in-memory GraiState snapshot so refresh picks up new referrers. */
+    bypassCache?: boolean
+  },
 ): Promise<EvmReferralBookEntry[]> {
-  const protocol = await fetchGraiProtocol(connection, graiMint)
+  const protocol = await fetchGraiProtocol(connection, graiMint, {
+    bypassCache: options?.bypassCache,
+  })
   const lockers = protocol.referrers
   if (lockers.length === 0) return []
 

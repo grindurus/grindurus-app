@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useActiveWallet } from '../hooks/useActiveWallet'
-import { useEvmWallet } from '../hooks/useEvmWallet'
-import { useSolanaWallet } from '../hooks/useSolanaWallet'
+import { useActiveWallet } from '../wallets/useActiveWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 import baseNetworkIcon from '../assets/base-network.svg'
-import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallet/caip2Network'
+import sepoliaNetworkIcon from '../assets/sepolia-network.png'
+import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../wallets/caip2Network'
 import { SolanaClusterIcon } from './SolanaClusterIcon'
 import { EvmChainListIcon } from './WalletNetworkSelect'
 import { WalletExpandToggle } from './WalletExpandToggle'
@@ -200,12 +201,13 @@ export function WalletInfo() {
             />
           )}
           {currentChain.name === 'Sepolia' && (
-            <svg width="20" height="20" viewBox="0 0 256 417" fill="#9CA3AF">
-              <path d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z" fillOpacity="0.8"/>
-              <path d="M127.962 0L0 212.32l127.962 75.639V154.158z" fillOpacity="0.5"/>
-              <path d="M127.961 287.958l127.96-75.637-127.96-58.162z" fillOpacity="1"/>
-              <path d="M0 212.32l127.96 75.638v-133.8z" fillOpacity="0.6"/>
-            </svg>
+            <img
+              src={sepoliaNetworkIcon}
+              alt="Sepolia"
+              width={20}
+              height={20}
+              className="network-logo-img network-logo-img--sepolia"
+            />
           )}
           {(currentChain.name === 'Base' || currentChain.name === 'Base Sepolia') && (
             <img src={baseNetworkIcon} alt={currentChain.name} width={20} height={20} />
@@ -306,12 +308,13 @@ export function WalletInfo() {
                             />
                           )}
                           {chain.name === 'Sepolia' && (
-                            <svg width="20" height="20" viewBox="0 0 256 417" fill="#9CA3AF">
-                              <path d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z" fillOpacity="0.8"/>
-                              <path d="M127.962 0L0 212.32l127.962 75.639V154.158z" fillOpacity="0.5"/>
-                              <path d="M127.961 287.958l127.96-75.637-127.96-58.162z" fillOpacity="1"/>
-                              <path d="M0 212.32l127.96 75.638v-133.8z" fillOpacity="0.6"/>
-                            </svg>
+                            <img
+                              src={sepoliaNetworkIcon}
+                              alt="Sepolia"
+                              width={20}
+                              height={20}
+                              className="network-logo-img network-logo-img--sepolia"
+                            />
                           )}
                           {(chain.name === 'Base' || chain.name === 'Base Sepolia') && (
                             <img src={baseNetworkIcon} alt={chain.name} width={20} height={20} />

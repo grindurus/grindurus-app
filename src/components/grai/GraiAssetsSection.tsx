@@ -1,10 +1,10 @@
-import { GraiLiquidationActions } from './GraiLiquidationActions'
+import { GraiOpsPanel } from './GraiOpsPanel'
 
 export function GraiAssetsSection() {
   return (
     <aside className="grai-assets-chart-card" id="grai-assets-section" aria-label="GRAI assets">
       <div className="grai-assets-split">
-        <GraiLiquidationActions />
+        <GraiOpsPanel />
       </div>
     </aside>
   )

@@ -12,8 +12,8 @@ import { estimateSolanaClaimAll } from '../grai/estimateSolanaClaim'
 import { estimateSolanaUnlockPreview } from '../grai/estimateSolanaUnlock'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance } from '../grai/onchain'
-import { useEvmWallet } from './useEvmWallet'
-import { useSolanaWallet } from './useSolanaWallet'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 
 const EMPTY_PREVIEW: EvmUnlockPreview = {
   unlockAmount: 0n,
@@ -21,7 +21,6 @@ const EMPTY_PREVIEW: EvmUnlockPreview = {
   unlockAmountLabel: '0.0',
   penaltyLabel: '0.0',
   secondsLeft: 0,
-  unlockPenaltyPeriod: 0,
   unlockPenaltyBps: 0,
   decimals: 6,
 }

@@ -3,9 +3,9 @@ import type { Connection } from '@solana/web3.js'
 import { PublicKey, Transaction } from '@solana/web3.js'
 import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import type { GraiSolanaRuntime } from '../grai/deployments'
-import { useWalletContext } from '../providers/walletContext'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
-import { useSolanaWallet } from './useSolanaWallet'
+import { useWalletContext } from '../wallets/walletContext'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 
 export type GraiTransactionStatus = 'idle' | 'building' | 'signing' | 'confirming' | 'success' | 'error'
 

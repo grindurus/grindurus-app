@@ -3,9 +3,9 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { useMemo, useCallback } from 'react'
 import type { Connection, Transaction, TransactionSignature } from '@solana/web3.js'
 import { VersionedTransaction } from '@solana/web3.js'
-import { useWalletContext } from '../providers/walletContext'
+import { useWalletContext } from './walletContext'
 import { shortenAddress } from '../utils/shortenAddress'
-import { clusterFromRpcEndpoint } from '../solana/sendWalletTransaction'
+import { clusterFromRpcEndpoint } from './sendWalletTransaction'
 import {
   chainIdsForCluster,
   getStandardWallet,
@@ -13,11 +13,11 @@ import {
   signAndSendLegacyTxWithChain,
   signLegacyTxWithChain,
   signVersionedTxWithChain,
-} from '../solana/standardSignWithChain'
+} from './standardSignWithChain'
 import {
   networkEnvFromSolanaCluster,
   solanaClusterMatchesNetworkEnv,
-} from '../wallet/networkEnv'
+} from './networkEnv'
 
 function detectClusterFromRpcEndpoint(endpoint?: string): 'mainnet-beta' | 'testnet' | 'devnet' | null {
   if (!endpoint) return null
@@ -30,7 +30,7 @@ function toWalletSolanaCluster(cluster: 'mainnet-beta' | 'testnet' | 'devnet'): 
   return cluster === 'testnet' ? 'devnet' : cluster
 }
 
-export function useSolanaWallet() {
+export function useSolanaWalletFromAdapter() {
   const {
     publicKey,
     connected,

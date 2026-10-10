@@ -34,10 +34,10 @@ import { useGraiMintEstimate } from '../../hooks/useGraiMintEstimate'
 import { useGraiUnlockEstimate } from '../../hooks/useGraiUnlockEstimate'
 import { useGraiClaimEstimate } from '../../hooks/useGraiClaimEstimate'
 import { useWalletAssetBalance, useWalletAssetBalances } from '../../hooks/useWalletAssetBalance'
-import { useActiveWallet } from '../../hooks/useActiveWallet'
-import { useSolanaWallet } from '../../hooks/useSolanaWallet'
-import { useEvmWallet } from '../../hooks/useEvmWallet'
-import { useWalletContext } from '../../providers/AppWalletProvider'
+import { useActiveWallet } from '../../wallets/useActiveWallet'
+import { useSolanaWallet } from '../../wallets/useSolanaWallet'
+import { useEvmWallet } from '../../wallets/useEvmWallet'
+import { useWalletContext } from '../../wallets/AppWalletProvider'
 import { assetUrl } from '../../utils/appPaths'
 import { FALLBACK_GRAI_ASSETS, isPlaceholderGraiAssetMint } from '../../grai/knownMints'
 import {
@@ -63,6 +63,8 @@ type Props = {
   onOpenHowItWorks: () => void
   /** When burn: whether the left-side redeemable reserves panel is expanded. */
   reservesAsideOpen?: boolean
+  /** When false, omit redeemable reserves aside (e.g. Exit by Swap). Default true. */
+  showRedeemableReserves?: boolean
 }
 
 const REDEEM_BLOCKED_HINT =
@@ -122,8 +124,8 @@ function buildUnlockPenaltyHint(unlockPenaltyBps: number): ReactNode {
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Where it goes</span>
-        The penalty stays on the GRAI vault as dead inventory and is scooped by whoever opens
-        liquidation.
+        The penalty is sent to Grinders on unlock. It is not left on the GRAI vault and is not part
+        of the liquidation scoop.
       </span>
     </>
   )
@@ -252,6 +254,7 @@ export function GraiMintBurnPanel({
   actionSubtitle,
   onOpenHowItWorks,
   reservesAsideOpen = true,
+  showRedeemableReserves = true,
 }: Props) {
   const { chainKind, solana, staticSolana, evm, connection, explorerTxUrl } = useGraiDeployment()
   const { setSelectedChainType } = useWalletContext()
@@ -260,7 +263,7 @@ export function GraiMintBurnPanel({
   const evmWallet = useEvmWallet()
   const isWalletConnected =
     chainKind === 'solana'
-      ? solanaWallet.isConnected
+      ? solanaWallet.isConnected || Boolean(solanaWallet.address || solanaWallet.publicKey)
       : chainKind === 'evm'
         ? evmWallet.isConnected
         : activeWallet.isConnected
@@ -461,7 +464,7 @@ export function GraiMintBurnPanel({
     isLoading: unlockBalanceLoading,
     refresh: refreshUnlockEstimate,
   } = useGraiUnlockEstimate(
-    actionView === 'mint' && (isGraiUnlock || (isAssetClaim && claimAllDividends)),
+    actionView === 'mint' && (isGraiSelected || (isAssetClaim && claimAllDividends)),
     amount,
   )
 
@@ -494,24 +497,11 @@ export function GraiMintBurnPanel({
       })
     }
 
-    return mintAssetOptions.map((asset) => {
-      const isGrai = asset.symbol.toUpperCase() === 'GRAI'
-      // Deposit picker: no balance under GRAI. Lock picker: same two-line style as deposit assets.
-      if (isGrai && !isGraiSelected) {
-        return asset
-      }
-      return {
-        ...asset,
-        detail: mintWalletBalancesByAddress[asset.address.toLowerCase()] ?? '…',
-      }
-    })
-  }, [
-    assetClaims,
-    isAssetClaim,
-    isGraiSelected,
-    mintAssetOptions,
-    mintWalletBalancesByAddress,
-  ])
+    return mintAssetOptions.map((asset) => ({
+      ...asset,
+      detail: mintWalletBalancesByAddress[asset.address.toLowerCase()] ?? '…',
+    }))
+  }, [assetClaims, isAssetClaim, mintAssetOptions, mintWalletBalancesByAddress])
 
   useEffect(() => {
     if (!claimAllDividends && isPreviewOpen && isAssetClaim) {
@@ -1046,6 +1036,7 @@ export function GraiMintBurnPanel({
         >
           <div className="grai-action-content" ref={actionContentRef}>
           {actionView === 'burn' ? (
+            showRedeemableReserves ? (
             <div
               className={`grai-liquidation-aside-collapse${reservesAsideOpen ? ' is-open' : ''}`}
               id="grai-redeemable-reserves-body"
@@ -1133,6 +1124,7 @@ export function GraiMintBurnPanel({
                 </div>
               </div>
             </div>
+            ) : null
           ) : (
           <div className="grai-page-subtitle-wrap">
             <button
@@ -1311,7 +1303,7 @@ export function GraiMintBurnPanel({
                 ? isAssetClaim
                   ? 'claimable:'
                   : isGraiUnlock
-                    ? 'escrow:'
+                    ? 'locked:'
                     : 'balance:'
                 : 'balance:'
             }
@@ -1582,17 +1574,35 @@ export function GraiMintBurnPanel({
                 </div>
               ) : (
                 <div className="grai-action-metrics grai-action-metrics--result-row" aria-live="polite">
-                  <div className="grai-action-metric-row">
-                    <span className="grai-action-metric-label-wrap">
-                      <GraiFieldInfoButton
-                        className="grai-action-metric-label-info"
-                        hint="Indicative APR from yield dividends accrued on locked GRAI. Not guaranteed."
-                        ariaLabel="About estimated APR"
-                      />
-                      <span className="grai-action-metric-label">Estimated APR</span>
-                    </span>
-                    <span className="grai-action-metric-value is-yield">51%</span>
-                  </div>
+                  {amount.trim() ? (
+                    <div className="grai-action-metric-row">
+                      <span className="grai-action-metric-label-wrap">
+                        <GraiFieldInfoButton
+                          className="grai-action-metric-label-info"
+                          hint="Indicative APR from yield dividends accrued on locked GRAI. Not guaranteed."
+                          ariaLabel="About estimated APR"
+                        />
+                        <span className="grai-action-metric-label">Estimated APR</span>
+                      </span>
+                      <span className="grai-action-metric-value is-yield">51%</span>
+                    </div>
+                  ) : (
+                    <div className="grai-action-metric-row">
+                      <span className="grai-action-metric-label">Locked:</span>
+                      <span className="grai-action-metric-value">
+                        {unlockBalanceLoading ? '…' : lockedLabel}
+                        <img
+                          src={assetUrl('grai.png')}
+                          alt=""
+                          width={16}
+                          height={16}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        GRAI
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

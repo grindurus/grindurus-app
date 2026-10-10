@@ -39,7 +39,7 @@ export async function estimateEvmGraiBurnOutputs(
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
 
-  const [totalSupply, vaults] = await Promise.all([
+  const [totalSupply, assets] = await Promise.all([
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
@@ -48,13 +48,27 @@ export async function estimateEvmGraiBurnOutputs(
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
-      functionName: 'getVaultsData',
+      functionName: 'getAssets',
     }),
   ])
 
+  const baskets = await Promise.all(
+    assets.map(async (assetAddress) => {
+      const balance = isNativeEvmAsset(assetAddress)
+        ? await client.getBalance({ address: graiAddress })
+        : await client.readContract({
+            address: assetAddress,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [graiAddress],
+          })
+      return { assetAddress, balance }
+    }),
+  )
+
   if (totalSupply <= 0n || graiAmount > totalSupply) {
-    return vaults.map((vault) => ({
-      asset: resolveEvmGraiAsset(vault.asset),
+    return baskets.map(({ assetAddress }) => ({
+      asset: resolveEvmGraiAsset(assetAddress),
       amountLabel: '0',
       usdLabel: null,
       usdRaw: 0n,
@@ -62,19 +76,19 @@ export async function estimateEvmGraiBurnOutputs(
   }
 
   return Promise.all(
-    vaults.map(async (vault) => {
-      const asset = resolveEvmGraiAsset(vault.asset)
-      const decimals = isNativeEvmAsset(vault.asset)
+    baskets.map(async ({ assetAddress, balance }) => {
+      const asset = resolveEvmGraiAsset(assetAddress)
+      const decimals = isNativeEvmAsset(assetAddress)
         ? 18
         : Number(
             await client.readContract({
-              address: vault.asset,
+              address: assetAddress,
               abi: erc20Abi,
               functionName: 'decimals',
             }),
           )
 
-      const redeemRaw = redeemAssetAmount(graiAmount, totalSupply, vault.seniorBalance)
+      const redeemRaw = redeemAssetAmount(graiAmount, totalSupply, balance)
       let usdRaw = 0n
 
       if (redeemRaw > 0n) {
@@ -83,7 +97,7 @@ export async function estimateEvmGraiBurnOutputs(
             address: graiAddress,
             abi: priceOracleAbi,
             functionName: 'getPrice',
-            args: [vault.asset],
+            args: [assetAddress],
           })
           usdRaw = depositValue(
             redeemRaw,

@@ -1,4 +1,4 @@
-import { erc20Abi } from 'viem'
+import { erc20Abi, zeroAddress } from 'viem'
 import type { GraiEvmConfig } from '../deployments'
 import type { GraiAsset } from '../knownMints'
 import { formatTokenBalance } from '../onchain'
@@ -12,13 +12,13 @@ import { isNativeEvmAsset, resolveEvmGraiAsset } from './knownAssets'
 export async function fetchEvmGraiAssets(config: GraiEvmConfig): Promise<GraiAsset[]> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const entries = await client.readContract({
+  const assets = await client.readContract({
     address: graiAddress,
     abi: graiAbi,
     functionName: 'getAssets',
   })
 
-  return entries.map((entry) => resolveEvmGraiAsset(entry.asset))
+  return assets.map((address) => resolveEvmGraiAsset(address))
 }
 
 export type EvmListedAsset = {
@@ -26,50 +26,48 @@ export type EvmListedAsset = {
   symbol: string
   icon: string
   decimals: number
+  bribeable: boolean
 }
 
 async function fetchEvmListedAssets(config: GraiEvmConfig): Promise<EvmListedAsset[]> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const entries = await client.readContract({
+  const assets = await client.readContract({
     address: graiAddress,
     abi: graiAbi,
     functionName: 'getAssets',
   })
 
   return Promise.all(
-    entries.map(async (entry) => {
-      const address = entry.asset
+    assets.map(async (address) => {
       const meta = resolveEvmGraiAsset(address)
-      const decimals = await readAssetDecimals(config, address)
+      const [decimals, assetConfig] = await Promise.all([
+        readAssetDecimals(config, address),
+        client.readContract({
+          address: graiAddress,
+          abi: graiAbi,
+          functionName: 'assets',
+          args: [address],
+        }),
+      ])
       return {
         address,
         symbol: meta.symbol,
         icon: meta.icon.src,
         decimals,
+        bribeable: Boolean(assetConfig[2]),
       }
     }),
   )
 }
 
-async function readBribeOrSettlementAsset(
+/** First bribeable listed asset, or zero if none configured. */
+export async function resolveEvmBribePaymentAsset(
   config: GraiEvmConfig,
-  graiAddress: `0x${string}`,
 ): Promise<`0x${string}`> {
-  const client = createGraiEvmPublicClient(config)
-  try {
-    return await client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'bribeAsset',
-    })
-  } catch {
-    return await client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'settlementAsset',
-    })
-  }
+  const listed = await fetchEvmListedAssets(config)
+  const bribeable = listed.find((asset) => asset.bribeable)
+  return bribeable?.address ?? zeroAddress
 }
 
 export async function fetchEvmGraiTotalSupply(config: GraiEvmConfig) {
@@ -127,30 +125,67 @@ async function readAssetPrice(
   return { price, decimals: Number(priceDecimals) }
 }
 
+async function readGraiAssetBalance(
+  config: GraiEvmConfig,
+  graiAddress: `0x${string}`,
+  asset: `0x${string}`,
+): Promise<bigint> {
+  const client = createGraiEvmPublicClient(config)
+  if (isNativeEvmAsset(asset)) {
+    return client.getBalance({ address: graiAddress })
+  }
+  return client.readContract({
+    address: asset,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [graiAddress],
+  })
+}
+
+/** Idle GRAI balances + Grinders allocations per listed asset (replaces removed `getVaultsData`). */
 export async function fetchEvmGraiVaultBalances(
   config: GraiEvmConfig,
 ): Promise<Record<string, GraiAssetVaultBalances>> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const vaults = await client.readContract({
+  const assets = await client.readContract({
     address: graiAddress,
     abi: graiAbi,
-    functionName: 'getVaultsData',
+    functionName: 'getAssets',
+  })
+
+  const grindersAddress = await client.readContract({
+    address: graiAddress,
+    abi: graiAbi,
+    functionName: 'grinders',
   })
 
   const entries = await Promise.all(
-    vaults.map(async (vault) => {
-      const asset = vault.asset.toLowerCase()
-      const decimals = await readAssetDecimals(config, vault.asset)
-      let seniorUsdRaw = 0n
-      let juniorUsdRaw = 0n
-      let allocatedUsdRaw = 0n
+    assets.map(async (assetAddress) => {
+      const asset = assetAddress.toLowerCase()
+      const decimals = await readAssetDecimals(config, assetAddress)
+      const seniorBalance = await readGraiAssetBalance(config, graiAddress, assetAddress)
 
+      let allocatedRaw = 0n
+      if (grindersAddress && grindersAddress !== zeroAddress) {
+        try {
+          allocatedRaw = await client.readContract({
+            address: grindersAddress,
+            abi: grindersAbi,
+            functionName: 'balance',
+            args: [assetAddress],
+          })
+        } catch {
+          allocatedRaw = 0n
+        }
+      }
+
+      let seniorUsdRaw = 0n
+      let allocatedUsdRaw = 0n
       try {
-        const oracle = await readAssetPrice(config, vault.asset)
-        seniorUsdRaw = depositValue(vault.seniorBalance, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
-        juniorUsdRaw = depositValue(vault.juniorBalance, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
-        allocatedUsdRaw = depositValue(vault.activeAmount, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
+        const oracle = await readAssetPrice(config, assetAddress)
+        seniorUsdRaw = depositValue(seniorBalance, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
+        allocatedUsdRaw = depositValue(allocatedRaw, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
       } catch {
         // Price feed unavailable — USD columns stay zero.
       }
@@ -158,13 +193,13 @@ export async function fetchEvmGraiVaultBalances(
       return [
         asset,
         {
-          seniorRaw: vault.seniorBalance,
-          juniorRaw: vault.juniorBalance,
-          allocatedRaw: vault.activeAmount,
+          seniorRaw: seniorBalance,
+          juniorRaw: 0n,
+          allocatedRaw,
           decimals,
-          navUsdRaw: seniorUsdRaw,
+          navUsdRaw: seniorUsdRaw + allocatedUsdRaw,
           seniorUsdRaw,
-          juniorUsdRaw,
+          juniorUsdRaw: 0n,
           allocatedUsdRaw,
         },
       ] as const
@@ -271,7 +306,8 @@ export async function fetchEvmRedeemUnlockTiming(
   ])
 
   const liquidationAt = Number(liquidationAtRaw)
-  const liquidationPeriodSec = Number(protocolConfig[9])
+  // config: dividend, treasury, revenueShare, claimTip, bribePremium, quorum, unlockPenalty, liquidationPeriod, redeemPeriod
+  const liquidationPeriodSec = Number(protocolConfig[7])
   const redeemUnlockAt =
     liquidationOpen && liquidationAt > 0 ? liquidationAt + liquidationPeriodSec : null
 
@@ -351,12 +387,8 @@ export type EvmLiquidationVoteState = {
   hasQuorum: boolean
   /** Grinders operational heartbeat is still active (`grinders.grinding()`). */
   grinding: boolean
-  /**
-   * @deprecated Prefer `!grinding` (stale heartbeat). Kept as liquidate-ready alias for older UI.
-   * True when Grinders health check fails (stale) — second limb of 2-of-2 open.
-   */
-  confirmed: boolean
   liquidationOpen: boolean
+  /** Default bribe payment asset (first bribeable listed asset). */
   settlementAsset: `0x${string}`
   settlementDecimals: number
   settlementSymbol: string
@@ -381,7 +413,6 @@ export async function fetchEvmLiquidationVoteState(
     totalValue,
     hasQuorum,
     liquidationOpen,
-    settlementAsset,
     protocolConfig,
     voterEscrows,
     listedAssets,
@@ -395,13 +426,12 @@ export async function fetchEvmLiquidationVoteState(
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalValue' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'hasQuorum' }),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidation' }),
-    readBribeOrSettlementAsset(config, graiAddress),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'config' }),
     client.readContract({
       address: graiAddress,
       abi: graiAbi,
-      functionName: 'getVoters',
-      args: [0n, 2n ** 256n - 1n],
+      functionName: 'getEscrows',
+      args: [true, 0n, 2n ** 256n - 1n],
     }),
     fetchEvmListedAssets(config),
     owner
@@ -426,13 +456,12 @@ export async function fetchEvmLiquidationVoteState(
           0n,
           0,
           0,
-          0,
         ] as const),
     client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'grinders' }),
   ])
 
   let grinding = true
-  if (grindersAddress && grindersAddress !== '0x0000000000000000000000000000000000000000') {
+  if (grindersAddress && grindersAddress !== zeroAddress) {
     try {
       grinding = await client.readContract({
         address: grindersAddress,
@@ -444,8 +473,11 @@ export async function fetchEvmLiquidationVoteState(
     }
   }
 
-  const settlementDecimals = await readAssetDecimals(config, settlementAsset)
-  const settlementMeta = resolveEvmGraiAsset(settlementAsset)
+  const bribePayment =
+    listedAssets.find((asset) => asset.bribeable)?.address ?? zeroAddress
+  const settlementDecimals =
+    bribePayment === zeroAddress ? 18 : await readAssetDecimals(config, bribePayment)
+  const settlementMeta = resolveEvmGraiAsset(bribePayment)
   const voterEntries = voterEscrows.map((escrow) => ({
     address: escrow.account,
     escrowGrai: escrow.voted,
@@ -461,32 +493,16 @@ export async function fetchEvmLiquidationVoteState(
     totalValue,
     hasQuorum,
     grinding,
-    confirmed: !grinding,
     liquidationOpen,
-    settlementAsset,
+    settlementAsset: bribePayment,
     settlementDecimals,
     settlementSymbol: settlementMeta.symbol,
-    bribePremiumBps: Number(protocolConfig[5]),
-    liquidationQuorumBps: Number(protocolConfig[6]),
+    bribePremiumBps: Number(protocolConfig[4]),
+    liquidationQuorumBps: Number(protocolConfig[5]),
     voters: voterEscrows.map((escrow) => escrow.account),
     voterEntries,
     listedAssets,
   }
-}
-
-export async function fetchEvmVoterEscrow(
-  config: GraiEvmConfig,
-  voter: `0x${string}`,
-): Promise<bigint> {
-  const client = createGraiEvmPublicClient(config)
-  const graiAddress = resolveGraiContractAddress(config)
-  const entry = await client.readContract({
-    address: graiAddress,
-    abi: graiAbi,
-    functionName: 'escrows',
-    args: [voter],
-  })
-  return entry[3]
 }
 
 export type EvmLockerEntry = {
@@ -494,21 +510,21 @@ export type EvmLockerEntry = {
   lockedGrai: bigint
 }
 
-/** Active GRAI lockers (`getLockers`) with non-zero escrow. */
+/** Active GRAI lockers (`getEscrows(false, …)`) with non-zero escrow. */
 export async function fetchEvmLockers(config: GraiEvmConfig): Promise<EvmLockerEntry[]> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
   const escrows = await client.readContract({
     address: graiAddress,
     abi: graiAbi,
-    functionName: 'getLockers',
-    args: [0n, 2n ** 256n - 1n],
+    functionName: 'getEscrows',
+    args: [false, 0n, 2n ** 256n - 1n],
   })
   return escrows
-    .filter((escrow) => escrow.amount > 0n && escrow.account !== '0x0000000000000000000000000000000000000000')
+    .filter((escrow) => escrow.locked > 0n && escrow.account !== zeroAddress)
     .map((escrow) => ({
       address: escrow.account,
-      lockedGrai: escrow.amount,
+      lockedGrai: escrow.locked,
     }))
 }
 
@@ -516,15 +532,20 @@ export async function previewEvmBribe(
   config: GraiEvmConfig,
   voter: `0x${string}`,
   graiAmount: bigint,
+  asset?: `0x${string}`,
 ): Promise<{ bribeAmount: bigint; premium: bigint; discount: bigint }> {
   if (graiAmount <= 0n) return { bribeAmount: 0n, premium: 0n, discount: 0n }
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
+  const paymentAsset = asset ?? (await resolveEvmBribePaymentAsset(config))
+  if (paymentAsset === zeroAddress) {
+    throw new Error('No bribeable asset configured on GRAI')
+  }
   const [bribeAmount, premium, discount] = await client.readContract({
     address: graiAddress,
     abi: graiAbi,
     functionName: 'previewBribe',
-    args: [voter, graiAmount],
+    args: [paymentAsset, voter, graiAmount],
   })
   return { bribeAmount, premium, discount }
 }

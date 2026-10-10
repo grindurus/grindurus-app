@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js'
-import { isAddress, zeroAddress } from 'viem'
+import { isAddress } from 'viem'
 
 export const GRAI_REFERRER_STORAGE_KEY = 'grindurus.grai.referrer'
 
@@ -35,12 +35,6 @@ export function normalizeGraiReferrerInput(
   const trimmed = value?.trim() ?? ''
   if (!trimmed || !isValidGraiReferrer(trimmed, chain)) return ''
   return trimmed
-}
-
-/** Address to pass to EVM `deposit`; empty/invalid → zero (self-bind). */
-export function resolveGraiReferrerForDeposit(value: string | null | undefined): `0x${string}` {
-  const normalized = normalizeGraiReferrerInput(value, 'evm')
-  return (normalized || zeroAddress) as `0x${string}`
 }
 
 export function readStoredGraiReferrer(): string {

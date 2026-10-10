@@ -36,15 +36,6 @@ export function positionPda(
   )[0]
 }
 
-/** @deprecated Use `positionPda`. */
-export function yieldByPda(
-  custodyWallet: PublicKey,
-  assetMint: PublicKey,
-  programId: PublicKey,
-): PublicKey {
-  return positionPda(custodyWallet, assetMint, programId)
-}
-
 export function grindersStatePda(grindersProgramId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync([Buffer.from('grinders')], grindersProgramId)[0]
 }
@@ -101,55 +92,9 @@ export function treasuryNftDepositAccounts(locker: PublicKey, programId: PublicK
   }
 }
 
-/** @deprecated Depositor allowlist removed from grai. */
-export function depositorAllowancePda(depositor: PublicKey, programId: PublicKey): PublicKey {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('depositor'), depositor.toBuffer()],
-    programId,
-  )[0]
-}
-
-/** @deprecated Issuance ledger removed — track Allocate/Deallocate off-chain. */
-export function allocationPda(
-  _custodianState: PublicKey,
-  _assetMint: PublicKey,
-  _grindersProgramId: PublicKey,
-): PublicKey {
-  throw new Error('allocation PDA removed; track Allocate/Deallocate off-chain')
-}
-
 export function getAssociatedTokenAddress(mint: PublicKey, owner: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
     ASSOCIATED_TOKEN_PROGRAM_ID,
   )[0]
-}
-
-/** @deprecated Senior vaults removed — use `assetConfigPda`. */
-export function seniorVaultPda(assetMint: PublicKey, programId: PublicKey): PublicKey {
-  return assetConfigPda(assetMint, programId)
-}
-
-/** @deprecated Senior vault ATAs removed — use `vaultAtaPda`. */
-export function seniorVaultAtaPda(assetMint: PublicKey, programId: PublicKey): PublicKey {
-  return vaultAtaPda(assetMint, programId)
-}
-
-/** @deprecated Junior vaults removed. */
-export function juniorVaultPda(assetMint: PublicKey, programId: PublicKey): PublicKey {
-  return assetConfigPda(assetMint, programId)
-}
-
-/** @deprecated Junior vault ATAs removed — reserves live on grinders ATA. */
-export function juniorVaultAtaPda(assetMint: PublicKey, programId: PublicKey): PublicKey {
-  return vaultAtaPda(assetMint, programId)
-}
-
-/** @deprecated Custody allocation PDA removed. */
-export function custodyAllocationPda(
-  custodyWallet: PublicKey,
-  assetMint: PublicKey,
-  programId: PublicKey,
-): PublicKey {
-  return allocationPda(custodyWallet, assetMint, programId)
 }

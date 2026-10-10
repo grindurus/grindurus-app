@@ -1,9 +1,9 @@
 import type { Connection, PublicKey, Transaction } from '@solana/web3.js'
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from '../wallets/AppWalletProvider'
 import {
   sendWalletTransaction,
   type SolanaSendTransaction,
-} from '../solana/sendWalletTransaction'
+} from '../wallets/sendWalletTransaction'
 
 export type GraiWalletSend = {
   connection: Connection

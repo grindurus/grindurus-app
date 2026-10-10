@@ -3,7 +3,6 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { ToastContainer } from 'react-toastify'
 import Header from './components/Header'
 import Footer from './components/Footer'
-import { useWalletContext } from './providers/AppWalletProvider'
 import { navigateToGraiSection } from './utils/graiNavigation'
 import { bindAppNavigate } from './utils/navigate'
 import { primeBullSound } from './utils/playBullSound'
@@ -112,18 +111,17 @@ function AffiliatesRoute() {
 }
 
 function BacktestRoute() {
-  const { isEvmStackReady } = useWalletContext()
-
-  if (!isEvmStackReady) {
-    return (
-      <div className="App-main-loading" role="status">
-        Loading backtest runtime...
-      </div>
-    )
-  }
-
+  // Do not wait for the EVM wallet stack — wagmi/RainbowKit can take a long time
+  // (and never becomes ready if Solana is selected). BacktestPage reads wallet
+  // via snapshots / context defaults until stacks finish warming.
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="App-main-loading" role="status">
+          Loading backtest…
+        </div>
+      }
+    >
       <BacktestPage />
     </Suspense>
   )

@@ -1,4 +1,4 @@
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from '../wallets/AppWalletProvider'
 import type { CustodyAssetBalances } from './fetchCustodyWalletBalances'
 import { NATIVE_MINT, resolveGraiAsset, type GraiAsset } from './knownMints'
 import { resolveGrinderCustodyWallet } from './grinders'

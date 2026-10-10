@@ -28,7 +28,13 @@ export function useGraiBribe() {
   } = useGraiEvmTransaction()
 
   const bribe = useCallback(
-    async (params: { voter: string; amountInput: string; graiDecimals: number }) => {
+    async (params: {
+      voter: string
+      amountInput: string
+      graiDecimals: number
+      /** Bribeable payment asset (EVM); defaults to first bribeable listed asset. */
+      asset?: `0x${string}`
+    }) => {
       if (chainKind === 'evm') {
         if (!evm) throw new Error('GRAI is not configured for this EVM network')
 
@@ -44,6 +50,7 @@ export function useGraiBribe() {
               voter: params.voter as `0x${string}`,
               amountInput: params.amountInput,
               graiDecimals: params.graiDecimals,
+              asset: params.asset,
             }),
         })
         return hash

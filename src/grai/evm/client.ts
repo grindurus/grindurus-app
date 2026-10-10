@@ -1,7 +1,7 @@
 import { createPublicClient } from 'viem'
 import { arbitrum, base, baseSepolia, mainnet, sepolia } from 'wagmi/chains'
 import type { GraiEvmConfig } from '../deployments'
-import { evmHttpTransport } from '../../providers/evmTransports'
+import { evmHttpTransport } from '../../wallets/evmTransports'
 
 const CHAINS = [mainnet, base, arbitrum, sepolia, baseSepolia] as const
 

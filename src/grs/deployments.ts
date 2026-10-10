@@ -10,7 +10,7 @@ import {
   solscanTokenUrl,
   solscanTxUrl,
 } from '../grai/deployments'
-import type { SolanaCluster } from '../providers/AppWalletProvider'
+import type { SolanaCluster } from '../wallets/AppWalletProvider'
 import { oftStoreFromMint } from './solana/pdas'
 
 export type GrsChainKind = 'solana' | 'evm'

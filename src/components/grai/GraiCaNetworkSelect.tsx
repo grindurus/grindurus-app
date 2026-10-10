@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { useEvmWallet } from '../../hooks/useEvmWallet'
-import { useSolanaWallet } from '../../hooks/useSolanaWallet'
-import { useWalletContext, type EvmChain, type SolanaCluster } from '../../providers/AppWalletProvider'
+import { useEvmWallet } from '../../wallets/useEvmWallet'
+import { useSolanaWallet } from '../../wallets/useSolanaWallet'
+import { useWalletContext, type EvmChain, type SolanaCluster } from '../../wallets/AppWalletProvider'
 import {
   getDefaultGraiSolanaCluster,
   listConfiguredEvmChains,
   resolveGraiSolanaConfig,
 } from '../../grai/deployments'
-import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../../wallet/caip2Network'
+import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../../wallets/caip2Network'
 import {
   evmChainMatchesNetworkEnv,
   networkEnvFromSolanaCluster,
   solanaClusterMatchesNetworkEnv,
-} from '../../wallet/networkEnv'
+} from '../../wallets/networkEnv'
 import { EvmChainListIcon } from '../WalletNetworkSelect'
 import { SolanaClusterIcon } from '../SolanaClusterIcon'
 import '../WalletStyles.css'

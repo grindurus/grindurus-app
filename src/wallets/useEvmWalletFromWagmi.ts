@@ -1,12 +1,12 @@
 import { useAccount, useDisconnect, useChainId, useSwitchChain, useConnect } from 'wagmi'
 import { mainnet, base, arbitrum, polygon, sepolia } from 'wagmi/chains'
 import { useMemo, useCallback, useState, useEffect } from 'react'
-import type { EvmWalletSnapshot } from '../providers/evmWalletTypes'
-import { useWalletContext } from '../providers/walletContext'
+import type { EvmWalletSnapshot } from './evmWalletTypes'
+import { useWalletContext } from './walletContext'
 import {
   evmChainMatchesNetworkEnv,
   networkEnvFromSolanaCluster,
-} from '../wallet/networkEnv'
+} from './networkEnv'
 
 const chainNames: Record<number, string> = {
   [mainnet.id]: 'Ethereum',

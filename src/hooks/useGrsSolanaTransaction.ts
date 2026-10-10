@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { Connection, PublicKey, Transaction } from '@solana/web3.js'
-import { useSolanaWallet } from './useSolanaWallet'
-import { useWalletContext } from '../providers/AppWalletProvider'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { useWalletContext } from '../wallets/AppWalletProvider'
 import { isGraiTransactionPending, type GraiTransactionStatus } from './useGraiTransaction'
 import {
   createGrsSolanaConnection,
@@ -9,7 +9,7 @@ import {
   resolveGrsSolanaConfig,
   type GrsSolanaConfig,
 } from '../grs/deployments'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
 
 type RunOptions<TResult extends { signature: string }> = {
   connectMessage: string

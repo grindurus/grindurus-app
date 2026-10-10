@@ -5,14 +5,14 @@ import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { resolveGraiAsset, type GraiAsset } from './knownMints'
 import { NATIVE_MINT } from './knownMints'
 import {
+  decodeAssetConfigPriceFeed,
   decodeMintDecimals,
   decodeMintSupply,
-  decodeSeniorVaultPriceFeed,
   formatTokenBalance,
   parseTokenAmount,
 } from './onchain'
 import { parseOraclePriceFeed } from './oraclePrice'
-import { seniorVaultAtaPda, seniorVaultPda } from './pdas'
+import { assetConfigPda, vaultAtaPda } from './pdas'
 import { depositValue, redeemAssetAmount, USD_SCALE } from './tokenomics'
 
 export type GraiBurnOutputEstimate = {
@@ -67,7 +67,7 @@ export async function estimateGraiBurnOutputs(
 
   const accountKeys: PublicKey[] = [graiState, config.graiMint]
   for (const mint of assetMints) {
-    accountKeys.push(seniorVaultPda(mint, programId), seniorVaultAtaPda(mint, programId))
+    accountKeys.push(assetConfigPda(mint, programId), vaultAtaPda(mint, programId))
     if (mint.toBase58() !== NATIVE_MINT) {
       accountKeys.push(mint)
     }
@@ -90,8 +90,8 @@ export async function estimateGraiBurnOutputs(
   }
 
   const priceFeedKeys = assetMints.map((mint) => {
-    const seniorVaultData = getAccountData(accounts, seniorVaultPda(mint, programId))
-    return seniorVaultData ? decodeSeniorVaultPriceFeed(seniorVaultData) : null
+    const assetConfigData = getAccountData(accounts, assetConfigPda(mint, programId))
+    return assetConfigData ? decodeAssetConfigPriceFeed(assetConfigData) : null
   })
 
   const uniquePriceFeedKeys = [
@@ -107,8 +107,8 @@ export async function estimateGraiBurnOutputs(
     const mintData = isNativeSol ? null : getAccountData(accounts, mint)
     const decimals = isNativeSol ? 9 : mintData ? decodeMintDecimals(mintData) : 0
 
-    const seniorAtaData = getAccountData(accounts, seniorVaultAtaPda(mint, programId))
-    const idleRaw = seniorAtaData ? decodeTokenAccountAmount(seniorAtaData) : 0n
+    const vaultAtaData = getAccountData(accounts, vaultAtaPda(mint, programId))
+    const idleRaw = vaultAtaData ? decodeTokenAccountAmount(vaultAtaData) : 0n
     const redeemRaw = redeemAssetAmount(graiAmount, totalSupply, idleRaw)
 
     let usdRaw = 0n

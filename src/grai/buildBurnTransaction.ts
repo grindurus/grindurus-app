@@ -19,7 +19,7 @@ import {
   vaultAtaPda,
 } from './pdas'
 import { createAssociatedTokenAccountIdempotentInstruction } from './splInstructions'
-import type { SolanaSendTransaction } from '../solana/sendWalletTransaction'
+import type { SolanaSendTransaction } from '../wallets/sendWalletTransaction'
 import { signAndSendGraiTx } from './signAndSendGraiTx'
 
 /** Anchor discriminator for `grai::redeem`. */
@@ -154,6 +154,3 @@ export async function executeBurn({
     amountLabel: formatTokenBalance(graiAmount, decimals),
   }
 }
-
-export const buildRedeemTransaction = buildBurnTransaction
-export const executeRedeem = executeBurn

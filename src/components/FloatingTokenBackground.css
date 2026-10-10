@@ -52,15 +52,87 @@
 
 .floating-token-bg__token {
   position: absolute;
+  pointer-events: auto;
+  cursor: default;
   animation: floating-token-drift var(--float-duration, 24s) ease-in-out infinite;
   animation-delay: var(--float-delay, 0s);
   animation-fill-mode: both;
   will-change: transform;
+  z-index: 1;
+}
+
+.floating-token-bg__token.is-hovered {
+  animation-play-state: paused;
+  z-index: 4;
 }
 
 .floating-token-bg__token.is-clipped {
   visibility: hidden;
   pointer-events: none;
+}
+
+.floating-token-bg__tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 9.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-primary) 92%, #ff69b4 8%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  color: var(--text-primary);
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.floating-token-bg__tooltip.is-left {
+  transform: translate(0, -50%);
+}
+
+.floating-token-bg__tooltip.is-right {
+  transform: translate(-100%, -50%);
+}
+
+.floating-token-bg__tooltip-ticker {
+  margin-bottom: 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.floating-token-bg__tooltip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.floating-token-bg__tooltip-row + .floating-token-bg__tooltip-row {
+  margin-top: 0.2rem;
+}
+
+.floating-token-bg__tooltip-row strong {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.floating-token-bg__tooltip-row strong.is-yield {
+  color: #ff69b4;
+}
+
+[data-theme='light'] .floating-token-bg__tooltip {
+  background: color-mix(in srgb, var(--bg-primary) 94%, #e91e8c 6%);
+  box-shadow: 0 10px 24px rgba(20, 12, 24, 0.12);
+}
+
+[data-theme='light'] .floating-token-bg__tooltip-row strong.is-yield {
+  color: #e91e8c;
 }
 
 .floating-token-bg__token-inner {
@@ -83,13 +155,13 @@
   display: block;
   border-radius: 50%;
   pointer-events: none;
-  opacity: calc(0.4 * (1 - var(--reveal)) + var(--reveal));
+  opacity: calc(0.55 * (1 - var(--reveal)) + var(--reveal));
   filter:
-    blur(calc(13px * (1 - var(--reveal))))
+    blur(calc(10px * (1 - var(--reveal))))
     saturate(calc(1.45 + var(--reveal) * 0.15))
     contrast(calc(1.05 + var(--reveal) * 0.03))
     brightness(calc(1.04 + var(--reveal) * 0.02));
-  transform: scale(calc(1.14 - var(--reveal) * 0.14));
+  transform: scale(calc(1.12 - var(--reveal) * 0.12));
   transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
 }
 
@@ -104,9 +176,9 @@
 }
 
 [data-theme='light'] .floating-token-bg__img {
-  opacity: calc(0.34 * (1 - var(--reveal)) + var(--reveal));
+  opacity: calc(0.48 * (1 - var(--reveal)) + var(--reveal));
   filter:
-    blur(calc(11px * (1 - var(--reveal))))
+    blur(calc(9px * (1 - var(--reveal))))
     saturate(calc(1.35 + var(--reveal) * 0.15))
     contrast(calc(1.04 + var(--reveal) * 0.02))
     brightness(calc(1.02 + var(--reveal) * 0.02));

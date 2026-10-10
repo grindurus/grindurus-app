@@ -3,7 +3,7 @@ import { Settings } from 'lucide-react'
 import { FALLBACK_GRAI_ASSETS, type GraiAssetIcon } from '../../grai/knownMints'
 import { formatVaultBalanceDisplay } from '../../grai/formatVaultBalance'
 import { formatTokenBalance, normalizeDecimalInput, parseTokenAmount } from '../../grai/onchain'
-import { useActiveWallet } from '../../hooks/useActiveWallet'
+import { useActiveWallet } from '../../wallets/useActiveWallet'
 import { GraiAssetSelect } from './GraiAssetSelect'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 

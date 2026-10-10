@@ -24,9 +24,8 @@ function tryParseDepositAmount(amountInput: string, assetDecimals: number): bigi
 
 export type GraiMintEstimate = {
   graiRaw: bigint
-  /** @deprecated Senior vault removed — always 0. */
   seniorRaw: bigint
-  /** Full deposit sent to Grinders (new GRAI model). */
+  /** Full deposit sent to Grinders. */
   juniorRaw: bigint
   seniorUsdRaw: bigint
   juniorUsdRaw: bigint
