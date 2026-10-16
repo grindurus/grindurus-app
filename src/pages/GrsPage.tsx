@@ -20,7 +20,6 @@ const GrsVestingPanel = lazy(() =>
 )
 import { MINT_ASSET_SOLSCAN_ICON } from '../components/grai/graiPageIcons'
 import { useEvmWallet } from '../wallets/useEvmWallet'
-import { useSolanaWallet } from '../wallets/useSolanaWallet'
 import { useGrsSnapshot } from '../hooks/useGrsSnapshot'
 import {
   grsExplorerTokenUrl,
@@ -169,7 +168,6 @@ function GrsOpsPanel({
 
 function GrsPage() {
   const evmWallet = useEvmWallet()
-  const solanaWallet = useSolanaWallet()
   const { networkEnv, setSelectedChainType, setEvmChain } = useWalletContext()
   // Show whenever header is Testnet (GRS still primarily ships test deployments).
   const showTestnetBanner = networkEnv === 'testnet'

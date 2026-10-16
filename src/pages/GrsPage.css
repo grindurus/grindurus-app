@@ -1258,14 +1258,6 @@
   .grs-vest-list {
     grid-template-columns: 1fr;
   }
-
-  .grs-cap-map {
-    height: 13.5rem;
-  }
-
-  .grs-cap-group-name {
-    font-size: 0.5rem;
-  }
 }
 
 .grs-cap-infographic {
@@ -1636,4 +1628,109 @@
 [data-theme='light'] .grs-cap-group--ecosystem .grs-cap-bucket:nth-child(2) .grs-cap-bucket-label,
 [data-theme='light'] .grs-cap-group--foundation .grs-cap-bucket:nth-child(3) .grs-cap-bucket-label {
   color: #111827;
+}
+
+/* Phone / narrow: stack groups full-width; keep vertical buckets readable. */
+@media (max-width: 720px) {
+  .grs-cap-map {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: 0.55rem;
+  }
+
+  .grs-cap-group {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .grs-cap-group-head {
+    align-items: center;
+    padding: 0.45rem 0.55rem;
+  }
+
+  .grs-cap-group-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .grs-cap-group-vals {
+    flex-shrink: 0;
+  }
+
+  .grs-cap-group-hint {
+    font-size: 0.58rem;
+  }
+
+  .grs-cap-group-amt {
+    font-size: 0.8rem;
+  }
+
+  .grs-cap-group-used {
+    font-size: 0.68rem;
+  }
+
+  .grs-cap-buckets {
+    flex: 0 0 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .grs-cap-bucket {
+    /* Beat inline flexGrow/flexBasis from the treemap sizing. */
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    flex-basis: auto !important;
+    min-height: 2.75rem;
+    height: auto;
+    align-items: center;
+    padding: 0.45rem 0.55rem;
+    overflow: visible;
+  }
+
+  .grs-cap-bucket-label {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .grs-cap-bucket-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .grs-cap-bucket-amt {
+    font-size: 0.72rem;
+  }
+
+  .grs-cap-bucket-used {
+    font-size: 0.66rem;
+  }
+}
+
+/* Tablet: two columns before full five-up desktop. */
+@media (min-width: 721px) and (max-width: 980px) {
+  .grs-cap-map {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    height: auto;
+    gap: 0.5rem;
+  }
+
+  .grs-cap-group {
+    min-height: 11rem;
+  }
+
+  .grs-cap-buckets {
+    min-height: 7.5rem;
+  }
+
+  .grs-cap-group-name {
+    font-size: 0.72rem;
+  }
 }
