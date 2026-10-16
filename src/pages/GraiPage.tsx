@@ -141,7 +141,7 @@ function GraiPage() {
             )}
             {!isConfigured && chainKind === 'evm' && (
               <p className="grai-page-network-warning" role="status">
-                GRAI is not configured for this EVM network. Set VITE_GRAI_ARBITRUM (mainnet) or the matching VITE_GRAI_* env var.
+                GRAI is not deployed on this EVM network. Use Arbitrum mainnet (or a configured testnet).
               </p>
             )}
             {!isConfigured && chainKind === 'solana' && !hasStaticConfig && (

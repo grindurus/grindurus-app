@@ -51,6 +51,7 @@ jobs:
           VITE_GRAI_DEVNET_MINT: ${{ secrets.VITE_GRAI_DEVNET_MINT }}
           VITE_GRAI_MAINNET_MINT: ${{ secrets.VITE_GRAI_MAINNET_MINT }}
           VITE_GRAI_TESTNET_MINT: ${{ secrets.VITE_GRAI_TESTNET_MINT }}
+          # Public addresses — optional secrets override the in-code defaults.
           VITE_GRAI_ARBITRUM: ${{ secrets.VITE_GRAI_ARBITRUM }}
           VITE_GRAI_SEPOLIA: ${{ secrets.VITE_GRAI_SEPOLIA }}
           VITE_GRAI_BASE_SEPOLIA: ${{ secrets.VITE_GRAI_BASE_SEPOLIA }}

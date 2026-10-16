@@ -22,6 +22,14 @@ const DEVNET_DEFAULTS = {
   graiMint: 'nJoFYfY5xcA8aZ2Wiq79RNKfqyEwS9nF13goghEgrai',
 } as const
 
+/** Public mainnet GRAI proxy (token + protocol) — safe to ship in the client. */
+const ARBITRUM_DEFAULT_GRAI = '0x999999082c136c363bA7436928499CbA9B2Ed94D' as const
+
+/** Optional public EVM defaults when `VITE_GRAI_*` is unset (CI / Pages without secrets). */
+const EVM_DEFAULT_UNIFIED: Partial<Record<number, `0x${string}`>> = {
+  42161: ARBITRUM_DEFAULT_GRAI,
+}
+
 export type GraiEvmConfig = {
   kind: 'evm'
   chainId: number
@@ -206,7 +214,9 @@ export function resolveGraiEvmConfig(chainId: number): GraiEvmConfig | null {
   if (!chain) return null
 
   // Prefer unified address (proxy = token + protocol), e.g. VITE_GRAI_ARBITRUM.
-  const unified = readEnv(`VITE_GRAI_${chain.envSuffix}`) as `0x${string}` | undefined
+  const unified =
+    (readEnv(`VITE_GRAI_${chain.envSuffix}`) as `0x${string}` | undefined) ??
+    EVM_DEFAULT_UNIFIED[chainId]
   const graiToken =
     unified ?? (readEnv(`VITE_GRAI_${chain.envSuffix}_TOKEN`) as `0x${string}` | undefined)
   const protocolAddress =
