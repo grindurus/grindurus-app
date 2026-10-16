@@ -1,7 +1,9 @@
+import { zeroAddress } from 'viem'
 import type { GraiEvmConfig } from '../deployments'
 import { parseTokenAmount } from '../onchain'
 import { graiAbi } from './abi'
 import { createGraiEvmPublicClient, resolveGraiContractAddress } from './client'
+import { isNativeEvmAsset } from './knownAssets'
 
 export type EvmGraiMintEstimate = {
   graiRaw: bigint
@@ -35,15 +37,27 @@ export async function estimateEvmGraiMintOutput(
   const graiAddress = resolveGraiContractAddress(config)
   const asset = assetAddress.toLowerCase() as `0x${string}`
 
-  const assetConfig = await client.readContract({
-    address: graiAddress,
-    abi: graiAbi,
-    functionName: 'assets',
-    args: [asset],
-  })
-
-  if (!assetConfig[0] || assetConfig[0] === '0x0000000000000000000000000000000000000000') {
-    throw new Error('Asset is not registered in GRAI protocol')
+  // Native ETH is keyed as address(0). Checking `assets(asset).asset != 0` falsely
+  // treats it as unregistered and zeroes mint/USD estimates.
+  if (isNativeEvmAsset(asset)) {
+    const listed = await client.readContract({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'getAssets',
+    })
+    if (!listed.some((item) => item.toLowerCase() === asset)) {
+      throw new Error('Asset is not registered in GRAI protocol')
+    }
+  } else {
+    const assetConfig = await client.readContract({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'assets',
+      args: [asset],
+    })
+    if (!assetConfig[0] || assetConfig[0].toLowerCase() === zeroAddress) {
+      throw new Error('Asset is not registered in GRAI protocol')
+    }
   }
 
   // Prefer on-chain preview (no senior/junior split on current GRAI).
@@ -54,11 +68,12 @@ export async function estimateEvmGraiMintOutput(
     args: [asset, depositAmount],
   })
 
+  // Entire deposit goes to Grinders (same as Solana estimate — no senior split).
   return {
     graiRaw,
-    seniorRaw: depositAmount,
-    juniorRaw: 0n,
-    seniorUsdRaw: depositValueUsd,
-    juniorUsdRaw: 0n,
+    seniorRaw: 0n,
+    juniorRaw: depositAmount,
+    seniorUsdRaw: 0n,
+    juniorUsdRaw: depositValueUsd,
   }
 }

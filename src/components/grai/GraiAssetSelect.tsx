@@ -89,9 +89,12 @@ export function GraiAssetSelect({
     const root = rootRef.current
     if (!root) return
 
-    // Trailing USD layout sizes the select via CSS grid — fixed px width overflows the field.
+    // Deposit trailing-USD and swap legs size the select via CSS grid — fixed px width clips the pill.
     const field = root.closest('.grai-amount-input-field')
-    if (field?.querySelector('.grai-amount-input-usd.has-trailing')) {
+    const gridSizedSelect =
+      Boolean(field?.querySelector('.grai-amount-input-usd.has-trailing')) ||
+      Boolean(root.closest('.grai-swap-leg') && field?.querySelector('.grai-amount-input-usd'))
+    if (gridSizedSelect) {
       root.style.removeProperty('width')
       root.style.removeProperty('transition')
       widthPxRef.current = null

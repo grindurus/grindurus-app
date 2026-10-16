@@ -1,5 +1,14 @@
-import { getAccount, readContract, waitForTransactionReceipt, writeContract } from '@wagmi/core'
-import { erc20Abi, maxUint256, parseUnits } from 'viem'
+import {
+  getAccount,
+  getBytecode,
+  getCapabilities,
+  readContract,
+  sendCalls,
+  waitForCallsStatus,
+  waitForTransactionReceipt,
+  writeContract,
+} from '@wagmi/core'
+import { erc20Abi, maxUint256, parseUnits, type Abi } from 'viem'
 import { wagmiConfig } from '../../wallets/evmConfig'
 import type { GraiEvmConfig } from '../deployments'
 import { formatTokenBalance, parseTokenAmount } from '../onchain'
@@ -7,6 +16,132 @@ import { graiAbi, grindersAbi } from './abi'
 import { resolveGraiContractAddress } from './client'
 import { isNativeEvmAsset } from './knownAssets'
 import { resolveEvmBribePaymentAsset } from './readProtocol'
+
+type WagmiChainId = (typeof wagmiConfig)['chains'][number]['id']
+
+/** EIP-5792 atomic batching and/or EIP-7702 delegated EOA (MetaMask smart account). */
+async function walletCanBatchCalls(address: `0x${string}`, chainId: number): Promise<boolean> {
+  try {
+    const caps = await getCapabilities(wagmiConfig, { account: address, chainId })
+    const chainCaps =
+      caps && typeof caps === 'object' && 'atomic' in caps
+        ? (caps as { atomic?: { status?: string } })
+        : ((caps as Record<string | number, { atomic?: { status?: string } }>)[chainId] ??
+          (caps as Record<string, { atomic?: { status?: string } }>)[
+            `0x${chainId.toString(16)}`
+          ])
+    const status = chainCaps?.atomic?.status
+    if (status === 'supported' || status === 'ready') return true
+  } catch {
+    /* wallet_getCapabilities unavailable */
+  }
+
+  try {
+    const code = await getBytecode(wagmiConfig, { address })
+    // EIP-7702 designation: 0xef0100 ‖ address
+    if (code && code.toLowerCase().startsWith('0xef0100')) return true
+  } catch {
+    /* ignore */
+  }
+  return false
+}
+
+type Erc20ActionCall = {
+  to: `0x${string}`
+  abi: Abi
+  functionName: string
+  args: readonly unknown[]
+  value?: bigint
+}
+
+/**
+ * If ERC-20 allowance is missing, prefer one EIP-5792 batch (approve + action).
+ * Falls back to sequential approve then action when the wallet cannot batch.
+ */
+async function writeWithErc20Approve(params: {
+  owner: `0x${string}`
+  chainId: WagmiChainId
+  token: `0x${string}`
+  spender: `0x${string}`
+  required: bigint
+  approveAmount?: bigint
+  action: Erc20ActionCall
+  batchLabel: string
+}): Promise<`0x${string}`> {
+  const {
+    owner,
+    chainId,
+    token,
+    spender,
+    required,
+    approveAmount = maxUint256,
+    action,
+    batchLabel,
+  } = params
+
+  const allowance = await readContract(wagmiConfig, {
+    address: token,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: [owner, spender],
+  })
+
+  if (allowance < required) {
+    const canBatch = await walletCanBatchCalls(owner, chainId)
+    if (canBatch) {
+      try {
+        const { id } = await sendCalls(wagmiConfig, {
+          account: owner,
+          chainId,
+          forceAtomic: true,
+          calls: [
+            {
+              to: token,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [spender, approveAmount],
+            },
+            {
+              to: action.to,
+              abi: action.abi,
+              functionName: action.functionName,
+              args: action.args,
+              value: action.value,
+            },
+          ],
+        })
+        const status = await waitForCallsStatus(wagmiConfig, { id })
+        if (status.status !== 'success') {
+          throw new Error(`Batched ${batchLabel} failed (${status.status})`)
+        }
+        const receipts = status.receipts ?? []
+        const hash = receipts[receipts.length - 1]?.transactionHash ?? receipts[0]?.transactionHash
+        if (!hash) throw new Error(`Batched ${batchLabel} succeeded but returned no receipt hash`)
+        return hash
+      } catch (batchError) {
+        console.warn(`[GRAI] atomic ${batchLabel} failed; falling back to sequential`, batchError)
+      }
+    }
+
+    const approveHash = await writeContract(wagmiConfig, {
+      address: token,
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [spender, approveAmount],
+    })
+    await waitForTransactionReceipt(wagmiConfig, { hash: approveHash })
+  }
+
+  const hash = await writeContract(wagmiConfig, {
+    address: action.to,
+    abi: action.abi,
+    functionName: action.functionName,
+    args: action.args,
+    value: action.value,
+  })
+  await waitForTransactionReceipt(wagmiConfig, { hash })
+  return hash
+}
 
 export type ExecuteEvmMintParams = {
   config: GraiEvmConfig
@@ -36,35 +171,37 @@ export async function executeEvmMint({
   const amount = parseTokenAmount(amountInput, assetDecimals)
   const asset = assetAddress.toLowerCase() as `0x${string}`
   const stickyReferrer = (referrer?.trim() || '0x0000000000000000000000000000000000000000') as `0x${string}`
-
-  if (!isNativeEvmAsset(asset)) {
-    const allowance = await readContract(wagmiConfig, {
-      address: asset,
-      abi: erc20Abi,
-      functionName: 'allowance',
-      args: [account.address, graiAddress],
-    })
-
-    if (allowance < amount) {
-      const approveHash = await writeContract(wagmiConfig, {
-        address: asset,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [graiAddress, maxUint256],
-      })
-      await waitForTransactionReceipt(wagmiConfig, { hash: approveHash })
-    }
-  }
-
-  const hash = await writeContract(wagmiConfig, {
-    address: graiAddress,
+  const chainId = (account.chainId ?? config.chainId) as WagmiChainId
+  const action: Erc20ActionCall = {
+    to: graiAddress,
     abi: graiAbi,
     functionName: 'deposit',
     args: [asset, amount, lock, stickyReferrer],
     value: isNativeEvmAsset(asset) ? amount : 0n,
-  })
+  }
 
-  await waitForTransactionReceipt(wagmiConfig, { hash })
+  if (isNativeEvmAsset(asset)) {
+    const hash = await writeContract(wagmiConfig, {
+      address: action.to,
+      abi: action.abi,
+      functionName: action.functionName,
+      args: action.args,
+      value: action.value,
+    })
+    await waitForTransactionReceipt(wagmiConfig, { hash })
+    return { hash, amount }
+  }
+
+  const hash = await writeWithErc20Approve({
+    owner: account.address,
+    chainId,
+    token: asset,
+    spender: graiAddress,
+    required: amount,
+    approveAmount: amount,
+    action,
+    batchLabel: 'approve + deposit',
+  })
   return { hash, amount }
 }
 
@@ -173,34 +310,36 @@ export async function executeEvmBribe({
   const bribePaid = bribePreview[0]
   if (bribePaid <= 0n) throw new Error('Bribe amount is zero')
 
-  if (!isNativeEvmAsset(paymentAsset)) {
-    const allowance = await readContract(wagmiConfig, {
-      address: paymentAsset,
-      abi: erc20Abi,
-      functionName: 'allowance',
-      args: [account.address, graiAddress],
-    })
-
-    if (allowance < bribePaid) {
-      const approveHash = await writeContract(wagmiConfig, {
-        address: paymentAsset,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [graiAddress, maxUint256],
-      })
-      await waitForTransactionReceipt(wagmiConfig, { hash: approveHash })
-    }
-  }
-
-  const hash = await writeContract(wagmiConfig, {
-    address: graiAddress,
+  const chainId = (account.chainId ?? config.chainId) as WagmiChainId
+  const action: Erc20ActionCall = {
+    to: graiAddress,
     abi: graiAbi,
     functionName: 'bribe',
     args: [paymentAsset, voter, graiAmount],
     value: isNativeEvmAsset(paymentAsset) ? bribePaid : 0n,
-  })
+  }
 
-  await waitForTransactionReceipt(wagmiConfig, { hash })
+  if (isNativeEvmAsset(paymentAsset)) {
+    const hash = await writeContract(wagmiConfig, {
+      address: action.to,
+      abi: action.abi,
+      functionName: action.functionName,
+      args: action.args,
+      value: action.value,
+    })
+    await waitForTransactionReceipt(wagmiConfig, { hash })
+    return { hash, amount: graiAmount, bribePaid }
+  }
+
+  const hash = await writeWithErc20Approve({
+    owner: account.address,
+    chainId,
+    token: paymentAsset,
+    spender: graiAddress,
+    required: bribePaid,
+    action,
+    batchLabel: 'approve + bribe',
+  })
   return { hash, amount: graiAmount, bribePaid }
 }
 
@@ -226,35 +365,36 @@ export async function executeEvmDistribute({
   const amount = parseTokenAmount(amountInput, assetDecimals)
   if (amount <= 0n) throw new Error('Amount must be greater than zero')
   const asset = assetAddress.toLowerCase() as `0x${string}`
-
-  if (!isNativeEvmAsset(asset)) {
-    const allowance = await readContract(wagmiConfig, {
-      address: asset,
-      abi: erc20Abi,
-      functionName: 'allowance',
-      args: [account.address, graiAddress],
-    })
-
-    if (allowance < amount) {
-      const approveHash = await writeContract(wagmiConfig, {
-        address: asset,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [graiAddress, maxUint256],
-      })
-      await waitForTransactionReceipt(wagmiConfig, { hash: approveHash })
-    }
-  }
-
-  const hash = await writeContract(wagmiConfig, {
-    address: graiAddress,
+  const chainId = (account.chainId ?? config.chainId) as WagmiChainId
+  const action: Erc20ActionCall = {
+    to: graiAddress,
     abi: graiAbi,
     functionName: 'distribute',
     args: [asset, amount],
     value: isNativeEvmAsset(asset) ? amount : 0n,
-  })
+  }
 
-  await waitForTransactionReceipt(wagmiConfig, { hash })
+  if (isNativeEvmAsset(asset)) {
+    const hash = await writeContract(wagmiConfig, {
+      address: action.to,
+      abi: action.abi,
+      functionName: action.functionName,
+      args: action.args,
+      value: action.value,
+    })
+    await waitForTransactionReceipt(wagmiConfig, { hash })
+    return { hash, amount }
+  }
+
+  const hash = await writeWithErc20Approve({
+    owner: account.address,
+    chainId,
+    token: asset,
+    spender: graiAddress,
+    required: amount,
+    action,
+    batchLabel: 'approve + distribute',
+  })
   return { hash, amount }
 }
 

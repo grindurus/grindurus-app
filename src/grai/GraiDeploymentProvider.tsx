@@ -21,15 +21,7 @@ import {
   solscanAccountUrl,
 } from './deployments'
 import { getSharedJsonRpcBatchFetch } from './jsonRpcBatchFetch'
-
-function chainIdToEvmChain(chainId: number): EvmChain | null {
-  if (chainId === 1) return 'ethereum'
-  if (chainId === 8453) return 'base'
-  if (chainId === 42161) return 'arbitrum'
-  if (chainId === 137) return 'polygon'
-  if (chainId === 11155111) return 'sepolia'
-  return null
-}
+import { GraiSolanaDevnetPin } from './GraiSolanaDevnetPin'
 
 function evmChainToChainId(evmChain: EvmChain): number {
   if (evmChain === 'ethereum') return 1
@@ -70,7 +62,6 @@ export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
     selectedChainType,
     setSelectedChainType,
     evmChain,
-    setEvmChain,
     solanaCluster: appSolanaCluster,
   } = useWalletContext()
   const {
@@ -98,49 +89,48 @@ export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
   const [protocolError, setProtocolError] = useState<string | null>(null)
   const hasStaticConfig = staticSolana !== null
 
-  // Keep selectedChainType + evmChain aligned with the connected wallet — never remap
-  // to a different chain just because GRAI env vars are missing for the current one.
+  // Fill null selection from the connected wallet only — never overwrite an
+  // explicit Mainnet/Testnet choice (that fought the header and blanked GRAI).
   useEffect(() => {
+    if (selectedChainType !== null) return
     if (evmWallet.isConnected && !isSolanaConnected) {
-      if (selectedChainType !== 'evm') setSelectedChainType('evm')
-      const mapped = chainIdToEvmChain(evmWallet.chainId)
-      if (mapped && mapped !== evmChain) setEvmChain(mapped)
+      setSelectedChainType('evm')
       return
     }
     if (isSolanaConnected && !evmWallet.isConnected && staticSolana) {
-      if (selectedChainType !== 'solana') setSelectedChainType('solana')
+      setSelectedChainType('solana')
     }
   }, [
-    evmChain,
-    evmWallet.chainId,
     evmWallet.isConnected,
     isSolanaConnected,
     selectedChainType,
-    setEvmChain,
     setSelectedChainType,
     staticSolana,
   ])
 
   const evm = useMemo(() => {
-    // Connected EVM wallet wins over a stale Solana selection (e.g. after GRS).
-    if (evmWallet.isConnected && !isSolanaConnected) {
-      return resolveGraiEvmConfig(evmWallet.chainId)
-    }
     if (selectedChainType === 'solana') return null
+    // Connected wallet on a configured chain wins for protocol reads when on EVM.
+    if (selectedChainType === 'evm' && evmWallet.isConnected) {
+      return resolveGraiEvmConfig(evmWallet.chainId) ?? resolveGraiEvmConfig(evmChainToChainId(evmChain))
+    }
     if (selectedChainType === 'evm') {
       return resolveGraiEvmConfig(evmChainToChainId(evmChain))
     }
-    return null
+    if (evmWallet.isConnected && !isSolanaConnected) {
+      return resolveGraiEvmConfig(evmWallet.chainId) ?? resolveGraiEvmConfig(evmChainToChainId(evmChain))
+    }
+    return resolveGraiEvmConfig(evmChainToChainId(evmChain))
   }, [evmChain, evmWallet.chainId, evmWallet.isConnected, isSolanaConnected, selectedChainType])
 
   const chainKind = useMemo((): GraiDeploymentContextValue['chainKind'] => {
-    // Prefer the wallet that is actually connected so Claim / Mint show the action button.
-    if (evmWallet.isConnected && !isSolanaConnected) {
-      return evm ? 'evm' : null
-    }
+    // Explicit selection wins over leftover wallet sessions (Mainnet↔Testnet).
+    // Stay on EVM when selected even if Sepolia has no deploy (show notice) —
+    // never fall through to Solana with stale 0x assets (crashed the React root).
+    if (selectedChainType === 'solana') return staticSolana ? 'solana' : null
+    if (selectedChainType === 'evm') return 'evm'
+    if (evmWallet.isConnected && !isSolanaConnected) return 'evm'
     if (isSolanaConnected && !evmWallet.isConnected && staticSolana) return 'solana'
-    if (selectedChainType === 'solana' && staticSolana) return 'solana'
-    if (selectedChainType === 'evm' && evm) return 'evm'
     if (evm) return 'evm'
     if (staticSolana) return 'solana'
     return null
@@ -243,7 +233,12 @@ export function GraiDeploymentProvider({ children }: { children: ReactNode }) {
     ],
   )
 
-  return <GraiDeploymentContext.Provider value={value}>{children}</GraiDeploymentContext.Provider>
+  return (
+    <GraiDeploymentContext.Provider value={value}>
+      <GraiSolanaDevnetPin />
+      {children}
+    </GraiDeploymentContext.Provider>
+  )
 }
 
 export function useGraiDeployment() {

@@ -12,8 +12,8 @@ import {
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../../wallets/caip2Network'
 import {
   evmChainMatchesNetworkEnv,
-  networkEnvFromSolanaCluster,
   solanaClusterMatchesNetworkEnv,
+  type NetworkEnv,
 } from '../../wallets/networkEnv'
 import { EvmChainListIcon } from '../WalletNetworkSelect'
 import { SolanaClusterIcon } from '../SolanaClusterIcon'
@@ -49,7 +49,7 @@ function shortSolanaLabel(cluster: SolanaCluster): string {
   return 'TEST'
 }
 
-function buildOptions(env: ReturnType<typeof networkEnvFromSolanaCluster>): GrsNetworkOption[] {
+function buildOptions(env: NetworkEnv): GrsNetworkOption[] {
   const evm = listConfiguredGrsChains()
     .filter((chain) => evmChainMatchesNetworkEnv(chain.chainId, env))
     .map((chain) => ({
@@ -90,10 +90,8 @@ export function GrsCaNetworkSelect({ config, ariaLabel = 'Select GRS contract ne
   const menuRef = useRef<HTMLDivElement>(null)
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
-  const { setSelectedChainType, setEvmChain, setSolanaCluster, solanaCluster: appSolanaCluster } =
-    useWalletContext()
+  const { setSelectedChainType, setEvmChain, setSolanaCluster, networkEnv } = useWalletContext()
 
-  const networkEnv = networkEnvFromSolanaCluster(appSolanaCluster)
   const options = useMemo(() => buildOptions(networkEnv), [networkEnv])
 
   const selected = useMemo(() => {

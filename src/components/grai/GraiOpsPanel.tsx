@@ -26,6 +26,7 @@ import { useGraiAssets } from '../../hooks/useGraiAssets'
 import { useActiveWallet } from '../../wallets/useActiveWallet'
 import { useSolanaWallet } from '../../wallets/useSolanaWallet'
 import { useEvmWallet } from '../../wallets/useEvmWallet'
+import { useWalletContext } from '../../wallets/walletContext'
 import { useWalletAssetBalance } from '../../hooks/useWalletAssetBalance'
 import { useGraiAssetUsdLabel } from '../../hooks/useGraiAssetUsdLabel'
 import { estimateEvmClaimAll } from '../../grai/evm/estimateClaim'
@@ -1049,12 +1050,15 @@ export function GraiOpsPanel() {
     useGraiDeployment()
   const configuredEvmChains = useMemo(() => listConfiguredEvmChains(), [])
   const evmProtocol = connectedEvm ?? configuredEvmChains[0] ?? null
+  const { networkEnv } = useWalletContext()
   const activeWallet = useActiveWallet()
   const solanaWallet = useSolanaWallet()
   const evmWallet = useEvmWallet()
   const canTransact =
     (chainKind === 'evm' && connectedEvm !== null && evmWallet.isConnected) ||
     (chainKind === 'solana' && solana !== null && solanaWallet.isConnected)
+  const showStatusNotices =
+    networkEnv === 'testnet' && (evmWallet.isConnected || solanaWallet.isConnected)
   // Prefer the wallet that matches the GRAI deployment network. A lone connected
   // wallet also flips chainKind in GraiDeploymentProvider so this stays in sync.
   const isWalletConnected =
@@ -2192,11 +2196,11 @@ export function GraiOpsPanel() {
 
   return (
     <div className="grai-ops-panel" aria-live="polite">
-      {!evmProtocol ? (
+      {showStatusNotices && !evmProtocol ? (
         <p className="grai-liquidation-notice" role="status">
           {solana ? 'EVM NOT CONFIGURED, SOLANA CONFIGURED' : 'EVM NOT CONFIGURED'}
         </p>
-      ) : !canTransact ? (
+      ) : showStatusNotices && !canTransact ? (
         <p className="grai-liquidation-notice" role="status">
           Liquidation vote and bribe run on EVM GRAI ({evmProtocol.chainName}). Connect an EVM wallet to submit
           transactions.
@@ -2247,7 +2251,7 @@ export function GraiOpsPanel() {
           ariaLabel="About Claim"
           hint="Claim accrued dividends for a locker. Anyone can claim on a locker's behalf; a tip share goes to the caller, the rest to the locker."
         >
-          <h3 className="grai-liquidation-distribute-title">Claim</h3>
+          <h3 className="grai-liquidation-distribute-title">Claim Map</h3>
         </GraiFieldInfoButton>
         <GraiReferralTree
           layout="graph-only"

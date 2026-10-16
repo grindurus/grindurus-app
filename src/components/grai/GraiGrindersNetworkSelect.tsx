@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { Globe } from 'lucide-react'
+import { isGraiEvmChainConfigured, isGraiSolanaClusterConfigured } from '../../grai/networkGating'
 import { useActiveWallet } from '../../wallets/useActiveWallet'
 import { useEvmWallet } from '../../wallets/useEvmWallet'
 import { useSolanaWallet } from '../../wallets/useSolanaWallet'
@@ -27,10 +28,20 @@ const MAINNET_EVM_CHAINS = [
 
 const MAINNET_SOLANA = { id: 'mainnet-beta' as const, name: 'Mainnet' }
 
+function configuredMainnetEvmChains() {
+  return MAINNET_EVM_CHAINS.filter((chain) => isGraiEvmChainConfigured(chain.id))
+}
+
+function isSolanaMainnetConfigured() {
+  return isGraiSolanaClusterConfigured(MAINNET_SOLANA.id)
+}
+
 export function GraiGrindersMainnetNetworkIcons({ className }: { className?: string }) {
+  const evmChains = configuredMainnetEvmChains()
+  const showSolana = isSolanaMainnetConfigured()
   return (
     <span className={className ?? 'grai-grinders-network-icons-row'} aria-hidden="true">
-      {MAINNET_EVM_CHAINS.map((chain) => (
+      {evmChains.map((chain) => (
         <span
           key={chain.id}
           className={`network-icon-svg grai-grinders-network-icons-row-icon ${chain.name.toLowerCase()}`}
@@ -38,9 +49,11 @@ export function GraiGrindersMainnetNetworkIcons({ className }: { className?: str
           <EvmChainListIcon name={chain.name} />
         </span>
       ))}
-      <span className="network-icon-svg grai-grinders-network-icons-row-icon solana">
-        <SolanaClusterIcon clusterId={MAINNET_SOLANA.id} size={20} />
-      </span>
+      {showSolana ? (
+        <span className="network-icon-svg grai-grinders-network-icons-row-icon solana">
+          <SolanaClusterIcon clusterId={MAINNET_SOLANA.id} size={20} />
+        </span>
+      ) : null}
     </span>
   )
 }
@@ -91,12 +104,16 @@ export function GraiGrindersNetworkSelect({
   const { openChainSelector, setEvmChain, setSelectedChainType, setSolanaCluster } = useWalletContext()
 
   const showTotal = !filterEnabled || !activeWallet.isConnected
+  const availableEvmChains = useMemo(() => configuredMainnetEvmChains(), [])
+  const solanaAvailable = useMemo(() => isSolanaMainnetConfigured(), [])
   const selectedMainnetEvm = useMemo(
-    () => MAINNET_EVM_CHAINS.find((chain) => chain.id === evmWallet.chainId) ?? null,
-    [evmWallet.chainId],
+    () => availableEvmChains.find((chain) => chain.id === evmWallet.chainId) ?? null,
+    [availableEvmChains, evmWallet.chainId],
   )
   const selectedMainnetSolana =
-    activeWallet.chainType === 'solana' && solanaWallet.cluster === MAINNET_SOLANA.id
+    solanaAvailable &&
+    activeWallet.chainType === 'solana' &&
+    solanaWallet.cluster === MAINNET_SOLANA.id
 
   const updateMenuPosition = useCallback(() => {
     if (!buttonRef.current) return
@@ -150,6 +167,7 @@ export function GraiGrindersNetworkSelect({
 
   const handleNetworkSelect = useCallback(
     (chainId: number) => {
+      if (!isGraiEvmChainConfigured(chainId)) return
       if (!activeWallet.isConnected) {
         openChainSelector()
         setIsOpen(false)
@@ -175,6 +193,7 @@ export function GraiGrindersNetworkSelect({
   )
 
   const handleClusterSelect = useCallback(() => {
+    if (!isGraiSolanaClusterConfigured(MAINNET_SOLANA.id)) return
     setSelectedChainType('solana')
     setSolanaCluster(MAINNET_SOLANA.id)
     solanaWallet.switchCluster(MAINNET_SOLANA.id)
@@ -218,7 +237,7 @@ export function GraiGrindersNetworkSelect({
         </span>
       </button>
 
-      {MAINNET_EVM_CHAINS.map((chain) => {
+      {availableEvmChains.map((chain) => {
         const active =
           !showTotal && activeWallet.chainType === 'evm' && evmWallet.chainId === chain.id
         return (
@@ -243,28 +262,30 @@ export function GraiGrindersNetworkSelect({
         )
       })}
 
-      {(() => {
-        const active = !showTotal && selectedMainnetSolana
-        return (
-          <button
-            type="button"
-            role="option"
-            aria-selected={active}
-            className={`wallet-network-select-item${active ? ' active' : ''}`}
-            onClick={handleClusterSelect}
-            title={solanaClusterToCaip2(MAINNET_SOLANA.id)}
-            data-network-caip2={solanaClusterToCaip2(MAINNET_SOLANA.id)}
-          >
-            <span className="network-icon-svg solana">
-              <SolanaClusterIcon clusterId={MAINNET_SOLANA.id} size={20} />
-            </span>
-            <span className="network-name-wrap">
-              <span className="network-name">Solana</span>
-              <span className="network-caip2">{solanaClusterToCaip2(MAINNET_SOLANA.id)}</span>
-            </span>
-          </button>
-        )
-      })()}
+      {solanaAvailable
+        ? (() => {
+            const active = !showTotal && selectedMainnetSolana
+            return (
+              <button
+                type="button"
+                role="option"
+                aria-selected={active}
+                className={`wallet-network-select-item${active ? ' active' : ''}`}
+                onClick={handleClusterSelect}
+                title={solanaClusterToCaip2(MAINNET_SOLANA.id)}
+                data-network-caip2={solanaClusterToCaip2(MAINNET_SOLANA.id)}
+              >
+                <span className="network-icon-svg solana">
+                  <SolanaClusterIcon clusterId={MAINNET_SOLANA.id} size={20} />
+                </span>
+                <span className="network-name-wrap">
+                  <span className="network-name">Solana</span>
+                  <span className="network-caip2">{solanaClusterToCaip2(MAINNET_SOLANA.id)}</span>
+                </span>
+              </button>
+            )
+          })()
+        : null}
     </div>
   ) : null
 

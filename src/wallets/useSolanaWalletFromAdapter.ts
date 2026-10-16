@@ -14,10 +14,8 @@ import {
   signLegacyTxWithChain,
   signVersionedTxWithChain,
 } from './standardSignWithChain'
-import {
-  networkEnvFromSolanaCluster,
-  solanaClusterMatchesNetworkEnv,
-} from './networkEnv'
+import { solanaClusterMatchesNetworkEnv } from './networkEnv'
+import { requestSolanaWalletCluster } from './requestSolanaWalletCluster'
 
 function detectClusterFromRpcEndpoint(endpoint?: string): 'mainnet-beta' | 'testnet' | 'devnet' | null {
   if (!endpoint) return null
@@ -46,7 +44,7 @@ export function useSolanaWalletFromAdapter() {
   } = useWallet()
   const { connection } = useConnection()
   const { setVisible } = useWalletModal()
-  const { solanaCluster, setSolanaCluster } = useWalletContext()
+  const { solanaCluster, setSolanaCluster, networkEnv } = useWalletContext()
 
   const address = useMemo(() => {
     return publicKey?.toBase58() || ''
@@ -117,9 +115,8 @@ export function useSolanaWalletFromAdapter() {
       { id: 'mainnet-beta' as const, name: 'Mainnet', icon: '🟢' },
       { id: 'devnet' as const, name: 'Devnet', icon: '🟣' },
     ]
-    const env = networkEnvFromSolanaCluster(solanaCluster)
-    return all.filter((cluster) => solanaClusterMatchesNetworkEnv(cluster.id, env))
-  }, [solanaCluster])
+    return all.filter((cluster) => solanaClusterMatchesNetworkEnv(cluster.id, networkEnv))
+  }, [networkEnv])
 
   const detectedWallets = useMemo(() => {
     return wallets.filter((w) => w.readyState === 'Installed' || w.readyState === 'Loadable')
@@ -142,6 +139,8 @@ export function useSolanaWalletFromAdapter() {
   const switchCluster = useCallback(
     (cluster: 'mainnet-beta' | 'devnet') => {
       setSolanaCluster(cluster)
+      // Best-effort wallet prompt (Phantom/Solflare may ignore — UI still shows mismatch).
+      void requestSolanaWalletCluster(cluster)
     },
     [setSolanaCluster],
   )

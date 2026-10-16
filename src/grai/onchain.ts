@@ -5,13 +5,14 @@ import { assetConfigPda, getAssociatedTokenAddress } from './pdas'
 /**
  * AssetConfig layout after 8-byte Anchor discriminator:
  * asset_mint(32) price_feed(32) paused(1) bribeable(1) id(4)
- * acc_share(16) total_claimable(8) bump(1) pyth_feed_id(32)
+ * acc_share(16) total_claimable(8) total_yielded(8) bump(1) pyth_feed_id(32)
  */
 export const ASSET_CONFIG_PRICE_FEED_OFFSET = 40
 /** `paused(1)` at 72, `bribeable(1)` at 73 (absolute, with discriminator). */
 export const ASSET_CONFIG_BRIBEABLE_OFFSET = 73
 export const ASSET_CONFIG_ACC_SHARE_OFFSET = 78
 export const ASSET_CONFIG_TOTAL_CLAIMABLE_OFFSET = 94
+export const ASSET_CONFIG_TOTAL_YIELDED_OFFSET = 102
 
 export function decodeAssetConfigPriceFeed(data: Buffer): PublicKey {
   return new PublicKey(
@@ -54,6 +55,11 @@ export function decodeAssetConfigAccShare(data: Buffer): bigint {
 export function decodeAssetConfigTotalClaimable(data: Buffer): bigint {
   if (data.length < ASSET_CONFIG_TOTAL_CLAIMABLE_OFFSET + 8) return 0n
   return data.readBigUInt64LE(ASSET_CONFIG_TOTAL_CLAIMABLE_OFFSET)
+}
+
+export function decodeAssetConfigTotalYielded(data: Buffer): bigint {
+  if (data.length < ASSET_CONFIG_TOTAL_YIELDED_OFFSET + 8) return 0n
+  return data.readBigUInt64LE(ASSET_CONFIG_TOTAL_YIELDED_OFFSET)
 }
 
 export async function fetchAssetConfigPriceFeed(
@@ -129,17 +135,25 @@ export function normalizeDecimalInput(value: string, decimals: number): string {
   return `${intPart}.${fractionPart.slice(0, decimals)}`
 }
 
+/** Format a raw token amount; rounds half-up when `maxFractionDigits` truncates the fraction. */
 export function formatTokenBalance(raw: bigint, decimals: number, maxFractionDigits = decimals): string {
   if (raw <= 0n) return '0'
 
-  const divisor = 10n ** BigInt(decimals)
-  const whole = raw / divisor
-  const fraction = raw % divisor
-  let fractionStr = fraction.toString().padStart(decimals, '0').replace(/0+$/, '')
+  const digits = Math.max(0, Math.min(maxFractionDigits, decimals))
+  let displayRaw = raw
+  let displayDecimals = decimals
 
-  if (fractionStr.length > maxFractionDigits) {
-    fractionStr = fractionStr.slice(0, maxFractionDigits).replace(/0+$/, '')
+  if (digits < decimals) {
+    const factor = 10n ** BigInt(decimals - digits)
+    displayRaw = (raw + factor / 2n) / factor
+    displayDecimals = digits
+    if (displayRaw <= 0n) return '0'
   }
+
+  const divisor = 10n ** BigInt(displayDecimals)
+  const whole = displayRaw / divisor
+  const fraction = displayRaw % divisor
+  const fractionStr = fraction.toString().padStart(displayDecimals, '0').replace(/0+$/, '')
 
   return fractionStr ? `${whole}.${fractionStr}` : whole.toString()
 }

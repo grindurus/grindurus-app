@@ -30,6 +30,15 @@ export const KNOWN_EVM_ASSET_METADATA: Record<string, { symbol: string; icon: Gr
     symbol: 'WETH',
     icon: { src: COINGECKO.weth, alt: 'WETH' },
   },
+  // Arbitrum One
+  '0xaf88d065e77c8cc2239327c5edb3a432268e5831': {
+    symbol: 'USDC',
+    icon: { src: COINGECKO.usdc, alt: 'USDC' },
+  },
+  '0x82af49447d8a07e3bd95bd0d56f35241523fbab1': {
+    symbol: 'WETH',
+    icon: { src: COINGECKO.weth, alt: 'WETH' },
+  },
 }
 
 export function normalizeEvmAssetAddress(address: string): string {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Moon,
   Settings,
@@ -7,11 +8,12 @@ import {
   VolumeX,
   X,
 } from 'lucide-react'
+import { shouldGateGraiNetworks } from '../grai/networkGating'
+import { isGrsTestnetPinned } from '../grs/networkEnvPin'
 import { readSoundEnabled, writeSoundEnabled } from '../utils/soundPreference'
 import { useWalletContext } from '../wallets/walletContext'
 import { useEvmWallet } from '../wallets/useEvmWallet'
 import {
-  networkEnvFromSolanaCluster,
   preferredEvmChainId,
   type NetworkEnv,
 } from '../wallets/networkEnv'
@@ -22,7 +24,6 @@ type Theme = 'light' | 'dark'
 function readSavedTheme(): Theme {
   const saved = localStorage.getItem('theme')
   if (saved === 'light') return 'light'
-  // Default dark (also migrates legacy "system").
   return 'dark'
 }
 
@@ -34,7 +35,7 @@ function SegmentedToggle<T extends string>({
   className,
 }: {
   value: T
-  options: { value: T; icon: JSX.Element; label: string }[]
+  options: { value: T; icon: JSX.Element; label: string; disabled?: boolean }[]
   onChange: (value: T) => void
   ariaLabel: string
   className?: string
@@ -52,10 +53,14 @@ function SegmentedToggle<T extends string>({
           key={option.value}
           type="button"
           className={`header-settings-segment${value === option.value ? ' is-active' : ''}`}
-          onClick={() => onChange(option.value)}
+          onClick={() => {
+            if (option.disabled) return
+            onChange(option.value)
+          }}
+          disabled={option.disabled}
           aria-pressed={value === option.value}
           aria-label={option.label}
-          title={option.label}
+          title={option.disabled ? `${option.label} (unavailable here)` : option.label}
         >
           {option.icon}
         </button>
@@ -68,11 +73,16 @@ export function HeaderSettingsPopover() {
   const [isOpen, setIsOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(readSavedTheme)
   const [soundEnabled, setSoundEnabled] = useState(readSoundEnabled)
-  const { solanaCluster, setSolanaCluster, setEvmChain } = useWalletContext()
+  const { pathname } = useLocation()
+  const { networkEnv, setNetworkEnv, setSelectedChainType } = useWalletContext()
   const evmWallet = useEvmWallet()
   const rootRef = useRef<HTMLDivElement>(null)
-
-  const networkEnv: NetworkEnv = networkEnvFromSolanaCluster(solanaCluster)
+  const onGraiSurface = shouldGateGraiNetworks(pathname)
+  const onGrsSurface = pathname.startsWith('/grs')
+  const onBacktestSurface = pathname.startsWith('/backtest')
+  const grsLocksTestnet = onGrsSurface && isGrsTestnetPinned()
+  /** Backtest / x402 is mainnet-only — Testnet toggle stays off on this route. */
+  const backtestLocksMainnet = onBacktestSurface
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -95,24 +105,44 @@ export function HeaderSettingsPopover() {
   }, [isOpen])
 
   const handleNetworkEnvChange = (value: NetworkEnv) => {
+    // GRS is Testnet-only until mainnet ships — ignore Mainnet clicks on /grs.
+    if (grsLocksTestnet && value === 'mainnet') return
+    // Backtest is mainnet-only — ignore Testnet clicks on /backtest.
+    if (backtestLocksMainnet && value === 'testnet') return
+
+    // Atomic preference write — chainKind / banners / filters all read `networkEnv`.
+    setNetworkEnv(value)
+
     if (value === 'mainnet') {
-      setSolanaCluster('mainnet-beta')
-      setEvmChain('ethereum')
-      if (evmWallet.isConnected) {
-        void evmWallet.switchToChainAsync(preferredEvmChainId('ethereum', 'mainnet')).catch(() => {
-          evmWallet.switchToChain(preferredEvmChainId('ethereum', 'mainnet'))
+      // GRAI mainnet = Arbitrum EVM. Offer a wallet switch when already connected.
+      setSelectedChainType('evm')
+      const arbitrumId = preferredEvmChainId('arbitrum', 'mainnet')
+      if (evmWallet.isConnected && evmWallet.chainId !== arbitrumId) {
+        void evmWallet.switchToChainAsync(arbitrumId).catch(() => {
+          evmWallet.switchToChain(arbitrumId)
         })
       }
       return
     }
-    // TESTNET → Solana Devnet + Sepolia (same header pin Connect Wallet uses).
-    setSolanaCluster('devnet')
-    setEvmChain('sepolia')
+
+    // Testnet: connected EVM wallet must follow the toggle → Sepolia (never skip for GRAI).
+    const sepoliaId = preferredEvmChainId('sepolia', 'testnet')
     if (evmWallet.isConnected) {
-      void evmWallet.switchToChainAsync(preferredEvmChainId('sepolia', 'testnet')).catch(() => {
-        evmWallet.switchToChain(preferredEvmChainId('sepolia', 'testnet'))
-      })
+      setSelectedChainType('evm')
+      if (evmWallet.chainId !== sepoliaId) {
+        void evmWallet.switchToChainAsync(sepoliaId).catch(() => {
+          evmWallet.switchToChain(sepoliaId)
+        })
+      }
+      return
     }
+
+    // No EVM session: GRAI/Affiliates prefer Solana Devnet; elsewhere keep EVM/Sepolia pref.
+    if (onGraiSurface) {
+      setSelectedChainType('solana')
+      return
+    }
+    setSelectedChainType('evm')
   }
 
   return (
@@ -144,12 +174,16 @@ export function HeaderSettingsPopover() {
               {
                 value: 'mainnet',
                 icon: <span className="header-settings-segment-text">Mainnet</span>,
-                label: 'Mainnet',
+                label: grsLocksTestnet ? 'Mainnet (GRS is Testnet-only for now)' : 'Mainnet',
+                disabled: grsLocksTestnet,
               },
               {
                 value: 'testnet',
                 icon: <span className="header-settings-segment-text">Testnet</span>,
-                label: 'Testnet (Solana Devnet / Sepolia)',
+                label: backtestLocksMainnet
+                  ? 'Testnet (Backtest is Mainnet-only)'
+                  : 'Testnet (Solana Devnet / Sepolia)',
+                disabled: backtestLocksMainnet,
               },
             ]}
             onChange={handleNetworkEnvChange}

@@ -1,7 +1,49 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { shortenAddress } from '../utils/shortenAddress'
 import { grsExplorerTxUrl, type GrsConfig } from '../grs/deployments'
+import { FIELD_INFO_ICON } from './grai/graiPageIcons'
 import './ActionTxFeedback.css'
+
+/**
+ * Keep a short headline visible; stash viem "Request Arguments" / Contract Call dumps
+ * for the info tooltip.
+ */
+export function splitTxErrorMessage(error: string): { summary: string; details: string | null } {
+  const trimmed = error.trim()
+  if (!trimmed) return { summary: 'Transaction failed', details: null }
+
+  const requestArgsIdx = trimmed.search(/\bRequest Arguments\s*:/i)
+  if (requestArgsIdx >= 0) {
+    const summary = trimmed.slice(0, requestArgsIdx).trim() || 'User rejected the request.'
+    return { summary, details: trimmed.slice(requestArgsIdx).trim() }
+  }
+
+  const contractCallIdx = trimmed.search(/\bContract Call\s*:/i)
+  if (contractCallIdx > 0) {
+    return {
+      summary: trimmed.slice(0, contractCallIdx).trim(),
+      details: trimmed.slice(contractCallIdx).trim(),
+    }
+  }
+
+  if (trimmed.length > 160) {
+    const firstSentence = trimmed.match(/^(.+?[.!?])(?:\s|$)/)
+    if (firstSentence?.[1] && firstSentence[1].length <= 140) {
+      return { summary: firstSentence[1], details: trimmed }
+    }
+  }
+
+  return { summary: trimmed, details: null }
+}
 
 const EXPLORER_ICON = (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -73,6 +115,177 @@ export function usePersistedActionTx() {
   }, [])
 
   return { lastTx, lastError, begin, succeed, fail, clear }
+}
+
+/** Portaled tooltip above the icon — parent cards use overflow:hidden, so CSS hover tooltips clip. */
+function ErrorDetailsInfo({ details }: { details: string }) {
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({})
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const tipRef = useRef<HTMLDivElement>(null)
+  const closeTimerRef = useRef<number | null>(null)
+  const selectingRef = useRef(false)
+
+  const updatePosition = useCallback(() => {
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const maxWidth = Math.min(window.innerWidth - 16, 352)
+    let left = rect.left + rect.width / 2
+    left = Math.min(window.innerWidth - maxWidth / 2 - 8, Math.max(maxWidth / 2 + 8, left))
+    setMenuStyle({
+      position: 'fixed',
+      left,
+      bottom: window.innerHeight - rect.top + 8,
+      transform: 'translateX(-50%)',
+      width: maxWidth,
+      zIndex: 240,
+    })
+  }, [])
+
+  const cancelClose = useCallback(() => {
+    if (closeTimerRef.current != null) {
+      window.clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+  }, [])
+
+  const tipHasSelection = useCallback(() => {
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) return false
+    const tip = tipRef.current
+    if (!tip) return false
+    const anchor = selection.anchorNode
+    const focus = selection.focusNode
+    return Boolean((anchor && tip.contains(anchor)) || (focus && tip.contains(focus)))
+  }, [])
+
+  const openTip = useCallback(() => {
+    cancelClose()
+    updatePosition()
+    setOpen(true)
+  }, [cancelClose, updatePosition])
+
+  const scheduleClose = useCallback(() => {
+    cancelClose()
+    closeTimerRef.current = window.setTimeout(() => {
+      if (selectingRef.current || tipHasSelection()) {
+        closeTimerRef.current = null
+        return
+      }
+      setOpen(false)
+      closeTimerRef.current = null
+    }, 220)
+  }, [cancelClose, tipHasSelection])
+
+  useEffect(() => () => cancelClose(), [cancelClose])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [open, updatePosition])
+
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (buttonRef.current?.contains(target) || tipRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    const onPointerUp = () => {
+      selectingRef.current = false
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('pointerup', onPointerUp)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('pointerup', onPointerUp)
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) setCopied(false)
+  }, [open])
+
+  const tip = open
+    ? createPortal(
+        <div
+          ref={tipRef}
+          className="action-tx-feedback-error-tooltip-portal"
+          style={menuStyle}
+          role="tooltip"
+          onMouseEnter={openTip}
+          onMouseLeave={scheduleClose}
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => {
+            event.stopPropagation()
+            selectingRef.current = true
+            cancelClose()
+          }}
+        >
+          <div className="action-tx-feedback-error-tooltip-toolbar">
+            <button
+              type="button"
+              className={`action-tx-feedback-error-copy-btn${copied ? ' is-copied' : ''}`}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                void copyTextToClipboard(details).then((ok) => {
+                  if (!ok) return
+                  setCopied(true)
+                  window.setTimeout(() => setCopied(false), 1500)
+                })
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <pre className="action-tx-feedback-error-details" tabIndex={0}>
+            {details}
+          </pre>
+        </div>,
+        document.body,
+      )
+    : null
+
+  return (
+    <span className="action-tx-feedback-error-info">
+      <button
+        ref={buttonRef}
+        type="button"
+        className={`action-tx-feedback-error-info-btn${open ? ' is-open' : ''}`}
+        aria-label="Request arguments and error details"
+        aria-expanded={open}
+        title="Show request arguments"
+        onMouseEnter={openTip}
+        onMouseLeave={scheduleClose}
+        onFocus={openTip}
+        onBlur={(event) => {
+          if (tipRef.current?.contains(event.relatedTarget as Node)) return
+          scheduleClose()
+        }}
+        onClick={(event) => {
+          // Never bubble to the summary "copy error" control.
+          event.preventDefault()
+          event.stopPropagation()
+          cancelClose()
+          updatePosition()
+          setOpen((value) => !value)
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        {FIELD_INFO_ICON}
+      </button>
+      {tip}
+    </span>
+  )
 }
 
 function TxHashActions({
@@ -169,23 +382,27 @@ export function ActionTxFeedback({
   if (error) {
     const embedded = hash ?? extractTxHashFromText(error)
     const href = embedded ? resolveHref(embedded) : null
+    const { summary, details } = splitTxErrorMessage(error)
     return (
       <p className={`${base} is-error action-tx-feedback`} role="alert">
-        <button
-          type="button"
-          className={`action-tx-feedback-error-text${errorCopied ? ' is-copied' : ''}`}
-          onClick={() => {
-            void copyTextToClipboard(error).then((ok) => {
-              if (!ok) return
-              setErrorCopied(true)
-              window.setTimeout(() => setErrorCopied(false), 1500)
-            })
-          }}
-          title={errorCopied ? 'Copied to clipboard' : 'Copy error message'}
-          aria-label={errorCopied ? 'Copied to clipboard' : 'Copy error message'}
-        >
-          {errorCopied ? 'Copied!' : error}
-        </button>
+        <span className="action-tx-feedback-error-row">
+          <button
+            type="button"
+            className={`action-tx-feedback-error-text${errorCopied ? ' is-copied' : ''}`}
+            onClick={() => {
+              void copyTextToClipboard(error).then((ok) => {
+                if (!ok) return
+                setErrorCopied(true)
+                window.setTimeout(() => setErrorCopied(false), 1500)
+              })
+            }}
+            title={errorCopied ? 'Copied to clipboard' : 'Copy full error message'}
+            aria-label={errorCopied ? 'Copied to clipboard' : 'Copy full error message'}
+          >
+            {errorCopied ? 'Copied!' : summary}
+          </button>
+          {details ? <ErrorDetailsInfo details={details} /> : null}
+        </span>
         {embedded ? <TxHashActions hash={embedded} href={href} linkLabel={linkLabel} /> : null}
       </p>
     )

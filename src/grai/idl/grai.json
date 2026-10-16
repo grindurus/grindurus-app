@@ -69,7 +69,7 @@
         {
           "name": "settlement_mint",
           "docs": [
-            "Bribe payment mint (must be listed and `bribeable`; EVM `bribe(asset, …)`)."
+            "Bribe payment mint (must be listed and `bribeable`; EVM `bribe(asset, \u2026)`)."
           ]
         },
         {
@@ -620,7 +620,7 @@
       "name": "get_lockers_data",
       "docs": [
         "EVM GRAI `getLockersData(fromId, toId)`: bound lockers plus `previewClaimAll`.",
-        "Remaining: `[referrer] × M`, `[escrow] × M`, `[asset_config] × N`, then",
+        "Remaining: `[referrer] \u00d7 M`, `[escrow] \u00d7 M`, `[asset_config] \u00d7 N`, then",
         "`[position]` locker-major (`M` in `[from, to)`, `N` listed mints).",
         "Escrow / position PDAs may be empty."
       ],
@@ -660,8 +660,8 @@
     {
       "name": "get_redeemables",
       "docs": [
-        "EVM `getRedeemables` — redeemable basket while liquidation is open.",
-        "Remaining: `[asset_config, vault_ata]` × N."
+        "EVM `getRedeemables` \u2014 redeemable basket while liquidation is open.",
+        "Remaining: `[asset_config, vault_ata]` \u00d7 N."
       ],
       "discriminator": [
         190,
@@ -948,7 +948,7 @@
         {
           "name": "grai_mint",
           "docs": [
-            "Protocol GRAI mint only (C-02) — junk SPL cannot buy a referral slot."
+            "Protocol GRAI mint only (C-02) \u2014 junk SPL cannot buy a referral slot."
           ]
         },
         {
@@ -965,7 +965,7 @@
         {
           "name": "grinders_grai_ata",
           "docs": [
-            "Grinders ATA for the GRAI mint — receives `ceil(price * poach_fee_bps / BPS)`."
+            "Grinders ATA for the GRAI mint \u2014 receives `ceil(price * poach_fee_bps / BPS)`."
           ],
           "writable": true
         },
@@ -1013,7 +1013,7 @@
         {
           "name": "settlement_mint",
           "docs": [
-            "Bribe payment mint (must be listed and `bribeable`; EVM `previewBribe(asset, …)`)."
+            "Bribe payment mint (must be listed and `bribeable`; EVM `previewBribe(asset, \u2026)`)."
           ]
         },
         {
@@ -1081,7 +1081,7 @@
     {
       "name": "preview_claim_all",
       "docs": [
-        "EVM `previewClaimAll`. Remaining: `[asset_config, position]` × N."
+        "EVM `previewClaimAll`. Remaining: `[asset_config, position]` \u00d7 N."
       ],
       "discriminator": [
         92,
@@ -1114,7 +1114,7 @@
     {
       "name": "preview_deposit",
       "docs": [
-        "EVM `previewDeposit` → `(value, grai_out)`."
+        "EVM `previewDeposit` \u2192 `(value, grai_out)`."
       ],
       "discriminator": [
         16,
@@ -1191,7 +1191,7 @@
     {
       "name": "preview_redeem",
       "docs": [
-        "EVM `previewRedeem`. Remaining: `[asset_config, vault_ata]` × N."
+        "EVM `previewRedeem`. Remaining: `[asset_config, vault_ata]` \u00d7 N."
       ],
       "discriminator": [
         122,
@@ -1353,7 +1353,7 @@
         {
           "name": "grinders_state",
           "docs": [
-            "Linked Grinders state — mutated by CPI `grinders::revive`."
+            "Linked Grinders state \u2014 mutated by CPI `grinders::revive`."
           ],
           "writable": true
         },
@@ -1401,7 +1401,7 @@
     {
       "name": "set_bribeable",
       "docs": [
-        "EVM `setConfig(BRIBEABLE, packed)` — toggle `assets[mint].bribeable`."
+        "EVM `setConfig(BRIBEABLE, packed)` \u2014 toggle `assets[mint].bribeable`."
       ],
       "discriminator": [
         88,
@@ -1712,7 +1712,7 @@
         {
           "name": "grinders_grai_ata",
           "docs": [
-            "Grinders ATA for the GRAI mint — receives unlock penalty (EVM → `address(grinders)`)."
+            "Grinders ATA for the GRAI mint \u2014 receives unlock penalty (EVM \u2192 `address(grinders)`)."
           ],
           "writable": true
         },
@@ -2128,7 +2128,7 @@
           {
             "name": "bribeable",
             "docs": [
-              "When true, mint may be used as bribe payment (EVM `AssetConfig.bribeable`)."
+              "When true, mint may be used as bribe payment (EVM `Asset.bribeable`)."
             ],
             "type": "bool"
           },
@@ -2139,7 +2139,7 @@
           {
             "name": "acc_share",
             "docs": [
-              "Dividend index per unvoted locked GRAI, scaled by 1e18 (EVM `TotalPosition.accShare`)."
+              "Dividend index per unvoted locked GRAI, scaled by 1e18 (EVM `Asset.accShare`)."
             ],
             "type": "u128"
           },
@@ -2147,6 +2147,13 @@
             "name": "total_claimable",
             "docs": [
               "Vault inventory reserved for locker claims (excluded from redeem / revive)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_yielded",
+            "docs": [
+              "Lifetime yield credited via `distribute` for this asset (never decreases)."
             ],
             "type": "u64"
           },
@@ -2244,7 +2251,7 @@
             "name": "revenue_share_bps",
             "docs": [
               "Affiliate slice of treasury income allocated on claim (`claimed * this / dividend_cut`).",
-              "EVM default `5_55` (~5.55% of yield → affiliates)."
+              "EVM default `5_55` (~5.55% of yield \u2192 affiliates)."
             ],
             "type": "u16"
           },
@@ -2478,7 +2485,7 @@
             "name": "royalty_bps",
             "docs": [
               "Secondary-sale royalty in bps written to Treasury NFT Metaplex metadata.",
-              "Receiver is `beneficiar` (or `owner` if unset), snapshotted at mint."
+              "Receiver is `beneficiar` (EVM `Treasury.beneficiar`), snapshotted at mint."
             ],
             "type": "u16"
           },
@@ -2617,7 +2624,7 @@
         "Per-account, per-asset ledger (EVM `Position`).",
         "",
         "Locker dividends use `debt` / `claimable` vs `AssetConfig.acc_share`.",
-        "Custodian `distribute` increments `yielded`."
+        "Custodian `distribute` increments Position.`yielded` and AssetConfig.`total_yielded`."
       ],
       "type": {
         "kind": "struct",

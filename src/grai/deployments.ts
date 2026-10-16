@@ -205,8 +205,12 @@ export function resolveGraiEvmConfig(chainId: number): GraiEvmConfig | null {
   const chain = EVM_CHAINS.find((item) => item.chainId === chainId)
   if (!chain) return null
 
-  const graiToken = readEnv(`VITE_GRAI_${chain.envSuffix}_TOKEN`) as `0x${string}` | undefined
-  const protocolAddress = readEnv(`VITE_GRAI_${chain.envSuffix}_PROTOCOL`) as `0x${string}` | undefined
+  // Prefer unified address (proxy = token + protocol), e.g. VITE_GRAI_ARBITRUM.
+  const unified = readEnv(`VITE_GRAI_${chain.envSuffix}`) as `0x${string}` | undefined
+  const graiToken =
+    unified ?? (readEnv(`VITE_GRAI_${chain.envSuffix}_TOKEN`) as `0x${string}` | undefined)
+  const protocolAddress =
+    unified ?? (readEnv(`VITE_GRAI_${chain.envSuffix}_PROTOCOL`) as `0x${string}` | undefined)
 
   if (!graiToken && !protocolAddress) return null
 

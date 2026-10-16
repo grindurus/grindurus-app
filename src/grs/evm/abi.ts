@@ -271,6 +271,7 @@ export const grsAbi = [
     name: 'quoteSale',
     stateMutability: 'view',
     inputs: [
+      { name: 'id', type: 'uint256' },
       { name: 'asset', type: 'bytes32' },
       { name: 'assetAmount', type: 'uint256' },
       { name: 'grsAmount', type: 'uint256' },
@@ -284,6 +285,7 @@ export const grsAbi = [
     name: 'sale',
     stateMutability: 'payable',
     inputs: [
+      { name: 'id', type: 'uint256' },
       { name: 'asset', type: 'bytes32' },
       { name: 'assetAmount', type: 'uint256' },
       { name: 'grsAmount', type: 'uint256' },

@@ -1,6 +1,7 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { AppWalletProvider } from './wallets'
 import { GraiDeploymentProvider } from './grai/GraiDeploymentProvider'
 import { GraiDataProvider } from './grai/GraiDataProvider'
@@ -30,12 +31,14 @@ if (logicalPath === '/') {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <BrowserRouter basename={import.meta.env.BASE_URL} useTransitions={false}>
-    <AppWalletProvider>
-      <GraiDeploymentProvider>
-        <GraiDataProvider>
-          <App />
-        </GraiDataProvider>
-      </GraiDeploymentProvider>
-    </AppWalletProvider>
+    <AppErrorBoundary>
+      <AppWalletProvider>
+        <GraiDeploymentProvider>
+          <GraiDataProvider>
+            <App />
+          </GraiDataProvider>
+        </GraiDeploymentProvider>
+      </AppWalletProvider>
+    </AppErrorBoundary>
   </BrowserRouter>,
 )

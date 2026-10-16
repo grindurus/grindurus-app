@@ -342,7 +342,7 @@ export async function executeGrsSale({
       address: config.address,
       abi: grsAbi,
       functionName: 'quoteSale',
-      args: [asset, assetAmount, grsAmount, recipient, dstEid],
+      args: [0n, asset, assetAmount, grsAmount, recipient, dstEid],
     })
     value = nativeFee + nativeFee / 10n
   }
@@ -351,7 +351,7 @@ export async function executeGrsSale({
     address: config.address,
     abi: grsAbi,
     functionName: 'sale',
-    args: [asset, assetAmount, grsAmount, recipient, dstEid],
+    args: [0n, asset, assetAmount, grsAmount, recipient, dstEid],
     value,
     account: account.address,
   })

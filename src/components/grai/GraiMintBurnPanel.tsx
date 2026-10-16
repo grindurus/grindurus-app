@@ -33,6 +33,7 @@ import { useGraiBurnEstimate } from '../../hooks/useGraiBurnEstimate'
 import { useGraiMintEstimate } from '../../hooks/useGraiMintEstimate'
 import { useGraiUnlockEstimate } from '../../hooks/useGraiUnlockEstimate'
 import { useGraiClaimEstimate } from '../../hooks/useGraiClaimEstimate'
+import { invalidateJsonRpcReadCaches } from '../../grai/jsonRpcBatchFetch'
 import { useWalletAssetBalance, useWalletAssetBalances } from '../../hooks/useWalletAssetBalance'
 import { useActiveWallet } from '../../wallets/useActiveWallet'
 import { useSolanaWallet } from '../../wallets/useSolanaWallet'
@@ -50,7 +51,7 @@ import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
 import { GraiMintSubtitleRotatingAsset } from './GraiMintSubtitleRotatingAsset'
 import { GraiNavDonut } from '../GraiNavDonut'
 import { GraiTransactionToast } from './GraiTransactionToast'
-import { ActionDepositNote, usePersistedActionTx } from '../ActionTxFeedback'
+import { ActionDepositNote, splitTxErrorMessage, usePersistedActionTx } from '../ActionTxFeedback'
 import { GraiActionConnectWalletButton } from './GraiWalletAction'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiUiCaret } from './GraiUiCaret'
@@ -80,6 +81,16 @@ function formatRedeemCountdown(secondsLeft: number): string {
   if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
   if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`
   return `${s}s`
+}
+
+/** Display-only clip for deposit preview amounts (MAX / Grinders row). */
+function formatDepositAmountDisplay(value: string, maxFractionDigits = 8): string {
+  const trimmed = value.trim()
+  if (!trimmed) return '0.0'
+  const [whole, frac = ''] = trimmed.split('.')
+  if (!frac) return whole || '0.0'
+  const clipped = frac.slice(0, maxFractionDigits).replace(/0+$/, '')
+  return clipped ? `${whole}.${clipped}` : whole || '0.0'
 }
 
 function buildGrindersShareHint(assetSymbol?: string): ReactNode {
@@ -136,18 +147,24 @@ function buildReferrerAffiliateHint(): ReactNode {
     <>
       <span className="grai-field-info-tooltip-title">Referrer</span>
       <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">First deposit</span>
-        On your first deposit the protocol mints an affiliate NFT. The referrer becomes the owner of
-        that NFT.
+        The address in this field is an affiliate web3 address.
       </span>
       <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">Revenue share</span>
-        The referrer receives revenue share from your claims.
+        The affiliate gets a cut from protocol earnings.
       </span>
-      <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">Empty field</span>
-        Leave blank to bind yourself (self-referrer). The bind is permanent unless the affiliate NFT
-        is transferred.
+      <span className="grai-field-info-tooltip-section">(Blank = you.)</span>
+      <span className="grai-field-info-tooltip-note">
+        The referrer can be poached by anybody on <strong>Affiliates</strong> with{' '}
+        <img
+          src={assetUrl('grai.png')}
+          alt=""
+          width={14}
+          height={14}
+          className="grai-field-info-tooltip-token-icon"
+          loading="lazy"
+          decoding="async"
+        />{' '}
+        GRAI.
       </span>
     </>
   )
@@ -285,6 +302,13 @@ export function GraiMintBurnPanel({
   const { search } = useLocation()
   const [amount, setAmount] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<GraiAmountAsset | null>(null)
+
+  // Drop stale cross-chain assets (EVM `0x…` on Solana) — they crash PublicKey sync.
+  useEffect(() => {
+    setSelectedAsset(null)
+    setAmount('')
+    setAssetSelectKey((key) => key + 1)
+  }, [chainKind])
   const [earnDividends, setEarnDividends] = useState(true)
   const [referrerInput, setReferrerInput] = useState(() => readInitialGraiReferrer())
   const [referrerOpen, setReferrerOpen] = useState(() => Boolean(readInitialGraiReferrer()))
@@ -478,9 +502,25 @@ export function GraiMintBurnPanel({
     refresh: refreshClaimEstimate,
   } = useGraiClaimEstimate(isAssetClaim, selectedAsset?.address)
 
-  const { balancesByAddress: mintWalletBalancesByAddress } = useWalletAssetBalances(
+  const {
+    balancesByAddress: mintWalletBalancesByAddress,
+    refresh: refreshMintWalletBalances,
+  } = useWalletAssetBalances(
     actionView === 'mint' && !isAssetClaim ? mintAssetOptions : [],
   )
+
+  const refreshBalancesAfterTx = useCallback(() => {
+    // Drop Solana read TTLs so post-tx balanceOf / ATA reads are not stale.
+    invalidateJsonRpcReadCaches()
+    void refreshWalletBalance()
+    void refreshMintWalletBalances()
+    // RPC lag: re-fetch once the node has caught the confirmed slot.
+    window.setTimeout(() => {
+      invalidateJsonRpcReadCaches()
+      void refreshWalletBalance()
+      void refreshMintWalletBalances()
+    }, 1500)
+  }, [refreshMintWalletBalances, refreshWalletBalance])
 
   const mintAssetSelectOptions = useMemo(() => {
     if (isAssetClaim) {
@@ -938,14 +978,14 @@ export function GraiMintBurnPanel({
         closeOnClick: true,
       })
       setAmount('')
-      void refreshWalletBalance()
+      refreshBalancesAfterTx()
       refreshUnlockEstimate()
       refreshClaimEstimate()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Transaction failed'
       fail(error, 'Transaction failed')
       toast.update(toastId, {
-        render: message,
+        render: splitTxErrorMessage(message).summary,
         type: 'error',
         isLoading: false,
         autoClose: 8000,
@@ -968,9 +1008,9 @@ export function GraiMintBurnPanel({
     fail,
     lockGrai,
     mintGrai,
+    refreshBalancesAfterTx,
     refreshClaimEstimate,
     refreshUnlockEstimate,
-    refreshWalletBalance,
     referrerInput,
     selectedAsset?.address,
     selectedAsset?.symbol,
@@ -1757,7 +1797,7 @@ export function GraiMintBurnPanel({
                             {isEstimateLoading
                               ? '…'
                               : juniorShareLabel ??
-                                (amount.trim() ? amount.trim() : '0.0')}
+                                (amount.trim() ? formatDepositAmountDisplay(amount) : '0.0')}
                             {selectedAsset ? (
                               <>
                                 <img src={selectedAsset.icon} alt="" width={16} height={16} loading="lazy" decoding="async" />

@@ -17,10 +17,15 @@ export { evmHttpTransport } from './evmTransports'
 export type { EvmWalletSnapshot } from './evmWalletTypes'
 export {
   networkEnvFromSolanaCluster,
+  resolveNetworkEnv,
+  networkEnvFromEvmChain,
   solanaClusterMatchesNetworkEnv,
   evmChainMatchesNetworkEnv,
+  evmChainFromChainId,
   preferredEvmChainId,
+  preferredMainnetEvmChain,
   preferredSolanaCluster,
+  isTestnetEvmChainId,
   type NetworkEnv,
 } from './networkEnv'
 export { evmChainIdToCaip2, solanaClusterToCaip2 } from './caip2Network'

@@ -4,8 +4,8 @@ import { useWalletContext } from '../wallets/walletContext'
 import { useEvmWallet } from '../wallets/useEvmWallet'
 import { useSolanaWallet } from '../wallets/useSolanaWallet'
 import {
-  networkEnvFromSolanaCluster,
   preferredEvmChainId,
+  preferredMainnetEvmChain,
   preferredSolanaCluster,
 } from '../wallets/networkEnv'
 import metamaskFoxIcon from '../assets/metamask-fox.svg'
@@ -109,6 +109,8 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
     evmChain,
     solanaCluster,
     setSolanaCluster,
+    setEvmChain,
+    networkEnv,
     requestRainbowKit,
     isEvmStackReady,
     isSolanaStackReady,
@@ -117,8 +119,6 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   } = useWalletContext()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
-  const networkEnv = networkEnvFromSolanaCluster(solanaCluster)
-  const targetEvmChainId = preferredEvmChainId(evmChain, networkEnv)
   const targetSolanaCluster = preferredSolanaCluster(networkEnv)
 
   const wasOpenRef = useRef(false)
@@ -197,9 +197,12 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
   ])
 
   const openRainbowKit = useCallback(() => {
+    // WalletConnect / RainbowKit should open on Mainnet by default.
+    setSolanaCluster('mainnet-beta')
+    setEvmChain(preferredMainnetEvmChain(evmChain))
     requestRainbowKit()
     onClose()
-  }, [onClose, requestRainbowKit])
+  }, [evmChain, onClose, requestRainbowKit, setEvmChain, setSolanaCluster])
 
   const isWalletConnectConnector = useCallback((connector: { id: string; name: string }) => {
     if (isMetaMaskConnector(connector)) return false
@@ -247,8 +250,14 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
           return
         }
 
-        // Connect onto the header Mainnet/Testnet selection (Sepolia vs Ethereum/…).
-        await evmWallet.connectWithConnector(connector.uid, targetEvmChainId)
+        // EVM wallets connect on Mainnet by default (`setEvmChain` syncs `networkEnv`).
+        const mainnetEvm = preferredMainnetEvmChain(evmChain)
+        setSolanaCluster('mainnet-beta')
+        setEvmChain(mainnetEvm)
+        await evmWallet.connectWithConnector(
+          connector.uid,
+          preferredEvmChainId(mainnetEvm, 'mainnet'),
+        )
         // Drop focus before aria-hidden flips on the backdrop.
         ;(document.activeElement as HTMLElement | null)?.blur?.()
         onClose()
@@ -267,10 +276,12 @@ export function ChainSelectorModal({ isOpen, onClose }: ChainSelectorModalProps)
       isWalletConnectConnector,
       openRainbowKit,
       setSelectedChainType,
+      setSolanaCluster,
+      setEvmChain,
+      evmChain,
       evmWallet,
       solanaWallet,
       onClose,
-      targetEvmChainId,
     ],
   )
 

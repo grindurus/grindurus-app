@@ -64,11 +64,27 @@ export function GraiSwapPanel() {
   const [isSlippageOpen, setIsSlippageOpen] = useState(false)
   const slippageWrapRef = useRef<HTMLDivElement>(null)
 
+  // Keep buy/sell on valid, distinct assets. GRAI may sit on either side (flip).
   useEffect(() => {
-    if (buySymbol && listedAssets.some((a) => a.symbol === buySymbol)) return
-    const next = listedAssets[0]?.symbol
-    if (next) setBuySymbol(next)
-  }, [buySymbol, listedAssets])
+    const sellOk = Boolean(sellSymbol && allAssets.some((a) => a.symbol === sellSymbol))
+    const buyOk =
+      Boolean(buySymbol && allAssets.some((a) => a.symbol === buySymbol)) &&
+      buySymbol !== sellSymbol
+    if (sellOk && buyOk) return
+
+    const nextSell =
+      (sellOk ? sellSymbol : null) ??
+      allAssets.find((a) => a.symbol === 'GRAI')?.symbol ??
+      allAssets[0]?.symbol
+    if (!nextSell) return
+    if (!sellOk) setSellSymbol(nextSell)
+
+    const nextBuy =
+      (buyOk && buySymbol !== nextSell ? buySymbol : null) ??
+      listedAssets.find((a) => a.symbol !== nextSell)?.symbol ??
+      allAssets.find((a) => a.symbol !== nextSell)?.symbol
+    if (nextBuy && nextBuy !== buySymbol) setBuySymbol(nextBuy)
+  }, [allAssets, buySymbol, listedAssets, sellSymbol])
 
   useEffect(() => {
     if (!isSlippageOpen) return
@@ -127,11 +143,14 @@ export function GraiSwapPanel() {
   const graiDecimals = chainKind === 'evm' ? GRAI_DECIMALS_EVM : GRAI_DECIMALS
 
   const handleFlip = useCallback(() => {
-    setSellSymbol(buyAsset.symbol)
-    setBuySymbol(sellAsset.symbol)
+    const nextSell = buySymbol
+    const nextBuy = sellSymbol
+    if (!nextSell || !nextBuy || nextSell === nextBuy) return
+    setSellSymbol(nextSell)
+    setBuySymbol(nextBuy)
     setSellAmount(buyAmount)
     setBuyAmount(sellAmount)
-  }, [buyAmount, buyAsset.symbol, sellAmount, sellAsset.symbol])
+  }, [buyAmount, buySymbol, sellAmount, sellSymbol])
 
   const rateLabel = useMemo(() => {
     if (!sellAsset || !buyAsset) return '—'
@@ -155,11 +174,11 @@ export function GraiSwapPanel() {
                   onAssetChange={(asset) => setSellSymbol(asset.symbol)}
                   balanceLabel={isWalletConnected ? sellBalanceLabel : '—'}
                   balanceLoading={sellBalanceLoading}
-                  balancePrefix=""
+                  balancePrefix="Available:"
                   maxAmount={sellMaxAmount}
                   decimals={sellDecimals ?? (sellAsset.symbol === 'GRAI' ? graiDecimals : null)}
                   usdLabel="$0.00"
-                  usdTrailingLabel={"\u00a0"}
+                  keepUsdForGrai
                   showPresets
                   showAssetDetail
                 />
@@ -188,11 +207,11 @@ export function GraiSwapPanel() {
                   onAssetChange={(asset) => setBuySymbol(asset.symbol)}
                   balanceLabel={isWalletConnected ? buyBalanceLabel : '—'}
                   balanceLoading={buyBalanceLoading}
-                  balancePrefix=""
+                  balancePrefix="Available:"
                   maxAmount={buyMaxAmount}
                   decimals={buyDecimals ?? (buyAsset.symbol === 'GRAI' ? graiDecimals : null)}
                   usdLabel="$0.00"
-                  usdTrailingLabel={"\u00a0"}
+                  keepUsdForGrai
                   showPresets={false}
                   showAssetDetail
                 />

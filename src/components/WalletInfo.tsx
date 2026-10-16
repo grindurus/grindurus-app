@@ -1,5 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import {
+  GRAI_NETWORK_UNAVAILABLE_HINT,
+  isGraiEvmChainConfigured,
+  isGraiSolanaClusterConfigured,
+  useGraiNetworkGating,
+} from '../grai/networkGating'
 import { useActiveWallet } from '../wallets/useActiveWallet'
 import { useEvmWallet } from '../wallets/useEvmWallet'
 import { useSolanaWallet } from '../wallets/useSolanaWallet'
@@ -27,6 +33,7 @@ export function WalletInfo() {
   const activeWallet = useActiveWallet()
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
+  const gateGraiNetworks = useGraiNetworkGating()
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     const target = e.target as Node
@@ -79,19 +86,27 @@ export function WalletInfo() {
     }
   }, [activeWallet.address])
 
+  const handleNetworkSelect = useCallback(
+    (chainId: number) => {
+      if (gateGraiNetworks && !isGraiEvmChainConfigured(chainId)) return
+      evmWallet.switchToChain(chainId)
+      setIsNetworkDropdownOpen(false)
+    },
+    [evmWallet, gateGraiNetworks],
+  )
+
+  const handleClusterSelect = useCallback(
+    (clusterId: 'mainnet-beta' | 'devnet') => {
+      if (gateGraiNetworks && !isGraiSolanaClusterConfigured(clusterId)) return
+      solanaWallet.switchCluster(clusterId)
+      setIsNetworkDropdownOpen(false)
+    },
+    [gateGraiNetworks, solanaWallet],
+  )
+
   if (!activeWallet.isConnected) {
     return null
   }
-
-  const handleNetworkSelect = useCallback((chainId: number) => {
-    evmWallet.switchToChain(chainId)
-    setIsNetworkDropdownOpen(false)
-  }, [evmWallet])
-
-  const handleClusterSelect = useCallback((clusterId: 'mainnet-beta' | 'devnet') => {
-    solanaWallet.switchCluster(clusterId)
-    setIsNetworkDropdownOpen(false)
-  }, [solanaWallet])
 
   const getCurrentNetworkIcon = () => {
     if (activeWallet.chainType === 'evm') {
@@ -281,69 +296,77 @@ export function WalletInfo() {
               {isNetworkDropdownOpen && (
                 <div className="wallet-network-select-list">
                   {activeWallet.chainType === 'evm' &&
-                    evmWallet.supportedChains.map((chain) => (
-                      <button
-                        key={chain.id}
-                        className={`wallet-network-select-item ${evmWallet.chainId === chain.id ? 'active' : ''}`}
-                        onClick={() => handleNetworkSelect(chain.id)}
-                        title={evmChainIdToCaip2(chain.id)}
-                        data-network-caip2={evmChainIdToCaip2(chain.id)}
-                      >
-                        <span className={`network-icon-svg ${chain.name.toLowerCase()}`}>
-                          {chain.name === 'Ethereum' && (
-                            <img
-                              src="https://assets.coingecko.com/coins/images/279/small/ethereum.png"
-                              alt="Ethereum"
-                              width={20}
-                              height={20}
-                              className="network-logo-img network-logo-img--ethereum"
-                            />
-                          )}
-                          {chain.name === 'Arbitrum' && (
-                            <img
-                              src="https://cryptologos.cc/logos/arbitrum-arb-logo.png?v=040"
-                              alt="Arbitrum"
-                              width={20}
-                              height={20}
-                            />
-                          )}
-                          {chain.name === 'Sepolia' && (
-                            <img
-                              src={sepoliaNetworkIcon}
-                              alt="Sepolia"
-                              width={20}
-                              height={20}
-                              className="network-logo-img network-logo-img--sepolia"
-                            />
-                          )}
-                          {(chain.name === 'Base' || chain.name === 'Base Sepolia') && (
-                            <img src={baseNetworkIcon} alt={chain.name} width={20} height={20} />
-                          )}
-                        </span>
-                        <span className="network-name-wrap">
-                          <span className="network-name">{chain.name}</span>
-                          <span className="network-caip2">{evmChainIdToCaip2(chain.id)}</span>
-                        </span>
-                      </button>
-                    ))}
+                    evmWallet.supportedChains.map((chain) => {
+                      const unavailable = gateGraiNetworks && !isGraiEvmChainConfigured(chain.id)
+                      return (
+                        <button
+                          key={chain.id}
+                          className={`wallet-network-select-item ${evmWallet.chainId === chain.id ? 'active' : ''}${unavailable ? ' is-disabled' : ''}`}
+                          onClick={() => handleNetworkSelect(chain.id)}
+                          disabled={unavailable}
+                          title={unavailable ? GRAI_NETWORK_UNAVAILABLE_HINT : evmChainIdToCaip2(chain.id)}
+                          data-network-caip2={evmChainIdToCaip2(chain.id)}
+                        >
+                          <span className={`network-icon-svg ${chain.name.toLowerCase()}`}>
+                            {chain.name === 'Ethereum' && (
+                              <img
+                                src="https://assets.coingecko.com/coins/images/279/small/ethereum.png"
+                                alt="Ethereum"
+                                width={20}
+                                height={20}
+                                className="network-logo-img network-logo-img--ethereum"
+                              />
+                            )}
+                            {chain.name === 'Arbitrum' && (
+                              <img
+                                src="https://cryptologos.cc/logos/arbitrum-arb-logo.png?v=040"
+                                alt="Arbitrum"
+                                width={20}
+                                height={20}
+                              />
+                            )}
+                            {chain.name === 'Sepolia' && (
+                              <img
+                                src={sepoliaNetworkIcon}
+                                alt="Sepolia"
+                                width={20}
+                                height={20}
+                                className="network-logo-img network-logo-img--sepolia"
+                              />
+                            )}
+                            {(chain.name === 'Base' || chain.name === 'Base Sepolia') && (
+                              <img src={baseNetworkIcon} alt={chain.name} width={20} height={20} />
+                            )}
+                          </span>
+                          <span className="network-name-wrap">
+                            <span className="network-name">{chain.name}</span>
+                            <span className="network-caip2">{evmChainIdToCaip2(chain.id)}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
                   {activeWallet.chainType === 'solana' &&
-                    solanaWallet.supportedClusters.map((cluster) => (
-                      <button
-                        key={cluster.id}
-                        className={`wallet-network-select-item ${solanaWallet.cluster === cluster.id ? 'active' : ''}`}
-                        onClick={() => handleClusterSelect(cluster.id)}
-                        title={solanaClusterToCaip2(cluster.id)}
-                        data-network-caip2={solanaClusterToCaip2(cluster.id)}
-                      >
-                        <span className={`network-icon-svg ${cluster.id === 'devnet' ? 'solana-devnet' : 'solana'}`}>
-                          <SolanaClusterIcon clusterId={cluster.id} size={20} />
-                        </span>
-                        <span className="network-name-wrap">
-                          <span className="network-name">{cluster.name}</span>
-                          <span className="network-caip2">{solanaClusterToCaip2(cluster.id)}</span>
-                        </span>
-                      </button>
-                    ))}
+                    solanaWallet.supportedClusters.map((cluster) => {
+                      const unavailable = gateGraiNetworks && !isGraiSolanaClusterConfigured(cluster.id)
+                      return (
+                        <button
+                          key={cluster.id}
+                          className={`wallet-network-select-item ${solanaWallet.cluster === cluster.id ? 'active' : ''}${unavailable ? ' is-disabled' : ''}`}
+                          onClick={() => handleClusterSelect(cluster.id)}
+                          disabled={unavailable}
+                          title={unavailable ? GRAI_NETWORK_UNAVAILABLE_HINT : solanaClusterToCaip2(cluster.id)}
+                          data-network-caip2={solanaClusterToCaip2(cluster.id)}
+                        >
+                          <span className={`network-icon-svg ${cluster.id === 'devnet' ? 'solana-devnet' : 'solana'}`}>
+                            <SolanaClusterIcon clusterId={cluster.id} size={20} />
+                          </span>
+                          <span className="network-name-wrap">
+                            <span className="network-name">{cluster.name}</span>
+                            <span className="network-caip2">{solanaClusterToCaip2(cluster.id)}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
                 </div>
               )}
             </div>

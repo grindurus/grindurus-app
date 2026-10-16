@@ -591,7 +591,7 @@ export async function quoteGrsSale(
     address: config.address,
     abi: grsAbi,
     functionName: 'quoteSale',
-    args: [asset, assetAmount, grsAmount, recipient, dstEid],
+    args: [0n, asset, assetAmount, grsAmount, recipient, dstEid],
   })
 }
 

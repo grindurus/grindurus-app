@@ -204,6 +204,11 @@
   outline-offset: 1px;
 }
 
+.header-settings-segment:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .header-settings-segmented::before {
     transition: none;
@@ -319,12 +324,18 @@
   text-align: left;
 }
 
-.header-settings-network-item:hover {
+.header-settings-network-item:hover:not(:disabled):not(.is-disabled) {
   background: var(--bg-tertiary);
 }
 
 .header-settings-network-item.is-active {
   background: rgba(255, 105, 180, 0.14);
+}
+
+.header-settings-network-item:disabled,
+.header-settings-network-item.is-disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
 }
 
 .header-settings-network-text {

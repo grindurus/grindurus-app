@@ -11,8 +11,8 @@ import {
 import { evmChainIdToCaip2, solanaClusterToCaip2 } from '../../wallets/caip2Network'
 import {
   evmChainMatchesNetworkEnv,
-  networkEnvFromSolanaCluster,
   solanaClusterMatchesNetworkEnv,
+  type NetworkEnv,
 } from '../../wallets/networkEnv'
 import { EvmChainListIcon } from '../WalletNetworkSelect'
 import { SolanaClusterIcon } from '../SolanaClusterIcon'
@@ -48,9 +48,12 @@ function shortSolanaLabel(cluster: SolanaCluster): string {
   return 'TEST'
 }
 
-function buildOptions(env: ReturnType<typeof networkEnvFromSolanaCluster>): GraiNetworkOption[] {
+const GRAI_MAINNET_EVM_CHAIN_ID = 42161 // Arbitrum One — only live GRAI mainnet deployment
+
+function buildOptions(env: NetworkEnv): GraiNetworkOption[] {
   const evm = listConfiguredEvmChains()
     .filter((chain) => evmChainMatchesNetworkEnv(chain.chainId, env))
+    .filter((chain) => (env === 'mainnet' ? chain.chainId === GRAI_MAINNET_EVM_CHAIN_ID : true))
     .map((chain) => ({
       key: `evm:${chain.chainId}`,
       kind: 'evm' as const,
@@ -58,10 +61,12 @@ function buildOptions(env: ReturnType<typeof networkEnvFromSolanaCluster>): Grai
       name: chain.chainName,
       short: shortEvmLabel(chain.chainName),
     }))
-  const preferredCluster = env === 'mainnet' ? 'mainnet-beta' : 'devnet'
+  // Mainnet GRAI is Arbitrum-only; do not surface Solana mainnet until it ships.
+  if (env === 'mainnet') return evm
+  const preferredCluster = 'devnet'
   const solana =
     resolveGraiSolanaConfig(preferredCluster) ??
-    (env === 'testnet' ? resolveGraiSolanaConfig(getDefaultGraiSolanaCluster()) : null)
+    resolveGraiSolanaConfig(getDefaultGraiSolanaCluster())
   if (!solana || !solanaClusterMatchesNetworkEnv(solana.cluster, env)) return evm
   return [
     ...evm,
@@ -96,10 +101,8 @@ export function GraiCaNetworkSelect({
   const menuRef = useRef<HTMLDivElement>(null)
   const evmWallet = useEvmWallet()
   const solanaWallet = useSolanaWallet()
-  const { setSelectedChainType, setEvmChain, setSolanaCluster, solanaCluster: appSolanaCluster } =
-    useWalletContext()
+  const { setSelectedChainType, setEvmChain, setSolanaCluster, networkEnv } = useWalletContext()
 
-  const networkEnv = networkEnvFromSolanaCluster(appSolanaCluster)
   const options = useMemo(() => buildOptions(networkEnv), [networkEnv])
 
   const selected = useMemo(() => {

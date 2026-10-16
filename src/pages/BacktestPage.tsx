@@ -828,8 +828,15 @@ function logEventToChartPoints(raw: unknown): {
 }
 
 function BacktestPage() {
-  const { openChainSelector, warmEvmStack, isEvmStackReady, setEvmChain, setSelectedChainType, selectedChainType } =
-    useWalletContext()
+  const {
+    openChainSelector,
+    warmEvmStack,
+    isEvmStackReady,
+    setEvmChain,
+    setSelectedChainType,
+    selectedChainType,
+    evmChain,
+  } = useWalletContext()
   const activeWallet = useActiveWallet()
   const [dateFrom, setDateFrom] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
   const [dateTo, setDateTo] = useState(() => toInputDateValue(addDays(utcDay(), -1)))
@@ -1434,6 +1441,24 @@ function BacktestPage() {
     payError === 'Enter a base or quote starting amount.' &&
     !hasPositiveAmount(baseAmount) &&
     !hasPositiveAmount(quoteAmount)
+  const payNetworkDisplay = useMemo(() => {
+    const network = walletNetwork
+    if (network?.startsWith('solana:')) {
+      return { name: 'Solana', kind: 'solana' as const }
+    }
+    const evmMatch = network ? /^eip155:(\d+)$/.exec(network) : null
+    if (evmMatch) {
+      const id = Number(evmMatch[1])
+      const opt = X402_EVM_SWITCH_OPTIONS.find((o) => o.chainId === id)
+      if (opt) return { name: opt.name, kind: 'evm' as const }
+    }
+    if (selectedChainType === 'solana' || preferSolanaPayment) {
+      return { name: 'Solana', kind: 'solana' as const }
+    }
+    const fromHeader = X402_EVM_SWITCH_OPTIONS.find((o) => o.evmChain === evmChain)
+    if (fromHeader) return { name: fromHeader.name, kind: 'evm' as const }
+    return { name: 'Base', kind: 'evm' as const }
+  }, [evmChain, preferSolanaPayment, selectedChainType, walletNetwork])
   const payUsdcLabel = (
     <span className="backtest-pay-btn-usdc-label">
       Pay {defaultBidPrice}
@@ -1441,9 +1466,50 @@ function BacktestPage() {
       USDC
     </span>
   )
+  const payNetworkHint =
+    payMethod === 'x402' ? (
+      <p className="backtest-pay-network-hint">
+        {needsWalletConnection ? (
+          <>
+            <span className="backtest-pay-network-hint-name">onchain</span>, gasless tx
+          </>
+        ) : (
+          <>
+            on
+            <span className="backtest-pay-network-hint-icon" aria-hidden="true">
+              {payNetworkDisplay.kind === 'solana' ? (
+                <SolanaClusterIcon clusterId="mainnet-beta" size={12} />
+              ) : (
+                <EvmChainListIcon name={payNetworkDisplay.name} />
+              )}
+            </span>
+            <span className="backtest-pay-network-hint-name">{payNetworkDisplay.name},</span>
+            gasless tx
+          </>
+        )}
+      </p>
+    ) : null
   const payButtonLabel: ReactNode =
     needsWalletConnection
-      ? 'Connect wallet'
+      ? (
+          <>
+            <svg
+              className="backtest-pay-btn-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v7A2.5 2.5 0 0 1 18.5 18h-13A2.5 2.5 0 0 1 3 15.5v-7Z" />
+              <path d="M15 12h6" />
+              <circle cx="15.5" cy="12" r="1" fill="currentColor" stroke="none" />
+            </svg>
+            Connect Wallet
+          </>
+        )
       : walletConnecting
       ? 'Connecting…'
       : x402NeedsSolanaMainnetSwitch
@@ -1479,7 +1545,7 @@ function BacktestPage() {
       ? 'Waiting for wallet signer'
       : payMethod === 'promocode'
       ? 'Run backtest with promocode'
-      : `Pay ${defaultBidPrice} USDC and run backtest`
+      : `Pay ${defaultBidPrice} USDC on ${payNetworkDisplay.name} (gasless) and run backtest`
 
   const backtestApiOrigin = useMemo(
     () =>
@@ -2251,7 +2317,7 @@ function BacktestPage() {
                 </li>
                 <li>
                   <span className="backtest-panel-heading-tip-key">Balances</span>
-                  at least one starting amount
+                  virtual balances for strategy runtime
                 </li>
                 <li>
                   <span className="backtest-panel-heading-tip-key">Pay</span>
@@ -2307,8 +2373,10 @@ function BacktestPage() {
             </div>
             <p className="backtest-date-limit-note">
               <span className="backtest-date-limit-note-label">Max period:</span>
-              <span className="backtest-date-limit-note-value">{MAX_BACKTEST_PERIOD_DAYS} days</span>
-              <span className="backtest-date-limit-note-label">· UTC</span>
+              <span className="backtest-date-limit-note-value-wrap">
+                <span className="backtest-date-limit-note-value">{MAX_BACKTEST_PERIOD_DAYS} days</span>
+                <span className="backtest-date-limit-note-label">· UTC</span>
+              </span>
             </p>
           </div>
 
@@ -2316,9 +2384,23 @@ function BacktestPage() {
             <div className="backtest-pair-row">
               <div className="backtest-pair-col">
                 <div className={`backtest-pair-field${amountsMissing ? ' is-invalid' : ''}`}>
-                  <label className="backtest-sublabel is-base" htmlFor="backtest-base-amt">
-                    Base
-                  </label>
+                  <div className="backtest-sublabel-row">
+                    <span
+                      className="backtest-sublabel-info"
+                      tabIndex={0}
+                      aria-label="Virtual base balance"
+                    >
+                      <span className="backtest-sublabel-info-icon" aria-hidden="true">
+                        ?
+                      </span>
+                      <span className="backtest-sublabel-info-tip" role="tooltip">
+                        virtual base balance
+                      </span>
+                    </span>
+                    <label className="backtest-sublabel is-base" htmlFor="backtest-base-amt">
+                      Base
+                    </label>
+                  </div>
                   <div className={`backtest-pair-input-row${amountsMissing ? ' is-invalid' : ''}`}>
                     <div className="backtest-amount-with-action">
                       <input
@@ -2455,9 +2537,23 @@ function BacktestPage() {
               </div>
               <div className="backtest-pair-col">
                 <div className={`backtest-pair-field${amountsMissing ? ' is-invalid' : ''}`}>
-                  <label className="backtest-sublabel is-quote" htmlFor="backtest-quote-amt">
-                    Quote
-                  </label>
+                  <div className="backtest-sublabel-row">
+                    <span
+                      className="backtest-sublabel-info"
+                      tabIndex={0}
+                      aria-label="Virtual quote balance"
+                    >
+                      <span className="backtest-sublabel-info-icon" aria-hidden="true">
+                        ?
+                      </span>
+                      <span className="backtest-sublabel-info-tip" role="tooltip">
+                        virtual quote balance
+                      </span>
+                    </span>
+                    <label className="backtest-sublabel is-quote" htmlFor="backtest-quote-amt">
+                      Quote
+                    </label>
+                  </div>
                   <div className={`backtest-pair-input-row${amountsMissing ? ' is-invalid' : ''}`}>
                     <div className="backtest-amount-with-action">
                       <input
@@ -2727,34 +2823,31 @@ function BacktestPage() {
                       usdcShortfallLabel
                     ) : payStatusMessage ? (
                       <span className="backtest-pay-btn-status">{payStatusMessage}</span>
-                    ) : needsWalletConnection ? (
-                      <>
-                        <svg
-                          className="backtest-pay-btn-icon"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          aria-hidden="true"
-                        >
-                          <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v7A2.5 2.5 0 0 1 18.5 18h-13A2.5 2.5 0 0 1 3 15.5v-7Z" />
-                          <path d="M15 12h6" />
-                          <circle cx="15.5" cy="12" r="1" fill="currentColor" stroke="none" />
-                        </svg>
-                        Connect wallet
-                      </>
                     ) : (
                       payButtonLabel
                     )}
                   </button>
+                  {payNetworkHint}
                   <p className="backtest-time-estimate-note">
                     <span className="backtest-time-estimate-note-line">
                       After payment queues backtest’s to order.
                     </span>
                     <span className="backtest-time-estimate-note-line">
-                      Results appear when finished (~5&nbsp;min once started).
+                      <button
+                        type="button"
+                        className="backtest-time-estimate-note-link"
+                        onClick={() => {
+                          setQueueViewAnimated('history')
+                          window.setTimeout(() => {
+                            document
+                              .getElementById(BACKTEST_SECTION_IDS.queue)
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          }, 80)
+                        }}
+                      >
+                        Results
+                      </button>{' '}
+                      appear when finished (~5&nbsp;min once started).
                     </span>
                   </p>
                 </div>

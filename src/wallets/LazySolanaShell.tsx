@@ -1,4 +1,4 @@
-import { lazy, ReactNode, Suspense } from 'react'
+import { lazy, ReactNode, Suspense, useEffect, useState } from 'react'
 
 const loadSolanaProvider = () =>
   import('./SolanaProvider').then((module) => ({ default: module.SolanaProvider }))
@@ -18,7 +18,14 @@ type LazySolanaShellProps = {
 
 /** Loads Solana wallet adapters only when Solana is the active / requested chain. */
 export function LazySolanaShell({ enabled, onReady, children }: LazySolanaShellProps) {
-  if (!enabled) return <>{children}</>
+  // Sticky: once mounted, keep the provider so enable/disable does not remount the
+  // whole app tree (that flashes Suspense blank screens on Mainnet↔Testnet).
+  const [everEnabled, setEverEnabled] = useState(enabled)
+  useEffect(() => {
+    if (enabled) setEverEnabled(true)
+  }, [enabled])
+
+  if (!everEnabled) return <>{children}</>
 
   return (
     <Suspense fallback={children}>

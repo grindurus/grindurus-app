@@ -30,6 +30,8 @@ type Props = {
   usdLabel?: string
   /** Right-aligned grey text on the USD row (e.g. `balance: 12.5` for deposit). */
   usdTrailingLabel?: string
+  /** Keep the USD row visible for GRAI even when there is no trailing label. */
+  keepUsdForGrai?: boolean
   footerStartLabel?: string
   showPresets?: boolean
   /** @deprecated Detail under the asset select always shows wallet balance. */
@@ -70,6 +72,7 @@ export function GraiAmountInput({
   decimals,
   usdLabel,
   usdTrailingLabel,
+  keepUsdForGrai = false,
   footerStartLabel,
   showPresets = true,
   showVolatility: _showVolatility = true,
@@ -143,7 +146,7 @@ export function GraiAmountInput({
     balanceLabel.replace(new RegExp(`\\s*${selectedAsset?.symbol ?? ''}$`), '').trim() || balanceLabel
   const isBalanceLoading = balanceLoading || balanceText === '…' || balanceLabel.trim() === '…'
   const showUsdSlot = Boolean(usdLabel || usdTrailingLabel)
-  const usdCollapsed = Boolean(usdLabel) && !usdTrailingLabel && isGraiAsset
+  const usdCollapsed = Boolean(usdLabel) && !usdTrailingLabel && isGraiAsset && !keepUsdForGrai
   const usdStartIsPlaceholder =
     !value.trim() ||
     !usdLabel ||

@@ -16,7 +16,7 @@ export type Grai = {
     {
       "name": "acceptOwnership",
       "docs": [
-        "Pending owner takes over; clears `confirmed` so prior liquidation consent dies with the old owner."
+        "Pending owner takes over (EVM Ownable2Step). Grinders liquidation arm is separate."
       ],
       "discriminator": [
         172,
@@ -73,7 +73,10 @@ export type Grai = {
           "writable": true
         },
         {
-          "name": "settlementMint"
+          "name": "settlementMint",
+          "docs": [
+            "Bribe payment mint (must be listed and `bribeable`; EVM `bribe(asset, …)`)."
+          ]
         },
         {
           "name": "settlementAssetConfig",
@@ -127,7 +130,8 @@ export type Grai = {
       "name": "claim",
       "docs": [
         "Claim yield dividends for one listed asset.",
-        "`amount == u64::MAX` claims the full accrued balance; otherwise `min(amount, claimable)`.",
+        "`amount == u64::MAX` claims the full accrued balance; otherwise",
+        "`min(amount, claimable, vault, total_claimable)`.",
         "Tip (`claim_tip_bps`) is paid to `payer`; remainder to `holder`."
       ],
       "discriminator": [
@@ -167,6 +171,9 @@ export type Grai = {
         },
         {
           "name": "position",
+          "docs": [
+            "Do not use `init_if_needed` + `bump == 0` as is-new: a real PDA bump can be 0 (M-10)."
+          ],
           "writable": true
         },
         {
@@ -194,6 +201,9 @@ export type Grai = {
         },
         {
           "name": "holderReferrer",
+          "docs": [
+            "Created unbound on first claim if `lock` never deposited (M-08)."
+          ],
           "writable": true
         },
         {
@@ -613,34 +623,6 @@ export type Grai = {
       }
     },
     {
-      "name": "getRedeemables",
-      "docs": [
-        "EVM `getRedeemables` — redeemable basket while liquidation is open.",
-        "Remaining: `[asset_config, vault_ata]` × N."
-      ],
-      "discriminator": [
-        190,
-        32,
-        35,
-        230,
-        63,
-        63,
-        53,
-        238
-      ],
-      "accounts": [
-        {
-          "name": "graiState"
-        }
-      ],
-      "args": [],
-      "returns": {
-        "defined": {
-          "name": "redeemQuote"
-        }
-      }
-    },
-    {
       "name": "getLockersData",
       "docs": [
         "EVM GRAI `getLockersData(fromId, toId)`: bound lockers plus `previewClaimAll`.",
@@ -678,6 +660,34 @@ export type Grai = {
           "defined": {
             "name": "lockerDataView"
           }
+        }
+      }
+    },
+    {
+      "name": "getRedeemables",
+      "docs": [
+        "EVM `getRedeemables` — redeemable basket while liquidation is open.",
+        "Remaining: `[asset_config, vault_ata]` × N."
+      ],
+      "discriminator": [
+        190,
+        32,
+        35,
+        230,
+        63,
+        63,
+        53,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "graiState"
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "redeemQuote"
         }
       }
     },
@@ -811,6 +821,12 @@ export type Grai = {
           "writable": true
         },
         {
+          "name": "grindersState",
+          "docs": [
+            "Linked Grinders state (`grai_state.grinders`) with heartbeat fields."
+          ]
+        },
+        {
           "name": "graiMint"
         },
         {
@@ -936,7 +952,10 @@ export type Grai = {
           "writable": true
         },
         {
-          "name": "graiMint"
+          "name": "graiMint",
+          "docs": [
+            "Protocol GRAI mint only (C-02) — junk SPL cannot buy a referral slot."
+          ]
         },
         {
           "name": "poacherGraiAta",
@@ -947,7 +966,20 @@ export type Grai = {
           "writable": true
         },
         {
+          "name": "grindersState"
+        },
+        {
+          "name": "grindersGraiAta",
+          "docs": [
+            "Grinders ATA for the GRAI mint — receives `ceil(price * poach_fee_bps / BPS)`."
+          ],
+          "writable": true
+        },
+        {
           "name": "tokenProgram"
+        },
+        {
+          "name": "associatedTokenProgram"
         },
         {
           "name": "systemProgram"
@@ -959,7 +991,7 @@ export type Grai = {
       "name": "previewBribe",
       "docs": [
         "Dynamic bribe ask for `grai_amount` of `voter`'s vote: `(bribe_amount, premium, discount)`",
-        "in `settlement_asset` units. Exactly one of `premium` / `discount` is non-zero."
+        "in the payment mint's units (`settlement_mint`, must be `bribeable`)."
       ],
       "discriminator": [
         213,
@@ -985,7 +1017,10 @@ export type Grai = {
           "name": "escrow"
         },
         {
-          "name": "settlementMint"
+          "name": "settlementMint",
+          "docs": [
+            "Bribe payment mint (must be listed and `bribeable`; EVM `previewBribe(asset, …)`)."
+          ]
         },
         {
           "name": "settlementAssetConfig"
@@ -1322,6 +1357,16 @@ export type Grai = {
           "writable": true
         },
         {
+          "name": "grindersState",
+          "docs": [
+            "Linked Grinders state — mutated by CPI `grinders::revive`."
+          ],
+          "writable": true
+        },
+        {
+          "name": "grindersProgram"
+        },
+        {
           "name": "graiMint"
         },
         {
@@ -1356,6 +1401,44 @@ export type Grai = {
         {
           "name": "beneficiar",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "setBribeable",
+      "docs": [
+        "EVM `setConfig(BRIBEABLE, packed)` — toggle `assets[mint].bribeable`."
+      ],
+      "discriminator": [
+        88,
+        142,
+        93,
+        200,
+        91,
+        88,
+        35,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "graiState"
+        },
+        {
+          "name": "assetMint"
+        },
+        {
+          "name": "assetConfig",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "bribeable",
+          "type": "bool"
         }
       ]
     },
@@ -1560,39 +1643,6 @@ export type Grai = {
       ]
     },
     {
-      "name": "setSettlementAsset",
-      "discriminator": [
-        136,
-        125,
-        240,
-        24,
-        103,
-        4,
-        38,
-        219
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "graiState",
-          "writable": true
-        },
-        {
-          "name": "settlementMint"
-        },
-        {
-          "name": "settlementAssetConfig"
-        },
-        {
-          "name": "settlementPriceFeed"
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "transferOwnership",
       "docs": [
         "Propose a new owner (EVM `Ownable2Step.transferOwnership`).",
@@ -1663,7 +1713,20 @@ export type Grai = {
           "writable": true
         },
         {
+          "name": "grindersState"
+        },
+        {
+          "name": "grindersGraiAta",
+          "docs": [
+            "Grinders ATA for the GRAI mint — receives unlock penalty (EVM → `address(grinders)`)."
+          ],
+          "writable": true
+        },
+        {
           "name": "tokenProgram"
+        },
+        {
+          "name": "associatedTokenProgram"
         },
         {
           "name": "systemProgram"
@@ -1906,151 +1969,146 @@ export type Grai = {
     },
     {
       "code": 6021,
-      "name": "bribeAssetUnset",
-      "msg": "Bribe asset is unset"
+      "name": "notBribeable",
+      "msg": "Asset is not marked bribeable"
     },
     {
       "code": 6022,
-      "name": "settlementAssetUnset",
-      "msg": "Settlement asset is unset"
-    },
-    {
-      "code": 6023,
       "name": "invalidCuts",
       "msg": "Yield cuts must sum to 10_000"
     },
     {
-      "code": 6024,
+      "code": 6023,
       "name": "votesOpen",
       "msg": "Cannot change asset while votes are open"
     },
     {
-      "code": 6025,
+      "code": 6024,
       "name": "liquidationOpen",
       "msg": "Liquidation is open"
     },
     {
-      "code": 6026,
+      "code": 6025,
       "name": "liquidationClosed",
       "msg": "Liquidation is closed"
     },
     {
-      "code": 6027,
+      "code": 6026,
       "name": "liquidationQuorumNotMet",
       "msg": "Liquidation quorum not met"
     },
     {
-      "code": 6028,
+      "code": 6027,
       "name": "liquidationDelay",
       "msg": "Liquidation delay has not elapsed"
     },
     {
-      "code": 6029,
+      "code": 6028,
       "name": "redeemPeriodActive",
       "msg": "Redeem period is still active"
     },
     {
-      "code": 6030,
+      "code": 6029,
       "name": "chainlinkReadError",
       "msg": "Failed to read Chainlink feed account"
     },
     {
-      "code": 6031,
+      "code": 6030,
       "name": "chainlinkRoundMissing",
       "msg": "Chainlink feed has no latest round data"
     },
     {
-      "code": 6032,
+      "code": 6031,
       "name": "invalidChainlinkPrice",
       "msg": "Chainlink price must be positive"
     },
     {
-      "code": 6033,
+      "code": 6032,
       "name": "staleChainlinkPrice",
       "msg": "Chainlink price is stale"
     },
     {
-      "code": 6034,
+      "code": 6033,
       "name": "invalidChainlinkFeed",
       "msg": "Price feed does not match asset config"
     },
     {
-      "code": 6035,
+      "code": 6034,
       "name": "invalidCustomPriceFeed",
       "msg": "Custom price feed does not match asset mint"
     },
     {
-      "code": 6036,
+      "code": 6035,
       "name": "pythReadError",
       "msg": "Failed to read Pyth price feed account"
     },
     {
-      "code": 6037,
+      "code": 6036,
       "name": "stalePythPrice",
       "msg": "Pyth price is stale"
     },
     {
-      "code": 6038,
+      "code": 6037,
       "name": "invalidPythPrice",
       "msg": "Pyth price must be positive"
     },
     {
-      "code": 6039,
+      "code": 6038,
       "name": "invalidRemainingAccounts",
       "msg": "Remaining accounts do not match asset registry"
     },
     {
-      "code": 6040,
+      "code": 6039,
       "name": "invalidVoteEscrow",
       "msg": "Vote escrow does not match voter"
     },
     {
-      "code": 6041,
+      "code": 6040,
       "name": "insufficientGraiBalance",
       "msg": "Insufficient GRAI balance"
     },
     {
-      "code": 6042,
+      "code": 6041,
       "name": "insolventRevive",
       "msg": "Leftover NAV would dilute remaining shares"
     },
     {
-      "code": 6043,
+      "code": 6042,
       "name": "insolventBook",
       "msg": "Deposit book is zero while shares remain"
     },
     {
-      "code": 6044,
-      "name": "liquidationNotConfirmed",
-      "msg": "Liquidation has not been confirmed by the owner"
+      "code": 6043,
+      "name": "grindersGrinding",
+      "msg": "Grinders heartbeat is still active"
     },
     {
-      "code": 6045,
+      "code": 6044,
       "name": "invalidLockerRange",
       "msg": "Invalid get_lockers range"
     },
     {
-      "code": 6046,
+      "code": 6045,
       "name": "invalidVoterRange",
       "msg": "Invalid get_voters range"
     },
     {
-      "code": 6047,
+      "code": 6046,
       "name": "invalidReferrer",
       "msg": "Sticky referrer / poach target is a protocol sink (GRAI, treasury, WSOL)"
     },
     {
-      "code": 6048,
+      "code": 6047,
       "name": "invalidReferralRange",
       "msg": "Invalid get_lockers_data range"
     },
     {
-      "code": 6049,
+      "code": 6048,
       "name": "invalidPdaInit",
       "msg": "PDA must be system-owned and empty to initialize"
     },
     {
-      "code": 6050,
+      "code": 6049,
       "name": "invalidPythFeedId",
       "msg": "Pyth PriceUpdateV2 feed_id mismatch or unset"
     }
@@ -2074,13 +2132,20 @@ export type Grai = {
             "type": "bool"
           },
           {
+            "name": "bribeable",
+            "docs": [
+              "When true, mint may be used as bribe payment (EVM `Asset.bribeable`)."
+            ],
+            "type": "bool"
+          },
+          {
             "name": "id",
             "type": "u32"
           },
           {
             "name": "accShare",
             "docs": [
-              "Dividend index per unvoted locked GRAI, scaled by 1e18 (EVM `TotalPosition.accShare`)."
+              "Dividend index per unvoted locked GRAI, scaled by 1e18 (EVM `Asset.accShare`)."
             ],
             "type": "u128"
           },
@@ -2088,6 +2153,13 @@ export type Grai = {
             "name": "totalClaimable",
             "docs": [
               "Vault inventory reserved for locker claims (excluded from redeem / revive)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalYielded",
+            "docs": [
+              "Lifetime yield credited via `distribute` for this asset (never decreases)."
             ],
             "type": "u64"
           },
@@ -2214,6 +2286,14 @@ export type Grai = {
             "name": "unlockPenaltyBps",
             "docs": [
               "Flat unlock fee in bps of unlocked GRAI (EVM `unlockPenaltyBps`)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "poachFeeBps",
+            "docs": [
+              "Flat poach fee in bps of the poach ask (`value + l1_value`); sent to Grinders",
+              "(EVM `poachFeeBps`)."
             ],
             "type": "u16"
           },
@@ -2370,13 +2450,6 @@ export type Grai = {
             "type": "pubkey"
           },
           {
-            "name": "settlementAsset",
-            "docs": [
-              "Asset used for bribe payments (EVM `settlementAsset`). `Pubkey::default()` means unset."
-            ],
-            "type": "pubkey"
-          },
-          {
             "name": "totalValue",
             "type": "u128"
           },
@@ -2396,15 +2469,15 @@ export type Grai = {
             "type": "bool"
           },
           {
-            "name": "confirmed",
-            "docs": [
-              "Owner consent bit for 2-of-2 liquidation open (EVM `confirmed`)."
-            ],
-            "type": "bool"
-          },
-          {
             "name": "liquidationAt",
             "type": "i64"
+          },
+          {
+            "name": "graiMint",
+            "docs": [
+              "Canonical share mint created in `initialize` (C-01). Never inferred from mint authority."
+            ],
+            "type": "pubkey"
           },
           {
             "name": "config",
@@ -2417,7 +2490,8 @@ export type Grai = {
           {
             "name": "royaltyBps",
             "docs": [
-              "Secondary-sale royalty in bps (EVM ERC-2981 `royaltyBps`); receiver = locker."
+              "Secondary-sale royalty in bps written to Treasury NFT Metaplex metadata.",
+              "Receiver is `beneficiar` (EVM `Treasury.beneficiar`), snapshotted at mint."
             ],
             "type": "u16"
           },
@@ -2556,7 +2630,7 @@ export type Grai = {
         "Per-account, per-asset ledger (EVM `Position`).",
         "",
         "Locker dividends use `debt` / `claimable` vs `AssetConfig.acc_share`.",
-        "Custodian `distribute` increments `yielded`."
+        "Custodian `distribute` increments Position.`yielded` and AssetConfig.`total_yielded`."
       ],
       "type": {
         "kind": "struct",

@@ -5,10 +5,7 @@ import '@rainbow-me/rainbowkit/styles.css'
 import '../rainbowkit-fix.css'
 import { startScrollLockGapPatch } from '../utils/patchScrollLockGap'
 import { useWalletContext } from './walletContext'
-import {
-  networkEnvFromSolanaCluster,
-  preferredEvmChainId,
-} from './networkEnv'
+import { preferredEvmChainId } from './networkEnv'
 import { RainbowKitConnectBridge } from './RainbowKitConnectBridge'
 import { RainbowKitLoadingOverlay } from './RainbowKitLoadingOverlay'
 
@@ -29,11 +26,8 @@ function useDataThemeIsDark() {
 export function RainbowKitShell({ children }: { children: ReactNode }) {
   useEffect(() => startScrollLockGapPatch(), [])
   const isDark = useDataThemeIsDark()
-  const { evmChain, solanaCluster } = useWalletContext()
-  const initialChainId = preferredEvmChainId(
-    evmChain,
-    networkEnvFromSolanaCluster(solanaCluster),
-  )
+  const { evmChain, networkEnv } = useWalletContext()
+  const initialChainId = preferredEvmChainId(evmChain, networkEnv)
   const initialChain = useMemo(() => {
     if (initialChainId === sepolia.id) return sepolia
     if (initialChainId === base.id) return base

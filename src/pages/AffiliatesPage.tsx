@@ -41,7 +41,10 @@ function AffiliatesPage() {
     solanaCluster,
     explorerAccountUrl,
   } = useGraiDeployment()
-  const { evmChain } = useWalletContext()
+  const { networkEnv, evmChain } = useWalletContext()
+  const activeWallet = useActiveWallet()
+  const solanaWallet = useSolanaWallet()
+  const evmWallet = useEvmWallet()
   const configuredEvmChains = useMemo(() => listConfiguredEvmChains(), [])
   const contextChainId =
     evmChain === 'ethereum' ? 1 : evmChain === 'arbitrum' ? 42161 : evmChain === 'sepolia' ? 11155111 : 8453
@@ -50,9 +53,6 @@ function AffiliatesPage() {
     (chainKind === 'evm' ? resolveGraiEvmConfig(contextChainId) : null) ??
     configuredEvmChains[0] ??
     null
-  const activeWallet = useActiveWallet()
-  const solanaWallet = useSolanaWallet()
-  const evmWallet = useEvmWallet()
   const walletAddress = firstAddress(
     chainKind === 'solana' ? solanaWallet.address : null,
     chainKind === 'evm' ? evmWallet.address : null,
@@ -146,9 +146,11 @@ function AffiliatesPage() {
 
   return (
     <div className="grai-page affiliates-page">
-      <p className="grai-page-dev-banner" role="status">
-        TESTNET DEVELOPMENT
-      </p>
+      {networkEnv === 'testnet' && (evmWallet.isConnected || solanaWallet.isConnected) ? (
+        <p className="grai-page-dev-banner" role="status">
+          TESTNET DEVELOPMENT
+        </p>
+      ) : null}
       <div className="grai-content-row">
         <div className="affiliates-intro" id="affiliates-link">
           <h1 className="grai-page-title affiliates-intro-title">

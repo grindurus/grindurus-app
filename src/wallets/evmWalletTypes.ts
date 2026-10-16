@@ -5,7 +5,7 @@ export type EvmWalletSnapshot = {
   isConnecting: boolean
   chainId: number
   chainName: string
-  connector: { id: string; name: string; uid: string } | undefined
+  connector: { id: string; name: string; uid: string; icon?: string } | undefined
   connectors: Array<{ id: string; name: string; uid: string; icon?: string; type?: string }>
   supportedChains: Array<{ id: number; name: string; icon: string }>
   canOpenConnectModal: boolean

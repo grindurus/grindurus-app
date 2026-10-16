@@ -1204,6 +1204,22 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   border: 1px solid color-mix(in srgb, #ffb347 45%, transparent);
 }
 
+.grai-page-network-warning-action {
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.35rem;
+  border: 1px solid color-mix(in srgb, #ffb347 55%, transparent);
+  background: color-mix(in srgb, #ffb347 22%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.grai-page-network-warning-action:hover {
+  background: color-mix(in srgb, #ffb347 35%, transparent);
+}
+
 .grai-page-dev-banner {
   margin: 0 0 0.75rem;
   width: 100%;
@@ -2137,6 +2153,25 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  gap: 0.4rem;
+  padding: 0.45rem;
+}
+
+.wallet-network-select-list.grai-grinders-network-menu-list .wallet-network-select-item {
+  border: 1px solid rgba(255, 105, 180, 0.55);
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.wallet-network-select-list.grai-grinders-network-menu-list .wallet-network-select-item:hover {
+  border-color: rgba(255, 105, 180, 0.85);
+  background: rgba(255, 105, 180, 0.08);
+}
+
+.wallet-network-select-list.grai-grinders-network-menu-list .wallet-network-select-item.active {
+  border-color: #ff69b4;
+  background: rgba(255, 105, 180, 0.16);
+  box-shadow: 0 0 0 1px rgba(255, 105, 180, 0.35);
 }
 
 .wallet-network-select-list.is-grai-compact-portal .network-caip2 {
@@ -6224,6 +6259,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: var(--text-secondary);
 }
 
+.grai-field-info-tooltip-token-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin: 0 0.1em;
+  vertical-align: -0.15em;
+  object-fit: contain;
+}
+
 .grai-field-info-tooltip code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.9em;
@@ -9253,7 +9297,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0;
   width: 100%;
   padding: 0;
   border: none;
@@ -9266,17 +9310,22 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
 }
 
+/*
+ * Swap legs: one pink card; FROM/TO sits inside it, directly above the amount input.
+ * (Outer wrap owns the chrome; inner field is flat.)
+ */
 .grai-swap-leg .grai-amount-input {
-  gap: 0.35rem;
-  padding: 0.55rem 0.65rem 0.6rem;
-  border: 1px solid transparent;
+  gap: 0.2rem;
+  padding: 0.45rem 0.65rem 0.5rem;
+  border: 1px solid color-mix(in srgb, #ff69b4 32%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, #000 28%, var(--bg-tertiary, var(--bg-primary)));
+  background: color-mix(in srgb, #ff69b4 18%, #100c10);
   box-sizing: border-box;
 }
 
 [data-theme='light'] .grai-swap-leg .grai-amount-input {
-  background: color-mix(in srgb, #fff 55%, var(--bg-tertiary, #f6f0f3));
+  background: color-mix(in srgb, #ff69b4 14%, #f0e8ed);
+  border-color: color-mix(in srgb, #ff69b4 28%, rgba(0, 0, 0, 0.1));
 }
 
 .grai-swap-leg .grai-amount-input-header,
@@ -9285,37 +9334,20 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-  min-height: 1.25rem;
+  min-height: 1rem;
   margin: 0;
   padding: 0 0.1rem;
-  grid-template-areas: none;
 }
 
-.grai-swap-leg .grai-amount-input-label,
-.grai-swap-leg .grai-amount-input-header.has-balance-top .grai-amount-input-label {
-  order: 0;
-  margin-right: auto;
-  font-size: 0.78rem;
+.grai-swap-leg .grai-amount-input-label {
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  text-align: left;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-secondary);
-  grid-area: auto;
 }
 
-.grai-swap-leg .grai-amount-input-balance-top,
-.grai-swap-leg .grai-amount-input-header.has-balance-top .grai-amount-input-balance-top {
-  order: 1;
-  margin-left: 0;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  grid-area: auto;
-  justify-self: auto;
-}
-
-.grai-swap-leg .grai-amount-input-usd-trailing {
+.grai-swap-leg .grai-amount-input-balance-top {
   display: none;
 }
 
@@ -9323,58 +9355,29 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   border: none;
   border-radius: 0;
   background: transparent;
-  min-height: 2.75rem;
 }
 
+/* Flush amount + USD with FROM/TO label left edge. */
 .grai-swap-leg .grai-amount-input-control {
-  padding: 0.15rem 0.35rem 0.05rem 0.1rem;
-  font-size: 1.55rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  background: transparent;
-  border-radius: 0;
+  padding-left: 0.1rem;
+  padding-right: 0.5rem;
+  text-align: left;
 }
 
-.grai-swap-leg .grai-amount-input-value-col.has-usd .grai-amount-input-control {
-  border-radius: 0;
-  padding-bottom: 0.05rem;
+.grai-swap-leg .grai-amount-input-usd {
+  padding-left: 0.1rem;
 }
 
-.grai-swap-leg .grai-amount-input-max {
-  align-self: center;
-  padding: 0 0.35rem 0 0;
-}
-
-.grai-swap-leg .grai-asset-select-vol-slot {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  padding: 0;
-  text-align: right;
-}
-
-.grai-swap-leg .grai-asset-select-vol {
-  display: block;
-  width: 100%;
-  font-size: 0.72rem;
-  font-weight: 500;
-  line-height: 1.15;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+/* Flip band between FROM / TO. */
 .grai-swap-flip-row {
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
-  z-index: 2;
-  height: 0;
-  margin: 0;
+  z-index: 3;
+  height: 2.75rem;
+  margin: 0.1rem 0;
+  flex-shrink: 0;
 }
 
 .grai-swap-flip-btn {
@@ -9385,20 +9388,25 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   height: 2.35rem;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--bg-secondary);
-  color: rgba(255, 105, 180, 0.95);
+  border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color, rgba(255, 255, 255, 0.18)));
+  border-radius: 999px;
+  background: var(--bg-secondary, #141014);
+  color: #ff69b4;
   cursor: pointer;
-  box-shadow: 0 0 0 4px color-mix(in srgb, #ff69b4 8%, var(--bg-secondary));
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 .grai-swap-flip-btn:hover,
 .grai-swap-flip-btn:focus-visible {
-  color: #ff69b4;
-  border-color: rgba(255, 105, 180, 0.55);
-  background: color-mix(in srgb, #ff69b4 14%, var(--bg-secondary));
+  color: #fff;
+  border-color: #ff69b4;
+  background: color-mix(in srgb, #ff69b4 22%, var(--bg-secondary, #141014));
+  transform: scale(1.04);
   outline: none;
 }
 
@@ -9410,8 +9418,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 [data-theme='light'] .grai-swap-flip-btn {
   background: #fff;
-  box-shadow: 0 0 0 4px color-mix(in srgb, #ff69b4 6%, var(--bg-secondary));
-  color: rgba(233, 30, 140, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: #e91e8c;
+}
+
+[data-theme='light'] .grai-swap-flip-btn:hover,
+[data-theme='light'] .grai-swap-flip-btn:focus-visible {
+  color: #ff1493;
+  background: color-mix(in srgb, #ff69b4 12%, #fff);
 }
 
 .grai-swap-meta {
@@ -9515,23 +9529,30 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: none;
 }
 
-/* Exit by Swap keeps its own leg chrome (overrides mint flat amount inputs above). */
+/* Exit by Swap: keep pink card + in-card FROM/TO under mint flat-input overrides. */
 .grai-action-card.grai-mint .grai-swap-leg .grai-amount-input:not(.is-fill-layout) {
-  gap: 0.35rem;
-  padding: 0.55rem 0.65rem 0.6rem;
-  border: 1px solid transparent;
+  gap: 0.2rem;
+  padding: 0.45rem 0.65rem 0.5rem;
+  border: 1px solid color-mix(in srgb, #ff69b4 32%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, #000 28%, var(--bg-tertiary, var(--bg-primary)));
+  background: color-mix(in srgb, #ff69b4 18%, #100c10);
 }
 
 [data-theme='light'] .grai-action-card.grai-mint .grai-swap-leg .grai-amount-input:not(.is-fill-layout) {
-  background: color-mix(in srgb, #fff 55%, var(--bg-tertiary, #f6f0f3));
+  background: color-mix(in srgb, #ff69b4 14%, #f0e8ed);
+  border-color: color-mix(in srgb, #ff69b4 28%, rgba(0, 0, 0, 0.1));
 }
 
 .grai-action-card.grai-mint .grai-swap-leg .grai-amount-input:not(.is-fill-layout) .grai-amount-input-header,
 .grai-action-card.grai-mint .grai-swap-leg .grai-amount-input:not(.is-fill-layout) .grai-amount-input-header.has-balance-top {
   display: flex;
 }
+
+.grai-action-card.grai-mint .grai-swap-leg .grai-amount-input:not(.is-fill-layout) .grai-amount-input-field {
+  border: none;
+  background: transparent;
+}
+
 
 .grai-action-card.grai-mint .grai-action-content-shell {
   overflow: hidden;
@@ -11157,8 +11178,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   align-items: center;
 }
 
-/* Swap: $ under the amount input; token pill on the right */
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) {
+/* Swap: $ under the amount input; token pill on the right (no trailing balance:). */
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
@@ -11166,17 +11187,17 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   column-gap: 0.5rem;
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-amount-input-main {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-amount-input-main {
   display: contents;
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-amount-input-value-col {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-amount-input-value-col {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-amount-input-max {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-amount-input-max {
   grid-column: 1;
   grid-row: 1;
   justify-self: end;
@@ -11184,7 +11205,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   z-index: 1;
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-amount-input-usd {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-amount-input-usd {
   grid-column: 1;
   grid-row: 2;
   justify-content: flex-start;
@@ -11195,20 +11216,24 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: var(--text-secondary);
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-asset-select {
   grid-column: 2;
   grid-row: 1 / span 2;
   display: flex;
   align-items: center;
   align-self: center;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select-trigger {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-asset-select-trigger {
   display: inline-flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
   gap: 0.12rem;
+  width: max-content;
   height: auto;
   min-height: 2.35rem;
   padding: 0.3rem 0.55rem 0.35rem;
@@ -11217,25 +11242,29 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   background: color-mix(in srgb, #ff69b4 12%, var(--bg-primary));
   grid-row: auto;
   grid-template-rows: none;
+  overflow: visible;
 }
 
-[data-theme='light'] .grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select-trigger {
+[data-theme='light'] .grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-asset-select-trigger {
   background: color-mix(in srgb, #ff69b4 10%, #fff);
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select-main {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-asset-select-main {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.12rem;
+  width: max-content;
+  min-width: 0;
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select-token {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-asset-select-token {
   grid-row: auto;
   padding: 0;
+  width: max-content;
 }
 
-.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd.has-trailing) .grai-asset-select-vol-slot {
+.grai-swap-leg .grai-amount-input-field:has(.grai-amount-input-usd) .grai-asset-select-vol-slot {
   display: block;
   grid-row: auto;
   width: 100%;
@@ -12674,6 +12703,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   overflow: visible;
 }
 
+/*
+ * The asset dropdown (Distribute / Claim / Swap amount inputs) is absolutely positioned
+ * inside the ops body. The collapsible body keeps `overflow: hidden` for its 0fr → 1fr
+ * animation, and the ops panel / main clip horizontally — both cut the open list off.
+ * Lift the clip only while a dropdown is open (same pattern as `.grai-actions-block`).
+ */
+.grai-ops-panel:has(.grai-asset-select-dropdown),
+.grai-liquidation-ops-body.is-open:has(.grai-asset-select-dropdown),
+.grai-liquidation-ops-main:has(.grai-asset-select-dropdown) {
+  overflow: visible;
+}
+
 .grai-liquidation-ops-block:has(.grai-liquidation-ops-body:not(.is-open)) .grai-liquidation-ops-heading {
   margin-bottom: 0;
 }
@@ -12730,8 +12771,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn,
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-liquidate-slot,
-.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn,
-.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn.is-swap {
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn {
   margin-top: 0.4rem;
 }
 
@@ -12931,12 +12971,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Claim / Distribute / Voting / Liquidation / Swap — one row */
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: stretch;
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    gap: 0.35rem;
+    gap: 0.28rem;
     overflow: visible;
     border: 0;
     box-sizing: border-box;
@@ -12952,15 +12993,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 0.22rem;
+    gap: 0.18rem;
     width: 100%;
     min-width: 0;
     max-width: 100%;
     margin-top: 0;
-    padding: 0.45rem 0.2rem 0.5rem;
-    font-size: clamp(0.58rem, 2.6vw, 0.72rem);
+    padding: 0.4rem 0.12rem 0.42rem;
+    font-size: clamp(0.52rem, 2.1vw, 0.66rem);
     font-weight: 600;
-    line-height: 1.15;
+    line-height: 1.12;
     letter-spacing: 0.01em;
     text-align: center;
     white-space: normal;
@@ -12971,8 +13012,16 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn,
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-liquidate-slot,
-  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn {
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn.is-swap {
     margin-top: 0;
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-swap,
+  .grai-action-switch-liquidate-slot {
+    align-self: stretch;
+    height: 100%;
+    min-height: 100%;
   }
 
   .grai-action-switch-liquidate-slot {
@@ -12981,12 +13030,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 0.22rem;
+    gap: 0.18rem;
     width: 100%;
     min-width: 0;
     max-width: 100%;
     margin-top: 0;
-    padding: 0.45rem 0.2rem 0.5rem;
+    padding: 0.4rem 0.12rem 0.42rem;
     border-radius: 8px;
     box-sizing: border-box;
   }
@@ -13004,14 +13053,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 0.22rem;
+    gap: 0.18rem;
     width: 100%;
     min-width: 0;
     max-width: 100%;
     padding: 0;
-    font-size: clamp(0.58rem, 2.6vw, 0.72rem);
+    font-size: clamp(0.52rem, 2.1vw, 0.66rem);
     font-weight: 600;
-    line-height: 1.15;
+    line-height: 1.12;
     letter-spacing: 0.01em;
     text-align: center;
     border: 0;
@@ -14535,53 +14584,50 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-referral-graph-node.is-selected,
 .grai-referral-graph-node.is-you.is-selected {
   width: 16rem;
-  height: 7.35rem;
-  padding: 0.5rem 0.6rem 0.45rem;
-  border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color)) !important;
-  border-width: 1px !important;
+  height: 11.75rem;
+  padding: 0.7rem 0.85rem 0.65rem;
+  border: 2px solid #ff2d8c !important;
+  border-width: 2px !important;
+  border-radius: 0 !important;
   outline: none !important;
   box-shadow: none !important;
-  background: transparent !important;
-  background-color: transparent !important;
+  background: #000 !important;
+  background-color: #000 !important;
   box-sizing: border-box;
   cursor: pointer;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  color: #fff;
 }
 
 .grai-referral-graph-node.is-selected,
 .grai-referral-graph-node.is-you.is-selected {
   border-color: #ff69b4 !important;
+  box-shadow: 0 0 0 1px rgba(255, 105, 180, 0.35) !important;
 }
 
 [data-theme='light'] .grai-referral-graph-node,
 [data-theme='light'] .grai-referral-graph-node.is-root,
-[data-theme='light'] .grai-referral-graph-node.is-you {
-  border-color: color-mix(in srgb, #e91e8c 40%, var(--border-color)) !important;
-}
-
-.grai-referral-graph-node.is-you .grai-referral-graph-node-name {
-  overflow: visible;
-  text-overflow: clip;
-  flex: 1 1 auto;
-}
-
+[data-theme='light'] .grai-referral-graph-node.is-you,
 [data-theme='light'] .grai-referral-graph-node.is-selected {
-  border-color: #e91e8c !important;
-}
-
-[data-theme='light'] .grai-referral-graph-node {
-  background: transparent !important;
+  background: #000 !important;
+  background-color: #000 !important;
+  border-color: #ff2d8c !important;
+  color: #fff;
 }
 
 .grai-referral-graph-handle {
-  width: 5px !important;
-  height: 5px !important;
-  min-width: 5px !important;
-  min-height: 5px !important;
+  width: 8px !important;
+  height: 8px !important;
+  min-width: 8px !important;
+  min-height: 8px !important;
   border: none !important;
   border-radius: 50% !important;
-  background: #ff69b4 !important;
-  opacity: 0.7;
+  background: #ff2d8c !important;
+  opacity: 1;
 }
 
 .grai-referral-dash-graph .react-flow__handle {
@@ -14589,35 +14635,72 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-shadow: none !important;
 }
 
-.grai-referral-graph-node-head {
+.grai-referral-graph-node-brand {
   display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.4rem;
   min-width: 0;
+  margin-bottom: 0.35rem;
 }
 
-.grai-referral-graph-node-name {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.grai-referral-graph-badge {
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #22c55e;
+.grai-referral-graph-node-brand-badges {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
   flex-shrink: 0;
 }
 
+.grai-referral-graph-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ff2d8c;
+  flex-shrink: 0;
+  line-height: 1.1;
+}
+
+.grai-referral-graph-badge.is-you {
+  color: #22c55e;
+}
+
 .grai-referral-graph-badge.is-root {
-  color: #ff69b4;
+  color: #ff2d8c;
+}
+
+.grai-referral-graph-node-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.grai-referral-graph-node-rows > div {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.55rem;
+  min-width: 0;
+}
+
+.grai-referral-graph-node-rows dt {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #8a8a8a;
+}
+
+.grai-referral-graph-node-rows dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .grai-referral-graph-node-addr {
@@ -14626,64 +14709,36 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   border: 0;
   background: none;
   font-size: inherit;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
+  font-weight: inherit;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
   cursor: pointer;
 }
 
 button.grai-referral-graph-node-addr:hover,
 button.grai-referral-graph-node-addr.is-copied {
-  color: #ff69b4;
+  color: #ff2d8c;
 }
 
 [data-theme='light'] button.grai-referral-graph-node-addr:hover,
 [data-theme='light'] button.grai-referral-graph-node-addr.is-copied {
-  color: #e91e8c;
+  color: #ff69b4;
 }
 
-.grai-referral-graph-node-owner {
-  margin: 0.12rem 0 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.grai-referral-graph-node-owner-label {
-  color: var(--text-primary);
-}
-
-.grai-referral-graph-node-owner .grai-referral-graph-node-addr {
-  font-size: inherit;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.grai-referral-graph-node-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 0.4rem;
-}
-
-.grai-referral-graph-node-bars > span {
-  display: block;
-  height: 3px;
-  max-width: 100%;
-  border-radius: 1px;
-  opacity: 0.9;
+.grai-referral-graph-node-rule {
+  margin: 0.75rem 0 0.55rem;
+  height: 2px;
+  background: #ff2d8c;
+  flex-shrink: 0;
 }
 
 .grai-referral-graph-node-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.25rem;
-  margin: 0.35rem 0 0;
+  margin: auto 0 0;
+  text-align: center;
 }
 
 .grai-referral-graph-node-stats.is-claim {
@@ -14691,25 +14746,25 @@ button.grai-referral-graph-node-addr.is-copied {
 }
 
 .grai-referral-graph-node-stats.is-claim dd {
-  font-size: 0.82rem;
-  color: #ff69b4;
+  font-size: 1rem;
+  color: #fff;
 }
 
 .grai-referral-graph-node-stats dt {
   margin: 0;
-  font-size: 0.52rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: #8a8a8a;
 }
 
 .grai-referral-graph-node-stats dd {
-  margin: 0;
-  font-size: 0.66rem;
-  font-weight: 600;
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

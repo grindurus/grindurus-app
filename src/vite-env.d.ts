@@ -20,15 +20,21 @@ interface ImportMetaEnv {
   readonly VITE_GRAI_MAINNET_RPC_URL?: string
   readonly VITE_GRAI_TESTNET_MINT?: string
   readonly VITE_GRAI_TESTNET_RPC_URL?: string
+  readonly VITE_GRAI_ARBITRUM?: string
+  readonly VITE_GRAI_SEPOLIA?: string
+  readonly VITE_GRAI_BASE_SEPOLIA?: string
+  /** @deprecated Prefer `VITE_GRAI_ARBITRUM`. */
+  readonly VITE_GRAI_ARBITRUM_TOKEN?: string
+  /** @deprecated Prefer `VITE_GRAI_ARBITRUM`. */
+  readonly VITE_GRAI_ARBITRUM_PROTOCOL?: string
   readonly VITE_GRAI_ETHEREUM_TOKEN?: string
   readonly VITE_GRAI_ETHEREUM_PROTOCOL?: string
   readonly VITE_GRAI_BASE_TOKEN?: string
   readonly VITE_GRAI_BASE_PROTOCOL?: string
-  readonly VITE_GRAI_ARBITRUM_TOKEN?: string
-  readonly VITE_GRAI_ARBITRUM_PROTOCOL?: string
   readonly VITE_GRAI_SEPOLIA_TOKEN?: string
   readonly VITE_GRAI_SEPOLIA_PROTOCOL?: string
   readonly VITE_GRAI_BASE_SEPOLIA_TOKEN?: string
+  readonly VITE_GRAI_BASE_SEPOLIA_PROTOCOL?: string
   readonly VITE_GRS_ETHEREUM_TOKEN?: string
   readonly VITE_GRS_BASE_TOKEN?: string
   readonly VITE_GRS_ARBITRUM_TOKEN?: string

@@ -10,7 +10,14 @@ import { GraiGrindersSection } from '../components/grai/GraiGrindersSection'
 import { GraiAssetsSection } from '../components/grai/GraiAssetsSection'
 import { MINT_ASSET_SOLSCAN_ICON } from '../components/grai/graiPageIcons'
 import { GraiCaNetworkSelect } from '../components/grai/GraiCaNetworkSelect'
+import { useWalletContext } from '../wallets/AppWalletProvider'
+import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
+import { requestSolanaWalletCluster } from '../wallets/requestSolanaWalletCluster'
+import { pinnedGraiSolanaCluster } from '../grai/solanaClusterPin'
 import './GraiPage.css'
+
+const GRAI_MAINNET_CHAIN_ID = 42161
 
 function GraiPage() {
   const navigate = useNavigate()
@@ -26,7 +33,34 @@ function GraiPage() {
     protocolError,
     explorerTokenUrl,
   } = useGraiDeployment()
+  const { networkEnv, setSelectedChainType, setEvmChain, evmChain } = useWalletContext()
+  const evmWallet = useEvmWallet()
+  const solanaWallet = useSolanaWallet()
+  const pinnedSolana = pinnedGraiSolanaCluster()
+  const walletConnected = evmWallet.isConnected || solanaWallet.isConnected
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
+
+  // Mainnet GRAI is Arbitrum-only — reinforce while header is Mainnet.
+  // Yield when Solana is connected under the Devnet-only pin (see solanaClusterPin.ts).
+  useEffect(() => {
+    if (networkEnv !== 'mainnet') return
+    if (pinnedSolana && solanaWallet.isConnected) return
+    setSelectedChainType('evm')
+    if (evmChain !== 'arbitrum') setEvmChain('arbitrum')
+    if (evmWallet.isConnected && evmWallet.chainId !== GRAI_MAINNET_CHAIN_ID) {
+      void evmWallet.switchToChainAsync(GRAI_MAINNET_CHAIN_ID).catch(() => {
+        evmWallet.switchToChain(GRAI_MAINNET_CHAIN_ID)
+      })
+    }
+  }, [
+    evmChain,
+    evmWallet,
+    networkEnv,
+    pinnedSolana,
+    setEvmChain,
+    setSelectedChainType,
+    solanaWallet.isConnected,
+  ])
 
   const graiCa =
     chainKind === 'evm'
@@ -64,15 +98,35 @@ function GraiPage() {
 
   return (
     <div className="grai-page">
-      <p className="grai-page-dev-banner" role="status">
-        TESTNET DEVELOPMENT
-      </p>
+      {networkEnv === 'testnet' && (evmWallet.isConnected || solanaWallet.isConnected) ? (
+        <p className="grai-page-dev-banner" role="status">
+          TESTNET DEVELOPMENT
+        </p>
+      ) : null}
       <FloatingTokenBackground tokens={STABLE_FLOATING_TOKENS} className="grai-content-row">
-        {(clusterMismatch || evmChainMismatch || !isConfigured || protocolError) && (
+        {walletConnected &&
+          (clusterMismatch || evmChainMismatch || !isConfigured || protocolError) && (
           <div className="grai-page-meta">
             {clusterMismatch && (
               <p className="grai-page-network-warning" role="status">
-                Switch your Solana wallet to {solanaCluster === 'mainnet-beta' ? 'Mainnet' : solanaCluster} to mint or redeem GRAI.
+                {pinnedSolana
+                  ? 'GRAI on Solana is Devnet-only for now. Switch your wallet to Devnet to mint or redeem.'
+                  : `Switch your Solana wallet to ${solanaCluster === 'mainnet-beta' ? 'Mainnet' : solanaCluster} to mint or redeem GRAI.`}{' '}
+                <button
+                  type="button"
+                  className="grai-page-network-warning-action"
+                  onClick={() => {
+                    const target =
+                      pinnedSolana ??
+                      (solanaCluster === 'mainnet-beta' || solanaCluster === 'devnet'
+                        ? solanaCluster
+                        : 'devnet')
+                    solanaWallet.switchCluster(target)
+                    void requestSolanaWalletCluster(target)
+                  }}
+                >
+                  Request {pinnedSolana === 'devnet' || solanaCluster === 'devnet' ? 'Devnet' : 'Mainnet'}
+                </button>
               </p>
             )}
             {evmChainMismatch && evm && (
@@ -87,7 +141,7 @@ function GraiPage() {
             )}
             {!isConfigured && chainKind === 'evm' && (
               <p className="grai-page-network-warning" role="status">
-                GRAI is not configured for this EVM network. Set VITE_GRAI_*_TOKEN and VITE_GRAI_*_PROTOCOL env vars.
+                GRAI is not configured for this EVM network. Set VITE_GRAI_ARBITRUM (mainnet) or the matching VITE_GRAI_* env var.
               </p>
             )}
             {!isConfigured && chainKind === 'solana' && !hasStaticConfig && (

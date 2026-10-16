@@ -56,8 +56,10 @@ export function SolanaProvider({ children, onReady }: SolanaProviderProps) {
   }, [])
 
   return (
-    // Remount connection when cluster/RPC changes so wallets never stay on a stale network.
-    <SolanaConnectionProvider key={endpoint} endpoint={endpoint} config={connectionConfig}>
+    // Do not key-remount on cluster change — this provider wraps the whole app, so a
+    // remount flashes a blank Suspense screen (e.g. Backtest mainnet → GRAI Devnet).
+    // ConnectionProvider already rebuilds `Connection` when `endpoint` changes.
+    <SolanaConnectionProvider endpoint={endpoint} config={connectionConfig}>
       <SolanaWalletProvider wallets={wallets} autoConnect={autoConnect}>
         <SolanaWalletModalProvider>
           <SolanaWalletPublisher onReady={onReady}>{children}</SolanaWalletPublisher>

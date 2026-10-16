@@ -110,6 +110,7 @@ export const graiAbi = [
       { name: 'bribeable', type: 'bool' },
       { name: 'accShare', type: 'uint256' },
       { name: 'totalClaimable', type: 'uint256' },
+      { name: 'totalYielded', type: 'uint256' },
     ],
   },
   {

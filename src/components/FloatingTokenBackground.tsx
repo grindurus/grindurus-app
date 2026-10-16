@@ -28,7 +28,7 @@ const FLOATING_BG_REFERENCE_HEIGHT = 380
 const MIN_LAYOUT_WIDTH = 100
 const MIN_LAYOUT_HEIGHT = 100
 
-type FrozenLayout = { width: number; height: number }
+type LayoutSize = { width: number; height: number }
 
 function tokenCenterX(xPercent: number, layoutWidth: number): number {
   return (xPercent / 100) * layoutWidth
@@ -38,27 +38,7 @@ function tokenCenterY(yPercent: number): number {
   return (yPercent / 100) * FLOATING_BG_REFERENCE_HEIGHT
 }
 
-function tokenWithinBounds(
-  token: { x: number; y: number; size: number },
-  layoutWidth: number,
-  layoutHeight: number,
-): boolean {
-  const centerX = tokenCenterX(token.x, layoutWidth)
-  const centerY = tokenCenterY(token.y)
-  const extent = (token.size / 2) * 1.22 + TOKEN_MIST_BLEED_PX + TOKEN_DRIFT_PX
-  const pad = 3
-  const boundsHeight = Math.min(layoutHeight, FLOATING_BG_REFERENCE_HEIGHT)
-
-  return (
-    centerX - extent >= pad &&
-    centerX + extent <= layoutWidth - pad &&
-    centerY - extent >= pad &&
-    centerY + extent <= boundsHeight - pad
-  )
-}
-
-function captureFrozenLayout(container: HTMLElement, current: FrozenLayout | null): FrozenLayout | null {
-  if (current) return current
+function readLayoutSize(container: HTMLElement): LayoutSize | null {
   const rect = container.getBoundingClientRect()
   if (rect.width < MIN_LAYOUT_WIDTH || rect.height < MIN_LAYOUT_HEIGHT) return null
   return { width: rect.width, height: rect.height }
@@ -143,15 +123,23 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
   const rafRef = useRef(0)
   const mouseRef = useRef<{ x: number; y: number } | null>(null)
   const hoveredIndexRef = useRef<number | null>(null)
-  const frozenLayoutRef = useRef<FrozenLayout | null>(null)
-  const [frozenLayout, setFrozenLayout] = useState<FrozenLayout | null>(null)
+  const layoutRef = useRef<LayoutSize | null>(null)
+  const [layout, setLayout] = useState<LayoutSize | null>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
-  const lockLayout = useCallback((container: HTMLElement) => {
-    const next = captureFrozenLayout(container, frozenLayoutRef.current)
-    if (!next || frozenLayoutRef.current) return frozenLayoutRef.current
-    frozenLayoutRef.current = next
-    setFrozenLayout(next)
+  const syncLayout = useCallback((container: HTMLElement) => {
+    const next = readLayoutSize(container)
+    if (!next) return null
+    const prev = layoutRef.current
+    if (
+      prev &&
+      Math.abs(prev.width - next.width) < 0.5 &&
+      Math.abs(prev.height - next.height) < 0.5
+    ) {
+      return prev
+    }
+    layoutRef.current = next
+    setLayout(next)
     return next
   }, [])
 
@@ -160,8 +148,8 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
     const mouse = mouseRef.current
     if (!container) return
 
-    const layout = lockLayout(container) ?? frozenLayoutRef.current
-    if (!layout) return
+    const measured = syncLayout(container) ?? layoutRef.current
+    if (!measured) return
 
     const rect = container.getBoundingClientRect()
     const occluders = Array.from(
@@ -176,8 +164,8 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
       if (!token) return
 
       const tokenWrap = el.parentElement
-      const fits = tokenWithinBounds(token, layout.width, layout.height)
-      const centerX = rect.left + tokenCenterX(token.x, layout.width)
+      // Always scale X with the live container width so resize keeps gutters visible.
+      const centerX = rect.left + tokenCenterX(token.x, rect.width)
       const centerY = rect.top + tokenCenterY(token.y)
       const half = token.size / 2 + TOKEN_MIST_BLEED_PX * 0.35
       const behindForm = occluders.some(
@@ -187,9 +175,10 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
           centerY + half >= box.top &&
           centerY - half <= box.bottom,
       )
-      tokenWrap?.classList.toggle('is-clipped', !fits || behindForm)
+      // Only hide tokens covered by the deposit card — never drop them on window resize.
+      tokenWrap?.classList.toggle('is-clipped', behindForm)
 
-      if (!fits || behindForm) {
+      if (behindForm) {
         el.style.setProperty('--reveal', '0')
         el.classList.remove('is-revealed')
         return
@@ -211,7 +200,7 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
       el.style.setProperty('--reveal', reveal.toFixed(3))
       el.classList.toggle('is-revealed', reveal >= 0.92)
     })
-  }, [tokens, lockLayout])
+  }, [tokens, syncLayout])
 
   const scheduleApply = useCallback(() => {
     cancelAnimationFrame(rafRef.current)
@@ -222,21 +211,16 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
     const container = wrapRef.current
     if (!container) return
 
-    const tryLockLayout = () => {
-      if (frozenLayoutRef.current) return
-      const next = captureFrozenLayout(container, null)
-      if (!next) return
-      frozenLayoutRef.current = next
-      setFrozenLayout(next)
+    const refresh = () => {
+      syncLayout(container)
       scheduleApply()
     }
 
-    tryLockLayout()
-    requestAnimationFrame(() => requestAnimationFrame(tryLockLayout))
+    refresh()
+    requestAnimationFrame(() => requestAnimationFrame(refresh))
 
     const observer = new ResizeObserver(() => {
-      tryLockLayout()
-      if (frozenLayoutRef.current) scheduleApply()
+      refresh()
     })
     observer.observe(container)
 
@@ -244,7 +228,7 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
       observer.disconnect()
       cancelAnimationFrame(rafRef.current)
     }
-  }, [scheduleApply])
+  }, [scheduleApply, syncLayout])
 
   const onMouseMove = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
@@ -268,10 +252,10 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
   )
   const tooltipSide = hoveredToken && hoveredToken.x >= 50 ? 'right' : 'left'
   const tooltipStyle =
-    hoveredToken && frozenLayout
+    hoveredToken && layout
       ? {
           left: `${
-            tokenCenterX(hoveredToken.x, frozenLayout.width) +
+            tokenCenterX(hoveredToken.x, layout.width) +
             (tooltipSide === 'left' ? hoveredToken.size / 2 + 12 : -(hoveredToken.size / 2 + 12))
           }px`,
           top: `${tokenCenterY(hoveredToken.y)}px`,
@@ -288,7 +272,7 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
-      {tokens.length > 0 && frozenLayout && (
+      {tokens.length > 0 && layout && (
         <div className="floating-token-bg is-layout-ready">
           {tokens.map((token, index) => {
             const isHovered = hoveredIndex === index
@@ -297,7 +281,7 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
                 key={`${index}-${token.x}-${token.y}`}
                 className={`floating-token-bg__token${isHovered ? ' is-hovered' : ''}`}
                 style={{
-                  left: `${tokenCenterX(token.x, frozenLayout.width)}px`,
+                  left: `${token.x}%`,
                   top: `${tokenCenterY(token.y)}px`,
                   width: token.size,
                   height: token.size,

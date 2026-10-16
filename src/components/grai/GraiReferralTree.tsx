@@ -131,6 +131,7 @@ function isOwnReferral(
 type ReferralNodeData = {
   locker: string
   owner: string
+  referrer: string
   label: string
   value: bigint
   l1Value: bigint
@@ -146,15 +147,15 @@ type ReferralNodeData = {
 
 /** Shared card size for every graph node (root / you / selected). */
 const NODE_WIDTH = 256
-const NODE_HEIGHT = 118
+const NODE_HEIGHT = 188
 const GAP_X = 56
-const GAP_Y = 88
+const GAP_Y = 72
 const EDGE_STEP_OFFSET = 40
 const COLORS = {
-  own: '#ff69b4',
+  own: '#ff2d8c',
   l1: '#22c55e',
   l2: '#c9a227',
-  edge: 'rgba(255, 105, 180, 0.55)',
+  edge: 'rgba(255, 45, 140, 0.55)',
 }
 
 type ReferralPieRow = { name: string; value: number; fill: string }
@@ -246,8 +247,38 @@ function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`
 }
 
+/** Match Treasury.sol `_short`: `0x` + 6 hex + `...` + 4. */
+function treasuryShortAddress(address: string): string {
+  if (address.startsWith('0x') || address.startsWith('0X')) {
+    if (address.length < 12) return address
+    return `${address.slice(0, 8)}...${address.slice(-4)}`
+  }
+  if (address.length < 12) return address
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
 function formatBook(raw: bigint, decimals: number): string {
   return `$${formatVaultBalanceDisplay(raw, decimals, 2)}`
+}
+
+/** Match Treasury.sol `_usd` compact book formatting (6dp USD scale). */
+function formatTreasuryUsd(raw: bigint, decimals: number): string {
+  if (decimals !== 6) return formatBook(raw, decimals)
+  const compact = (amount: bigint, unit: bigint, suffix: string) => {
+    const whole = amount / unit
+    const frac1 = ((amount % unit) * 10n) / unit
+    if (frac1 === 0n) return `$${whole.toString()}${suffix}`
+    return `$${whole.toString()}.${frac1.toString()}${suffix}`
+  }
+  if (raw >= 10n ** 15n) return compact(raw, 10n ** 15n, 'B')
+  if (raw >= 10n ** 12n) return compact(raw, 10n ** 12n, 'M')
+  if (raw >= 1000n * 10n ** 6n) return compact(raw, 1000n * 10n ** 6n, 'K')
+  const whole = raw / 10n ** 6n
+  const frac2 = (raw % 10n ** 6n) / 10n ** 4n
+  if (frac2 === 0n) return `$${whole.toString()}`
+  if (frac2 % 10n === 0n) return `$${whole.toString()}.${(frac2 / 10n).toString()}`
+  if (frac2 < 10n) return `$${whole.toString()}.0${frac2.toString()}`
+  return `$${whole.toString()}.${frac2.toString()}`
 }
 
 function formatGraiAmount(raw: bigint, decimals: number): string {
@@ -311,6 +342,7 @@ function layoutForest(
       data: {
         locker: node.locker,
         owner: node.owner,
+        referrer: node.referrer,
         label: 'Locker',
         value: node.value,
         l1Value: node.l1Value,
@@ -401,74 +433,62 @@ function flattenForest(forest: GraiReferralTreeNode[]): GraiReferralTreeNode[] {
 const ReferralGraphNode = memo(function ReferralGraphNode({ data }: { data: ReferralNodeData }) {
   return (
     <div
-      className={`grai-referral-graph-node${data.isRoot ? ' is-root' : ''}${data.isYou ? ' is-you' : ''}${
-        data.selected ? ' is-selected' : ''
-      }`}
-      style={{
-        border: data.selected
-          ? '1px solid #ff69b4'
-          : '1px solid rgba(255, 105, 180, 0.45)',
-        boxShadow: 'none',
-        outline: 'none',
-        background: 'transparent',
-      }}
+      className={`grai-referral-graph-node is-tgrai${data.isRoot ? ' is-root' : ''}${
+        data.isYou ? ' is-you' : ''
+      }${data.selected ? ' is-selected' : ''}`}
     >
       <Handle type="source" position={Position.Top} className="grai-referral-graph-handle" />
-      <header className="grai-referral-graph-node-head">
-        <span className="grai-referral-graph-node-name">
-          Locker <GraphCopyAddress address={data.locker} />
-        </span>
-        {data.isYou ? <span className="grai-referral-graph-badge">You</span> : null}
-        {data.isRoot ? <span className="grai-referral-graph-badge is-root">Root</span> : null}
-      </header>
-      <p className="grai-referral-graph-node-owner">
-        <span className="grai-referral-graph-node-owner-label">Owner:</span>{' '}
-        <GraphCopyAddress address={data.owner} />
-      </p>
-      {data.showClaimUsd ? (
-        <>
-          <div className="grai-referral-graph-node-bars" aria-hidden="true">
-            <span style={{ width: data.claimUsdLabel ? '100%' : '0%', background: COLORS.own }} />
-          </div>
-          <dl className="grai-referral-graph-node-stats is-claim">
-            <div>
-              <dt>Claimable</dt>
-              <dd>{data.claimUsdLabel ?? '…'}</dd>
-            </div>
-          </dl>
-        </>
-      ) : (
-        <>
-      <div className="grai-referral-graph-node-bars" aria-hidden="true">
-        <span style={{ width: '100%', background: COLORS.own }} />
-        <span
-          style={{
-            width: `${Math.min(100, Number((data.l1Value * 100n) / (data.value > 0n ? data.value : 1n)))}%`,
-            background: COLORS.l1,
-          }}
-        />
-        <span
-          style={{
-            width: `${Math.min(100, Number((data.l2Value * 100n) / (data.value > 0n ? data.value : 1n)))}%`,
-            background: COLORS.l2,
-          }}
-        />
-      </div>
-      <dl className="grai-referral-graph-node-stats">
+      {(data.isYou || data.isRoot) && (
+        <header className="grai-referral-graph-node-brand">
+          <span className="grai-referral-graph-node-brand-badges">
+            {data.isYou ? <span className="grai-referral-graph-badge is-you">YOU</span> : null}
+            {data.isRoot ? <span className="grai-referral-graph-badge is-root">ROOT</span> : null}
+          </span>
+        </header>
+      )}
+      <dl className="grai-referral-graph-node-rows">
         <div>
-          <dt>Own</dt>
-          <dd>{formatBook(data.value, data.decimals)}</dd>
+          <dt>Locker</dt>
+          <dd>
+            <GraphCopyAddress address={data.locker} treasury />
+          </dd>
         </div>
         <div>
-          <dt>L1</dt>
-          <dd>{formatBook(data.l1Value, data.decimals)}</dd>
+          <dt>Owner</dt>
+          <dd>
+            <GraphCopyAddress address={data.owner} treasury />
+          </dd>
         </div>
         <div>
-          <dt>L2</dt>
-          <dd>{formatBook(data.l2Value, data.decimals)}</dd>
+          <dt>Referrer</dt>
+          <dd>
+            <GraphCopyAddress address={data.referrer} treasury />
+          </dd>
         </div>
       </dl>
-        </>
+      <div className="grai-referral-graph-node-rule" aria-hidden="true" />
+      {data.showClaimUsd ? (
+        <dl className="grai-referral-graph-node-stats is-claim">
+          <div>
+            <dt>Claimable</dt>
+            <dd>{data.claimUsdLabel ?? '…'}</dd>
+          </div>
+        </dl>
+      ) : (
+        <dl className="grai-referral-graph-node-stats">
+          <div>
+            <dt>OWN</dt>
+            <dd>{formatTreasuryUsd(data.value, data.decimals)}</dd>
+          </div>
+          <div>
+            <dt>L1</dt>
+            <dd>{formatTreasuryUsd(data.l1Value, data.decimals)}</dd>
+          </div>
+          <div>
+            <dt>L2</dt>
+            <dd>{formatTreasuryUsd(data.l2Value, data.decimals)}</dd>
+          </div>
+        </dl>
       )}
       <Handle type="target" position={Position.Bottom} className="grai-referral-graph-handle" />
     </div>
@@ -477,8 +497,9 @@ const ReferralGraphNode = memo(function ReferralGraphNode({ data }: { data: Refe
 
 const nodeTypes: NodeTypes = { referral: ReferralGraphNode }
 
-function GraphCopyAddress({ address }: { address: string }) {
+function GraphCopyAddress({ address, treasury = false }: { address: string; treasury?: boolean }) {
   const [copied, setCopied] = useState(false)
+  const display = treasury ? treasuryShortAddress(address) : shortAddress(address)
 
   return (
     <button
@@ -496,7 +517,7 @@ function GraphCopyAddress({ address }: { address: string }) {
         })
       }}
     >
-      {copied ? 'Copied!' : shortAddress(address)}
+      {copied ? 'Copied!' : display}
     </button>
   )
 }
@@ -882,7 +903,7 @@ export function GraiReferralTree({
   )
   const isSelectionControlled = onSelectLocker != null
   const [forest, setForest] = useState<GraiReferralTreeNode[]>([])
-  const [isExample, setIsExample] = useState(true)
+  const [isExample, setIsExample] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uncontrolledSelectedId, setUncontrolledSelectedId] = useState<string | null>(null)
   const selectedId = isSelectionControlled
@@ -948,6 +969,18 @@ export function GraiReferralTree({
     const hasEvm = Boolean(evmProtocol?.protocolAddress || evmProtocol?.graiToken)
     const fresh = opts?.fresh === true
     const seq = ++reloadSeqRef.current
+    // Claim graph: never invent demo lockers. Affiliates dashboard may show an example.
+    const allowExampleForest = layout !== 'graph-only'
+
+    const applyEmpty = () => {
+      if (allowExampleForest) {
+        setForest(buildExampleReferralForest())
+        setIsExample(true)
+      } else {
+        setForest([])
+        setIsExample(false)
+      }
+    }
 
     setError(null)
     setIsLoadingMap(true)
@@ -959,8 +992,7 @@ export function GraiReferralTree({
     try {
       if (!hasSolana && !hasEvm) {
         if (seq !== reloadSeqRef.current) return
-        setForest(buildExampleReferralForest())
-        setIsExample(true)
+        applyEmpty()
         return
       }
 
@@ -977,16 +1009,14 @@ export function GraiReferralTree({
         : await fetchEvmReferralBooks(evmProtocol!)
       if (seq !== reloadSeqRef.current) return
       if (rows.length === 0) {
-        setForest(buildExampleReferralForest())
-        setIsExample(true)
+        applyEmpty()
         return
       }
       setForest(buildReferralForest(rows))
       setIsExample(false)
     } catch (err) {
       if (seq !== reloadSeqRef.current) return
-      setForest(buildExampleReferralForest())
-      setIsExample(true)
+      applyEmpty()
       setError(err instanceof Error ? err.message : 'Failed to load referral tree')
     } finally {
       if (seq === reloadSeqRef.current) {
@@ -994,7 +1024,7 @@ export function GraiReferralTree({
         if (fresh) setGraphEpoch((epoch) => epoch + 1)
       }
     }
-  }, [connection, evmProtocol, solana])
+  }, [connection, evmProtocol, layout, solana])
 
   const startMapLoad = useCallback(() => {
     setMapRequested(true)

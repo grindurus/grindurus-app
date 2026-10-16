@@ -1,4 +1,4 @@
-import { lazy, ReactNode, Suspense } from 'react'
+import { lazy, ReactNode, Suspense, useEffect, useState } from 'react'
 
 const loadEvmProvider = () =>
   import('./EvmProvider').then((module) => ({ default: module.EvmProvider }))
@@ -19,7 +19,14 @@ type LazyEvmShellProps = {
 
 /** Loads wagmi / RainbowKit only when EVM wallet or backtest is needed. */
 export function LazyEvmShell({ enabled, rainbowKitEnabled, onReady, children }: LazyEvmShellProps) {
-  if (!enabled) return <>{children}</>
+  // Sticky: once mounted, keep the provider so enable/disable does not remount
+  // the app tree into a blank Suspense flash.
+  const [everEnabled, setEverEnabled] = useState(enabled)
+  useEffect(() => {
+    if (enabled) setEverEnabled(true)
+  }, [enabled])
+
+  if (!everEnabled) return <>{children}</>
 
   // Keep the app tree visible while the wagmi chunk loads. Pages must not call
   // wagmi hooks directly — use snapshot / EvmWalletClientContext instead.

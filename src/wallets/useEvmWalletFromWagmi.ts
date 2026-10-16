@@ -5,7 +5,8 @@ import type { EvmWalletSnapshot } from './evmWalletTypes'
 import { useWalletContext } from './walletContext'
 import {
   evmChainMatchesNetworkEnv,
-  networkEnvFromSolanaCluster,
+  preferredEvmChainId,
+  preferredMainnetEvmChain,
 } from './networkEnv'
 
 const chainNames: Record<number, string> = {
@@ -30,7 +31,12 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
   const chainId = useChainId()
   const { switchChain, switchChainAsync } = useSwitchChain()
   const { connectors, connectAsync: wagmiConnectAsync } = useConnect()
-  const { solanaCluster } = useWalletContext()
+  const {
+    evmChain,
+    networkEnv,
+    setSolanaCluster,
+    setEvmChain,
+  } = useWalletContext()
   const [installedConnectors, setInstalledConnectors] = useState<string[]>([])
 
   useEffect(() => {
@@ -61,7 +67,6 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
     return chainNames[chainId] || 'Unknown'
   }, [chainId])
 
-  const networkEnv = networkEnvFromSolanaCluster(solanaCluster)
   const supportedChains = useMemo(
     () =>
       ALL_SUPPORTED_CHAINS.filter((chain) => evmChainMatchesNetworkEnv(chain.id, networkEnv)).map(
@@ -155,22 +160,40 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
 
   const canOpenConnectModal = Boolean(walletConnectConnector)
 
+  const connectOnMainnet = useCallback(
+    (connector: (typeof connectors)[number]) => {
+      const mainnetEvm = preferredMainnetEvmChain(evmChain)
+      const chainId = preferredEvmChainId(mainnetEvm, 'mainnet')
+      setSolanaCluster('mainnet-beta')
+      setEvmChain(mainnetEvm)
+      void wagmiConnectAsync({ connector, chainId })
+        .then(async () => {
+          if (switchChainAsync) {
+            try {
+              await switchChainAsync({ chainId })
+            } catch {
+              // User rejected the switch or the wallet cannot change networks here.
+            }
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('WalletConnect connect failed:', error)
+        })
+    },
+    [evmChain, setEvmChain, setSolanaCluster, switchChainAsync, wagmiConnectAsync],
+  )
+
   const connect = useCallback(() => {
     if (!walletConnectConnector) return false
-    void wagmiConnectAsync({ connector: walletConnectConnector }).catch((error: unknown) => {
-      console.error('WalletConnect connect failed:', error)
-    })
+    connectOnMainnet(walletConnectConnector)
     return true
-  }, [walletConnectConnector, wagmiConnectAsync])
+  }, [connectOnMainnet, walletConnectConnector])
 
   const connectWalletConnect = useCallback(() => {
     if (!walletConnectConnector) return false
-
-    void wagmiConnectAsync({ connector: walletConnectConnector }).catch((error: unknown) => {
-      console.error('WalletConnect connect failed:', error)
-    })
+    connectOnMainnet(walletConnectConnector)
     return true
-  }, [walletConnectConnector, wagmiConnectAsync])
+  }, [connectOnMainnet, walletConnectConnector])
 
   const connectWithConnector = useCallback(
     async (connectorId: string, preferredChainId?: number) => {
@@ -192,6 +215,20 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
     [connectors, wagmiConnectAsync, switchChainAsync],
   )
 
+  const connectorSnapshot = useMemo(() => {
+    if (!connector) return undefined
+    const icon =
+      typeof (connector as { icon?: unknown }).icon === 'string'
+        ? (connector as { icon: string }).icon
+        : undefined
+    return {
+      id: connector.id,
+      name: connector.name,
+      uid: connector.uid,
+      icon,
+    }
+  }, [connector])
+
   return useMemo(
     () => ({
       address,
@@ -200,7 +237,7 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
       isConnecting,
       chainId,
       chainName,
-      connector,
+      connector: connectorSnapshot,
       connectors: detectedConnectors,
       supportedChains,
       canOpenConnectModal,
@@ -218,7 +255,7 @@ export function useEvmWalletFromWagmi(): EvmWalletSnapshot {
       isConnecting,
       chainId,
       chainName,
-      connector,
+      connectorSnapshot,
       detectedConnectors,
       supportedChains,
       canOpenConnectModal,

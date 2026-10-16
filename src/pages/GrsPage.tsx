@@ -20,6 +20,7 @@ const GrsVestingPanel = lazy(() =>
 )
 import { MINT_ASSET_SOLSCAN_ICON } from '../components/grai/graiPageIcons'
 import { useEvmWallet } from '../wallets/useEvmWallet'
+import { useSolanaWallet } from '../wallets/useSolanaWallet'
 import { useGrsSnapshot } from '../hooks/useGrsSnapshot'
 import {
   grsExplorerTokenUrl,
@@ -168,7 +169,10 @@ function GrsOpsPanel({
 
 function GrsPage() {
   const evmWallet = useEvmWallet()
-  const { setSelectedChainType, setEvmChain } = useWalletContext()
+  const solanaWallet = useSolanaWallet()
+  const { networkEnv, setSelectedChainType, setEvmChain } = useWalletContext()
+  // Show whenever header is Testnet (GRS still primarily ships test deployments).
+  const showTestnetBanner = networkEnv === 'testnet'
   const { config, snapshot, isLoading, error, refresh, configuredChains, chainKind, solanaConfig } =
     useGrsSnapshot()
   const configured = Boolean(config) || isGrsConfiguredAnywhere() || Boolean(solanaConfig)
@@ -247,9 +251,11 @@ function GrsPage() {
 
   return (
     <div className="grai-page grs-page">
-      <p className="grai-page-dev-banner" role="status">
-        TESTNET DEVELOPMENT
-      </p>
+      {showTestnetBanner ? (
+        <p className="grai-page-dev-banner" role="status">
+          TESTNET DEVELOPMENT
+        </p>
+      ) : null}
       <div className="grai-content-row">
         <section className="grs-sales-section" id={GRS_SALES_ID}>
           <Suspense

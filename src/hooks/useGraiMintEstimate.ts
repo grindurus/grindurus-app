@@ -7,10 +7,12 @@ import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { formatTokenBalance } from '../grai/onchain'
 import { GRAI_DECIMALS } from '../grai/tokenomics'
 
+const MINT_SHARE_FRACTION_DIGITS = 8
+
 function formatMintShareLabel(raw: bigint, decimals: number): string {
   if (raw <= 0n) return '0.0'
 
-  const label = formatTokenBalance(raw, decimals)
+  const label = formatTokenBalance(raw, decimals, MINT_SHARE_FRACTION_DIGITS)
   return label.includes('.') ? label : `${label}.0`
 }
 
@@ -64,11 +66,25 @@ export function useGraiMintEstimate(
     let cancelled = false
     const timer = window.setTimeout(() => {
       setIsLoading(true)
+      let mintKey: PublicKey | null = null
+      if (!(chainKind === 'evm' && evm)) {
+        try {
+          mintKey = new PublicKey(assetMint)
+        } catch {
+          setEstimatedGrai(null)
+          setSeniorShareLabel(null)
+          setJuniorShareLabel(null)
+          setSeniorShareUsdRaw(0n)
+          setJuniorShareUsdRaw(0n)
+          setIsLoading(false)
+          return
+        }
+      }
       const estimatePromise =
         chainKind === 'evm' && evm
           ? estimateEvmGraiMintOutput(evm, assetMint, amountInput, assetDecimals)
           : estimateGraiMintOutput(
-              new PublicKey(assetMint),
+              mintKey!,
               amountInput,
               assetDecimals,
               connection!,

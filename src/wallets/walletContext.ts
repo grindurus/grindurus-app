@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { NetworkEnv } from './networkEnv'
 
 export type ChainType = 'evm' | 'solana' | null
 export type EvmChain = 'ethereum' | 'base' | 'arbitrum' | 'polygon' | 'sepolia'
@@ -11,6 +12,12 @@ export interface WalletContextType {
   setEvmChain: (chain: EvmChain) => void
   solanaCluster: SolanaCluster
   setSolanaCluster: (cluster: SolanaCluster) => void
+  /**
+   * Header Mainnet / Testnet preference — sole source of truth for the toggle,
+   * banners, and chain filters. Never inferred from wallet chainId.
+   */
+  networkEnv: NetworkEnv
+  setNetworkEnv: (env: NetworkEnv) => void
   isChainSelectorOpen: boolean
   openChainSelector: () => void
   closeChainSelector: () => void

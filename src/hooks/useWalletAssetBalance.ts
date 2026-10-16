@@ -26,6 +26,9 @@ function tryPublicKey(value: string | undefined | null): PublicKey | null {
   }
 }
 
+/** Max fraction digits for asset-select trigger + dropdown balance chips. */
+const ASSET_SELECT_BALANCE_FRACTION_DIGITS = 8
+
 /** App-cluster RPC + owner from adapter publicKey or base58 address. */
 function useSolanaBalanceConnection() {
   const { address, publicKey, isConnected } = useSolanaWallet()
@@ -104,7 +107,14 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       return
     }
 
-    void fetchMintDecimals(solanaConnection, new PublicKey(assetMint))
+    // Stale EVM `0x…` mints must not reach PublicKey — sync throw unmounts the React root.
+    const mint = tryPublicKey(assetMint)
+    if (!mint) {
+      setDecimals(null)
+      return
+    }
+
+    void fetchMintDecimals(solanaConnection, mint)
       .then(setDecimals)
       .catch(() => setDecimals(null))
   }, [assetMint, chainKind, evm, isPlaceholderMint, solanaConnection, symbol])
@@ -140,8 +150,12 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
           evmAddress as `0x${string}`,
           assetMint,
         )
-        setFormattedBalance(formatTokenBalance(walletRaw, assetDecimals))
-        setMaxAmount(formatTokenBalance(maxRaw, assetDecimals))
+        setFormattedBalance(
+          formatTokenBalance(walletRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
+        )
+        setMaxAmount(
+          formatTokenBalance(maxRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
+        )
         setRaw(walletRaw)
         setDecimals(assetDecimals)
       } catch {
@@ -163,7 +177,13 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
 
     setIsLoading(true)
     try {
-      const mint = new PublicKey(assetMint)
+      const mint = tryPublicKey(assetMint)
+      if (!mint) {
+        setFormattedBalance(null)
+        setMaxAmount('')
+        setRaw(0n)
+        return
+      }
       const isNativeSol = assetMint === NATIVE_MINT
       const { raw: walletRaw, maxRaw, decimals: assetDecimals } = await fetchWalletAssetBalance(
         solanaConnection,
@@ -171,8 +191,12 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
         mint,
         isNativeSol,
       )
-      setFormattedBalance(formatTokenBalance(walletRaw, assetDecimals))
-      setMaxAmount(formatTokenBalance(maxRaw, assetDecimals))
+      setFormattedBalance(
+        formatTokenBalance(walletRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
+      )
+      setMaxAmount(
+        formatTokenBalance(maxRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
+      )
       setRaw(walletRaw)
       setDecimals(assetDecimals)
     } catch {
@@ -283,9 +307,7 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
     [assets],
   )
 
-  useEffect(() => {
-    let cancelled = false
-
+  const refresh = useCallback(async () => {
     if (assets.length === 0) {
       setBalancesByAddress({})
       setIsLoading(false)
@@ -320,10 +342,9 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
     }
 
     setIsLoading(true)
+    const next: Record<string, string> = { ...placeholders }
 
-    void (async () => {
-      const next: Record<string, string> = { ...placeholders }
-
+    try {
       if (chainKind === 'evm') {
         if (!evmAddress || !evm) {
           for (const asset of toFetch) next[asset.address.toLowerCase()] = '—'
@@ -337,7 +358,7 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
                   evmAddress as `0x${string}`,
                   asset.address,
                 )
-                next[key] = formatTokenBalance(raw, decimals)
+                next[key] = formatTokenBalance(raw, decimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS)
               } catch {
                 next[key] = '0'
               }
@@ -358,26 +379,19 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
                 mint,
                 asset.address === NATIVE_MINT,
               )
-              next[key] = formatTokenBalance(raw, decimals)
+              next[key] = formatTokenBalance(raw, decimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS)
             } catch {
               next[key] = '0'
             }
           }),
         )
       }
-
-      if (!cancelled) {
-        setBalancesByAddress(next)
-        setIsLoading(false)
-      }
-    })()
-
-    return () => {
-      cancelled = true
+      setBalancesByAddress(next)
+    } finally {
+      setIsLoading(false)
     }
   }, [
     assets,
-    assetsKey,
     chainKind,
     evm,
     evmAddress,
@@ -386,5 +400,9 @@ export function useWalletAssetBalances(assets: WalletBalanceAsset[]) {
     solanaOwner,
   ])
 
-  return { balancesByAddress, isLoading, isConnected }
+  useEffect(() => {
+    void refresh()
+  }, [assetsKey, refresh])
+
+  return { balancesByAddress, isLoading, isConnected, refresh }
 }

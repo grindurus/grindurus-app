@@ -12,6 +12,7 @@ import { navigateToBacktestSection, type BacktestSection } from '../utils/backte
 import { useEvmWallet } from '../wallets/useEvmWallet'
 import { useWalletContext } from '../wallets/walletContext'
 import { isTestnetEvmChainId, preferredEvmChainId } from '../wallets/networkEnv'
+import { isGrsTestnetPinned } from '../grs/networkEnvPin'
 import { assetUrl, stripBasePath, toAppPath } from '../utils/appPaths'
 import './Header.css'
 
@@ -254,7 +255,7 @@ function HeaderNavPathButton({
 
 function Header() {
   const { pathname } = useLocation()
-  const { setSolanaCluster, setEvmChain, solanaCluster } = useWalletContext()
+  const { networkEnv, setNetworkEnv } = useWalletContext()
   const {
     isConnected: evmConnected,
     chainId: evmChainId,
@@ -293,13 +294,12 @@ function Header() {
   // Desktop strip (full/compact) XOR burger drawer (mobile) — never both.
   const showBurger = isNavMobile
 
-  // Backtest / x402 needs the Mainnet env (not Testnet). Pin Solana to mainnet-beta and
-  // leave Sepolia → Ethereum, but do not yank the wallet off Base/Arbitrum/Polygon.
+  // Backtest is mainnet-only. Route pin uses `setNetworkEnv` once — never fights
+  // the header toggle by hardcoding Devnet on GRAI.
   useEffect(() => {
     if (!isBacktestActive) return
-    if (solanaCluster !== 'mainnet-beta') setSolanaCluster('mainnet-beta')
+    if (networkEnv !== 'mainnet') setNetworkEnv('mainnet')
     if (evmConnected && isTestnetEvmChainId(evmChainId)) {
-      setEvmChain('ethereum')
       const mainnetId = preferredEvmChainId('ethereum', 'mainnet')
       void switchToChainAsync(mainnetId).catch(() => {
         switchToChain(mainnetId)
@@ -307,9 +307,28 @@ function Header() {
     }
   }, [
     isBacktestActive,
-    solanaCluster,
-    setSolanaCluster,
-    setEvmChain,
+    networkEnv,
+    setNetworkEnv,
+    evmConnected,
+    evmChainId,
+    switchToChainAsync,
+    switchToChain,
+  ])
+
+  // GRS is Testnet-only until mainnet contracts ship (`grs/networkEnvPin.ts`).
+  useEffect(() => {
+    if (!isGrsActive || !isGrsTestnetPinned()) return
+    if (networkEnv !== 'testnet') setNetworkEnv('testnet')
+    const sepoliaId = preferredEvmChainId('sepolia', 'testnet')
+    if (evmConnected && evmChainId !== sepoliaId) {
+      void switchToChainAsync(sepoliaId).catch(() => {
+        switchToChain(sepoliaId)
+      })
+    }
+  }, [
+    isGrsActive,
+    networkEnv,
+    setNetworkEnv,
     evmConnected,
     evmChainId,
     switchToChainAsync,
