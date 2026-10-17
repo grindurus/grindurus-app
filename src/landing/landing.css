@@ -277,11 +277,11 @@
 }
 
 .grai-flow__arrow-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 105, 180, 0.85);
+  color: rgba(255, 105, 180, 0.9);
 }
 
 .grai-flow__arrow-head {
@@ -403,12 +403,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  font-size: 0.6rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  max-width: 7.5rem;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 11rem;
   line-height: 1.35;
 }
 
@@ -475,7 +475,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  font-size: 0.58rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -496,15 +496,15 @@
 }
 
 .grai-flow__mode-chart-label {
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgba(255, 105, 180, 0.75);
 }
 
 .grai-flow__mode-chart {
-  width: 112px;
-  height: 62px;
+  width: 148px;
+  height: 80px;
   flex-shrink: 0;
   overflow: visible;
 }
@@ -528,7 +528,7 @@
   .grai-flow__mode-chart {
     width: 100%;
     height: auto;
-    aspect-ratio: 110 / 60;
+    aspect-ratio: 128 / 68;
   }
 }
 

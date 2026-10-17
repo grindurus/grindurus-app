@@ -2480,8 +2480,32 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   transform: none;
 }
 
-.grai-grinders-row--summary .grai-grinders-network-select-hitbox .wallet-network-select-arrow {
-  display: none;
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .wallet-network-select-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .wallet-network-select-arrow,
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-select-arrow {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-left: 0.15rem;
+  color: #ff69b4;
+  opacity: 1;
+  transition: transform 0.2s ease;
+}
+
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .wallet-network-select-arrow.open,
+.grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-select-arrow.open {
+  transform: rotate(180deg);
+}
+
+[data-theme='light'] .grai-grinders-row--summary .grai-grinders-network-select-hitbox .wallet-network-select-arrow,
+[data-theme='light'] .grai-grinders-row--summary .grai-grinders-network-select-hitbox .grai-grinders-network-select-arrow {
+  color: #e91e8c;
 }
 
 .grai-grinders-row--summary .grai-grinders-group-general-top {

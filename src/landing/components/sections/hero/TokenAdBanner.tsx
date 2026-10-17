@@ -192,24 +192,50 @@ function TokenAdSlotItem({
   )
 }
 
+const DRAG_THRESHOLD_PX = 8
+const SPIN_FRICTION = 0.965
+const SPIN_MIN_VELOCITY = 0.002
+
+function pointerAngleOnEl(el: HTMLElement, clientX: number, clientY: number): number {
+  const rect = el.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  return Math.atan2(clientY - cy, clientX - cx)
+}
+
 /**
  * Hero background as a token ad banner.
  * Tokens slowly orbit an oval; metrics + ring appear on hover/tap (orbit pauses while active).
+ * Mobile (`contained`): finger-drag spins the wheel (with light momentum).
  */
 export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
   const slots = contained ? TOKEN_AD_SLOTS_MOBILE : TOKEN_AD_SLOTS
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
   const metricsRefs = useRef<(HTMLDivElement | null)[]>([])
+  const orbitRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef(0)
   const startRef = useRef(0)
   const frozenElapsedRef = useRef(0)
   const pausedRef = useRef(false)
+  const userAngleRef = useRef(0)
+  const spinVelocityRef = useRef(0)
+  const dragRef = useRef<{
+    pointerId: number
+    lastAngle: number
+    lastTs: number
+    startX: number
+    startY: number
+    moved: boolean
+  } | null>(null)
+  const suppressClickRef = useRef(false)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
     // Mobile keeps a rotating highlight for discoverability — don't freeze the orbit.
-    pausedRef.current = !contained && activeId !== null
-  }, [activeId, contained])
+    // While finger-spinning, freeze auto-orbit so only the drag moves the wheel.
+    pausedRef.current = (!contained && activeId !== null) || isDragging
+  }, [activeId, contained, isDragging])
 
   // Mobile has no hover — keep one slot highlighted so metrics stay discoverable.
   useEffect(() => {
@@ -218,6 +244,7 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
       setActiveId(slots[0]?.id ?? null)
       return
     }
+    if (isDragging) return
 
     setActiveId((cur) => cur ?? slots[0]?.id ?? null)
     const id = window.setInterval(() => {
@@ -228,7 +255,7 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
       })
     }, 3200)
     return () => clearInterval(id)
-  }, [contained, slots])
+  }, [contained, slots, isDragging])
 
   useEffect(() => {
     const n = slots.length
@@ -280,21 +307,34 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
     }
 
     if (prefersReduced) {
-      place(baseAngles)
+      place(baseAngles.map((a) => a + userAngleRef.current))
       return
     }
 
     frozenElapsedRef.current = 0
     startRef.current = performance.now()
     let wasPaused = false
+    let lastNow = performance.now()
 
     function step(now: number) {
+      const dt = Math.min(0.05, (now - lastNow) / 1000)
+      lastNow = now
+
+      if (!dragRef.current && Math.abs(spinVelocityRef.current) > SPIN_MIN_VELOCITY) {
+        userAngleRef.current += spinVelocityRef.current * dt
+        spinVelocityRef.current *= SPIN_FRICTION
+        if (Math.abs(spinVelocityRef.current) <= SPIN_MIN_VELOCITY) {
+          spinVelocityRef.current = 0
+        }
+      }
+
+      const user = userAngleRef.current
       if (pausedRef.current) {
         if (!wasPaused) {
           frozenElapsedRef.current += (now - startRef.current) / 1000
           wasPaused = true
         }
-        const angles = baseAngles.map((a) => a + frozenElapsedRef.current * ORBIT_SPEED)
+        const angles = baseAngles.map((a) => a + frozenElapsedRef.current * ORBIT_SPEED + user)
         place(angles)
       } else {
         if (wasPaused) {
@@ -302,7 +342,7 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
           wasPaused = false
         }
         const elapsed = frozenElapsedRef.current + (now - startRef.current) / 1000
-        const angles = baseAngles.map((a) => a + elapsed * ORBIT_SPEED)
+        const angles = baseAngles.map((a) => a + elapsed * ORBIT_SPEED + user)
         place(angles)
       }
       rafRef.current = requestAnimationFrame(step)
@@ -311,6 +351,15 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
     rafRef.current = requestAnimationFrame(step)
     return () => cancelAnimationFrame(rafRef.current)
   }, [slots, contained])
+
+  const endDrag = (pointerId: number) => {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== pointerId) return
+    if (drag.moved) suppressClickRef.current = true
+    dragRef.current = null
+    setIsDragging(false)
+    orbitRef.current?.releasePointerCapture(pointerId)
+  }
 
   return (
     <div
@@ -331,9 +380,53 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
       />
 
       <div
+        ref={orbitRef}
         className={`absolute opacity-90 ${
-          contained ? 'inset-2' : 'inset-x-10 inset-y-12 lg:inset-x-14 lg:inset-y-14'
+          contained ? 'inset-2 touch-none cursor-grab active:cursor-grabbing' : 'inset-x-10 inset-y-12 lg:inset-x-14 lg:inset-y-14'
         }`}
+        onPointerDown={
+          contained
+            ? (e) => {
+                if (e.button !== 0 && e.pointerType === 'mouse') return
+                const el = orbitRef.current
+                if (!el) return
+                spinVelocityRef.current = 0
+                dragRef.current = {
+                  pointerId: e.pointerId,
+                  lastAngle: pointerAngleOnEl(el, e.clientX, e.clientY),
+                  lastTs: performance.now(),
+                  startX: e.clientX,
+                  startY: e.clientY,
+                  moved: false,
+                }
+                setIsDragging(true)
+                el.setPointerCapture(e.pointerId)
+              }
+            : undefined
+        }
+        onPointerMove={
+          contained
+            ? (e) => {
+                const drag = dragRef.current
+                const el = orbitRef.current
+                if (!drag || drag.pointerId !== e.pointerId || !el) return
+                const dist = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY)
+                if (dist > DRAG_THRESHOLD_PX) drag.moved = true
+                const angle = pointerAngleOnEl(el, e.clientX, e.clientY)
+                let delta = angle - drag.lastAngle
+                if (delta > Math.PI) delta -= Math.PI * 2
+                if (delta < -Math.PI) delta += Math.PI * 2
+                const now = performance.now()
+                const dt = Math.max(1, now - drag.lastTs) / 1000
+                userAngleRef.current += delta
+                spinVelocityRef.current = delta / dt
+                drag.lastAngle = angle
+                drag.lastTs = now
+              }
+            : undefined
+        }
+        onPointerUp={contained ? (e) => endDrag(e.pointerId) : undefined}
+        onPointerCancel={contained ? (e) => endDrag(e.pointerId) : undefined}
       >
         {slots.map((slot, i) => (
           <TokenAdSlotItem
@@ -353,7 +446,13 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
             onLeave={() => {
               if (!contained) setActiveId((id) => (id === slot.id ? null : id))
             }}
-            onSelect={() => setActiveId(slot.id)}
+            onSelect={() => {
+              if (suppressClickRef.current) {
+                suppressClickRef.current = false
+                return
+              }
+              setActiveId(slot.id)
+            }}
           />
         ))}
       </div>

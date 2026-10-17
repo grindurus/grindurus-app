@@ -36,10 +36,10 @@ function ChartActionLabel({
   const icon = TOKEN_ICONS[symbol] ?? usdcSvg
   const prefix = `${action} (+ `
   const suffix = ')'
-  // monospace ~3.3 units per char at fontSize 5.5
-  const charW = 3.35
-  const iconSize = 7
-  const gap = 1.4
+  // monospace ~4.55 units per char at fontSize 7.5
+  const charW = 4.55
+  const iconSize = 9.5
+  const gap = 1.8
   const prefixW = prefix.length * charW
   const symbolW = symbol.length * charW
   const suffixW = charW
@@ -54,7 +54,7 @@ function ChartActionLabel({
         x={start}
         y={y}
         fill={fill}
-        fontSize="5.5"
+        fontSize="7.5"
         fontFamily="monospace"
         fontWeight="700"
         textAnchor="start"
@@ -64,7 +64,7 @@ function ChartActionLabel({
       <image
         href={icon}
         x={iconX}
-        y={y - iconSize + 1.2}
+        y={y - iconSize + 1.6}
         width={iconSize}
         height={iconSize}
         preserveAspectRatio="xMidYMid meet"
@@ -73,7 +73,7 @@ function ChartActionLabel({
         x={symbolX}
         y={y}
         fill={fill}
-        fontSize="5.5"
+        fontSize="7.5"
         fontFamily="monospace"
         fontWeight="700"
         textAnchor="start"
@@ -101,15 +101,15 @@ function ModeChart({
       <span className="grai-flow__mode-chart-label">{`Mode ${mode}`}</span>
       <svg
         className="grai-flow__mode-chart"
-        viewBox="0 0 110 60"
+        viewBox="0 0 128 68"
         aria-label={direct ? 'Buy Low, Sell High' : 'Sell High, Buy Low'}
       >
         <title id={id}>{direct ? 'Buy Low, Sell High' : 'Sell High, Buy Low'}</title>
         <line
-          x1="6"
-          y1="30"
-          x2="104"
-          y2="30"
+          x1="8"
+          y1="34"
+          x2="120"
+          y2="34"
           stroke="rgba(255,255,255,0.08)"
           strokeWidth="1"
           strokeDasharray="2 2"
@@ -117,44 +117,44 @@ function ModeChart({
         {direct ? (
           <>
             <path
-              d="M 10 30 C 26 44, 34 44, 50 44 C 66 44, 78 16, 100 16"
+              d="M 12 34 C 30 50, 40 50, 58 50 C 76 50, 90 18, 116 18"
               fill="none"
               stroke="rgba(255,255,255,0.2)"
               strokeWidth="1.6"
               strokeDasharray="3 3"
             />
-            <circle cx="50" cy="44" r="3.2" fill="#ff69b4" className="animate-pulse" />
+            <circle cx="58" cy="50" r="3.6" fill="#ff69b4" className="animate-pulse" />
             <circle
-              cx="100"
-              cy="16"
-              r="3.2"
+              cx="116"
+              cy="18"
+              r="3.6"
               fill="#fff"
               className="animate-pulse"
               style={{ animationDelay: '0.8s' }}
             />
-            <ChartActionLabel x={50} y={56} fill="#ff69b4" action="BUY" symbol={base} />
-            <ChartActionLabel x={100} y={10} fill="#fff" action="SELL" symbol={quote} />
+            <ChartActionLabel x={58} y={64} fill="#ff69b4" action="BUY" symbol={base} />
+            <ChartActionLabel x={116} y={12} fill="#fff" action="SELL" symbol={quote} />
           </>
         ) : (
           <>
             <path
-              d="M 10 30 C 26 16, 34 16, 50 16 C 66 16, 78 44, 100 44"
+              d="M 12 34 C 30 18, 40 18, 58 18 C 76 18, 90 50, 116 50"
               fill="none"
               stroke="rgba(255,255,255,0.2)"
               strokeWidth="1.6"
               strokeDasharray="3 3"
             />
-            <circle cx="50" cy="16" r="3.2" fill="#ff1493" className="animate-pulse" />
+            <circle cx="58" cy="18" r="3.6" fill="#ff1493" className="animate-pulse" />
             <circle
-              cx="100"
-              cy="44"
-              r="3.2"
+              cx="116"
+              cy="50"
+              r="3.6"
               fill="#fff"
               className="animate-pulse"
               style={{ animationDelay: '0.8s' }}
             />
-            <ChartActionLabel x={50} y={10} fill="#ff1493" action="SELL" symbol={quote} />
-            <ChartActionLabel x={100} y={56} fill="#fff" action="BUY" symbol={base} />
+            <ChartActionLabel x={58} y={12} fill="#ff1493" action="SELL" symbol={quote} />
+            <ChartActionLabel x={116} y={64} fill="#fff" action="BUY" symbol={base} />
           </>
         )}
       </svg>
@@ -650,7 +650,7 @@ function DepositMintBridge() {
  */
 export function GraiFlowSection() {
   return (
-    <section className="relative w-full py-10 md:py-16 lg:py-20 bg-black overflow-hidden">
+    <section className="relative w-full pt-3 pb-10 md:pt-4 md:pb-16 lg:pt-5 lg:pb-20 bg-black overflow-hidden">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-10 md:mb-14">
           <Title className="!mb-4">
@@ -735,7 +735,7 @@ export function GraiFlowSection() {
                   </div>
                   <span className="grai-flow__custodian-more-count">+N</span>
                   <span className="grai-flow__custodian-more-label">
-                    <span>More Custodians</span>
+                    <span>More Custodians in</span>
                     <span>Distributed Infrastructure</span>
                   </span>
                 </div>

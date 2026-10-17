@@ -1986,7 +1986,7 @@ export function GraiOpsPanel() {
         <span className="grai-action-switch-label">
           Exit by
           <br />
-          Voting
+          Vote
         </span>
       </button>
       <div
@@ -2764,7 +2764,7 @@ export function GraiOpsPanel() {
                       aria-controls="grai-vote-section-body"
                       onClick={() => setVoteSectionOpen((open) => !open)}
                     >
-                      1. Vote
+                      1. Vote for Liquidation
                     </button>
                   </h3>
                   <div
@@ -2943,7 +2943,7 @@ export function GraiOpsPanel() {
                         aria-controls="grai-bribe-section-body"
                         onClick={() => setBribeSectionOpen((open) => !open)}
                       >
-                        2. Bribe
+                        2. Bribe Voters
                       </button>
                     </h3>
                     <div

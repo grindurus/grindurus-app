@@ -128,6 +128,11 @@ export function navigateToGraiSection(
   window.dispatchEvent(new CustomEvent<GraiSection>('grai-section-nav', { detail: section }))
 
   window.setTimeout(() => {
+    // Mint sits at the top; scrollIntoView under the fixed header nudges the page down.
+    if (section === 'mint') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+      return
+    }
     document.getElementById(GRAI_SECTION_IDS[section])?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, 80)
 }

@@ -6,7 +6,8 @@ export function HeroSection() {
   return (
     <>
       {/* ── MOBILE layout (hidden on md+) ── */}
-      <section className="md:hidden w-full bg-black flex flex-col items-center justify-center text-center px-6 overflow-hidden min-h-[100svh] pt-[64px] pb-8">
+      {/* Leave ~3.25rem so GraiFlow “GRAI …” title peeks under the fold on mobile. */}
+      <section className="md:hidden w-full bg-black flex flex-col items-center justify-center text-center px-6 overflow-hidden min-h-[calc(100svh-3.25rem)] pt-[64px] pb-6">
         {/* Headline */}
         <h1 className="font-mono font-black text-[clamp(2.2rem,10vw,3rem)] leading-[1.2] mb-3 relative z-10">
           <span className="block text-brand-pink text-[clamp(1.85rem,8vw,2.7rem)] whitespace-nowrap [text-shadow:0_0_20px_black]">
@@ -29,8 +30,9 @@ export function HeroSection() {
       </section>
 
       {/* ── DESKTOP layout (hidden below md) ── */}
+      {/* Leave ~5.5rem so GraiFlow “GRAI …” title peeks under the fold (same idea as mobile). */}
       <section
-        className="mt-[74px] hidden md:flex relative w-full min-h-[90vh] bg-black items-center justify-center overflow-hidden"
+        className="mt-[74px] hidden md:flex relative w-full min-h-[calc(100svh-74px-5.5rem)] bg-black items-center justify-center overflow-hidden"
       >
         {/* Token ad banner background */}
         <TokenAdBanner />

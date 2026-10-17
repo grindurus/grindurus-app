@@ -6,7 +6,6 @@ import { ConnectWalletButton } from './ConnectWalletButton'
 import { HeaderSettingsPopover } from './HeaderSettingsPopover'
 import { GraiUiCaret } from './grai/GraiUiCaret'
 import { navigateToGraiSection, resetGraiLiquidateView, resetGraiMintToDeposit, type GraiSection } from '../utils/graiNavigation'
-import { navigateToGrsSection, type GrsSection } from '../utils/grsNavigation'
 import { navigateToAffiliatesSection, type AffiliatesSection } from '../utils/affiliatesNavigation'
 import { navigateToBacktestSection, type BacktestSection } from '../utils/backtestNavigation'
 import { useEvmWallet } from '../wallets/useEvmWallet'
@@ -86,6 +85,15 @@ const LIQUIDATE_NAV_ICON = (
   </svg>
 )
 
+const SWAP_NAV_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M16 3h5v5" />
+    <path d="M8 21H3v-5" />
+    <path d="M21 3 14 10" />
+    <path d="m3 21 7-7" />
+  </svg>
+)
+
 const VOTE_NAV_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="m9 12 2 2 4-4" />
@@ -130,47 +138,7 @@ const GRAI_NAV_ITEMS: { section: GraiSection; label: string; icon: ReactNode }[]
   { section: 'vote', label: 'Vote', icon: VOTE_NAV_ICON },
   { section: 'bribe', label: 'Bribe', icon: BRIBE_NAV_ICON },
   { section: 'liquidation', label: 'Liquidate', icon: LIQUIDATE_NAV_ICON },
-]
-
-const BRIDGE_NAV_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M7 17 17 7" />
-    <path d="M7 7h10v10" />
-  </svg>
-)
-
-const SALE_NAV_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="9" cy="20" r="1.4" />
-    <circle cx="18" cy="20" r="1.4" />
-    <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h8.4a2 2 0 0 0 1.95-1.55L21 8H7" />
-  </svg>
-)
-
-const GRANT_NAV_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="9" />
-    <circle cx="12" cy="12" r="6.25" />
-    <circle cx="12" cy="12" r="2.25" fill="currentColor" stroke="none" />
-    <path d="M12 5.75v1.5M12 16.75v1.5M5.75 12h1.5M16.75 12h1.5" />
-  </svg>
-)
-
-const ALLOCATION_NAV_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
-    <path d="M22 12A10 10 0 0 0 12 2v10z" />
-  </svg>
-)
-
-const GRS_NAV_ITEMS: { section: GrsSection; label: string; icon: ReactNode }[] = [
-  { section: 'token-sale', label: 'Token Sale', icon: SALE_NAV_ICON },
-  { section: 'allocation', label: 'Allocation', icon: ALLOCATION_NAV_ICON },
-  { section: 'bridge', label: 'Bridge', icon: BRIDGE_NAV_ICON },
-  { section: 'vesting', label: 'Release', icon: UNLOCK_NAV_ICON },
-  { section: 'vest', label: 'Vest', icon: LOCK_NAV_ICON },
-  { section: 'grant', label: 'Grant', icon: GRANT_NAV_ICON },
-  { section: 'sales', label: 'Sale', icon: SALE_NAV_ICON },
+  { section: 'swap', label: 'Swap', icon: SWAP_NAV_ICON },
 ]
 
 const REGISTER_NAV_ICON = (
@@ -208,6 +176,8 @@ function isOnAppPath(path: string): boolean {
   return here === path || here.startsWith(`${path}/`)
 }
 
+type HeaderNavClickEvent = MouseEvent<HTMLAnchorElement> & { productSwitch?: boolean }
+
 function HeaderNavPathButton({
   path,
   active,
@@ -217,9 +187,11 @@ function HeaderNavPathButton({
   path: string
   active: boolean
   children: ReactNode
-  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void
+  onClick?: (event: HeaderNavClickEvent) => void
 }) {
   const navigate = useNavigate()
+  /** True when pointerdown already switched products — click must not run same-tab section scroll. */
+  const productSwitchRef = useRef(false)
   const warmRoute = () => {
     if (path === '/grs') void import('../pages/GrsPage')
     else if (path === '/backtest') void import('../pages/BacktestPage')
@@ -236,17 +208,29 @@ function HeaderNavPathButton({
         if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return
         warmRoute()
         // Stay on this product: the click handler scrolls / resets sections.
-        if (isOnAppPath(path)) return
+        if (isOnAppPath(path)) {
+          productSwitchRef.current = false
+          return
+        }
         // Leave before the click. A GRAI liquidation re-render was dropping that click,
         // so the router transition never started.
+        productSwitchRef.current = true
         event.preventDefault()
         navigate({ pathname: path, search: '', hash: '' })
-        onClick?.(event as unknown as MouseEvent<HTMLAnchorElement>)
         queueMicrotask(() => {
           if (!isOnAppPath(path)) window.location.assign(toAppPath(path))
         })
       }}
-      onClick={onClick}
+      onClick={(event) => {
+        const navEvent = event as HeaderNavClickEvent
+        // After a product switch, pathname already matches this link, so parent
+        // "if on /backtest → scroll to create" would fire and nudge the page down.
+        if (productSwitchRef.current) {
+          productSwitchRef.current = false
+          navEvent.productSwitch = true
+        }
+        onClick?.(navEvent)
+      }}
     >
       {children}
     </NavLink>
@@ -270,13 +254,11 @@ function Header() {
   const [isBacktestMenuOpen, setIsBacktestMenuOpen] = useState(false)
   const [isAffiliatesMenuOpen, setIsAffiliatesMenuOpen] = useState(false)
   const [isGraiMenuOpen, setIsGraiMenuOpen] = useState(false)
-  const [isGrsMenuOpen, setIsGrsMenuOpen] = useState(false)
   const [navMode, setNavMode] = useState<'full' | 'compact' | 'mobile'>('full')
   const mobileNavId = useId()
   const backtestMenuRef = useRef<HTMLLIElement>(null)
   const affiliatesMenuRef = useRef<HTMLLIElement>(null)
   const graiMenuRef = useRef<HTMLLIElement>(null)
-  const grsMenuRef = useRef<HTMLLIElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const headerContainerRef = useRef<HTMLDivElement>(null)
   const desktopNavTrackRef = useRef<HTMLDivElement>(null)
@@ -340,7 +322,6 @@ function Header() {
     setIsBacktestMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
-    setIsGrsMenuOpen(false)
   }, [pathname])
 
   useLayoutEffect(() => {
@@ -398,11 +379,20 @@ function Header() {
       requestAnimationFrame(() => setNavIndicatorReady(true))
     }
 
-    // On route / mode change, bring the active product into the scrollport once.
+    // On route / mode change, bring the active product into the horizontal nav only
+    // (never window.scrollIntoView — that jumps the page down after ScrollToTop).
     const currentLink = track.querySelector<HTMLElement>('.header-nav-link.is-current')
     const currentItem = currentLink?.closest('.header-nav-item--grai') ?? currentLink
     if (currentItem instanceof HTMLElement) {
-      currentItem.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+      const itemLeft = currentItem.offsetLeft
+      const itemRight = itemLeft + currentItem.offsetWidth
+      const viewLeft = scroller.scrollLeft
+      const viewRight = viewLeft + scroller.clientWidth
+      if (itemLeft < viewLeft) {
+        scroller.scrollLeft = itemLeft
+      } else if (itemRight > viewRight) {
+        scroller.scrollLeft = itemRight - scroller.clientWidth
+      }
     }
 
     update()
@@ -419,12 +409,7 @@ function Header() {
   }, [pathname, navMode, isNavMobile])
 
   useEffect(() => {
-    if (
-      !isBacktestMenuOpen &&
-      !isAffiliatesMenuOpen &&
-      !isGraiMenuOpen &&
-      !isGrsMenuOpen
-    ) {
+    if (!isBacktestMenuOpen && !isAffiliatesMenuOpen && !isGraiMenuOpen) {
       return
     }
 
@@ -433,14 +418,12 @@ function Header() {
       if (!backtestMenuRef.current?.contains(target)) setIsBacktestMenuOpen(false)
       if (!affiliatesMenuRef.current?.contains(target)) setIsAffiliatesMenuOpen(false)
       if (!graiMenuRef.current?.contains(target)) setIsGraiMenuOpen(false)
-      if (!grsMenuRef.current?.contains(target)) setIsGrsMenuOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsBacktestMenuOpen(false)
         setIsAffiliatesMenuOpen(false)
         setIsGraiMenuOpen(false)
-        setIsGrsMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', onDocumentClick)
@@ -449,7 +432,7 @@ function Header() {
       document.removeEventListener('mousedown', onDocumentClick)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isBacktestMenuOpen, isAffiliatesMenuOpen, isGraiMenuOpen, isGrsMenuOpen])
+  }, [isBacktestMenuOpen, isAffiliatesMenuOpen, isGraiMenuOpen])
 
   const [navLockSpacerHeight, setNavLockSpacerHeight] = useState(74)
 
@@ -511,7 +494,6 @@ function Header() {
     setIsBacktestMenuOpen(false)
     setIsGraiMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
-    setIsGrsMenuOpen(false)
     navigateToBacktestSection(section)
   }
 
@@ -521,16 +503,10 @@ function Header() {
     navigateToGraiSection(section)
   }
 
-  const handleGrsSectionClick = (section: GrsSection) => {
-    setIsGrsMenuOpen(false)
-    navigateToGrsSection(section)
-  }
-
   const closeMenus = useCallback(() => {
     setIsBacktestMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
-    setIsGrsMenuOpen(false)
     setIsMobileNavOpen(false)
   }, [])
 
@@ -596,6 +572,7 @@ function Header() {
                   active={isBacktestActive}
                   onClick={(event) => {
                     closeMenus()
+                    if (event.productSwitch) return
                     if (pathname.startsWith('/backtest')) {
                       event.preventDefault()
                       navigateToBacktestSection('create')
@@ -616,7 +593,6 @@ function Header() {
                   onClick={() => {
                     setIsAffiliatesMenuOpen(false)
                     setIsGraiMenuOpen(false)
-                    setIsGrsMenuOpen(false)
                     setIsBacktestMenuOpen((open) => !open)
                   }}
                 >
@@ -652,6 +628,7 @@ function Header() {
                   active={isGraiActive}
                   onClick={(event) => {
                     closeMenus()
+                    if (event.productSwitch) return
                     if (pathname.startsWith('/grai')) {
                       event.preventDefault()
                       navigateToGraiSection('mint')
@@ -672,7 +649,6 @@ function Header() {
                   onClick={() => {
                     setIsBacktestMenuOpen(false)
                     setIsAffiliatesMenuOpen(false)
-                    setIsGrsMenuOpen(false)
                     setIsGraiMenuOpen((open) => !open)
                   }}
                 >
@@ -722,7 +698,6 @@ function Header() {
                   onClick={() => {
                     setIsBacktestMenuOpen(false)
                     setIsGraiMenuOpen(false)
-                    setIsGrsMenuOpen(false)
                     setIsAffiliatesMenuOpen((open) => !open)
                   }}
                 >
@@ -742,56 +717,6 @@ function Header() {
                       role="menuitem"
                       className="header-nav-dropdown-item"
                       onClick={() => handleAffiliatesSectionClick(item.section)}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </li>
-              <li
-                ref={grsMenuRef}
-                className={`header-nav-item header-nav-item--grai${isGrsActive ? ' is-current-product' : ''}${isGrsMenuOpen ? ' is-open' : ''}`}
-              >
-                <HeaderNavPathButton
-                  path="/grs"
-                  active={isGrsActive}
-                  onClick={closeMenus}
-                >
-                  <span className="header-nav-link-stack">
-                    <span className="header-nav-link-title">GRS</span>
-                    <span className="header-nav-link-sub">protocol token</span>
-                  </span>
-                </HeaderNavPathButton>
-                <button
-                  type="button"
-                  className={`header-nav-caret-btn${isGrsMenuOpen ? ' is-open' : ''}`}
-                  aria-expanded={isGrsMenuOpen}
-                  aria-haspopup="menu"
-                  aria-label="GRS sections"
-                  onClick={() => {
-                    setIsBacktestMenuOpen(false)
-                    setIsAffiliatesMenuOpen(false)
-                    setIsGraiMenuOpen(false)
-                    setIsGrsMenuOpen((open) => !open)
-                  }}
-                >
-                  <GraiUiCaret className="header-nav-caret" />
-                </button>
-                <div
-                  className={`header-nav-dropdown${isGrsMenuOpen ? ' is-open' : ''}`}
-                  role="menu"
-                  aria-label="GRS sections"
-                  aria-hidden={!isGrsMenuOpen}
-                  hidden={!isGrsMenuOpen}
-                >
-                  {GRS_NAV_ITEMS.map((item) => (
-                    <button
-                      key={item.section}
-                      type="button"
-                      role="menuitem"
-                      className="header-nav-dropdown-item"
-                      onClick={() => handleGrsSectionClick(item.section)}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>
                       <span>{item.label}</span>
@@ -826,6 +751,7 @@ function Header() {
                 onClick={(event) => {
                   closeMenus()
                   setIsMobileNavOpen(false)
+                  if (event.productSwitch) return
                   if (pathname.startsWith('/backtest')) {
                     event.preventDefault()
                     navigateToBacktestSection('create')
@@ -847,6 +773,7 @@ function Header() {
                 onClick={(event) => {
                   closeMenus()
                   setIsMobileNavOpen(false)
+                  if (event.productSwitch) return
                   if (pathname.startsWith('/grai')) {
                     event.preventDefault()
                     navigateToGraiSection('mint')
@@ -873,23 +800,6 @@ function Header() {
                 <span className="header-nav-link-stack">
                   <span className="header-nav-link-title">AFFILIATES</span>
                   <span className="header-nav-link-sub">referral program</span>
-                </span>
-              </HeaderNavPathButton>
-            </li>
-            ) : null}
-            {!isNavCompact || !isGrsActive ? (
-            <li>
-              <HeaderNavPathButton
-                path="/grs"
-                active={isGrsActive}
-                onClick={() => {
-                  closeMenus()
-                  setIsMobileNavOpen(false)
-                }}
-              >
-                <span className="header-nav-link-stack">
-                  <span className="header-nav-link-title">GRS</span>
-                  <span className="header-nav-link-sub">protocol token</span>
                 </span>
               </HeaderNavPathButton>
             </li>
@@ -937,23 +847,6 @@ function Header() {
                       onClick={() => {
                         setIsMobileNavOpen(false)
                         handleAffiliatesSectionClick(item.section)
-                      }}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  </li>
-                ))
-              : null}
-            {isGrsActive
-              ? GRS_NAV_ITEMS.map((item) => (
-                  <li key={item.section}>
-                    <button
-                      type="button"
-                      className="header-nav-link header-mobile-nav-sublink"
-                      onClick={() => {
-                        setIsMobileNavOpen(false)
-                        handleGrsSectionClick(item.section)
                       }}
                     >
                       <span className="header-nav-dropdown-item-icon">{item.icon}</span>

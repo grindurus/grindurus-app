@@ -32,6 +32,12 @@ export function navigateToBacktestSection(section: BacktestSection): void {
   window.dispatchEvent(new CustomEvent<BacktestSection>('backtest-section-nav', { detail: section }))
 
   window.setTimeout(() => {
+    // Create sits at the top; scrollIntoView(block:'start') would tuck it under the
+    // fixed header and nudge the page down by ~header height.
+    if (section === 'create') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+      return
+    }
     document
       .getElementById(BACKTEST_SECTION_IDS[section])
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' })

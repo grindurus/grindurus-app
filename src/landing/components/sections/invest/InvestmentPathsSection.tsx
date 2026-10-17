@@ -66,7 +66,7 @@ export function InvestmentPathsSection() {
           </div>
         </div>
 
-        <div className="mt-6 md:mt-8 flex flex-col md:flex-row items-center justify-between gap-10 md:gap-12 border border-white/10 rounded-3xl p-8 relative overflow-hidden group hover:border-brand-pink/50 transition-colors duration-500">
+        <div className="mt-6 md:mt-8 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 border border-white/10 rounded-3xl p-5 sm:p-8 relative overflow-hidden group hover:border-brand-pink/50 transition-colors duration-500">
           <div className="absolute inset-0 bg-gradient-to-b from-brand-pink/0 to-brand-pink/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
           <div className="relative z-10 flex min-w-0 w-full max-w-[520px] flex-col items-start text-left">
             <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-8">
@@ -78,11 +78,14 @@ export function InvestmentPathsSection() {
               <br></br>
               Earn a <span className="text-brand-pink">revenue share</span>. Onchain.
             </Description>
+            <div className="mt-6 -mx-1 w-[calc(100%+0.5rem)] sm:mx-0 sm:w-full md:hidden">
+              <AffiliateArt />
+            </div>
             <Button href={APP_AFFILIATE} size="md" className="mt-8">
               Become Affiliate
             </Button>
           </div>
-          <div className="relative z-10 w-full md:min-w-[360px] md:max-w-[460px]">
+          <div className="relative z-10 hidden md:block w-full md:min-w-[360px] md:max-w-[460px]">
             <AffiliateArt />
           </div>
         </div>

@@ -152,6 +152,18 @@ function AppNavigateBinder() {
   return null
 }
 
+/** Landing CTAs keep window scrollY; reset to top on bare path changes (hash sections scroll themselves). */
+function ScrollToTopOnNavigate() {
+  const { pathname, hash } = useLocation()
+
+  useLayoutEffect(() => {
+    if (hash) return
+    window.scrollTo(0, 0)
+  }, [pathname, hash])
+
+  return null
+}
+
 function App() {
   const { pathname } = useLocation()
   const isLanding = pathname === '/'
@@ -175,6 +187,7 @@ function App() {
   return (
     <div className={`App${isLanding ? ' App--landing' : ''}`}>
       <AppNavigateBinder />
+      <ScrollToTopOnNavigate />
       {isLanding ? null : <Header />}
       <main className={isLanding ? 'App-main App-main--landing' : 'App-main'}>
         <Routes>

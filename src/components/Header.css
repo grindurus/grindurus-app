@@ -213,12 +213,12 @@
 
 .header-nav-link--grinders:hover,
 .header-nav-link--grinders:focus-visible {
-  color: #fff;
+  color: #ff69b4;
 }
 
 [data-theme='light'] .header-nav-link--grinders:hover,
 [data-theme='light'] .header-nav-link--grinders:focus-visible {
-  color: #fff;
+  color: #ff1493;
 }
 
 .header-nav-caret--right {
@@ -363,7 +363,7 @@ button.header-nav-link {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #ff69b4;
+  color: #fff;
   font-size: 0.9rem;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -394,16 +394,21 @@ button.header-nav-link {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: lowercase;
-  opacity: 0.72;
+  color: #ff69b4;
+  opacity: 1;
   line-height: 1;
 }
 
+[data-theme="light"] .header-nav-link-sub {
+  color: #ff1493;
+}
+
 [data-theme="light"] .header-nav-link {
-  color: #ff69b4;
+  color: var(--text-primary);
 }
 
 .header-nav-link:hover:not(.is-disabled) {
-  color: #fff;
+  color: #ff69b4;
 }
 
 [data-theme="light"] .header-nav-link:hover:not(.is-disabled):not(.header-nav-info):not(.is-current) {
@@ -411,28 +416,28 @@ button.header-nav-link {
 }
 
 .header-nav-link.is-current {
-  color: #ff69b4;
+  color: #fff;
   font-weight: 600;
 }
 
 .header-nav-link.is-current:hover,
 .header-nav-link.header-nav-info:hover {
-  color: #fff;
+  color: #ff69b4;
 }
 
 .header-nav-link.is-disabled {
-  color: #ff69b4;
+  color: #fff;
   opacity: 0.45;
   cursor: default;
 }
 
 [data-theme="light"] .header-nav-link.is-disabled {
-  color: #ff69b4;
+  color: var(--text-primary);
   opacity: 0.5;
 }
 
 .header-nav-info {
-  color: #ff69b4;
+  color: #fff;
   gap: 0.35rem;
   text-decoration: underline;
   text-decoration-style: dashed;
@@ -443,9 +448,17 @@ button.header-nav-link {
   text-decoration-style: solid;
 }
 
+[data-theme="light"] .header-nav-link.is-current {
+  color: var(--text-primary);
+}
+
 [data-theme="light"] .header-nav-link.is-current:hover,
 [data-theme="light"] .header-nav-link.header-nav-info:hover {
-  color: #fff;
+  color: #ff1493;
+}
+
+[data-theme="light"] .header-nav-info {
+  color: var(--text-primary);
 }
 
 .header-nav-info-icon {
@@ -604,9 +617,9 @@ button.header-nav-link {
   cursor: pointer;
 }
 
-/* Compact: scrollable product strip only (no burger — that appears in mobile). */
+/* Compact: product strip centered between logo and wallet (scrolls from start if it overflows). */
 .header.is-nav-compact .header-nav--desktop {
-  justify-content: flex-start;
+  justify-content: safe center;
   scroll-padding-inline: 0.25rem;
 }
 

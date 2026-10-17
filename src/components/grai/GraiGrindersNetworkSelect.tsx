@@ -289,6 +289,19 @@ export function GraiGrindersNetworkSelect({
     </div>
   ) : null
 
+  const dropdownArrow = (
+    <svg
+      className={`wallet-network-select-arrow grai-grinders-network-select-arrow${isOpen ? ' open' : ''}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      aria-hidden="true"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  )
+
   const labelMain = (
     <span className="wallet-network-select-main">
       {showTotal ? (
@@ -311,6 +324,7 @@ export function GraiGrindersNetworkSelect({
           ? 'TOTAL'
           : shortNetworkLabel(activeWallet.networkName, activeWallet.chainType)}
       </span>
+      {showTotal && isStacked ? dropdownArrow : null}
     </span>
   )
 
@@ -353,22 +367,16 @@ export function GraiGrindersNetworkSelect({
                   NETWORK
                 </span>
               </span>
-              <span className="grai-grinders-network-selected-row">{labelMain}</span>
+              <span className="grai-grinders-network-selected-row">
+                {labelMain}
+                {dropdownArrow}
+              </span>
             </>
           )
         ) : (
           <>
             {labelMain}
-            <svg
-              className={`wallet-network-select-arrow${isOpen ? ' open' : ''}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              aria-hidden="true"
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+            {dropdownArrow}
           </>
         )}
       </button>
