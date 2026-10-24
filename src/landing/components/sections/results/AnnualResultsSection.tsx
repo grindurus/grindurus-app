@@ -358,7 +358,7 @@ export function AnnualResultsSection() {
 
         <div className="text-center mb-10 md:mb-12">
           <Title className="mb-4">
-            Offchain Grinder Infrastructure —{" "}
+            Offchain Grinders Infrastructure —{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink to-[#ff1493]">
               a verifiable algorithm
             </span>

@@ -29,6 +29,13 @@ export const wagmiConfig = createConfig({
   ssr: true,
   connectors,
   chains: [mainnet, base, arbitrum, polygon, sepolia],
+  // Pack concurrent contract reads into Multicall3 (fewer POSTs to public RPC).
+  batch: {
+    multicall: {
+      batchSize: 1024,
+      wait: 50,
+    },
+  },
   transports: {
     [mainnet.id]: evmHttpTransport(mainnet.id),
     [base.id]: evmHttpTransport(base.id),

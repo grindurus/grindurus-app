@@ -30,7 +30,7 @@ import { SolanaClusterIcon } from '../components/SolanaClusterIcon'
 import { EvmChainListIcon } from '../components/WalletNetworkSelect'
 import { getAssociatedTokenAddress } from '../grai/pdas'
 import { SOLANA_USDC_MAINNET } from '../grs/solana/quoteAssets'
-import { consumeCompleteSseEvents } from '../boss/sseParser'
+import { consumeCompleteSseEvents } from '../utils/sseParser'
 import {
   BACKTEST_SECTION_IDS,
   readBacktestSectionFromHash,

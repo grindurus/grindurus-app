@@ -206,7 +206,7 @@ export const GRINDER_TVL_INFO_HINT = (
       <span className="grai-field-info-tooltip-section-label">Data source</span>
       <ul className="grai-field-info-tooltip-list">
         <li>
-          <strong>Live</strong> — Boss logs stream
+          <strong>Live</strong> — Toreador <code>/grinders/table</code>
         </li>
         <li>
           <strong>Demo</strong> — placeholder when disconnected
@@ -214,7 +214,7 @@ export const GRINDER_TVL_INFO_HINT = (
       </ul>
     </span>
     <p className="grai-field-info-tooltip-note">
-      <code>spot_price</code> is quote per base unit from Boss logs. Displayed as USD when quote is USDC/USDT.
+      <code>spot_price</code> is quote per base unit from Toreador. Displayed as USD when quote is USDC/USDT.
     </p>
   </>
 )
@@ -233,7 +233,7 @@ export const GRINDER_YIELD_INFO_HINT = (
       <span className="grai-field-info-tooltip-section-label">Data source</span>
       <ul className="grai-field-info-tooltip-list">
         <li>
-          <strong>Live</strong> — Boss logs stream
+          <strong>Live</strong> — Toreador <code>/grinders/table</code>
         </li>
         <li>
           <strong>Demo</strong> — placeholder when disconnected
@@ -241,7 +241,7 @@ export const GRINDER_YIELD_INFO_HINT = (
       </ul>
     </span>
     <p className="grai-field-info-tooltip-note">
-      <code>spot_price</code> is quote per base unit from Boss logs. Displayed as USD when quote is USDC/USDT.
+      <code>spot_price</code> is quote per base unit from Toreador. Displayed as USD when quote is USDC/USDT.
     </p>
   </>
 )
@@ -257,12 +257,12 @@ export const GRINDER_UPTIME_INFO_HINT = (
       <span className="grai-field-info-tooltip-section-label">Data source</span>
       <ul className="grai-field-info-tooltip-list">
         <li>
-          <strong>Live</strong> — rolling 90-day window from Boss grinder status history
+          <strong>Live</strong> — rolling 90-day window from Toreador grinder status
         </li>
       </ul>
     </span>
     <p className="grai-field-info-tooltip-note">
-      Shown as a percentage of the last 90 days when Boss data is available.
+      Shown as a percentage of the last 90 days when Toreador data is available.
     </p>
   </>
 )

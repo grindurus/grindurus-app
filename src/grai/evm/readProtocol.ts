@@ -1,4 +1,4 @@
-import { erc20Abi, zeroAddress } from 'viem'
+import { erc20Abi, zeroAddress, type Abi } from 'viem'
 import type { GraiEvmConfig } from '../deployments'
 import type { GraiAsset } from '../knownMints'
 import { formatTokenBalance } from '../onchain'
@@ -8,6 +8,13 @@ import { graiAbi, grindersAbi, priceOracleAbi } from './abi'
 import { createGraiEvmPublicClient, resolveGraiContractAddress } from './client'
 import { GRAI_DECIMALS_EVM, USD_SCALE_EVM } from './constants'
 import { isNativeEvmAsset, resolveEvmGraiAsset } from './knownAssets'
+
+type MulticallContract = {
+  address: `0x${string}`
+  abi: Abi
+  functionName: string
+  args?: readonly unknown[]
+}
 
 export async function fetchEvmGraiAssets(config: GraiEvmConfig): Promise<GraiAsset[]> {
   const client = createGraiEvmPublicClient(config)
@@ -37,28 +44,47 @@ async function fetchEvmListedAssets(config: GraiEvmConfig): Promise<EvmListedAss
     abi: graiAbi,
     functionName: 'getAssets',
   })
+  if (assets.length === 0) return []
 
-  return Promise.all(
-    assets.map(async (address) => {
-      const meta = resolveEvmGraiAsset(address)
-      const [decimals, assetConfig] = await Promise.all([
-        readAssetDecimals(config, address),
-        client.readContract({
-          address: graiAddress,
-          abi: graiAbi,
-          functionName: 'assets',
-          args: [address],
-        }),
-      ])
-      return {
+  const contracts: MulticallContract[] = []
+  for (const address of assets) {
+    if (!isNativeEvmAsset(address)) {
+      contracts.push({
         address,
-        symbol: meta.symbol,
-        icon: meta.icon.src,
-        decimals,
-        bribeable: Boolean(assetConfig[2]),
-      }
-    }),
-  )
+        abi: erc20Abi,
+        functionName: 'decimals',
+      })
+    }
+    contracts.push({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'assets',
+      args: [address],
+    })
+  }
+
+  const results = await client.multicall({ contracts, allowFailure: true })
+  let cursor = 0
+  return assets.map((address) => {
+    const meta = resolveEvmGraiAsset(address)
+    let decimals = 18
+    if (!isNativeEvmAsset(address)) {
+      const decResult = results[cursor++]
+      if (decResult?.status === 'success') decimals = Number(decResult.result)
+    }
+    const cfgResult = results[cursor++]
+    const bribeable =
+      cfgResult?.status === 'success' && Array.isArray(cfgResult.result)
+        ? Boolean(cfgResult.result[2])
+        : false
+    return {
+      address,
+      symbol: meta.symbol,
+      icon: meta.icon.src,
+      decimals,
+      bribeable,
+    }
+  })
 }
 
 /** First bribeable listed asset, or zero if none configured. */
@@ -73,73 +99,21 @@ export async function resolveEvmBribePaymentAsset(
 export async function fetchEvmGraiTotalSupply(config: GraiEvmConfig) {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const [raw, decimals] = await Promise.all([
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'totalSupply',
-    }),
-    client.readContract({
-      address: graiAddress,
-      abi: graiAbi,
-      functionName: 'decimals',
-    }),
-  ])
+  const [supplyResult, decimalsResult] = await client.multicall({
+    contracts: [
+      { address: graiAddress, abi: graiAbi, functionName: 'totalSupply' },
+      { address: graiAddress, abi: graiAbi, functionName: 'decimals' },
+    ],
+    allowFailure: false,
+  })
 
+  const raw = supplyResult as bigint
+  const decimals = Number(decimalsResult)
   return {
     raw,
-    decimals: Number(decimals),
-    label: formatTokenBalance(raw, Number(decimals), 4),
+    decimals,
+    label: formatTokenBalance(raw, decimals, 4),
   }
-}
-
-async function readAssetDecimals(
-  config: GraiEvmConfig,
-  asset: `0x${string}`,
-): Promise<number> {
-  if (isNativeEvmAsset(asset)) return 18
-
-  const client = createGraiEvmPublicClient(config)
-  const decimals = await client.readContract({
-    address: asset,
-    abi: erc20Abi,
-    functionName: 'decimals',
-  })
-  return Number(decimals)
-}
-
-async function readAssetPrice(
-  config: GraiEvmConfig,
-  asset: `0x${string}`,
-): Promise<{ price: bigint; decimals: number }> {
-  const client = createGraiEvmPublicClient(config)
-  const graiAddress = resolveGraiContractAddress(config)
-
-  const [price, priceDecimals] = await client.readContract({
-    address: graiAddress,
-    abi: priceOracleAbi,
-    functionName: 'getPrice',
-    args: [asset],
-  })
-
-  return { price, decimals: Number(priceDecimals) }
-}
-
-async function readGraiAssetBalance(
-  config: GraiEvmConfig,
-  graiAddress: `0x${string}`,
-  asset: `0x${string}`,
-): Promise<bigint> {
-  const client = createGraiEvmPublicClient(config)
-  if (isNativeEvmAsset(asset)) {
-    return client.getBalance({ address: graiAddress })
-  }
-  return client.readContract({
-    address: asset,
-    abi: erc20Abi,
-    functionName: 'balanceOf',
-    args: [graiAddress],
-  })
 }
 
 /** Idle GRAI balances + Grinders allocations per listed asset (replaces removed `getVaultsData`). */
@@ -148,63 +122,110 @@ export async function fetchEvmGraiVaultBalances(
 ): Promise<Record<string, GraiAssetVaultBalances>> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const assets = await client.readContract({
-    address: graiAddress,
-    abi: graiAbi,
-    functionName: 'getAssets',
+
+  const [assets, grindersAddress] = await client.multicall({
+    contracts: [
+      { address: graiAddress, abi: graiAbi, functionName: 'getAssets' },
+      { address: graiAddress, abi: graiAbi, functionName: 'grinders' },
+    ],
+    allowFailure: false,
   })
 
-  const grindersAddress = await client.readContract({
-    address: graiAddress,
-    abi: graiAbi,
-    functionName: 'grinders',
-  })
+  const assetList = assets as readonly `0x${string}`[]
+  const grinders = grindersAddress as `0x${string}`
+  const hasGrinders = Boolean(grinders && grinders !== zeroAddress)
+  if (assetList.length === 0) return {}
 
-  const entries = await Promise.all(
-    assets.map(async (assetAddress) => {
-      const asset = assetAddress.toLowerCase()
-      const decimals = await readAssetDecimals(config, assetAddress)
-      const seniorBalance = await readGraiAssetBalance(config, graiAddress, assetAddress)
+  const contracts: MulticallContract[] = []
+  const nativeBalanceIndexes: number[] = []
 
-      let allocatedRaw = 0n
-      if (grindersAddress && grindersAddress !== zeroAddress) {
-        try {
-          allocatedRaw = await client.readContract({
-            address: grindersAddress,
-            abi: grindersAbi,
-            functionName: 'balance',
-            args: [assetAddress],
-          })
-        } catch {
-          allocatedRaw = 0n
-        }
-      }
+  for (let i = 0; i < assetList.length; i++) {
+    const assetAddress = assetList[i]!
+    if (isNativeEvmAsset(assetAddress)) {
+      nativeBalanceIndexes.push(i)
+    } else {
+      contracts.push({
+        address: assetAddress,
+        abi: erc20Abi,
+        functionName: 'decimals',
+      })
+      contracts.push({
+        address: assetAddress,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [graiAddress],
+      })
+    }
+    if (hasGrinders) {
+      contracts.push({
+        address: grinders,
+        abi: grindersAbi,
+        functionName: 'balance',
+        args: [assetAddress],
+      })
+    }
+    contracts.push({
+      address: graiAddress,
+      abi: priceOracleAbi,
+      functionName: 'getPrice',
+      args: [assetAddress],
+    })
+  }
 
-      let seniorUsdRaw = 0n
-      let allocatedUsdRaw = 0n
-      try {
-        const oracle = await readAssetPrice(config, assetAddress)
-        seniorUsdRaw = depositValue(seniorBalance, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
-        allocatedUsdRaw = depositValue(allocatedRaw, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
-      } catch {
-        // Price feed unavailable — USD columns stay zero.
-      }
+  const [results, ...nativeBalances] = await Promise.all([
+    client.multicall({ contracts, allowFailure: true }),
+    ...nativeBalanceIndexes.map(() => client.getBalance({ address: graiAddress })),
+  ])
 
-      return [
-        asset,
-        {
-          seniorRaw: seniorBalance,
-          juniorRaw: 0n,
-          allocatedRaw,
-          decimals,
-          navUsdRaw: seniorUsdRaw + allocatedUsdRaw,
-          seniorUsdRaw,
-          juniorUsdRaw: 0n,
-          allocatedUsdRaw,
-        },
-      ] as const
-    }),
-  )
+  let cursor = 0
+  let nativeCursor = 0
+  const entries: Array<readonly [string, GraiAssetVaultBalances]> = []
+
+  for (let i = 0; i < assetList.length; i++) {
+    const assetAddress = assetList[i]!
+    const asset = assetAddress.toLowerCase()
+    let decimals = 18
+    let seniorBalance = 0n
+
+    if (isNativeEvmAsset(assetAddress)) {
+      seniorBalance = (nativeBalances[nativeCursor++] as bigint) ?? 0n
+    } else {
+      const decResult = results[cursor++]
+      const balResult = results[cursor++]
+      if (decResult?.status === 'success') decimals = Number(decResult.result)
+      if (balResult?.status === 'success') seniorBalance = balResult.result as bigint
+    }
+
+    let allocatedRaw = 0n
+    if (hasGrinders) {
+      const allocResult = results[cursor++]
+      if (allocResult?.status === 'success') allocatedRaw = allocResult.result as bigint
+    }
+
+    let seniorUsdRaw = 0n
+    let allocatedUsdRaw = 0n
+    const priceResult = results[cursor++]
+    if (priceResult?.status === 'success' && Array.isArray(priceResult.result)) {
+      const price = priceResult.result[0] as bigint
+      const priceDecimals = Number(priceResult.result[1])
+      seniorUsdRaw = depositValue(seniorBalance, decimals, price, priceDecimals, USD_SCALE_EVM)
+      allocatedUsdRaw = depositValue(allocatedRaw, decimals, price, priceDecimals, USD_SCALE_EVM)
+    }
+
+    entries.push([
+      asset,
+      {
+        seniorRaw: seniorBalance,
+        juniorRaw: 0n,
+        allocatedRaw,
+        decimals,
+        navUsdRaw: seniorUsdRaw + allocatedUsdRaw,
+        seniorUsdRaw,
+        juniorUsdRaw: 0n,
+        allocatedUsdRaw,
+      },
+    ])
+  }
 
   return Object.fromEntries(entries)
 }
@@ -254,34 +275,60 @@ export async function fetchEvmGraiRedeemables(
     throw error
   }
 
-  const entries = await Promise.all(
-    assetOuts.map(async (assetAddress, index) => {
-      const asset = assetAddress.toLowerCase()
-      const amount = amounts[index] ?? 0n
-      const decimals = await readAssetDecimals(config, assetAddress)
-      let seniorUsdRaw = 0n
-      try {
-        const oracle = await readAssetPrice(config, assetAddress)
-        seniorUsdRaw = depositValue(amount, decimals, oracle.price, oracle.decimals, USD_SCALE_EVM)
-      } catch {
-        // Price feed unavailable — USD stays zero.
-      }
+  if (assetOuts.length === 0) return {}
 
-      return [
-        asset,
-        {
-          seniorRaw: amount,
-          juniorRaw: 0n,
-          allocatedRaw: 0n,
-          decimals,
-          navUsdRaw: seniorUsdRaw,
-          seniorUsdRaw,
-          juniorUsdRaw: 0n,
-          allocatedUsdRaw: 0n,
-        },
-      ] as const
-    }),
-  )
+  const contracts: MulticallContract[] = []
+  for (const assetAddress of assetOuts) {
+    if (!isNativeEvmAsset(assetAddress)) {
+      contracts.push({
+        address: assetAddress,
+        abi: erc20Abi,
+        functionName: 'decimals',
+      })
+    }
+    contracts.push({
+      address: graiAddress,
+      abi: priceOracleAbi,
+      functionName: 'getPrice',
+      args: [assetAddress],
+    })
+  }
+
+  const results = await client.multicall({ contracts, allowFailure: true })
+  let cursor = 0
+  const entries: Array<readonly [string, GraiAssetVaultBalances]> = []
+
+  for (let index = 0; index < assetOuts.length; index++) {
+    const assetAddress = assetOuts[index]!
+    const asset = assetAddress.toLowerCase()
+    const amount = amounts[index] ?? 0n
+    let decimals = 18
+    if (!isNativeEvmAsset(assetAddress)) {
+      const decResult = results[cursor++]
+      if (decResult?.status === 'success') decimals = Number(decResult.result)
+    }
+    let seniorUsdRaw = 0n
+    const priceResult = results[cursor++]
+    if (priceResult?.status === 'success' && Array.isArray(priceResult.result)) {
+      const price = priceResult.result[0] as bigint
+      const priceDecimals = Number(priceResult.result[1])
+      seniorUsdRaw = depositValue(amount, decimals, price, priceDecimals, USD_SCALE_EVM)
+    }
+
+    entries.push([
+      asset,
+      {
+        seniorRaw: amount,
+        juniorRaw: 0n,
+        allocatedRaw: 0n,
+        decimals,
+        navUsdRaw: seniorUsdRaw,
+        seniorUsdRaw,
+        juniorUsdRaw: 0n,
+        allocatedUsdRaw: 0n,
+      },
+    ])
+  }
 
   return Object.fromEntries(entries)
 }
@@ -299,20 +346,23 @@ export async function fetchEvmRedeemUnlockTiming(
 ): Promise<EvmRedeemUnlockTiming> {
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
-  const [liquidationOpen, liquidationAtRaw, protocolConfig] = await Promise.all([
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidation' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidationAt' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'config' }),
-  ])
+  const [liquidationOpen, liquidationAtRaw, protocolConfig] = await client.multicall({
+    contracts: [
+      { address: graiAddress, abi: graiAbi, functionName: 'liquidation' },
+      { address: graiAddress, abi: graiAbi, functionName: 'liquidationAt' },
+      { address: graiAddress, abi: graiAbi, functionName: 'config' },
+    ],
+    allowFailure: false,
+  })
 
   const liquidationAt = Number(liquidationAtRaw)
   // config: dividend, treasury, revenueShare, claimTip, bribePremium, quorum, unlockPenalty, liquidationPeriod, redeemPeriod
-  const liquidationPeriodSec = Number(protocolConfig[7])
+  const liquidationPeriodSec = Number((protocolConfig as readonly unknown[])[7])
   const redeemUnlockAt =
-    liquidationOpen && liquidationAt > 0 ? liquidationAt + liquidationPeriodSec : null
+    Boolean(liquidationOpen) && liquidationAt > 0 ? liquidationAt + liquidationPeriodSec : null
 
   return {
-    liquidationOpen,
+    liquidationOpen: Boolean(liquidationOpen),
     liquidationAt,
     liquidationPeriodSec,
     redeemUnlockAt,
@@ -329,21 +379,20 @@ export async function fetchEvmWalletAssetBalance(
   const normalizedAsset = asset.toLowerCase()
 
   if (normalizedAsset === graiAddress.toLowerCase()) {
-    const [raw, decimals] = await Promise.all([
-      client.readContract({
-        address: graiAddress,
-        abi: graiAbi,
-        functionName: 'balanceOf',
-        args: [owner],
-      }),
-      client.readContract({
-        address: graiAddress,
-        abi: graiAbi,
-        functionName: 'decimals',
-      }),
-    ])
+    const [raw, decimals] = await client.multicall({
+      contracts: [
+        {
+          address: graiAddress,
+          abi: graiAbi,
+          functionName: 'balanceOf',
+          args: [owner],
+        },
+        { address: graiAddress, abi: graiAbi, functionName: 'decimals' },
+      ],
+      allowFailure: false,
+    })
     const dec = Number(decimals)
-    return { raw, maxRaw: raw, decimals: dec }
+    return { raw: raw as bigint, maxRaw: raw as bigint, decimals: dec }
   }
 
   if (isNativeEvmAsset(normalizedAsset)) {
@@ -354,21 +403,24 @@ export async function fetchEvmWalletAssetBalance(
   }
 
   const assetAddress = normalizedAsset as `0x${string}`
-  const [raw, decimals] = await Promise.all([
-    client.readContract({
-      address: assetAddress,
-      abi: erc20Abi,
-      functionName: 'balanceOf',
-      args: [owner],
-    }),
-    client.readContract({
-      address: assetAddress,
-      abi: erc20Abi,
-      functionName: 'decimals',
-    }),
-  ])
+  const [raw, decimals] = await client.multicall({
+    contracts: [
+      {
+        address: assetAddress,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [owner],
+      },
+      {
+        address: assetAddress,
+        abi: erc20Abi,
+        functionName: 'decimals',
+      },
+    ],
+    allowFailure: false,
+  })
   const dec = Number(decimals)
-  return { raw, maxRaw: raw, decimals: dec }
+  return { raw: raw as bigint, maxRaw: raw as bigint, decimals: dec }
 }
 
 export type EvmVoterEntry = {
@@ -406,77 +458,147 @@ export async function fetchEvmLiquidationVoteState(
   const client = createGraiEvmPublicClient(config)
   const graiAddress = resolveGraiContractAddress(config)
 
-  const [
-    graiDecimalsRaw,
-    totalVoted,
-    totalSupply,
-    totalValue,
-    hasQuorum,
-    liquidationOpen,
-    protocolConfig,
-    voterEscrows,
-    listedAssets,
-    walletGrai,
-    escrowEntry,
-    grindersAddress,
-  ] = await Promise.all([
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'decimals' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalVoted' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalSupply' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'totalValue' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'hasQuorum' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'liquidation' }),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'config' }),
-    client.readContract({
+  const emptyEscrow = [
+    '0x0000000000000000000000000000000000000000',
+    0,
+    0n,
+    0n,
+    0,
+    0,
+  ] as const
+
+  const round1Contracts: MulticallContract[] = [
+    { address: graiAddress, abi: graiAbi, functionName: 'decimals' },
+    { address: graiAddress, abi: graiAbi, functionName: 'totalVoted' },
+    { address: graiAddress, abi: graiAbi, functionName: 'totalSupply' },
+    { address: graiAddress, abi: graiAbi, functionName: 'totalValue' },
+    { address: graiAddress, abi: graiAbi, functionName: 'hasQuorum' },
+    { address: graiAddress, abi: graiAbi, functionName: 'liquidation' },
+    { address: graiAddress, abi: graiAbi, functionName: 'config' },
+    {
       address: graiAddress,
       abi: graiAbi,
       functionName: 'getEscrows',
       args: [true, 0n, 2n ** 256n - 1n],
-    }),
-    fetchEvmListedAssets(config),
-    owner
-      ? client.readContract({
-          address: graiAddress,
-          abi: graiAbi,
-          functionName: 'balanceOf',
-          args: [owner],
-        })
-      : Promise.resolve(0n),
-    owner
-      ? client.readContract({
-          address: graiAddress,
-          abi: graiAbi,
-          functionName: 'escrows',
-          args: [owner],
-        })
-      : Promise.resolve([
-          '0x0000000000000000000000000000000000000000',
-          0,
-          0n,
-          0n,
-          0,
-          0,
-        ] as const),
-    client.readContract({ address: graiAddress, abi: graiAbi, functionName: 'grinders' }),
-  ])
-
-  let grinding = true
-  if (grindersAddress && grindersAddress !== zeroAddress) {
-    try {
-      grinding = await client.readContract({
-        address: grindersAddress,
-        abi: grindersAbi,
-        functionName: 'grinding',
-      })
-    } catch {
-      grinding = true
-    }
+    },
+    { address: graiAddress, abi: graiAbi, functionName: 'getAssets' },
+    { address: graiAddress, abi: graiAbi, functionName: 'grinders' },
+  ]
+  if (owner) {
+    round1Contracts.push(
+      {
+        address: graiAddress,
+        abi: graiAbi,
+        functionName: 'balanceOf',
+        args: [owner],
+      },
+      {
+        address: graiAddress,
+        abi: graiAbi,
+        functionName: 'escrows',
+        args: [owner],
+      },
+    )
   }
+
+  const round1 = await client.multicall({ contracts: round1Contracts, allowFailure: true })
+
+  const requireOk = <T,>(index: number, label: string): T => {
+    const item = round1[index]
+    if (!item || item.status !== 'success') {
+      throw new Error(`GRAI ${label} read failed`)
+    }
+    return item.result as T
+  }
+
+  const graiDecimalsRaw = requireOk<bigint>(0, 'decimals')
+  const totalVoted = requireOk<bigint>(1, 'totalVoted')
+  const totalSupply = requireOk<bigint>(2, 'totalSupply')
+  const totalValue = requireOk<bigint>(3, 'totalValue')
+  const hasQuorum = requireOk<boolean>(4, 'hasQuorum')
+  const liquidationOpen = requireOk<boolean>(5, 'liquidation')
+  const protocolConfig = requireOk<readonly unknown[]>(6, 'config')
+  const voterEscrows = requireOk<
+    readonly { account: `0x${string}`; voted: bigint; locked: bigint }[]
+  >(7, 'getEscrows')
+  const assets = requireOk<readonly `0x${string}`[]>(8, 'getAssets')
+  const grindersAddress = requireOk<`0x${string}`>(9, 'grinders')
+  const walletGrai = owner
+    ? round1[10]?.status === 'success'
+      ? (round1[10].result as bigint)
+      : 0n
+    : 0n
+  const escrowEntry = owner
+    ? round1[11]?.status === 'success'
+      ? (round1[11].result as typeof emptyEscrow)
+      : emptyEscrow
+    : emptyEscrow
+
+  const hasGrinders = Boolean(grindersAddress && grindersAddress !== zeroAddress)
+  const round2Contracts: MulticallContract[] = []
+  if (hasGrinders) {
+    round2Contracts.push({
+      address: grindersAddress,
+      abi: grindersAbi,
+      functionName: 'grinding',
+    })
+  }
+  for (const address of assets) {
+    if (!isNativeEvmAsset(address)) {
+      round2Contracts.push({
+        address,
+        abi: erc20Abi,
+        functionName: 'decimals',
+      })
+    }
+    round2Contracts.push({
+      address: graiAddress,
+      abi: graiAbi,
+      functionName: 'assets',
+      args: [address],
+    })
+  }
+
+  const round2 =
+    round2Contracts.length > 0
+      ? await client.multicall({ contracts: round2Contracts, allowFailure: true })
+      : []
+
+  let r2 = 0
+  let grinding = true
+  if (hasGrinders) {
+    const grindingResult = round2[r2++]
+    if (grindingResult?.status === 'success') grinding = Boolean(grindingResult.result)
+  }
+
+  const listedAssets: EvmListedAsset[] = assets.map((address) => {
+    const meta = resolveEvmGraiAsset(address)
+    let decimals = 18
+    if (!isNativeEvmAsset(address)) {
+      const decResult = round2[r2++]
+      if (decResult?.status === 'success') decimals = Number(decResult.result)
+    }
+    const cfgResult = round2[r2++]
+    const bribeable =
+      cfgResult?.status === 'success' && Array.isArray(cfgResult.result)
+        ? Boolean(cfgResult.result[2])
+        : false
+    return {
+      address,
+      symbol: meta.symbol,
+      icon: meta.icon.src,
+      decimals,
+      bribeable,
+    }
+  })
 
   const bribePayment =
     listedAssets.find((asset) => asset.bribeable)?.address ?? zeroAddress
   const settlementDecimals =
-    bribePayment === zeroAddress ? 18 : await readAssetDecimals(config, bribePayment)
+    bribePayment === zeroAddress
+      ? 18
+      : listedAssets.find((a) => a.address.toLowerCase() === bribePayment.toLowerCase())
+          ?.decimals ?? 18
   const settlementMeta = resolveEvmGraiAsset(bribePayment)
   const voterEntries = voterEscrows.map((escrow) => ({
     address: escrow.account,

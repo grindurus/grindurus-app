@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { isGrinderStatusLive, type GrinderTableRow } from '../../boss/grinderTable'
+import { isGrinderStatusLive, type GrinderTableRow } from '../../toreador/grinderTable'
 import type { GrinderLastTxEntry } from '../../hooks/useGrinderLastTx'
 import { formatTxHashShort } from '../../grinder/formatTxHash'
 import {
@@ -65,7 +65,7 @@ export function GraiGrinderLastTxCell({
   const title = hasHash
     ? `${lastActionLabel} · ${hash}`
     : txState?.status === 'empty'
-      ? `${lastActionLabel} · no last transaction from Boss logs`
+      ? `${lastActionLabel} · no last transaction from Toreador`
       : `${lastActionLabel} · no last transaction`
 
   const icon =
@@ -234,7 +234,7 @@ export function GraiGrinderYieldValue({
   )
 }
 
-function buildGrinderCountHint(active: number, total: number, isLive: boolean, isBossUnavailable: boolean): ReactNode {
+function buildGrinderCountHint(active: number, total: number, isLive: boolean, isToreadorUnavailable: boolean): ReactNode {
   return (
     <>
       <span className="grai-field-info-tooltip-title">
@@ -242,20 +242,20 @@ function buildGrinderCountHint(active: number, total: number, isLive: boolean, i
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Active</span>
-        Grinders in INITIALIZED or GRINDING status in the Boss fleet.
+        Grinders in INITIALIZED or GRINDING status.
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Total</span>
-        All grinders returned by Boss (<code>/grinders</code> bootstrap, then <code>/logs</code> updates).
+        All grinders returned by Toreador (<code>GET /grinders/table</code>).
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Data source</span>
-        Boss API only.
+        Toreador API.
       </span>
-      {isBossUnavailable ? (
-        <p className="grai-field-info-tooltip-note">Boss API is currently unreachable.</p>
+      {isToreadorUnavailable ? (
+        <p className="grai-field-info-tooltip-note">Toreador API is currently unreachable.</p>
       ) : !isLive ? (
-        <p className="grai-field-info-tooltip-note">Waiting for grinder data from Boss.</p>
+        <p className="grai-field-info-tooltip-note">Waiting for grinder data from Toreador.</p>
       ) : null}
     </>
   )
@@ -265,17 +265,17 @@ export function GraiGrinderCountValue({
   active,
   total,
   isLive,
-  isBossUnavailable,
+  isToreadorUnavailable,
 }: {
   active: number
   total: number
   isLive: boolean
-  isBossUnavailable: boolean
+  isToreadorUnavailable: boolean
 }) {
   return (
     <GraiFieldInfoButton
       className="grai-grinders-group-general-value"
-      hint={buildGrinderCountHint(active, total, isLive, isBossUnavailable)}
+      hint={buildGrinderCountHint(active, total, isLive, isToreadorUnavailable)}
       ariaLabel={`${active} of ${total} grinders active`}
       structured
     >

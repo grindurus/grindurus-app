@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Settings } from 'lucide-react'
 import { useActiveWallet } from '../../wallets/useActiveWallet'
-import { useBossGrinderTable } from '../../hooks/useBossGrinderTable'
-import { useBossEndpointUrls } from '../../hooks/useBossEndpointUrls'
+import { useToreadorGrinderTable } from '../../hooks/useToreadorGrinderTable'
 import { useGrinderLastTx } from '../../hooks/useGrinderLastTx'
-import { summarizeGrinderTableRows } from '../../boss/grinderTable'
+import { summarizeGrinderTableRows } from '../../toreador/grinderTable'
 import { grinderRowMatchesCaip2Network } from '../../wallets/caip2Network'
 import {
   GraiGrinderCountValue,
@@ -23,10 +21,6 @@ import {
   GRINDER_YIELD_INFO_HINT,
 } from './graiPageIcons'
 
-const BossEndpointsTable = lazy(() =>
-  import('../BossEndpointsTable').then((m) => ({ default: m.BossEndpointsTable })),
-)
-
 const GRINDERS_TABLE_PAGE_SIZE = 10
 
 export function GraiGrindersSection() {
@@ -34,17 +28,14 @@ export function GraiGrindersSection() {
   const activeWallet = useActiveWallet()
   const [isGrindersTableHidden, setIsGrindersTableHidden] = useState(true)
   const [isGrindersFilterEnabled, setIsGrindersFilterEnabled] = useState(false)
-  const [isBossEndpointsOpen, setIsBossEndpointsOpen] = useState(false)
-  const [shouldMountBossEndpoints, setShouldMountBossEndpoints] = useState(false)
   const [copiedGrinderId, setCopiedGrinderId] = useState<string | null>(null)
   const [grindersTablePage, setGrindersTablePage] = useState(0)
-  const bossEndpoints = useBossEndpointUrls()
   const {
     rows: grinderRows,
-    isLive: isBossGrinderLive,
-    isBootstrapped: isBossGrinderBootstrapped,
-    isBossUnavailable,
-  } = useBossGrinderTable(bossEndpoints.activeUrls, bossEndpoints.isMetadataReady)
+    isLive: isGrinderLive,
+    isBootstrapped: isGrinderBootstrapped,
+    isToreadorUnavailable,
+  } = useToreadorGrinderTable()
   const walletNetworkCaip2 = activeWallet.networkCaip2
   const isGrindersNetworkFilterActive =
     activeWallet.isConnected && isGrindersFilterEnabled && Boolean(walletNetworkCaip2)
@@ -68,20 +59,13 @@ export function GraiGrindersSection() {
     () => summarizeGrinderTableRows(displayGrinderRows),
     [displayGrinderRows],
   )
-  const grinderLastTx = useGrinderLastTx(displayGrinderRows, isBossGrinderLive)
-  const isBossGrinderLoading = !isBossGrinderBootstrapped
+  const grinderLastTx = useGrinderLastTx(displayGrinderRows, isGrinderLive)
+  const isGrinderLoading = !isGrinderBootstrapped
   const grinderTotalCount = displayGrinderSummary.totalCount
   const grinderActiveCount = displayGrinderSummary.activeCount
   const grinderTvlUsd = displayGrinderSummary.tvlUsd
   const grinderYieldUsd = displayGrinderSummary.yieldUsd
-  const grinderUptimeLabel = isBossGrinderLive ? '99.999%' : '—'
-  const toggleBossEndpoints = useCallback(() => {
-    setIsBossEndpointsOpen((open) => {
-      const nextOpen = !open
-      if (nextOpen) setShouldMountBossEndpoints(true)
-      return nextOpen
-    })
-  }, [])
+  const grinderUptimeLabel = isGrinderLive ? '99.999%' : '—'
   const copyGrinderTableAddress = useCallback(async (address: string, grinderId: string) => {
     try {
       await navigator.clipboard.writeText(address)
@@ -132,30 +116,6 @@ export function GraiGrindersSection() {
     </div>
   ) : null
 
-  const bossEndpointsToggle = (
-    <div className="grai-grinders-summary-toggle grai-grinders-endpoints-toggle-wrap">
-      <button
-        type="button"
-        className={`grai-donut-legend-toggle grai-grinders-endpoints-toggle is-icon${isBossEndpointsOpen ? '' : ' is-collapsed'}`}
-        onClick={(event) => {
-          event.stopPropagation()
-          toggleBossEndpoints()
-        }}
-        aria-expanded={isBossEndpointsOpen}
-        aria-controls="grai-boss-endpoints-panel"
-        aria-label={isBossEndpointsOpen ? 'Hide endpoints' : 'View endpoints'}
-        title={isBossEndpointsOpen ? 'Hide endpoints' : 'View endpoints'}
-      >
-        <Settings
-          className="grai-grinders-endpoints-gear-icon"
-          size={16}
-          strokeWidth={2.2}
-          aria-hidden="true"
-        />
-      </button>
-    </div>
-  )
-
   return (
     <div className="grai-bottom-row">
       <div className="grai-grinders-summary-shell" id="grai-grinders-summary">
@@ -177,21 +137,21 @@ export function GraiGrindersSection() {
           <span role="columnheader" className="grai-grinders-group-general is-stacked grai-grinders-summary-general">
             <span className="grai-grinders-group-general-top">
               <span
-                className={`grai-grinder-active-dot${isBossGrinderLive ? '' : ' is-inactive'}`}
+                className={`grai-grinder-active-dot${isGrinderLive ? '' : ' is-inactive'}`}
                 aria-hidden="true"
               />
               <span className="grai-grinders-live-label grai-grinders-summary-mini-label">LIVE</span>
             </span>
-            {isBossGrinderLoading || isBossUnavailable ? (
+            {isGrinderLoading || isToreadorUnavailable ? (
               <span className="grai-grinders-group-general-value grai-grinders-group-general-value--placeholder">
-                {isBossGrinderLoading ? '…' : '—'}
+                {isGrinderLoading ? '…' : '—'}
               </span>
             ) : (
               <GraiGrinderCountValue
                 active={grinderActiveCount}
                 total={grinderTotalCount}
-                isLive={isBossGrinderLive}
-                isBossUnavailable={isBossUnavailable}
+                isLive={isGrinderLive}
+                isToreadorUnavailable={isToreadorUnavailable}
               />
             )}
           </span>
@@ -207,9 +167,9 @@ export function GraiGrindersSection() {
               </span>
               UPTIME
             </GraiFieldInfoButton>
-            {isBossGrinderLoading || isBossUnavailable ? (
+            {isGrinderLoading || isToreadorUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
-                {isBossGrinderLoading ? '…' : '—'}
+                {isGrinderLoading ? '…' : '—'}
               </span>
             ) : (
               <span className="grai-grinders-group-title-value">{grinderUptimeLabel}</span>
@@ -227,12 +187,12 @@ export function GraiGrindersSection() {
               </span>
               TVL
             </GraiFieldInfoButton>
-            {isBossGrinderLoading || isBossUnavailable ? (
+            {isGrinderLoading || isToreadorUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
-                {isBossGrinderLoading ? '…' : '—'}
+                {isGrinderLoading ? '…' : '—'}
               </span>
             ) : (
-              <GraiGrinderTvlValue totalUsd={grinderTvlUsd} rows={isBossGrinderLive ? displayGrinderRows : []} />
+              <GraiGrinderTvlValue totalUsd={grinderTvlUsd} rows={isGrinderLive ? displayGrinderRows : []} />
             )}
           </span>
           <span role="columnheader" className="grai-grinders-group-title is-yield is-stacked" style={{ gridColumn: '6 / span 2' }}>
@@ -247,12 +207,12 @@ export function GraiGrindersSection() {
               </span>
               YIELD
             </GraiFieldInfoButton>
-            {isBossGrinderLoading || isBossUnavailable ? (
+            {isGrinderLoading || isToreadorUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
-                {isBossGrinderLoading ? '…' : '—'}
+                {isGrinderLoading ? '…' : '—'}
               </span>
             ) : (
-              <GraiGrinderYieldValue totalUsd={grinderYieldUsd} rows={isBossGrinderLive ? displayGrinderRows : []} />
+              <GraiGrinderYieldValue totalUsd={grinderYieldUsd} rows={isGrinderLive ? displayGrinderRows : []} />
             )}
           </span>
         </div>
@@ -264,13 +224,16 @@ export function GraiGrindersSection() {
           aria-label="Grinders in system"
         >
           <div className="grai-grinders-table-panel-inner">
-            {isBossGrinderLoading ? (
-              <p className="grai-grinders-boss-status" role="status">
-                Loading grinder data from Boss…
+            {isGrinderLoading ? (
+              <p className="grai-grinders-status is-loading" role="status">
+                <span className="grai-grinders-status-spinner" aria-hidden />
+                <span className="grai-grinders-status-copy">
+                  Loading grinder data from Toreador…
+                </span>
               </p>
-            ) : isBossUnavailable ? (
-              <p className="grai-grinders-boss-status is-unavailable" role="status">
-                Boss API is unreachable. Grinders data is unavailable. Funds is saved by Custodies
+            ) : isToreadorUnavailable ? (
+              <p className="grai-grinders-status is-unavailable" role="status">
+                Toreador API is unreachable. Grinders data is unavailable. Funds are held by custodians.
               </p>
             ) : (
               <div
@@ -329,10 +292,10 @@ export function GraiGrindersSection() {
                   </span>
                 </div>
                 {displayGrinderRows.length === 0 ? (
-                  <p className="grai-grinders-boss-status is-empty" role="status">
+                  <p className="grai-grinders-status is-empty" role="status">
                     {isGrindersNetworkFilterActive
                       ? `No grinders on ${walletNetworkCaip2}.`
-                      : 'No grinders in the Boss fleet.'}
+                      : 'No grinders reported by Toreador.'}
                   </p>
                 ) : (
                   paginatedGrinderRows.map((row) => (
@@ -435,22 +398,6 @@ export function GraiGrindersSection() {
                 </span>
               </span>
             </button>
-            {bossEndpointsToggle}
-          </div>
-        </div>
-        <div className="grai-grinders-summary-endpoints-panel-row">
-          <div
-            id="grai-boss-endpoints-panel"
-            className={`grai-boss-endpoints-panel${isBossEndpointsOpen ? ' is-open' : ''}`}
-            aria-hidden={!isBossEndpointsOpen}
-          >
-            <div className="grai-boss-endpoints-panel-inner">
-              {shouldMountBossEndpoints ? (
-                <Suspense fallback={<span className="grai-boss-endpoints-status">Loading endpoints…</span>}>
-                  <BossEndpointsTable endpoints={bossEndpoints} />
-                </Suspense>
-              ) : null}
-            </div>
           </div>
         </div>
       </div>

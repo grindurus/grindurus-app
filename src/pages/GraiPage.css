@@ -1451,6 +1451,53 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   opacity: 1;
 }
 
+.grai-grinders-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 1.35rem var(--grai-grinders-pad-x, 1rem) 1.45rem;
+  min-height: 4.25rem;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.grai-grinders-status.is-loading {
+  color: rgba(255, 105, 180, 0.92);
+  background:
+    radial-gradient(ellipse 70% 90% at 50% 50%, rgba(255, 105, 180, 0.08) 0%, transparent 70%);
+}
+
+.grai-grinders-status-spinner {
+  display: inline-block;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 105, 180, 0.25);
+  border-top-color: #ff69b4;
+  border-radius: 50%;
+  animation: grai-estimate-spin 0.8s linear infinite;
+}
+
+.grai-grinders-status-copy {
+  line-height: 1.35;
+}
+
+.grai-grinders-status.is-unavailable {
+  color: #ffb4b4;
+  background: rgba(255, 80, 80, 0.06);
+}
+
+.grai-grinders-status.is-empty {
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
 .grai-grinders-boss-status {
   margin: 0;
   padding: 1rem var(--grai-grinders-pad-x) 1.1rem;
@@ -1464,8 +1511,27 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: #ffb4b4;
 }
 
+[data-theme='light'] .grai-grinders-status.is-loading {
+  color: #c2186a;
+  background:
+    radial-gradient(ellipse 70% 90% at 50% 50%, rgba(233, 30, 140, 0.08) 0%, transparent 70%);
+}
+
+[data-theme='light'] .grai-grinders-status-spinner {
+  border-color: rgba(233, 30, 140, 0.22);
+  border-top-color: #e91e8c;
+}
+
+[data-theme='light'] .grai-grinders-status.is-unavailable,
 [data-theme='light'] .grai-grinders-boss-status.is-unavailable {
   color: #b91c1c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-grinders-status-spinner {
+    animation: none;
+    border-top-color: rgba(255, 105, 180, 0.55);
+  }
 }
 
 .grai-grinders-group-general-value--placeholder {
@@ -3374,7 +3440,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-grinder-name {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.34rem;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
 }
 
 .grai-grinder-name-copy {
@@ -3387,6 +3457,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-weight: inherit;
   color: inherit;
   cursor: copy;
+  text-align: left;
+  min-width: 0;
 }
 
 .grai-grinder-name-copy:hover {

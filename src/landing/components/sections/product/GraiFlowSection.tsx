@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { APP_HOME } from '@landing/config'
 import { Title } from '@landing/components/ui/Title'
 import { Description } from '@landing/components/ui/Description'
@@ -7,6 +8,7 @@ import ethSvg from '@landing/assets/token-eth.svg'
 import solSvg from '@landing/assets/token-sol.svg'
 import btcSvg from '@landing/assets/token-btc.svg'
 import grindurusLogo from '@landing/assets/logo.png'
+import { grinderNftForPair } from '@landing/lib/grinderArt'
 
 const TOKEN_ICONS: Record<string, string> = {
   USDC: usdcSvg,
@@ -15,10 +17,15 @@ const TOKEN_ICONS: Record<string, string> = {
   BTC: btcSvg,
 }
 
-const CUSTODIANS = [
-  { id: 'c1', pair: 'SOL / USDC', base: 'SOL', quote: 'USDC' },
-  { id: 'c2', pair: 'ETH / USDC', base: 'ETH', quote: 'USDC' },
+const CUSTODIAN_PAIRS = [
+  { base: 'ETH', quote: 'USDC' },
+  { base: 'SOL', quote: 'USDC' },
+  { base: 'BTC', quote: 'USDC' },
+  { base: 'ETH', quote: 'BTC' },
+  { base: 'SOL', quote: 'ETH' },
 ] as const
+
+const PAIR_ROTATE_MS = 2800
 
 function ChartActionLabel({
   x,
@@ -26,12 +33,16 @@ function ChartActionLabel({
   fill,
   action,
   symbol,
+  align = 'center',
+  viewWidth = 128,
 }: {
   x: number
   y: number
   fill: string
   action: 'BUY' | 'SELL'
   symbol: string
+  align?: 'start' | 'center' | 'end'
+  viewWidth?: number
 }) {
   const icon = TOKEN_ICONS[symbol] ?? usdcSvg
   const prefix = `${action} (+ `
@@ -40,11 +51,18 @@ function ChartActionLabel({
   const charW = 4.55
   const iconSize = 9.5
   const gap = 1.8
+  const pad = 2
   const prefixW = prefix.length * charW
   const symbolW = symbol.length * charW
   const suffixW = charW
   const total = prefixW + gap + iconSize + gap + symbolW + suffixW
-  const start = x - total / 2
+  let start =
+    align === 'end'
+      ? viewWidth - pad - total
+      : align === 'start'
+        ? x
+        : x - total / 2
+  start = Math.max(pad, Math.min(start, viewWidth - pad - total))
   const iconX = start + prefixW + gap
   const symbolX = iconX + iconSize + gap
 
@@ -106,9 +124,9 @@ function ModeChart({
       >
         <title id={id}>{direct ? 'Buy Low, Sell High' : 'Sell High, Buy Low'}</title>
         <line
-          x1="8"
+          x1="6"
           y1="34"
-          x2="120"
+          x2="108"
           y2="34"
           stroke="rgba(255,255,255,0.08)"
           strokeWidth="1"
@@ -117,44 +135,44 @@ function ModeChart({
         {direct ? (
           <>
             <path
-              d="M 12 34 C 30 50, 40 50, 58 50 C 76 50, 90 18, 116 18"
+              d="M 10 34 C 24 50, 32 50, 48 50 C 64 50, 78 18, 102 18"
               fill="none"
               stroke="rgba(255,255,255,0.2)"
               strokeWidth="1.6"
               strokeDasharray="3 3"
             />
-            <circle cx="58" cy="50" r="3.6" fill="#ff69b4" className="animate-pulse" />
+            <circle cx="48" cy="50" r="3.6" fill="#ff69b4" className="animate-pulse" />
             <circle
-              cx="116"
+              cx="102"
               cy="18"
               r="3.6"
               fill="#fff"
               className="animate-pulse"
               style={{ animationDelay: '0.8s' }}
             />
-            <ChartActionLabel x={58} y={64} fill="#ff69b4" action="BUY" symbol={base} />
-            <ChartActionLabel x={116} y={12} fill="#fff" action="SELL" symbol={quote} />
+            <ChartActionLabel x={48} y={64} fill="#ff69b4" action="BUY" symbol={base} />
+            <ChartActionLabel x={102} y={12} fill="#fff" action="SELL" symbol={quote} align="end" />
           </>
         ) : (
           <>
             <path
-              d="M 12 34 C 30 18, 40 18, 58 18 C 76 18, 90 50, 116 50"
+              d="M 10 34 C 24 18, 32 18, 48 18 C 64 18, 78 50, 102 50"
               fill="none"
               stroke="rgba(255,255,255,0.2)"
               strokeWidth="1.6"
               strokeDasharray="3 3"
             />
-            <circle cx="58" cy="18" r="3.6" fill="#ff1493" className="animate-pulse" />
+            <circle cx="48" cy="18" r="3.6" fill="#ff1493" className="animate-pulse" />
             <circle
-              cx="116"
+              cx="102"
               cy="50"
               r="3.6"
               fill="#fff"
               className="animate-pulse"
               style={{ animationDelay: '0.8s' }}
             />
-            <ChartActionLabel x={58} y={12} fill="#ff1493" action="SELL" symbol={quote} />
-            <ChartActionLabel x={116} y={64} fill="#fff" action="BUY" symbol={base} />
+            <ChartActionLabel x={48} y={12} fill="#ff1493" action="SELL" symbol={quote} />
+            <ChartActionLabel x={102} y={64} fill="#fff" action="BUY" symbol={base} align="end" />
           </>
         )}
       </svg>
@@ -237,7 +255,7 @@ function MiniPortfolio({
         x="0"
         y={-6}
         textAnchor="middle"
-        fill="rgba(255,255,255,0.45)"
+        fill="#fff"
         fontFamily="JetBrains Mono, ui-monospace, monospace"
         fontSize="4.5"
         fontWeight="600"
@@ -638,8 +656,68 @@ function FlowArrow({ label, reverse }: { label: string; reverse?: boolean }) {
 function DepositMintBridge() {
   return (
     <div className="grai-flow__bridge" aria-label="Deposit assets, mint GRAI">
-      <FlowArrow label="deposit" />
-      <FlowArrow label="receive GRAI" reverse />
+      <FlowArrow label="1. Deposit Assets" />
+      <FlowArrow label="2. Receive GRAI" reverse />
+    </div>
+  )
+}
+
+function formatCustodianAmt(n: number): string {
+  if (n >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 0 })
+  if (n >= 10) return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  return n.toLocaleString('en-US', { maximumFractionDigits: 4 })
+}
+
+function CustodianMain({
+  base,
+  quote,
+  rotating,
+  salt = 0,
+  id,
+}: {
+  base: string
+  quote: string
+  rotating?: boolean
+  salt?: number
+  id: number
+}) {
+  const nftSrc = grinderNftForPair(base, quote, salt)
+  // Demo inventory + yield % (stable per id / pair)
+  const baseAmt = ((id * 37 + salt * 11) % 900) / 10 + 12
+  const quoteAmt = ((id * 53 + salt * 17) % 24000) + 850
+  const baseYieldPct = 8 + ((id * 37 + salt * 11) % 28)
+  const quoteYieldPct = 10 + ((id * 53 + salt * 17) % 32)
+
+  return (
+    <div className="grai-flow__custodian-main">
+      <div className="grai-flow__custodian-head">
+        <TokenChip src={nftSrc} symbol={`#${id} custodian`} size={34} dark />
+        <span className="grai-flow__custodian-id">#{id} custodian</span>
+      </div>
+      <span
+        className={`grai-flow__custodian-pair${rotating ? ' grai-flow__custodian-pair--rotating' : ''}`}
+      >
+        <span className="grai-flow__custodian-row" key={`b-${base}`}>
+          <span className="grai-flow__custodian-token">
+            <span className="grai-flow__custodian-amt tabular-nums">{formatCustodianAmt(baseAmt)}</span>
+            <TokenChip src={TOKEN_ICONS[base]!} symbol={base} size={22} bare />
+            <span>{base}</span>
+          </span>
+          <span className="grai-flow__custodian-bal grai-flow__custodian-bal--yield tabular-nums">
+            +{baseYieldPct}%<span className="grai-flow__custodian-bal-word"> yield</span>
+          </span>
+        </span>
+        <span className="grai-flow__custodian-row" key={`q-${quote}`}>
+          <span className="grai-flow__custodian-token">
+            <span className="grai-flow__custodian-amt tabular-nums">{formatCustodianAmt(quoteAmt)}</span>
+            <TokenChip src={TOKEN_ICONS[quote]!} symbol={quote} size={22} bare />
+            <span>{quote}</span>
+          </span>
+          <span className="grai-flow__custodian-bal grai-flow__custodian-bal--yield tabular-nums">
+            +{quoteYieldPct}%<span className="grai-flow__custodian-bal-word"> yield</span>
+          </span>
+        </span>
+      </span>
     </div>
   )
 }
@@ -649,6 +727,20 @@ function DepositMintBridge() {
  * Mirrors grindurus-evm: GRAI.deposit → Grinders reserve → allocate → Custodian → distribute → GRAI.
  */
 export function GraiFlowSection() {
+  const [pairIdx, setPairIdx] = useState(0)
+  const n = CUSTODIAN_PAIRS.length
+  const pair = CUSTODIAN_PAIRS[pairIdx]!
+  const sidePairs = [1, 2, 3].map((offset) => CUSTODIAN_PAIRS[(pairIdx + offset) % n]!)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(() => {
+      setPairIdx((i) => (i + 1) % CUSTODIAN_PAIRS.length)
+    }, PAIR_ROTATE_MS)
+    return () => window.clearInterval(id)
+  }, [])
+
   return (
     <section className="relative w-full pt-3 pb-10 md:pt-4 md:pb-16 lg:pt-5 lg:pb-20 bg-black overflow-hidden">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-8 relative z-10">
@@ -678,72 +770,68 @@ export function GraiFlowSection() {
           <div className="grai-flow__stage grai-flow__stage--hub">
             <div className="grai-flow__node grai-flow__node--grai">
               <span className="grai-flow__node-kicker">Fund share</span>
-              <span className="grai-flow__node-title">GRAI</span>
+              <span className="grai-flow__node-title">
+                <TokenChip src={grindurusLogo} symbol="GRAI" size={36} dark />
+                GRAI
+              </span>
             </div>
           </div>
 
-          <FlowArrow label="assets → reserve" />
+          <FlowArrow label="3. Assets" />
 
           {/* 3. Grinders + Custodians (one vault block) */}
           <div className="grai-flow__stage grai-flow__stage--vault">
             <div className="grai-flow__vault">
-              <div className="grai-flow__node grai-flow__node--grinders grai-flow__node--vault-head">
-                <span className="grai-flow__node-kicker">On-chain vault</span>
-                <span className="grai-flow__node-title">Grinders</span>
-              </div>
-
               <div className="grai-flow__custodians">
-                {CUSTODIANS.map((c, i) => (
-                  <div
-                    key={c.id}
-                    className="grai-flow__custodian"
-                    style={{ animationDelay: `${i * 0.2}s` }}
-                  >
-                    <div className="grai-flow__custodian-main">
-                      <div className="grai-flow__custodian-head">
-                        <TokenChip src={grindurusLogo} symbol="Grinder" size={28} dark />
+                <div className="grai-flow__custodian" key={`feat-${pair.base}-${pair.quote}`}>
+                  <div className="grai-flow__custodian-side" aria-label="Onchain Grinders Vault">
+                    <span className="grai-flow__custodian-side-title">
+                      <span>Onchain</span>
+                      <span>Grinders</span>
+                      <span>Vault</span>
+                    </span>
+                    {sidePairs.map((p, i) => (
+                      <div
+                        className="grai-flow__custodian grai-flow__custodian--main-only"
+                        key={`side-${p.base}-${p.quote}`}
+                      >
+                        <CustodianMain
+                          base={p.base}
+                          quote={p.quote}
+                          rotating
+                          salt={pairIdx + i + 1}
+                          id={pairIdx + i + 1}
+                        />
                       </div>
-                      <span className="grai-flow__custodian-name">{`Onchain Custodian ${i + 1}`}</span>
-                      <span className="grai-flow__custodian-pair">
-                        <span className="grai-flow__custodian-token">
-                          <TokenChip src={TOKEN_ICONS[c.base]!} symbol={c.base} size={18} bare />
-                          <span>{c.base}</span>
-                        </span>
-                        <span className="grai-flow__custodian-token">
-                          <TokenChip src={TOKEN_ICONS[c.quote]!} symbol={c.quote} size={18} bare />
-                          <span>{c.quote}</span>
-                        </span>
-                      </span>
-                    </div>
-                    <div className="grai-flow__mode-charts">
-                      <span className="grai-flow__mode-charts-title">
-                        <span>Offchain</span>
-                        <span>Grinder</span>
-                        <span>Infrastructure</span>
-                      </span>
-                      <ModeChart id={`${c.id}-direct`} mode="DIRECT" base={c.base} quote={c.quote} />
-                      <ModeChart id={`${c.id}-inverse`} mode="INVERSE" base={c.base} quote={c.quote} />
+                    ))}
+                  </div>
+                  <div className="grai-flow__mode-charts">
+                    <span className="grai-flow__mode-charts-title">
+                      <span>Offchain</span>
+                      <span>Grinders</span>
+                      <span>Infrastructure</span>
+                    </span>
+                    <div className="grai-flow__mode-charts-frame">
+                      <ModeChart
+                        id={`cust-${pair.base}-${pair.quote}-direct`}
+                        mode="DIRECT"
+                        base={pair.base}
+                        quote={pair.quote}
+                      />
+                      <ModeChart
+                        id={`cust-${pair.base}-${pair.quote}-inverse`}
+                        mode="INVERSE"
+                        base={pair.base}
+                        quote={pair.quote}
+                      />
                     </div>
                   </div>
-                ))}
-
-                <div className="grai-flow__custodian grai-flow__custodian--more" aria-label="More custodians">
-                  <div className="grai-flow__custodian-stack" aria-hidden>
-                    <span className="grai-flow__custodian-ghost" />
-                    <span className="grai-flow__custodian-ghost" />
-                    <span className="grai-flow__custodian-ghost" />
-                  </div>
-                  <span className="grai-flow__custodian-more-count">+N</span>
-                  <span className="grai-flow__custodian-more-label">
-                    <span>More Custodians in</span>
-                    <span>Distributed Infrastructure</span>
-                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <FlowArrow label="distribute yield" />
+          <FlowArrow label="4. Yield" />
 
           {/* 5. Yield — cowboy receives mini indexed-yield portfolios */}
           <div className="grai-flow__stage grai-flow__stage--yield">

@@ -7,10 +7,6 @@
   "app": "https://grindurus.xyz/grai",
   "properties": {
     "category": "fungible",
-    "bosses": [
-      "https://boss.localhost",
-      "https://boss.grindurus.xyz"
-    ],
     "docs": "https://docs.grindurus.xyz",
     "social": {
       "twitter": "https://x.com/grindurus",

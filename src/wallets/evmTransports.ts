@@ -26,14 +26,33 @@ const PUBLIC_FALLBACKS: Partial<Record<number, string[]>> = {
   [polygon.id]: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon-rpc.com'],
 }
 
+/**
+ * JSON-RPC 2.0 batching — coalesce concurrent `eth_*` into one POST.
+ * Wider `wait` catches reads across async ticks / React effects.
+ * @see https://www.jsonrpc.org/specification#batch
+ */
+const HTTP_BATCH = { batchSize: 100, wait: 50 } as const
+
+function batchedHttp(url?: string): Transport {
+  return http(url, { batch: HTTP_BATCH })
+}
+
+/** One transport instance per chain so batch schedulers are shared app-wide. */
+const transportByChain = new Map<number, Transport>()
+
 /** Prefer env → public backups → chain default (`http()` / thirdweb). */
 export function evmHttpTransport(chainId: number): Transport {
+  const cached = transportByChain.get(chainId)
+  if (cached) return cached
+
   const urls: string[] = []
   const fromEnv = envRpc(chainId)
   if (fromEnv) urls.push(fromEnv)
   for (const u of PUBLIC_FALLBACKS[chainId] ?? []) {
     if (!urls.includes(u)) urls.push(u)
   }
-  const list = [...urls.map((u) => http(u)), http()]
-  return list.length === 1 ? list[0]! : fallback(list)
+  const list = [...urls.map((u) => batchedHttp(u)), batchedHttp()]
+  const transport = list.length === 1 ? list[0]! : fallback(list)
+  transportByChain.set(chainId, transport)
+  return transport
 }
