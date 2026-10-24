@@ -53,41 +53,6 @@ import { GraiTransactionToast } from './GraiTransactionToast'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
 import { HowItWorksModal } from '../HowItWorksModal'
 
-const MOCK_VOTERS: EvmVoterEntry[] = [
-  {
-    address: '0xA11CE00000000000000000000000000000000001',
-    escrowGrai: 1_250_500_000_000_000_000_000n,
-  },
-  {
-    address: '0xB0B0000000000000000000000000000000000002',
-    escrowGrai: 840_000_000_000_000_000_000n,
-  },
-  {
-    address: '0xC0FFEE0000000000000000000000000000000003',
-    escrowGrai: 3_420_250_000_000_000_000_000n,
-  },
-  {
-    address: '0xDECAFF0000000000000000000000000000000004',
-    escrowGrai: 97_150_000_000_000_000_000n,
-  },
-  {
-    address: '0xF00D000000000000000000000000000000000005',
-    escrowGrai: 512_000_000_000_000_000_000n,
-  },
-  {
-    address: '0xCAFE000000000000000000000000000000000006',
-    escrowGrai: 1_875_750_000_000_000_000_000n,
-  },
-  {
-    address: '0xBEEF000000000000000000000000000000000007',
-    escrowGrai: 275_400_000_000_000_000_000n,
-  },
-  {
-    address: '0xABCD000000000000000000000000000000000008',
-    escrowGrai: 1_102_000_000_000_000_000_000n,
-  },
-]
-
 const BPS = 10_000n
 /** On-chain / EVM `USD_DECIMALS` — `totalValue` book units. */
 const USD_DECIMALS = 6
@@ -1265,9 +1230,7 @@ export function GraiOpsPanel() {
 
   const graiDecimals = state?.graiDecimals ?? (chainKind === 'evm' ? GRAI_DECIMALS_EVM : GRAI_DECIMALS)
   const onchainVoters = useMemo(() => state?.voterEntries ?? [], [state?.voterEntries])
-  // Never fall back to EVM mock voters on Solana — show empty until RPC returns real escrows.
-  const usingMockVoters = chainKind !== 'solana' && onchainVoters.length === 0
-  const voterEntries = usingMockVoters ? MOCK_VOTERS : onchainVoters
+  const voterEntries = onchainVoters
   const settlementTicker = useMemo(() => {
     const mint = state?.settlementAsset
     if (isUnsetSettlementAsset(mint)) {
@@ -1304,16 +1267,6 @@ export function GraiOpsPanel() {
   useEffect(() => {
     if (voterEntries.length === 0) {
       setCostByVoter({})
-      return
-    }
-
-    // Demo / disconnected EVM: GRAI-raw × (1 + premium) as a stand-in ask.
-    if (usingMockVoters) {
-      const next: Record<string, bigint> = {}
-      for (const voter of voterEntries) {
-        next[voter.address.toLowerCase()] = estimateMockBribeCost(voter.escrowGrai, bribePremiumBps)
-      }
-      setCostByVoter(next)
       return
     }
 
@@ -1380,7 +1333,6 @@ export function GraiOpsPanel() {
     settlementSymbol,
     state,
     state?.settlementAsset,
-    usingMockVoters,
     voterEntries,
   ])
 
@@ -1887,11 +1839,6 @@ export function GraiOpsPanel() {
   }
 
   const handleBribe = async (voter: EvmVoterEntry, amountInput: string) => {
-    if (usingMockVoters) {
-      toast.info('Bribe is disabled while showing mock voters.')
-      return
-    }
-
     setBribingVoter(voter.address)
     const toastId = toast.loading('Bribing against liquidation…')
     try {
@@ -1947,7 +1894,11 @@ export function GraiOpsPanel() {
             <path d="m5 12 7 7 7-7" />
           </svg>
         </span>
-        <span className="grai-action-switch-label">Claim</span>
+        <span className="grai-action-switch-label">
+          Claim
+          <br />
+          Map
+        </span>
       </button>
       <button
         type="button"
@@ -1966,7 +1917,7 @@ export function GraiOpsPanel() {
             <path d="m17 7.5-3.5 7.5" />
           </svg>
         </span>
-        <span className="grai-action-switch-label">Distribute</span>
+        <span className="grai-action-switch-label">Distribute Yield</span>
       </button>
       <button
         type="button"
@@ -2194,6 +2145,110 @@ export function GraiOpsPanel() {
     </div>
   )
 
+  const claimEscrowBody = (
+    <div className="grai-liquidation-escrow-body">
+      <GraiAmountInput
+        key={selectedClaimAsset?.address ?? 'claim-amount'}
+        label="Claim Amount"
+        assets={distributeAssetOptions}
+        defaultAsset={selectedClaimAsset?.symbol}
+        value={claimAmount}
+        onValueChange={setClaimAmount}
+        onAssetChange={(asset) => {
+          setClaimAssetAddress(asset.address)
+          setClaimAmount('')
+        }}
+        balanceLabel={selectedClaimLocker ? claimableLabel : '—'}
+        balanceLoading={Boolean(selectedClaimLocker) && claimBalanceLoading}
+        balancePrefix="Claimable:"
+        maxAmount={selectedClaimLocker && !claimAllDividends ? claimableMaxAmount : ''}
+        decimals={claimDecimals}
+        showPresets={!claimAllDividends}
+        showVolatility={false}
+        usdLabel={claimUsdLabel}
+        usdTrailingLabel="claimable:"
+        disabled={claimAllDividends}
+      />
+      <div
+        className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
+          claimAllDividends ? ' is-active' : ''
+        }`}
+      >
+        <span className="grai-mint-dividends-toggle-label">
+          <span className="grai-mint-dividends-toggle-label-text">Claim all dividends:</span>
+        </span>
+        <button
+          type="button"
+          className={`grai-mint-dividends-toggle-btn${claimAllDividends ? ' is-active' : ''}`}
+          role="switch"
+          aria-checked={claimAllDividends}
+          aria-label="Claim all dividends"
+          onClick={() => setClaimAllDividends((current) => !current)}
+        >
+          <span className="grai-mint-dividends-toggle-option is-yes">Yes</span>
+          <span className="grai-mint-dividends-toggle-track" aria-hidden="true">
+            <span className="grai-mint-dividends-toggle-thumb" />
+          </span>
+          <span className="grai-mint-dividends-toggle-option is-no">No</span>
+        </button>
+      </div>
+      <div className="grai-liquidation-bribe-amount-row">
+        <span className="grai-liquidation-bribe-amount-label">
+          You claim{' '}
+          {selectedClaimLocker ? (
+            <span
+              className="grai-liquidation-bribe-amount-address"
+              title={selectedClaimLocker}
+            >
+              {shortAddress(selectedClaimLocker)}
+            </span>
+          ) : null}
+        </span>
+        <span className="grai-liquidation-bribe-amount-value">
+          {claimAllDividends
+            ? 'All dividends'
+            : `${claimAmount.trim() || '0'} ${selectedClaimAsset?.symbol ?? ''}`}
+        </span>
+      </div>
+      <div className="grai-liquidation-bribe-amount-row">
+        <span className="grai-liquidation-bribe-amount-label">Your tip:</span>
+        <span className="grai-liquidation-bribe-amount-value">
+          {claimAllDividends
+            ? claimTipPctLabel
+            : `${claimTipLabel} ${selectedClaimAsset?.symbol ?? ''}`}
+        </span>
+      </div>
+      {isWalletConnected ? (
+        <div className="grai-action-submit">
+          <button
+            type="button"
+            className="grai-mint-btn"
+            disabled={
+              isClaiming ||
+              !selectedClaimLocker ||
+              (claimAllDividends
+                ? !lockerHasAnyClaimable
+                : !claimAmount.trim() ||
+                  !selectedClaimAsset?.address ||
+                  !claimableMaxAmount)
+            }
+            onClick={() => {
+              void handleClaim()
+            }}
+          >
+            {isClaiming ? 'Claiming…' : claimAllDividends ? 'Claim all' : 'Claim'}
+          </button>
+        </div>
+      ) : (
+        <GraiActionConnectWalletButton />
+      )}
+      <p className="grai-liquidation-buyback-vote-note">
+        Claim accrued dividends for a locker. Anyone can claim on a locker&apos;s behalf; a tip
+        share goes to the caller, the rest to the locker.
+      </p>
+    </div>
+  )
+
   return (
     <div className="grai-ops-panel" aria-live="polite">
       {showStatusNotices && !evmProtocol ? (
@@ -2246,13 +2301,6 @@ export function GraiOpsPanel() {
       <div className="grai-liquidation-ops-main">
       {opsView === 'claim' ? (
       <div className="grai-liquidation-distribute-screen grai-claim-screen" id="grai-claim-section">
-        <GraiFieldInfoButton
-          className="grai-liquidation-distribute-title-info"
-          ariaLabel="About Claim"
-          hint="Claim accrued dividends for a locker. Anyone can claim on a locker's behalf; a tip share goes to the caller, the rest to the locker."
-        >
-          <h3 className="grai-liquidation-distribute-title">Claim Map</h3>
-        </GraiFieldInfoButton>
         <GraiReferralTree
           layout="graph-only"
           evmProtocol={chainKind === 'evm' ? evmProtocol : null}
@@ -2266,114 +2314,8 @@ export function GraiOpsPanel() {
             setSelectedClaimLocker(lockerId)
             setClaimAmount('')
           }}
+          claimPanel={claimEscrowBody}
         />
-        <div className="grai-liquidation-ops-row">
-          <div className="grai-liquidation-yield-block">
-            <div className="grai-liquidation-escrow-body">
-              <GraiAmountInput
-                key={selectedClaimAsset?.address ?? 'claim-amount'}
-                label="Claim Amount"
-                assets={distributeAssetOptions}
-                defaultAsset={selectedClaimAsset?.symbol}
-                value={claimAmount}
-                onValueChange={setClaimAmount}
-                onAssetChange={(asset) => {
-                  setClaimAssetAddress(asset.address)
-                  setClaimAmount('')
-                }}
-                balanceLabel={selectedClaimLocker ? claimableLabel : '—'}
-                balanceLoading={Boolean(selectedClaimLocker) && claimBalanceLoading}
-                balancePrefix="Claimable:"
-                maxAmount={
-                  selectedClaimLocker && !claimAllDividends ? claimableMaxAmount : ''
-                }
-                decimals={claimDecimals}
-                showPresets={!claimAllDividends}
-                showVolatility={false}
-                usdLabel={claimUsdLabel}
-                usdTrailingLabel="claimable:"
-                disabled={claimAllDividends}
-              />
-              <div
-                className={`grai-mint-dividends-toggle is-yes-no is-below-amount${
-                  claimAllDividends ? ' is-active' : ''
-                }`}
-              >
-                <span className="grai-mint-dividends-toggle-label">
-                  <span className="grai-mint-dividends-toggle-label-text">Claim all dividends:</span>
-                </span>
-                <button
-                  type="button"
-                  className={`grai-mint-dividends-toggle-btn${claimAllDividends ? ' is-active' : ''}`}
-                  role="switch"
-                  aria-checked={claimAllDividends}
-                  aria-label="Claim all dividends"
-                  onClick={() => setClaimAllDividends((current) => !current)}
-                >
-                  <span className="grai-mint-dividends-toggle-option is-yes">Yes</span>
-                  <span className="grai-mint-dividends-toggle-track" aria-hidden="true">
-                    <span className="grai-mint-dividends-toggle-thumb" />
-                  </span>
-                  <span className="grai-mint-dividends-toggle-option is-no">No</span>
-                </button>
-              </div>
-              <div className="grai-liquidation-bribe-amount-row">
-                <span className="grai-liquidation-bribe-amount-label">
-                  You claim{' '}
-                  {selectedClaimLocker ? (
-                    <span
-                      className="grai-liquidation-bribe-amount-address"
-                      title={selectedClaimLocker}
-                    >
-                      {shortAddress(selectedClaimLocker)}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="grai-liquidation-bribe-amount-value">
-                  {claimAllDividends
-                    ? 'All dividends'
-                    : `${claimAmount.trim() || '0'} ${selectedClaimAsset?.symbol ?? ''}`}
-                </span>
-              </div>
-              <div className="grai-liquidation-bribe-amount-row">
-                <span className="grai-liquidation-bribe-amount-label">Your tip:</span>
-                <span className="grai-liquidation-bribe-amount-value">
-                  {claimAllDividends
-                    ? claimTipPctLabel
-                    : `${claimTipLabel} ${selectedClaimAsset?.symbol ?? ''}`}
-                </span>
-              </div>
-              {isWalletConnected ? (
-                <div className="grai-action-submit">
-                  <button
-                    type="button"
-                    className="grai-mint-btn"
-                    disabled={
-                      isClaiming ||
-                      !selectedClaimLocker ||
-                      (claimAllDividends
-                        ? !lockerHasAnyClaimable
-                        : !claimAmount.trim() ||
-                          !selectedClaimAsset?.address ||
-                          !claimableMaxAmount)
-                    }
-                    onClick={() => {
-                      void handleClaim()
-                    }}
-                  >
-                    {isClaiming ? 'Claiming…' : claimAllDividends ? 'Claim all' : 'Claim'}
-                  </button>
-                </div>
-              ) : (
-                <GraiActionConnectWalletButton />
-              )}
-              <p className="grai-liquidation-buyback-vote-note">
-                Claim accrued dividends for a locker. Anyone can claim on a locker&apos;s behalf;
-                a tip share goes to the caller, the rest to the locker.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
       ) : null}
 
@@ -2391,7 +2333,7 @@ export function GraiOpsPanel() {
             </>
           }
         >
-          <h3 className="grai-liquidation-distribute-title">Distribute</h3>
+          <h3 className="grai-liquidation-distribute-title">Distribute Yield</h3>
         </GraiFieldInfoButton>
         <section className="grai-distribute-money-flow-block" aria-label="Distribute money flow">
           <GraiDistributeMoneyFlow
@@ -2674,7 +2616,7 @@ export function GraiOpsPanel() {
         bribePremiumBps={bribePremiumBps}
         graiAsset={voteAssetOptions[0]!}
         explorerAccountUrl={explorerAccountUrl}
-        isLoading={isLoading && !usingMockVoters}
+        isLoading={isLoading}
         disabled={liquidationBlocked || isBribing}
         canBribe={isWalletConnected}
         bribingVoter={bribingVoter}

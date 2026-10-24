@@ -1,6 +1,7 @@
 .grai-page {
   --grai-action-chip-height: 2.125rem;
   --grai-action-chip-width: 9.25rem;
+  position: relative;
   padding: 2rem 0;
   width: 100%;
   max-width: none;
@@ -9,6 +10,7 @@
   flex-direction: column;
   align-items: flex-start;
 }
+
 
 .grai-page h1,
 .grai-page-title {
@@ -1922,7 +1924,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-grinders-summary-table-row:has(.grai-grinders-table-panel.is-open)
   + .grai-grinders-summary-toggles-row:not(:has(+ .grai-grinders-summary-endpoints-panel-row .grai-boss-endpoints-panel.is-open))
   .grai-grinders-show-all-toggle {
-  border-radius: 0 0 0 8px;
+  border-radius: 0 0 8px 8px;
 }
 
 .grai-grinders-summary-table-row:has(.grai-grinders-table-panel.is-open)
@@ -3949,19 +3951,21 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 @container (max-width: 640px) {
   .grai-actions-block .grai-page-subtitle {
-    white-space: normal;
-    font-size: clamp(1.05rem, 5cqi, 1.55rem);
-    flex-wrap: wrap;
-    row-gap: 0.12rem;
+    white-space: nowrap;
+    font-size: clamp(0.72rem, 3.8cqi, 1.15rem);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    flex-wrap: nowrap;
     justify-content: center;
-    overflow: visible;
+    overflow: hidden;
+    max-width: 100%;
   }
 
   .grai-actions-block .grai-page-subtitle > span:not(.grai-page-subtitle-caret) {
-    flex-wrap: wrap;
-    white-space: normal;
+    flex-wrap: nowrap;
+    white-space: nowrap;
     max-width: 100%;
-    row-gap: 0.08rem;
   }
 
   .grai-page-subtitle-mode-swap,
@@ -3970,66 +3974,63 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-page-subtitle-mode-swap-item {
-    flex-wrap: wrap;
-    white-space: normal;
-    row-gap: 0.08rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
   }
 
   .grai-page-subtitle-text-line {
-    flex-wrap: wrap;
-    white-space: normal;
-    width: 100%;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    width: max-content;
     max-width: 100%;
-    row-gap: 0.08rem;
-    column-gap: 0.2rem;
     justify-content: center;
   }
 
   .grai-page-subtitle-text-segment {
-    white-space: normal;
-    flex-shrink: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .grai-page-subtitle-rotating-slot {
-    flex-shrink: 1;
-    max-width: 100%;
+    flex-shrink: 0;
   }
 
   .grai-actions-block .grai-page-subtitle.is-fit-width {
-    font-size: clamp(1.05rem, 5cqi, 1.55rem);
+    font-size: clamp(0.72rem, 3.8cqi, 1.15rem);
     font-weight: 700;
-    letter-spacing: 0.02em;
-    line-height: 1.25;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
   }
 }
 
 @media (max-width: 640px) {
   .grai-actions-block .grai-page-subtitle {
-    white-space: normal;
-    font-size: clamp(1.05rem, 4.6vw, 1.45rem);
-    flex-wrap: wrap;
-    row-gap: 0.12rem;
-    overflow: visible;
+    white-space: nowrap;
+    font-size: clamp(0.7rem, 3.4vw, 1.1rem);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    max-width: 100%;
   }
 
   .grai-actions-block .grai-page-subtitle > span:not(.grai-page-subtitle-caret),
   .grai-page-subtitle-mode-swap-item,
   .grai-page-subtitle-text-line {
-    flex-wrap: wrap;
-    white-space: normal;
+    flex-wrap: nowrap;
+    white-space: nowrap;
     max-width: 100%;
   }
 
   .grai-page-subtitle-text-line {
-    width: 100%;
-    column-gap: 0.2rem;
-    row-gap: 0.08rem;
+    width: max-content;
     justify-content: center;
   }
 
   .grai-page-subtitle-text-segment {
-    white-space: normal;
-    flex-shrink: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 }
 
@@ -4545,8 +4546,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-donut-legend-toggle.grai-grinders-show-all-toggle {
-  border-radius: 0 0 0 8px;
-  border-right: 0;
+  border-radius: 0 0 8px 8px;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -4564,8 +4564,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-grinders-summary-toggles-row .grai-donut-legend-toggle.grai-grinders-show-all-toggle {
-  border-radius: 0 0 0 8px;
-  border-right: 0;
+  border-radius: 0 0 8px 8px;
 }
 
 .grai-grinders-endpoints-gear-icon {
@@ -11653,7 +11652,8 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   height: 100%;
   border-radius: 50%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -13088,7 +13088,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.18rem;
     width: 100%;
     min-width: 0;
@@ -13125,7 +13125,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.18rem;
     width: 100%;
     min-width: 0;
@@ -13148,7 +13148,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.18rem;
     width: 100%;
     min-width: 0;
@@ -13192,10 +13192,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     display: block;
   }
 
-  .grai-action-switch--ops .grai-action-switch-label {
+  .grai-action-switch--ops .grai-action-switch-label,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn .grai-action-switch-label,
+  .grai-action-switch-liquidate-slot .grai-action-switch-label {
     display: block;
+    width: 100%;
     min-width: 0;
     max-width: 100%;
+    margin-inline: auto;
+    text-align: center;
     overflow-wrap: break-word;
     text-wrap: balance;
   }
@@ -13452,12 +13457,46 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   margin-inline: auto;
   align-self: center;
   margin-top: -0.3rem;
-  height: calc(22.9375rem - 0.85rem - 0.55rem - 1.14rem);
-  min-height: calc(22.9375rem - 0.85rem - 0.55rem - 1.14rem);
+  /* Absorb former claim-form slot (~17rem) so the map fills the claim section. */
+  height: calc(22.9375rem - 0.85rem - 0.55rem - 1.14rem + 17.125rem);
+  min-height: calc(22.9375rem - 0.85rem - 0.55rem - 1.14rem + 17.125rem);
   display: flex;
   flex-direction: column;
   min-width: 0;
   box-sizing: border-box;
+}
+
+.grai-claim-screen > .grai-referral-dash-graph-embed .grai-referral-dash-graph:has(
+  .grai-referral-dash-claim-toolbar
+) {
+  overflow: visible;
+}
+
+.grai-claim-screen > .grai-referral-dash-graph-embed.is-slot {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.grai-page > .grai-referral-dash-graph-embed.is-expanded {
+  position: fixed;
+  inset: auto;
+  z-index: 40;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0.75rem;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--bg-primary, #0a0a0a) 96%, transparent);
+}
+
+.grai-page > .grai-referral-dash-graph-embed.is-expanded .grai-referral-dash-graph {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  border-radius: 12px;
 }
 
 .grai-claim-screen > .grai-referral-dash-graph-embed .grai-referral-dash-graph {
@@ -14327,6 +14366,83 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0.4rem;
   margin: 0.55rem !important;
   z-index: 6;
+}
+
+.grai-referral-dash-graph-expand-panel {
+  margin: 0.55rem !important;
+  z-index: 6;
+}
+
+.grai-referral-dash-claim-toolbar {
+  z-index: 12;
+  pointer-events: none;
+  max-width: min(22.5rem, calc(var(--grai-claim-map-width, 100vw) - 1rem));
+}
+
+.grai-referral-dash-claim-toolbar-inner {
+  pointer-events: auto;
+  width: min(22.5rem, calc(var(--grai-claim-map-width, 100vw) - 1.25rem));
+  max-width: min(22.5rem, calc(var(--grai-claim-map-width, 100vw) - 1.25rem));
+  max-height: min(48vh, 22rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.55rem 0.55rem 0.45rem;
+  border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-primary, #0a0a0a) 94%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+}
+
+.grai-referral-dash-claim-toolbar-inner .grai-liquidation-escrow-body {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .grai-referral-dash-claim-toolbar-inner .grai-liquidation-buyback-vote-note {
+    display: none;
+  }
+}
+
+[data-theme='light'] .grai-referral-dash-claim-toolbar-inner {
+  background: color-mix(in srgb, #fff 94%, transparent);
+  box-shadow: 0 10px 28px rgba(20, 24, 32, 0.14);
+}
+
+.grai-referral-dash-graph-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color));
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-primary, #0a0a0a) 88%, transparent);
+  color: var(--text-secondary);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.grai-referral-dash-graph-expand-btn:hover,
+.grai-referral-dash-graph-expand-btn.is-expanded {
+  color: #ff69b4;
+  border-color: #ff69b4;
+}
+
+[data-theme='light'] .grai-referral-dash-graph-expand-btn:hover,
+[data-theme='light'] .grai-referral-dash-graph-expand-btn.is-expanded {
+  color: #e91e8c;
+  border-color: #e91e8c;
+}
+
+.grai-referral-dash-graph.is-slot {
+  pointer-events: none;
+  visibility: hidden;
+  min-height: 18rem;
 }
 
 .grai-referral-dash-graph-legend-btn {
@@ -15453,6 +15569,19 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-referral-dash-poach.is-collapsed {
   display: none;
+}
+
+.grai-referral-dash-claim-toolbar-inner .grai-referral-dash-poach.is-toolbar {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.grai-referral-dash-claim-toolbar-inner .grai-referral-dash-poach.is-toolbar .grai-liquidation-buyback-vote-note {
+  margin-bottom: 0;
 }
 
 .grai-referral-dash-poach:not(.is-placeholder) {
@@ -18085,8 +18214,8 @@ button.grai-referral-graph-node-addr.is-copied {
   }
 
   .grai-claim-screen > .grai-referral-dash-graph-embed {
-    height: calc(19.5rem - 0.85rem - 0.55rem - 1.14rem);
-    min-height: calc(19.5rem - 0.85rem - 0.55rem - 1.14rem);
+    height: calc(19.5rem - 0.85rem - 0.55rem - 1.14rem + 17.125rem);
+    min-height: calc(19.5rem - 0.85rem - 0.55rem - 1.14rem + 17.125rem);
   }
 
   .grai-liquidation-bribe-voters-picker--chart .grai-liquidation-voters-carousel,

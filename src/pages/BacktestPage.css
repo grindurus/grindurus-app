@@ -485,11 +485,14 @@
   display: flex;
   align-items: flex-end;
   gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .backtest-date-col {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -507,11 +510,16 @@
   position: relative;
   width: 100%;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .backtest-date-input {
   position: relative;
+  display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   min-height: 2.125rem;
   padding: 0.5rem 2rem 0.5rem 0.45rem;
@@ -523,6 +531,9 @@
   font-weight: 600;
   font-family: inherit;
   color-scheme: dark;
+  /* iOS Safari date fields ignore flex shrink without this. */
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 [data-theme='light'] .backtest-date-input {
@@ -4309,6 +4320,28 @@
 @media (max-width: 768px) {
   .backtest-page {
     padding: 1rem 0 1.5rem;
+  }
+
+  /* Stack From/To so native date fields never overlap on narrow phones. */
+  .backtest-dates {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+  }
+
+  .backtest-date-col {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .backtest-date-sep {
+    display: none;
+  }
+
+  .backtest-date-input {
+    font-size: 0.84rem;
+    min-height: 2.35rem;
+    padding: 0.55rem 2.15rem 0.55rem 0.55rem;
   }
 
   .backtest-panel-wrap {

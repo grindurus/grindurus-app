@@ -1,12 +1,15 @@
 import type { GraiAsset, GraiAssetIcon } from '../knownMints'
 import { NATIVE_EVM_ASSET } from './constants'
+import wethPng from '../../assets/token-weth.png'
 
 const COINGECKO = {
-  usdc: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
-  eth: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
-  usdt: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
-  weth: 'https://assets.coingecko.com/coins/images/2518/small/weth.png',
+  usdc: 'https://assets.coingecko.com/coins/images/6319/large/usdc.png',
+  eth: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
+  usdt: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
 } as const
+
+/** CryptoRank WETH mark (bundled locally). */
+const WETH_ICON: GraiAssetIcon = { src: wethPng, alt: 'WETH' }
 
 export const KNOWN_EVM_ASSET_METADATA: Record<string, { symbol: string; icon: GraiAssetIcon }> = {
   [NATIVE_EVM_ASSET]: { symbol: 'ETH', icon: { src: COINGECKO.eth, alt: 'ETH' } },
@@ -24,11 +27,11 @@ export const KNOWN_EVM_ASSET_METADATA: Record<string, { symbol: string; icon: Gr
   },
   '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': {
     symbol: 'WETH',
-    icon: { src: COINGECKO.weth, alt: 'WETH' },
+    icon: WETH_ICON,
   },
   '0x4200000000000000000000000000000000000006': {
     symbol: 'WETH',
-    icon: { src: COINGECKO.weth, alt: 'WETH' },
+    icon: WETH_ICON,
   },
   // Arbitrum One
   '0xaf88d065e77c8cc2239327c5edb3a432268e5831': {
@@ -37,7 +40,7 @@ export const KNOWN_EVM_ASSET_METADATA: Record<string, { symbol: string; icon: Gr
   },
   '0x82af49447d8a07e3bd95bd0d56f35241523fbab1': {
     symbol: 'WETH',
-    icon: { src: COINGECKO.weth, alt: 'WETH' },
+    icon: WETH_ICON,
   },
 }
 

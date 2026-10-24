@@ -1,10 +1,21 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { createPortal } from 'react-dom'
 import {
   Background,
   ControlButton,
   Controls,
   Handle,
   MiniMap,
+  NodeToolbar,
   Panel,
   Position,
   ReactFlow,
@@ -77,6 +88,8 @@ type Props = {
   onSelectLocker?: (lockerId: string | null) => void
   /** Pending claim USD (`USD_SCALE`) keyed by locker. Claim graph only. */
   claimUsdByLocker?: Record<string, bigint>
+  /** Claim form shown under the selected locker node. */
+  claimPanel?: ReactNode
 }
 
 /** EVM addresses are case-insensitive; Solana base58 must stay exact. */
@@ -667,6 +680,76 @@ function GraphArrowLegend({
   )
 }
 
+function GraphExpandControl({
+  expanded,
+  onToggle,
+}: {
+  expanded: boolean
+  onToggle: () => void
+}) {
+  return (
+    <Panel position="top-right" className="grai-referral-dash-graph-expand-panel nodrag nopan">
+      <button
+        type="button"
+        className={`grai-referral-dash-graph-expand-btn${expanded ? ' is-expanded' : ''}`}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse map' : 'Expand map'}
+        title={expanded ? 'Collapse map' : 'Expand map'}
+        onClick={onToggle}
+      >
+        {expanded ? (
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 3v6H3" />
+            <path d="M15 21v-6h6" />
+            <path d="M21 9h-6V3" />
+            <path d="M3 15h6v6" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 3h6v6" />
+            <path d="M9 21H3v-6" />
+            <path d="M21 3l-7 7" />
+            <path d="M3 21l7-7" />
+          </svg>
+        )}
+      </button>
+    </Panel>
+  )
+}
+
+function FitViewOnExpand({ expanded }: { expanded: boolean }) {
+  const { fitView } = useReactFlow()
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void fitView({ padding: 0.18, duration: 200 })
+    }, 60)
+    return () => window.clearTimeout(id)
+  }, [expanded, fitView])
+  return null
+}
+
+function KeepClaimToolbarInView({
+  active,
+  nodeId,
+}: {
+  active: boolean
+  nodeId: string | null
+}) {
+  const { getNode, setCenter, getZoom } = useReactFlow()
+  useEffect(() => {
+    if (!active || !nodeId) return
+    const node = getNode(nodeId)
+    if (!node) return
+    const width = node.measured?.width ?? node.width ?? NODE_WIDTH
+    const height = node.measured?.height ?? node.height ?? NODE_HEIGHT
+    void setCenter(node.position.x + width / 2, node.position.y + height / 2 + 110, {
+      zoom: Math.max(getZoom(), 0.72),
+      duration: 280,
+    })
+  }, [active, nodeId, getNode, setCenter, getZoom])
+  return null
+}
+
 function FitHomeControlButton() {
   const { fitView } = useReactFlow()
   return (
@@ -868,6 +951,7 @@ export function GraiReferralTree({
   selectedLockerId,
   onSelectLocker,
   claimUsdByLocker,
+  claimPanel,
 }: Props) {
   const { run: runSolanaTx } = useGraiTransaction()
   const {
@@ -927,13 +1011,101 @@ export function GraiReferralTree({
   const [minimapOpen, setMinimapOpen] = useState(false)
   const [finderOpen, setFinderOpen] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
+  const [graphExpanded, setGraphExpanded] = useState(false)
+  const [pageHost, setPageHost] = useState<HTMLElement | null>(null)
   const [isPoaching, setIsPoaching] = useState(false)
   const [mapRequested, setMapRequested] = useState(true)
   const [isLoadingMap, setIsLoadingMap] = useState(false)
   const [graphEpoch, setGraphEpoch] = useState(0)
   const [isDashCollapsed, setIsDashCollapsed] = useState(false)
   const chartHostRef = useRef<HTMLDivElement | null>(null)
+  const graphEmbedRef = useRef<HTMLDivElement | null>(null)
   const reloadSeqRef = useRef(0)
+  useLayoutEffect(() => {
+    const host =
+      (graphEmbedRef.current?.closest('.grai-page') as HTMLElement | null) ??
+      (document.querySelector('.grai-page') as HTMLElement | null)
+    setPageHost(host)
+  }, [])
+
+  useEffect(() => {
+    if (!pageHost) return
+    pageHost.classList.toggle('is-referral-graph-expanded', graphExpanded)
+    return () => {
+      pageHost.classList.remove('is-referral-graph-expanded')
+    }
+  }, [graphExpanded, pageHost])
+
+  useLayoutEffect(() => {
+    const embed = graphEmbedRef.current
+    if (!embed) return
+
+    const syncMapWidth = () => {
+      const width = embed.getBoundingClientRect().width
+      embed.style.setProperty('--grai-claim-map-width', `${Math.round(width)}px`)
+    }
+
+    syncMapWidth()
+    const observer = new ResizeObserver(syncMapWidth)
+    observer.observe(embed)
+    return () => {
+      observer.disconnect()
+      embed.style.removeProperty('--grai-claim-map-width')
+    }
+  }, [graphExpanded, pageHost])
+
+  useLayoutEffect(() => {
+    if (!graphExpanded || !pageHost) return
+    const embed = graphEmbedRef.current
+    if (!embed) return
+
+    const clearInline = () => {
+      embed.style.top = ''
+      embed.style.left = ''
+      embed.style.width = ''
+      embed.style.height = ''
+    }
+
+    const applyViewportBounds = () => {
+      const rect = pageHost.getBoundingClientRect()
+      const header = document.querySelector('header.header')
+      const headerBottom = header
+        ? Math.ceil(header.getBoundingClientRect().bottom)
+        : 0
+      // Pin under the sticky header so page scroll never tucks the map behind it.
+      const top = headerBottom
+      const left = Math.max(0, Math.floor(rect.left))
+      const right = Math.min(window.innerWidth, Math.ceil(rect.right))
+      const bottom = window.innerHeight
+      const width = Math.max(0, right - left)
+      embed.style.top = `${top}px`
+      embed.style.left = `${left}px`
+      embed.style.width = `${width}px`
+      embed.style.height = `${Math.max(0, bottom - top)}px`
+      embed.style.setProperty('--grai-claim-map-width', `${Math.round(width)}px`)
+    }
+
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    applyViewportBounds()
+    window.addEventListener('resize', applyViewportBounds)
+    window.addEventListener('scroll', applyViewportBounds, true)
+    return () => {
+      window.removeEventListener('resize', applyViewportBounds)
+      window.removeEventListener('scroll', applyViewportBounds, true)
+      document.body.style.overflow = prevOverflow
+      clearInline()
+    }
+  }, [graphExpanded, pageHost])
+
+  useEffect(() => {
+    if (!graphExpanded) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setGraphExpanded(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [graphExpanded])
 
   useEffect(() => {
     const onAffiliatesNav = (event: Event) => {
@@ -1300,6 +1472,97 @@ export function GraiReferralTree({
   const showLoadOverlay =
     isLoadingMap || (layout !== 'graph-only' && !mapRequested)
 
+  const poachPanel = selected ? (
+    <div className="grai-referral-dash-poach is-toolbar">
+      <div className="grai-action-metrics">
+        <div className="grai-action-metric-row">
+          <span className="grai-action-metric-label">Locker:</span>
+          <span className="grai-action-metric-value">
+            <CopyableAddressLink
+              address={selected.locker}
+              explorerHref={accountExplorerHref(selected.locker)}
+              explorerAriaLabel="View locker on block explorer"
+            />
+          </span>
+        </div>
+        <div className="grai-action-metric-row">
+          <span className="grai-action-metric-label">Referrer:</span>
+          <span className="grai-action-metric-value">
+            <CopyableAddressLink
+              address={selected.referrer}
+              label={poachSellerLabel ?? shortAddress(selected.referrer)}
+              explorerHref={accountExplorerHref(selected.referrer)}
+              explorerAriaLabel="View referrer on block explorer"
+            />
+          </span>
+        </div>
+        <div className={`grai-action-metric-row${needsGraiDeposit ? ' is-insufficient' : ''}`}>
+          <span className="grai-action-metric-label">Poach price:</span>
+          <span className="grai-action-metric-value is-yield grai-action-metric-value--grai">
+            {formatGraiAmount(poachAsk, graiDecimals)}
+            <img
+              src={assetUrl('grai.png')}
+              alt=""
+              width={18}
+              height={18}
+              loading="lazy"
+              decoding="async"
+            />
+            GRAI
+          </span>
+        </div>
+      </div>
+      {needsGraiDeposit ? (
+        <p className="grai-referral-dash-poach-warn" role="status">
+          Not enough GRAI in your wallet ({formatGraiAmount(walletGraiRaw, graiDecimals)} /{' '}
+          {formatGraiAmount(poachAsk, graiDecimals)}). Deposit assets to mint GRAI, then poach this
+          seat.
+        </p>
+      ) : (
+        <p className="grai-referral-dash-poach-warn is-spacer" aria-hidden="true">
+          &nbsp;
+        </p>
+      )}
+      {cannotPoachOwnReferral ? (
+        <button type="button" className="grai-mint-btn grai-referral-dash-poach-btn" disabled>
+          You cannot poach your own referrals
+        </button>
+      ) : cannotPoachOwnRoot ? (
+        <button type="button" className="grai-mint-btn grai-referral-dash-poach-btn" disabled>
+          You cannot poach your own locker while it has no upline
+        </button>
+      ) : !highlightAddress ? (
+        <GraiActionConnectWalletButton />
+      ) : needsGraiDeposit ? (
+        <button
+          type="button"
+          className="grai-mint-btn grai-referral-dash-poach-btn"
+          onClick={() => navigateToGraiSection('mint')}
+        >
+          Deposit GRAI
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="grai-mint-btn grai-referral-dash-poach-btn"
+          disabled={Boolean(poachBlockedReason) || isPoaching}
+          onClick={() => {
+            void onPoach()
+          }}
+        >
+          {isPoaching ? 'Poaching…' : 'Poach'}
+        </button>
+      )}
+      <p className="grai-liquidation-buyback-vote-note">
+        You pay GRAI to the locker&apos;s current referrer to become the locker&apos;s direct
+        referrer.
+      </p>
+    </div>
+  ) : null
+
+  const nodeToolbarPanel =
+    claimPanel ?? (graphExpanded && selectedId ? poachPanel : null)
+
   const graphPanel = (
     <div className="grai-referral-dash-graph" aria-label="Referral graph">
       {showLoadOverlay ? (
@@ -1326,10 +1589,31 @@ export function GraiReferralTree({
         onPaneClick={onPaneClick}
       >
         <Background gap={20} size={1} color="rgba(148, 163, 184, 0.12)" />
+        <FitViewOnExpand expanded={graphExpanded} />
+        <KeepClaimToolbarInView
+          active={Boolean(selectedId && nodeToolbarPanel)}
+          nodeId={selectedId}
+        />
         <GraphArrowLegend
           open={legendOpen}
           onToggle={() => setLegendOpen((open) => !open)}
         />
+        <GraphExpandControl
+          expanded={graphExpanded}
+          onToggle={() => setGraphExpanded((open) => !open)}
+        />
+        {selectedId && nodeToolbarPanel ? (
+          <NodeToolbar
+            nodeId={selectedId}
+            isVisible
+            position={Position.Bottom}
+            offset={14}
+            align="center"
+            className="grai-referral-dash-claim-toolbar nodrag nopan"
+          >
+            <div className="grai-referral-dash-claim-toolbar-inner">{nodeToolbarPanel}</div>
+          </NodeToolbar>
+        ) : null}
         <Controls showInteractive={false} showFitView={false}>
           <RefreshControlButton busy={isLoadingMap} onRefresh={startMapLoad} />
           <MeControlButton address={highlightAddress} onSelect={updateSelectedId} />
@@ -1394,21 +1678,35 @@ export function GraiReferralTree({
     </div>
   )
 
+  const graphEmbed = (
+    <div
+      ref={graphEmbedRef}
+      className={`grai-referral-dash-graph-embed${graphExpanded ? ' is-expanded' : ''}`}
+      aria-label="Lockers to claim"
+    >
+      {error ? (
+        <p className="grai-referral-dash-error" role="status">
+          {error}
+        </p>
+      ) : null}
+      {graphPanel}
+    </div>
+  )
+
   if (layout === 'graph-only') {
-    return (
-      <div className="grai-referral-dash-graph-embed" aria-label="Lockers to claim">
-        {error ? (
-          <p className="grai-referral-dash-error" role="status">
-            {error}
-          </p>
-        ) : null}
-        {graphPanel}
-      </div>
-    )
+    if (graphExpanded && pageHost) {
+      return (
+        <>
+          <div className="grai-referral-dash-graph-embed is-slot" aria-hidden="true" />
+          {createPortal(graphEmbed, pageHost)}
+        </>
+      )
+    }
+    return graphEmbed
   }
 
   return (
-    <section className="grai-referral-dash" aria-label="Referrers dashboard">
+    <section className="grai-referral-dash" aria-label="Affiliates map">
       <header className="grai-referral-dash-header">
         <div className="grai-referral-dash-header-copy">
           <h3 className="grai-referral-dash-title">
@@ -1418,7 +1716,7 @@ export function GraiReferralTree({
               onClick={() => setIsDashCollapsed((collapsed) => !collapsed)}
               aria-expanded={!isDashCollapsed}
               aria-controls="grai-referral-dash-grid"
-              aria-label={isDashCollapsed ? 'Show referrers dashboard' : 'Hide referrers dashboard'}
+              aria-label={isDashCollapsed ? 'Show affiliates map' : 'Hide affiliates map'}
             >
               <svg
                 className="grai-donut-legend-toggle-icon"
@@ -1437,9 +1735,9 @@ export function GraiReferralTree({
               type="button"
               className="grai-referral-dash-title-action"
               onClick={startMapLoad}
-              aria-label="Reload referrers map"
+              aria-label="Reload affiliates map"
             >
-              Referrers dashboard
+              Affiliates Map
             </button>
             <span className="grai-referral-dash-network">
               <GraiCaNetworkSelect
@@ -1466,7 +1764,23 @@ export function GraiReferralTree({
       >
         <div className="grai-referral-dash-body-inner">
       <div className="grai-referral-dash-grid">
-        {graphPanel}
+        {graphExpanded && pageHost ? (
+          <>
+            <div className="grai-referral-dash-graph is-slot" aria-hidden="true" />
+            {createPortal(
+              <div
+                ref={graphEmbedRef}
+                className="grai-referral-dash-graph-embed is-expanded"
+                aria-label="Referral graph"
+              >
+                {graphPanel}
+              </div>,
+              pageHost,
+            )}
+          </>
+        ) : (
+          graphPanel
+        )}
 
         <aside className="grai-referral-dash-side">
           <div className="grai-referral-dash-panel">
@@ -1647,104 +1961,14 @@ export function GraiReferralTree({
             )}
             <div
               className={`grai-referral-dash-poach${
-                selected ? '' : sideView === 'top' ? ' is-collapsed' : ' is-placeholder'
+                graphExpanded || !selected
+                  ? sideView === 'top'
+                    ? ' is-collapsed'
+                    : ' is-placeholder'
+                  : ''
               }`}
             >
-              {selected ? (
-                <>
-                <div className="grai-action-metrics">
-                  <div className="grai-action-metric-row">
-                    <span className="grai-action-metric-label">Locker:</span>
-                    <span className="grai-action-metric-value">
-                      <CopyableAddressLink
-                        address={selected.locker}
-                        explorerHref={accountExplorerHref(selected.locker)}
-                        explorerAriaLabel="View locker on block explorer"
-                      />
-                    </span>
-                  </div>
-                  <div className="grai-action-metric-row">
-                    <span className="grai-action-metric-label">Referrer:</span>
-                    <span className="grai-action-metric-value">
-                      <CopyableAddressLink
-                        address={selected.referrer}
-                        label={poachSellerLabel ?? shortAddress(selected.referrer)}
-                        explorerHref={accountExplorerHref(selected.referrer)}
-                        explorerAriaLabel="View referrer on block explorer"
-                      />
-                    </span>
-                  </div>
-                  <div className={`grai-action-metric-row${needsGraiDeposit ? ' is-insufficient' : ''}`}>
-                    <span className="grai-action-metric-label">Poach price:</span>
-                    <span className="grai-action-metric-value is-yield grai-action-metric-value--grai">
-                      {formatGraiAmount(poachAsk, graiDecimals)}
-                      <img
-                        src={assetUrl('grai.png')}
-                        alt=""
-                        width={18}
-                        height={18}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      GRAI
-                    </span>
-                  </div>
-                </div>
-                {needsGraiDeposit ? (
-                  <p className="grai-referral-dash-poach-warn" role="status">
-                    Not enough GRAI in your wallet ({formatGraiAmount(walletGraiRaw, graiDecimals)} /{' '}
-                    {formatGraiAmount(poachAsk, graiDecimals)}). Deposit assets to mint GRAI, then
-                    poach this seat.
-                  </p>
-                ) : (
-                  <p className="grai-referral-dash-poach-warn is-spacer" aria-hidden="true">
-                    &nbsp;
-                  </p>
-                )}
-                {cannotPoachOwnReferral ? (
-                  <button
-                    type="button"
-                    className="grai-mint-btn grai-referral-dash-poach-btn"
-                    disabled
-                  >
-                    You cannot poach your own referrals
-                  </button>
-                ) : cannotPoachOwnRoot ? (
-                  <button
-                    type="button"
-                    className="grai-mint-btn grai-referral-dash-poach-btn"
-                    disabled
-                  >
-                    You cannot poach your own locker while it has no upline
-                  </button>
-                ) : !highlightAddress ? (
-                  <GraiActionConnectWalletButton />
-                ) : needsGraiDeposit ? (
-                  <button
-                    type="button"
-                    className="grai-mint-btn grai-referral-dash-poach-btn"
-                    onClick={() => navigateToGraiSection('mint')}
-                  >
-                    Deposit GRAI
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="grai-mint-btn grai-referral-dash-poach-btn"
-                    disabled={Boolean(poachBlockedReason) || isPoaching}
-                    onClick={() => {
-                      void onPoach()
-                    }}
-                  >
-                    {isPoaching ? 'Poaching…' : 'Poach'}
-                  </button>
-                )}
-                <p className="grai-liquidation-buyback-vote-note">
-                  You pay GRAI to the locker&apos;s current referrer to become the
-                  locker&apos;s direct referrer.
-                </p>
-                </>
-              ) : null}
+              {!graphExpanded ? poachPanel : null}
             </div>
           </div>
         </aside>

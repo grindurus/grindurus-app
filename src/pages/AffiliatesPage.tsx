@@ -245,9 +245,9 @@ function AffiliatesPage() {
             revenue share; the referral link can also be bought (poach) for GRAI.
           </li>
           <li>
-            <strong>GRS airdrop.</strong> Affiliates who bring liquidity may receive GRS in a
-            future airdrop from the protocol&apos;s Affiliates allocation — separate from claim
-            revenue share.
+            <strong>Airdrop.</strong> All affiliate actions are tracked on-chain for a future
+            airdrop from the protocol&apos;s Affiliates allocation — separate from claim revenue
+            share.
           </li>
         </ol>
         </div>
