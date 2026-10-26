@@ -22,8 +22,8 @@ const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: 'Introduction',
         body: [
-          'This Privacy Policy (the “Policy”) explains how GrindURUS (“GrindURUS,” the “Company,” “we,” “us,” or “our”) collects, uses, and shares data in connection with the services offered on https://grindurus.xyz (including the marketing landing page and product surfaces such as /grai, /grs, /grinders, /affiliate, and /backtest), documentation at https://docs.grindurus.xyz, and other GrindURUS properties, products, and services that link to this Policy (the “Services”). Your use of the Services is also subject to our Terms of Service at https://grindurus.xyz/terms.',
-          'Please note that your use of the GrindURUS on-chain protocol (smart contracts and programs deployed on public blockchains, including GRAI, GRS / OFT, Grinders, Treasury / affiliate routing, and related deployments) is not governed by this Privacy Policy. On-chain activity is public by design and is outside our control once confirmed on a network.',
+          'This Privacy Policy (the “Policy”) explains how GrindURUS (“GrindURUS,” the “Company,” “we,” “us,” or “our”) collects, uses, and shares data in connection with the services offered on https://grindurus.xyz (including the marketing landing page and product surfaces such as /grai, /grinders, /affiliate, and /backtest), documentation at https://docs.grindurus.xyz, and other GrindURUS properties, products, and services that link to this Policy (the “Services”). Your use of the Services is also subject to our Terms of Service at https://grindurus.xyz/terms.',
+          'Please note that your use of the GrindURUS on-chain protocol (smart contracts and programs deployed on public blockchains, including GRAI, Grinders, Treasury / affiliate routing, and related deployments) is not governed by this Privacy Policy. On-chain activity is public by design and is outside our control once confirmed on a network.',
         ],
       },
       {
@@ -55,7 +55,7 @@ const LEGAL_DOCS: Record<string, LegalDoc> = {
         heading: 'How We Use Data',
         body: [
           'We use data we collect in accordance with your instructions, our Terms of Service, and applicable law, including to:',
-          'Provide the Services — operate, maintain, customize, and improve Interfaces for GRAI, GRS, Grinders, affiliates, backtests, and related features.',
+          'Provide the Services — operate, maintain, customize, and improve Interfaces for GRAI, Grinders, affiliates, backtests, and related features.',
           'Customer support — respond to inquiries and troubleshooting requests.',
           'Safety and security — protect against, investigate, and stop fraudulent, unauthorized, or illegal activity; address security risks and bugs; enforce our agreements; and protect users and the Company.',
           'Legal compliance — respond to regulators, government entities, and law enforcement as required or requested under applicable law.',
@@ -143,7 +143,7 @@ const LEGAL_DOCS: Record<string, LegalDoc> = {
         heading: 'Agreement',
         body: [
           'These Terms of Service (the “Agreement”) explain the terms and conditions by which you may access and use the products and interfaces provided by GrindURUS (“GrindURUS,” “we,” “our,” or “us”).',
-          'The Products include, without limitation: (a) the website at https://grindurus.xyz, including the marketing landing page and product surfaces such as /grai, /grs, /grinders, /affiliate, and /backtest (together, the “Interface” or “App”); (b) documentation at https://docs.grindurus.xyz; and (c) any other GrindURUS products or services that link to this Agreement (together, the “Products”). There is no separate app subdomain — the canonical product site is https://grindurus.xyz.',
+          'The Products include, without limitation: (a) the website at https://grindurus.xyz, including the marketing landing page and product surfaces such as /grai, /grinders, /affiliate, and /backtest (together, the “Interface” or “App”); (b) documentation at https://docs.grindurus.xyz; and (c) any other GrindURUS products or services that link to this Agreement (together, the “Products”). There is no separate app subdomain — the canonical product site is https://grindurus.xyz.',
           'You must read this Agreement carefully. By accessing or using any of the Products, you signify that you have read, understand, and agree to be bound by this Agreement in its entirety. If you do not agree, you are not authorized to access or use any of our Products.',
           'To access or use any of our Products, you must be able to form a legally binding contract with us. You represent that you are at least the age of majority in your jurisdiction and have full right, power, and authority to enter into and comply with this Agreement on behalf of yourself and any entity for which you may access the Products. If you enter into this Agreement on behalf of an entity, you represent that you have authority to bind that entity.',
           'You further represent that you are not (a) the subject of economic or trade sanctions administered or enforced by any governmental authority or otherwise designated on any list of prohibited or restricted parties, or (b) a citizen, resident, or organized in a jurisdiction or territory that is the subject of comprehensive country-wide, territory-wide, or regional economic sanctions by the United States or other applicable authorities. You represent that your access and use of the Products will fully comply with all applicable laws and regulations, and that you will not use the Products to conduct, promote, or facilitate any illegal activity.',
@@ -153,18 +153,17 @@ const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: '1. Our Products',
         body: [
-          '1.1 The Interface. GrindURUS is an automated market-taking protocol that turns crypto price volatility into yield through dual-sided buy-low/sell-high and sell-high/buy-low strategies. The Interface at https://grindurus.xyz provides a web-based means of access to GrindURUS smart contracts and programs on public blockchains (including EVM networks and Solana) and related tools. Through the Interface you may, among other things: explore the landing overview; deposit into and interact with GRAI; lock and claim dividends; manage Grinders / custodian allocations where available; interact with GRS (including sales, bridging, grants, and vesting views); use affiliates / referral surfaces; and run strategy backtests.',
-          'The Interface is distinct from the on-chain protocol. The protocol comprises open-source or source-available smart contracts and programs (including GRAI, GRS / OFT, Grinders, Treasury / affiliate routing, and related contracts) deployed on public networks. The Interface is one, but not the exclusive, means of accessing those contracts. By using the Interface, you understand that you are interacting with public blockchains and autonomous contracts — not buying or selling digital assets from us as a counterparty in the ordinary course, and not receiving custody services from us.',
+          '1.1 The Interface. GrindURUS is an automated market-taking protocol that turns crypto price volatility into yield through dual-sided buy-low/sell-high and sell-high/buy-low strategies. The Interface at https://grindurus.xyz provides a web-based means of access to GrindURUS smart contracts and programs on public blockchains (including EVM networks and Solana) and related tools. Through the Interface you may, among other things: explore the landing overview; deposit into and interact with GRAI; lock and claim dividends; manage Grinders / custodian allocations where available; use affiliates / referral surfaces; and run strategy backtests.',
+          'The Interface is distinct from the on-chain protocol. The protocol comprises open-source or source-available smart contracts and programs (including GRAI, Grinders, Treasury / affiliate routing, and related contracts) deployed on public networks. The Interface is one, but not the exclusive, means of accessing those contracts. By using the Interface, you understand that you are interacting with public blockchains and autonomous contracts — not buying or selling digital assets from us as a counterparty in the ordinary course, and not receiving custody services from us.',
           'Networks, listed assets, deployments, and tokenomics may change, including while the project is pre-mainnet or before TGE. Always verify current details against https://docs.grindurus.xyz and on-chain state.',
           'To access on-chain features of the Interface, you must use non-custodial wallet software. Your relationship with any third-party wallet provider is governed by that provider’s terms. We do not have custody or control over the contents of your wallet and have no ability to retrieve or transfer its contents. By connecting your wallet to the Interface, you agree to be bound by this Agreement.',
           '1.2 GRAI. GRAI (Grinders Artificial Index) is an elastic, dollar book-priced fund share. It is not a directional prediction product: yield is framed as harvesting realized volatility via Grinders custodians, not forecasting price. Deposits, locks, votes, dividends, unlocks, and post-quorum liquidation / redeem flows (where enabled) are executed by smart contracts according to their code and parameters.',
           'Unlocked wallet GRAI earns nothing. Only locked, unvoted GRAI is eligible for asset dividends after profit is reported via distribute (or equivalent). While the fund is live there is generally no protocol redeem of the full basket; exit paths include secondary markets, unlock (subject to penalties and rules), or post-quorum liquidation redeem where available. Book values, cuts, penalties, and metrics shown in the Interface are informational and may change.',
-          '1.3 GRS. GRS is a fixed-supply protocol equity / governance token with a maximum genesis supply of 1,000,000,000. It is not the fund share. The Interface may show a published cap table, Token sale / Initial DEX Offerings / other listing plans, vesting, grants, and cross-chain OFT bridging. Soft policy sizes in the App (for example Sales and IDO slices) are planning displays; on-chain TokenSales rules are defined by the contracts. Participation in any sale, IDO, grant, vest, or bridge is at your own risk.',
-          '1.4 Grinders and custodians. Grinders / custodian NFTs and related allocation flows connect fund capital to trading wallets and strategy infrastructure (including off-chain adapters and operators). Off-chain trading is not the Interface. Yield reported via distribute and similar flows depends on reported profit and contract logic; past or simulated performance is not a guarantee.',
-          '1.5 Affiliates. Affiliate / referral features (including ref links tied to wallet addresses and revenue-share accounting on claims) are subject to on-chain Treasury / affiliate rules and the Interface surfaces at /affiliate. We may change eligibility, rates, or presentation consistent with contract upgrades and this Agreement.',
-          '1.6 Backtest and educational tools. Backtests on /backtest, calculators, charts, and strategy previews are informational and educational only. They are not offers, solicitations, or promises of future returns. Access to backtests may require payment (for example x402 USDC) or a promocode and is not a free public data scrape API.',
-          '1.7 Other Products. We may offer additional products from time to time; such products are “Products” under this Agreement whether or not specifically named here.',
-          '1.8 Third-Party Services and Content. The Products may integrate or link to third-party services (RPC providers, wallets, bridges, explorers, oracles, analytics, documentation hosts, social sites, and similar). Your use of Third-Party Services may be subject to separate terms and privacy policies. We enable them for convenience and do not endorse or assume responsibility for them. Dealings with third parties are solely between you and them.',
+          '1.3 Grinders and custodians. Grinders / custodian NFTs and related allocation flows connect fund capital to trading wallets and strategy infrastructure (including off-chain adapters and operators). Off-chain trading is not the Interface. Yield reported via distribute and similar flows depends on reported profit and contract logic; past or simulated performance is not a guarantee.',
+          '1.4 Affiliates. Affiliate / referral features (including ref links tied to wallet addresses and revenue-share accounting on claims) are subject to on-chain Treasury / affiliate rules and the Interface surfaces at /affiliate. We may change eligibility, rates, or presentation consistent with contract upgrades and this Agreement.',
+          '1.5 Backtest and educational tools. Backtests on /backtest, calculators, charts, and strategy previews are informational and educational only. They are not offers, solicitations, or promises of future returns. Access to backtests may require payment (for example x402 USDC) or a promocode and is not a free public data scrape API.',
+          '1.6 Other Products. We may offer additional products from time to time; such products are “Products” under this Agreement whether or not specifically named here.',
+          '1.7 Third-Party Services and Content. The Products may integrate or link to third-party services (RPC providers, wallets, bridges, explorers, oracles, analytics, documentation hosts, social sites, and similar). Your use of Third-Party Services may be subject to separate terms and privacy policies. We enable them for convenience and do not endorse or assume responsibility for them. Dealings with third parties are solely between you and them.',
         ],
       },
       {
@@ -264,7 +263,7 @@ const LEGAL_DOCS: Record<string, LegalDoc> = {
         heading: 'What GRAI is (and is not)',
         body: [
           'GRAI (Grinders Artificial Index) is an elastic, non-rebasing fund-share token. On EVM it uses 6 decimals. New deposits mint GRAI at book value: roughly depositUsd × totalSupply / totalValue (with first-deposit 1:1 USD book semantics when totalValue is zero). Assets move to Grinders reserve; GRAI represents a claim on the fund’s accounting, not a promise of dollar peg, stablecoin redemption, or instant withdraw.',
-          'GRAI is not GRS. GRS is fixed-supply protocol equity (1,000,000,000 genesis max). GRAI is not a directional prediction market. Yield is framed as harvesting realized volatility through Grinders custodians — that process can still lose money.',
+          'GRAI is not a directional prediction market. Yield is framed as harvesting realized volatility through Grinders custodians — that process can still lose money.',
           'While the fund is in the normal GRINDING regime there is generally no live protocol redeem of the basket. Primary exits are secondary-market sales of GRAI, unlock (with penalty), bribe mechanics for voted GRAI, or the liquidation → redeem path described below.',
         ],
       },
@@ -328,15 +327,14 @@ const LEGAL_DOCS: Record<string, LegalDoc> = {
         heading: 'Smart contract, bridge, and infrastructure risk',
         body: [
           'Contracts may contain bugs or economic design flaws. Audits reduce but do not eliminate risk. Reentrancy guards and access controls can still fail under unforeseen composition.',
-          'Bridges (including OFT / LayerZero paths used elsewhere in the stack), RPC endpoints, indexers, wallets, and frontends can fail, censor, or be compromised. Interface downtime does not pause on-chain risk.',
+          'Bridges, RPC endpoints, indexers, wallets, and frontends can fail, censor, or be compromised. Interface downtime does not pause on-chain risk.',
           'Composability with other protocols can introduce cascading failures.',
         ],
       },
       {
         heading: 'Market, liquidity, and tokenomics risk beyond GRAI',
         body: [
-          'Secondary markets for GRAI or GRS may be thin or nonexistent. Price discovery can be discontinuous.',
-          'GRS sales, IDOs, vesting, grants, and bridges have separate liquidity, unlock, and bridge risks. Soft cap-table displays in the App are planning figures, not guarantees of listing, raise size, or clearing price.',
+          'Secondary markets for GRAI may be thin or nonexistent. Price discovery can be discontinuous.',
           'Affiliate / Treasury fee routing depends on claims and tree state; rates and eligibility can change with upgrades and config.',
         ],
       },
@@ -350,7 +348,7 @@ const LEGAL_DOCS: Record<string, LegalDoc> = {
       {
         heading: 'No insurance',
         body: [
-          'Assets used with the protocol are generally not covered by FDIC, SIPC, or similar deposit insurance or investor compensation schemes. There is no guaranteed bailout of GRAI holders, Grinders custodians, or GRS holders.',
+          'Assets used with the protocol are generally not covered by FDIC, SIPC, or similar deposit insurance or investor compensation schemes. There is no guaranteed bailout of GRAI holders or Grinders custodians.',
         ],
       },
     ],

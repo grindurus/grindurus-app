@@ -742,7 +742,7 @@ export function GraiFlowSection() {
   }, [])
 
   return (
-    <section className="relative w-full pt-3 pb-10 md:pt-4 md:pb-16 lg:pt-5 lg:pb-20 bg-black overflow-hidden">
+    <section className="relative w-full pt-3 pb-10 md:pt-4 md:pb-16 lg:pt-5 lg:pb-20 bg-black overflow-x-hidden">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-10 md:mb-14">
           <Title className="!mb-4">

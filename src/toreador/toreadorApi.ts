@@ -1,12 +1,15 @@
 import type { GrinderTableRow, GrinderTableSummary } from './grinderTable'
 import { summarizeGrinderTableRows } from './grinderTable'
 
-const DEFAULT_BASE = '/toreador-api'
+/** Dev: Vite proxy. Prod: public Toreador host (Traefik ``toreador.${DOMAIN}``). */
+const DEFAULT_BASE_DEV = '/toreador-api'
+const DEFAULT_BASE_PROD = 'https://toreador.grindurus.xyz'
 const API_KEY_STORAGE = 'toreador.apiKey'
 
 export function toreadorApiBase(): string {
   const fromEnv = (import.meta.env.VITE_TOREADOR_API_URL || '').trim()
-  return (fromEnv || DEFAULT_BASE).replace(/\/+$/, '')
+  const fallback = import.meta.env.DEV ? DEFAULT_BASE_DEV : DEFAULT_BASE_PROD
+  return (fromEnv || fallback).replace(/\/+$/, '')
 }
 
 export function toreadorApiKey(): string {
@@ -73,6 +76,11 @@ function coerceRow(raw: unknown): GrinderTableRow | null {
     yieldUsd: isFiniteNumber(r.yieldUsd) ? r.yieldUsd : 0,
     terminal: typeof r.terminal === 'string' ? r.terminal : undefined,
     network: typeof r.network === 'string' ? r.network : undefined,
+    custodianAddress:
+      typeof r.custodianAddress === 'string' ? r.custodianAddress : undefined,
+    custodianId: isFiniteNumber(r.custodianId) ? r.custodianId : undefined,
+    image: typeof r.image === 'string' ? r.image : undefined,
+    nftName: typeof r.nftName === 'string' ? r.nftName : undefined,
   }
 }
 

@@ -653,6 +653,47 @@
     font-size: 0.92rem;
   }
 
+  /* Side-by-side deposit/receive labels overflow + get clipped by section overflow-hidden */
+  .grai-flow__bridge {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    max-width: 100%;
+    padding-inline: 0.5rem;
+  }
+
+  .grai-flow__arrow {
+    width: 100%;
+    max-width: 16rem;
+    padding: 0.45rem 0;
+  }
+
+  .grai-flow__arrow-label {
+    white-space: normal;
+    text-align: center;
+    font-size: 0.82rem;
+    line-height: 1.25;
+    max-width: 100%;
+  }
+
+  .grai-flow__arrow-line {
+    height: 28px;
+  }
+
+  .grai-flow__person {
+    width: clamp(140px, 42vw, 200px);
+  }
+
+  .grai-flow__node {
+    min-width: 0;
+    width: min(100%, 280px);
+    padding: 1rem 1.25rem;
+  }
+
+  .grai-flow__node-title {
+    font-size: 1.35rem;
+  }
+
   .grai-flow__vault {
     max-width: min(100%, 340px);
     margin-inline: auto;

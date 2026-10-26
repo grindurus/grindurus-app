@@ -25,6 +25,10 @@ export type GrinderTableRow = {
   yieldUsd: number
   terminal?: string
   network?: string
+  custodianAddress?: string
+  custodianId?: number
+  image?: string
+  nftName?: string
 }
 
 export type GrinderTableSummary = {

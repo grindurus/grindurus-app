@@ -16,7 +16,7 @@ export function TeamSection() {
         <div className="mb-12 text-center md:mb-16">
           <Title>Core Team</Title>
         </div>
-        <div className="mb-16 grid gap-12 md:mb-20 md:grid-cols-3 md:gap-10 lg:gap-12">
+        <div className="mb-16 flex flex-wrap justify-center gap-12 md:mb-20 md:gap-10 lg:gap-12">
           {TEAM.map((member, id) => (
             <div key={`${id}-photo`} className="flex flex-col items-center text-center">
               <div className="relative mb-4 aspect-square w-56 max-w-full shrink-0 overflow-hidden rounded-full border-2 border-white/15 bg-[#111] shadow-[0_0_0_1px_rgba(255,105,180,0.08)] sm:w-64 md:mb-5 md:w-72 lg:w-80">

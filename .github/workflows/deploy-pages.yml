@@ -63,6 +63,8 @@ jobs:
           VITE_GRAI_BASE_SEPOLIA_PROTOCOL: ${{ secrets.VITE_GRAI_BASE_SEPOLIA_PROTOCOL }}
           VITE_BACKTEST_API_URL: ${{ secrets.VITE_BACKTEST_API_URL }}
           VITE_MAIN_APP_URL: ${{ vars.VITE_MAIN_APP_URL }}
+          # Public GRAI grinders table — Traefik Host(toreador.grindurus.xyz).
+          VITE_TOREADOR_API_URL: ${{ vars.VITE_TOREADOR_API_URL || 'https://toreador.grindurus.xyz' }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

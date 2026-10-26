@@ -63,7 +63,7 @@ interface ImportMetaEnv {
   readonly VITE_BOSS_API_URL?: string
   readonly VITE_BOSS_API_KEY?: string
   readonly VITE_BOSS_API_AUTH_HEADER?: string
-  /** Same-origin proxy path or absolute Toreador base (default `/toreador-api`). */
+  /** Toreador base: `/toreador-api` in dev, `https://toreador.grindurus.xyz` in prod builds. */
   readonly VITE_TOREADOR_API_URL?: string
   readonly VITE_TOREADOR_API_TARGET?: string
   readonly VITE_TOREADOR_API_KEY?: string

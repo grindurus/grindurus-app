@@ -48,7 +48,7 @@ import {
 } from '../../grai/referrer'
 import { GRAI_MINT_FLOW_EVENT, readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
-import { GraiMintSubtitleRotatingAsset } from './GraiMintSubtitleRotatingAsset'
+import { GraiClaimSubtitleText } from './GraiMintSubtitleRotatingAsset'
 import { GraiNavDonut } from '../GraiNavDonut'
 import { GraiTransactionToast } from './GraiTransactionToast'
 import { ActionDepositNote, splitTxErrorMessage, usePersistedActionTx } from '../ActionTxFeedback'
@@ -1242,13 +1242,7 @@ export function GraiMintBurnPanel({
                           className="grai-page-subtitle-mode-swap-item is-claim"
                           aria-hidden={!isAssetClaim}
                         >
-                          <span className="grai-page-subtitle-text-line">
-                            <span className="grai-page-subtitle-text-segment">Claim</span>
-                            <GraiMintSubtitleRotatingAsset />
-                            <span className="grai-page-subtitle-text-segment">
-                              Price Volatility Yield
-                            </span>
-                          </span>
+                          <GraiClaimSubtitleText />
                         </span>
                       </>
                     ) : null}

@@ -3441,7 +3441,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 .grai-grinder-name {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   gap: 0.34rem;
   width: 100%;
@@ -3463,7 +3463,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   min-width: 0;
 }
 
-.grai-grinder-name-copy:hover {
+.grai-grinder-name-copy:hover .grai-grinder-name-grinder {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -3472,13 +3472,54 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: #5bff9b;
 }
 
-.grai-grinder-last-tx {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+.grai-grinder-name-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
   min-width: 0;
+  line-height: 1.2;
 }
 
+.grai-grinder-name-boss {
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grai-grinder-name-grinder {
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reset row-cell inline-flex so the inner stack controls layout. */
+.grai-grinders-row > span.grai-grinder-last-tx {
+  display: block;
+  align-self: center;
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+}
+
+.grai-grinder-last-tx-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.grai-grinder-last-tx-main,
 .grai-grinder-last-tx-link {
   display: inline-flex;
   align-items: center;
@@ -3495,12 +3536,52 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   text-underline-offset: 2px;
 }
 
+.grai-grinder-custodian {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.grai-grinder-custodian-nft {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--bg-secondary);
+}
+
+.grai-grinder-custodian-nft.is-placeholder {
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(255, 105, 180, 0.35), rgba(255, 105, 180, 0.08));
+}
+
+.grai-grinder-custodian-addr {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .grai-grinder-last-tx-terminal-icon {
   width: 1rem;
   height: 1rem;
   border-radius: 999px;
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.grai-grinder-last-tx-terminal-icon--swap,
+.grai-grinder-last-tx-terminal-icon--path {
+  border-radius: 0;
+  color: #ff69b4;
+  opacity: 0.95;
 }
 
 .grai-grinder-last-tx-hash {
@@ -3511,18 +3592,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-variant-numeric: tabular-nums;
 }
 
-.grai-grinder-last-tx.is-loading {
+.grai-grinder-last-tx-main.is-loading {
   opacity: 0.55;
 }
 
-.grai-grinder-last-tx.is-fallback {
+.grai-grinder-last-tx-main.is-fallback {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.grai-grinder-last-tx.is-placeholder {
+.grai-grinder-last-tx-main.is-placeholder {
   color: var(--text-secondary);
 }
 
@@ -3533,6 +3614,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   background: #5bff9b;
   box-shadow: 0 0 0 0 rgba(91, 255, 155, 0.6);
   animation: grai-grinder-active-pulse 1.35s ease-in-out infinite;
+}
+
+.grai-grinder-name > .grai-grinder-active-dot {
+  margin-top: 0.28rem;
+  flex-shrink: 0;
 }
 
 .grai-grinder-active-dot.is-inactive {
@@ -3636,14 +3722,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   padding: 0;
   border: 0;
   background: transparent;
-  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-size: clamp(1.55rem, 2.8vw, 2.15rem);
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: 0.02em;
   text-align: center;
   text-transform: none;
   white-space: nowrap;
-  overflow: visible;
+  overflow: hidden;
   color: var(--text-primary);
 }
 
@@ -3659,18 +3745,44 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   line-height: inherit;
 }
 
+.grai-page-subtitle-text-line-fit {
+  --grai-subtitle-scale: 1;
+  display: block;
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 1.35em;
+  overflow: hidden;
+  text-align: center;
+}
+
 .grai-page-subtitle-text-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   display: inline-flex;
-  flex-wrap: nowrap;
+  flex-flow: row nowrap;
   align-items: center;
   justify-content: center;
   column-gap: 0;
   width: max-content;
-  max-width: 100%;
+  max-width: none;
   font: inherit;
   line-height: 1.25;
   white-space: nowrap;
   text-align: center;
+  transform: translate(-50%, -50%) scale(var(--grai-subtitle-scale, 1));
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.grai-page-subtitle-text-row {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .grai-page-subtitle-text-segment {
@@ -3689,15 +3801,34 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-page-subtitle-rotating-slot {
+  position: relative;
   display: inline-flex;
   overflow: hidden;
   flex-shrink: 0;
   vertical-align: top;
   margin-inline: 0.28em;
+  justify-content: center;
 }
 
 .grai-page-subtitle-rotating-slot.is-width-ready {
   transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.grai-page-subtitle-line-probe {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: nowrap;
+}
+
+.grai-page-subtitle-line-probe .grai-page-subtitle-text-line {
+  position: static;
+  transform: none;
 }
 
 .grai-page-subtitle-rotating-word-current {
@@ -3803,7 +3934,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   justify-content: center;
   gap: 0;
   width: 100%;
-  overflow: visible;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Stack subtitle ↔ escrow tabs in one slot so amount input never shifts */
@@ -3813,8 +3946,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: grid;
   align-items: center;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: var(--grai-subtitle-head-height);
-  overflow: visible;
+  overflow: hidden;
 }
 
 .grai-page-subtitle-head > .grai-page-subtitle {
@@ -3951,20 +4086,20 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 @container (max-width: 640px) {
   .grai-actions-block .grai-page-subtitle {
-    white-space: nowrap;
-    font-size: clamp(0.72rem, 3.8cqi, 1.15rem);
+    white-space: normal;
+    font-size: clamp(1.15rem, 5.5cqi, 1.45rem);
     font-weight: 700;
     letter-spacing: 0.01em;
-    line-height: 1.2;
+    line-height: 1.25;
     flex-wrap: nowrap;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
     max-width: 100%;
   }
 
   .grai-actions-block .grai-page-subtitle > span:not(.grai-page-subtitle-caret) {
-    flex-wrap: nowrap;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    white-space: normal;
     max-width: 100%;
   }
 
@@ -3974,16 +4109,31 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-page-subtitle-mode-swap-item {
-    flex-wrap: nowrap;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .grai-page-subtitle-text-line-fit {
+    height: auto;
+    min-height: 2.7em;
+    overflow: visible;
   }
 
   .grai-page-subtitle-text-line {
-    flex-wrap: nowrap;
-    white-space: nowrap;
-    width: max-content;
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    flex-flow: column nowrap;
+    align-items: center;
+    width: 100%;
     max-width: 100%;
-    justify-content: center;
+    white-space: normal;
+    row-gap: 0.12em;
+  }
+
+  .grai-page-subtitle-text-row {
+    max-width: 100%;
   }
 
   .grai-page-subtitle-text-segment {
@@ -3995,37 +4145,50 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     flex-shrink: 0;
   }
 
+  .grai-page-subtitle-head {
+    --grai-subtitle-head-height: 3.4rem;
+  }
+
   .grai-actions-block .grai-page-subtitle.is-fit-width {
-    font-size: clamp(0.72rem, 3.8cqi, 1.15rem);
+    font-size: clamp(1.15rem, 5.5cqi, 1.45rem);
     font-weight: 700;
     letter-spacing: 0.01em;
-    line-height: 1.2;
+    line-height: 1.25;
   }
 }
 
 @media (max-width: 640px) {
   .grai-actions-block .grai-page-subtitle {
-    white-space: nowrap;
-    font-size: clamp(0.7rem, 3.4vw, 1.1rem);
+    white-space: normal;
+    font-size: clamp(1.12rem, 5vw, 1.4rem);
     font-weight: 700;
     letter-spacing: 0.01em;
-    line-height: 1.2;
+    line-height: 1.25;
     flex-wrap: nowrap;
-    overflow: hidden;
+    overflow: visible;
     max-width: 100%;
   }
 
-  .grai-actions-block .grai-page-subtitle > span:not(.grai-page-subtitle-caret),
-  .grai-page-subtitle-mode-swap-item,
-  .grai-page-subtitle-text-line {
-    flex-wrap: nowrap;
-    white-space: nowrap;
-    max-width: 100%;
+  .grai-page-subtitle-text-line-fit {
+    height: auto;
+    min-height: 2.7em;
+    overflow: visible;
   }
 
   .grai-page-subtitle-text-line {
-    width: max-content;
-    justify-content: center;
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    flex-flow: column nowrap;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    row-gap: 0.12em;
+  }
+
+  .grai-page-subtitle-head {
+    --grai-subtitle-head-height: 3.4rem;
   }
 
   .grai-page-subtitle-text-segment {
@@ -10179,6 +10342,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   display: inline-grid;
   align-items: center;
   justify-items: center;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
 }
@@ -10189,7 +10353,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;

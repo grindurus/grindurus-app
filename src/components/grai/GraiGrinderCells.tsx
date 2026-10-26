@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { isGrinderStatusLive, type GrinderTableRow } from '../../toreador/grinderTable'
 import type { GrinderLastTxEntry } from '../../hooks/useGrinderLastTx'
 import { formatTxHashShort } from '../../grinder/formatTxHash'
+import { shortenAddress } from '../../utils/shortenAddress'
 import {
   formatGrinderTooltipAmount,
   formatGrinderUsdExact,
@@ -10,6 +11,52 @@ import {
   type GrinderYieldBreakdownRow,
 } from '../../grai/formatGrinderUsd'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
+
+function splitBossGrinderName(name: string): { boss: string; grinder: string } {
+  const idx = name.indexOf(' / ')
+  if (idx < 0) return { boss: '', grinder: name }
+  return { boss: name.slice(0, idx).trim(), grinder: name.slice(idx + 3).trim() || name }
+}
+
+function GraiGrinderCustodianChip({
+  custodianAddress,
+  image,
+  nftName,
+  custodianId,
+}: {
+  custodianAddress?: string
+  image?: string
+  nftName?: string
+  custodianId?: number
+}) {
+  if (!custodianAddress && !image) return null
+  const label =
+    nftName?.trim() ||
+    (custodianId != null ? `Custodian #${custodianId}` : 'Custodian')
+  return (
+    <span
+      className="grai-grinder-custodian"
+      title={custodianAddress ? `${label} · ${custodianAddress}` : label}
+    >
+      {image ? (
+        <img
+          className="grai-grinder-custodian-nft"
+          src={image}
+          alt=""
+          width={22}
+          height={22}
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <span className="grai-grinder-custodian-nft is-placeholder" aria-hidden="true" />
+      )}
+      {custodianAddress ? (
+        <span className="grai-grinder-custodian-addr">{shortenAddress(custodianAddress)}</span>
+      ) : null}
+    </span>
+  )
+}
 
 export function GraiGrinderTableName({
   row,
@@ -21,6 +68,13 @@ export function GraiGrinderTableName({
   onCopy: (address: string, grinderId: string) => void
 }) {
   const isLive = isGrinderStatusLive(row.status)
+  const { boss, grinder } = splitBossGrinderName(row.name)
+  const label = (
+    <span className="grai-grinder-name-stack">
+      {boss ? <span className="grai-grinder-name-boss">{boss}</span> : null}
+      <span className="grai-grinder-name-grinder">{grinder}</span>
+    </span>
+  )
 
   return (
     <span role="cell" className="grai-grinder-name">
@@ -39,10 +93,10 @@ export function GraiGrinderTableName({
           title={copied ? 'Copied to clipboard' : row.grinderAddress}
           aria-label={copied ? 'Copied to clipboard' : `Copy ${row.name} address`}
         >
-          {copied ? 'Copied!' : row.name}
+          {copied ? 'Copied!' : label}
         </button>
       ) : (
-        <span>{row.name}</span>
+        label
       )}
     </span>
   )
@@ -52,21 +106,30 @@ export function GraiGrinderLastTxCell({
   lastActionLabel,
   terminal,
   txState,
+  custodianAddress,
+  image,
+  nftName,
+  custodianId,
 }: {
   lastActionLabel: string
   terminal?: string
   txState?: GrinderLastTxEntry
+  custodianAddress?: string
+  image?: string
+  nftName?: string
+  custodianId?: number
 }) {
   const terminalKind = resolveGrinderTerminalKind(terminal)
   const hash =
     txState?.status === 'ready' || txState?.status === 'hashOnly' ? txState.hash.trim() : ''
   const hasHash = Boolean(hash) && hash.toLowerCase() !== '0x'
   const hashLabel = hasHash ? formatTxHashShort(hash) : '—'
+  const terminalHint = terminalKind ? ` · ${terminalKind}` : ''
   const title = hasHash
-    ? `${lastActionLabel} · ${hash}`
+    ? `${lastActionLabel}${terminalHint} · ${hash}`
     : txState?.status === 'empty'
-      ? `${lastActionLabel} · no last transaction from Toreador`
-      : `${lastActionLabel} · no last transaction`
+      ? `${lastActionLabel}${terminalHint} · no last transaction from Toreador`
+      : `${lastActionLabel}${terminalHint} · no last transaction`
 
   const icon =
     terminalKind === 'binance' ? (
@@ -89,6 +152,37 @@ export function GraiGrinderLastTxCell({
         loading="lazy"
         decoding="async"
       />
+    ) : terminalKind === 'swap' ? (
+      <svg
+        className="grai-grinder-last-tx-terminal-icon grai-grinder-last-tx-terminal-icon--swap"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M16 3h5v5" />
+        <path d="M8 21H3v-5" />
+        <path d="M21 3 14 10" />
+        <path d="m3 21 7-7" />
+      </svg>
+    ) : terminalKind === 'path' || terminalKind === 'lifi' ? (
+      <svg
+        className="grai-grinder-last-tx-terminal-icon grai-grinder-last-tx-terminal-icon--path"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="6" cy="6" r="2.5" />
+        <circle cx="18" cy="18" r="2.5" />
+        <path d="M8.5 7.5 15.5 16.5" />
+      </svg>
     ) : null
 
   const content = (
@@ -98,45 +192,60 @@ export function GraiGrinderLastTxCell({
     </>
   )
 
-  if (txState?.status === 'ready' && hasHash) {
-    return (
-      <span role="cell" className="grai-grinder-last-tx" title={title}>
-        <a
-          href={txState.explorerUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="grai-grinder-last-tx-link"
-        >
-          {content}
-        </a>
+  const txRow =
+    txState?.status === 'ready' && hasHash ? (
+      <a
+        href={txState.explorerUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="grai-grinder-last-tx-link"
+        title={title}
+      >
+        {content}
+      </a>
+    ) : (
+      <span
+        className={`grai-grinder-last-tx-main${!hasHash ? ' is-fallback is-placeholder' : ''}`}
+        title={title}
+      >
+        {content}
       </span>
     )
-  }
 
   return (
-    <span
-      role="cell"
-      className={`grai-grinder-last-tx${!hasHash ? ' is-fallback is-placeholder' : ''}`}
-      title={title}
-    >
-      {content}
+    <span role="cell" className="grai-grinder-last-tx">
+      <span className="grai-grinder-last-tx-stack">
+        {txRow}
+        <GraiGrinderCustodianChip
+          custodianAddress={custodianAddress}
+          image={image}
+          nftName={nftName}
+          custodianId={custodianId}
+        />
+      </span>
     </span>
   )
 }
 
-function resolveGrinderTerminalKind(terminal?: string): 'binance' | 'cow' | null {
+function resolveGrinderTerminalKind(
+  terminal?: string,
+): 'binance' | 'cow' | 'swap' | 'path' | 'lifi' | null {
   const value = terminal?.trim().toLowerCase() ?? ''
   if (!value) return null
-  if (value === 'ccxt:binance' || value.includes('binance')) return 'binance'
+  const kind = value.split('@')[0]?.trim() || value
+  if (kind === 'ccxt:binance' || value.includes('binance')) return 'binance'
   if (
-    value === 'eip155:cow' ||
-    value === 'cow' ||
-    value === 'evm_cow_protocol' ||
+    kind === 'eip155:cow' ||
+    kind === 'cow' ||
+    kind === 'evm_cow_protocol' ||
     value.includes(':cow') ||
-    value.includes('cow')
+    kind.includes('cow')
   ) {
     return 'cow'
   }
+  if (kind === 'swap' || value.startsWith('swap@') || value.includes('.swap')) return 'swap'
+  if (kind === 'path' || value.startsWith('path@') || value.includes('.path')) return 'path'
+  if (kind === 'lifi' || value.startsWith('lifi@') || value.includes('lifi')) return 'lifi'
   return null
 }
 

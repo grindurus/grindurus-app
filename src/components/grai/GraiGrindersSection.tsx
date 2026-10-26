@@ -304,6 +304,10 @@ export function GraiGrindersSection() {
                         lastActionLabel={row.lastActionLabel}
                         terminal={row.terminal}
                         txState={grinderLastTx[row.id]}
+                        custodianAddress={row.custodianAddress}
+                        image={row.image}
+                        nftName={row.nftName}
+                        custodianId={row.custodianId}
                       />
                       <GraiGrinderTableName
                         row={row}

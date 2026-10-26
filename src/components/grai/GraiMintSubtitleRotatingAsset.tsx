@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { FALLBACK_GRAI_ASSETS, type GraiAsset, type GraiAssetIcon } from '../../grai/knownMints'
 import { useGraiAssets } from '../../hooks/useGraiAssets'
 
@@ -44,7 +52,17 @@ function buildMintSubtitleRotateEntries(source: GraiAsset[]): MintSubtitleRotate
   return entries
 }
 
-export function GraiMintSubtitleRotatingAsset() {
+export type GraiMintSubtitleProbeVariant = 'deposit' | 'claim'
+
+export function GraiMintSubtitleRotatingAsset({
+  onMaxLineWidth,
+  probeVariant = 'deposit',
+}: {
+  /** Called when the widest full-line width is known/updated (for stable scale). */
+  onMaxLineWidth?: (maxLineWidth: number) => void
+  /** Full-line probe copy used to lock shrink-to-fit scale across ticker words. */
+  probeVariant?: GraiMintSubtitleProbeVariant
+}) {
   const { assets } = useGraiAssets()
   const rotateEntries = useMemo(() => {
     const source = assets.length > 0 ? assets : FALLBACK_GRAI_ASSETS
@@ -53,6 +71,7 @@ export function GraiMintSubtitleRotatingAsset() {
   const [entryIndex, setEntryIndex] = useState(0)
   const currentEntry = rotateEntries[entryIndex] ?? { label: 'Assets' }
   const wordRef = useRef<HTMLSpanElement>(null)
+  const probeRef = useRef<HTMLSpanElement>(null)
   const [slotWidth, setSlotWidth] = useState<number | null>(null)
   const [isWidthTransitionReady, setIsWidthTransitionReady] = useState(false)
 
@@ -63,15 +82,27 @@ export function GraiMintSubtitleRotatingAsset() {
     if (width > 0) setSlotWidth(width)
   }, [])
 
+  const measureMaxLineWidth = useCallback(() => {
+    const probe = probeRef.current
+    if (!probe) return
+    let max = 0
+    for (const child of probe.children) {
+      max = Math.max(max, Math.ceil((child as HTMLElement).scrollWidth))
+    }
+    if (max > 0) onMaxLineWidth?.(max)
+  }, [onMaxLineWidth])
+
   useLayoutEffect(() => {
     measureCurrentWidth()
   }, [currentEntry.label, currentEntry.icon?.src, measureCurrentWidth])
 
   useLayoutEffect(() => {
+    measureMaxLineWidth()
+  }, [rotateEntries, probeVariant, measureMaxLineWidth])
+
+  useLayoutEffect(() => {
     if (slotWidth === null) return
-    const frame = window.requestAnimationFrame(() => {
-      setIsWidthTransitionReady(true)
-    })
+    const frame = window.requestAnimationFrame(() => setIsWidthTransitionReady(true))
     return () => window.cancelAnimationFrame(frame)
   }, [slotWidth])
 
@@ -88,30 +119,85 @@ export function GraiMintSubtitleRotatingAsset() {
   }, [rotateEntries])
 
   return (
-    <span
-      className={`grai-page-subtitle-rotating-slot${isWidthTransitionReady ? ' is-width-ready' : ''}`}
-      style={slotWidth === null ? undefined : { width: `${slotWidth}px` }}
-      aria-live="polite"
-    >
-      <span
-        key={currentEntry.label}
-        ref={wordRef}
-        className="grai-page-subtitle-rotating-word-current"
-      >
-        {currentEntry.icon ? (
-          <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
-            <img
-              src={currentEntry.icon.src}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              onLoad={measureCurrentWidth}
-            />
+    <>
+      {/* Off-screen full-line probes: scale locks to the widest variant, slot still hugs each ticker. */}
+      <span ref={probeRef} className="grai-page-subtitle-line-probe" aria-hidden="true">
+        {rotateEntries.map((entry) => (
+          <span key={`probe-line-${probeVariant}-${entry.label}`} className="grai-page-subtitle-text-line">
+            {probeVariant === 'claim' ? (
+              <>
+                <span className="grai-page-subtitle-text-segment">Claim</span>
+                <span className="grai-page-subtitle-rotating-slot">
+                  <span className="grai-page-subtitle-rotating-word-current">
+                    {entry.icon ? (
+                      <span className="grai-page-subtitle-rotating-word-icon">
+                        <img
+                          src={entry.icon.src}
+                          alt=""
+                          loading="eager"
+                          decoding="async"
+                          onLoad={measureMaxLineWidth}
+                        />
+                      </span>
+                    ) : null}
+                    <span className="grai-page-subtitle-rotating-word-label">{entry.label}</span>
+                  </span>
+                </span>
+                <span className="grai-page-subtitle-text-segment">Price Volatility Yields</span>
+              </>
+            ) : (
+              <>
+                <span className="grai-page-subtitle-text-segment">Turn</span>
+                <span className="grai-page-subtitle-rotating-slot">
+                  <span className="grai-page-subtitle-rotating-word-current">
+                    {entry.icon ? (
+                      <span className="grai-page-subtitle-rotating-word-icon">
+                        <img
+                          src={entry.icon.src}
+                          alt=""
+                          loading="eager"
+                          decoding="async"
+                          onLoad={measureMaxLineWidth}
+                        />
+                      </span>
+                    ) : null}
+                    <span className="grai-page-subtitle-rotating-word-label">{entry.label}</span>
+                  </span>
+                </span>
+                <span className="grai-page-subtitle-text-segment">Price Volatility</span>
+                <span className="grai-page-subtitle-text-segment grai-page-subtitle-text-segment--after-term">
+                  into Yields
+                </span>
+              </>
+            )}
           </span>
-        ) : null}
-        <span className="grai-page-subtitle-rotating-word-label">{currentEntry.label}</span>
+        ))}
       </span>
-    </span>
+      <span
+        className={`grai-page-subtitle-rotating-slot${isWidthTransitionReady ? ' is-width-ready' : ''}`}
+        style={slotWidth === null ? undefined : { width: `${slotWidth}px` }}
+        aria-live="polite"
+      >
+        <span
+          key={currentEntry.label}
+          ref={wordRef}
+          className="grai-page-subtitle-rotating-word-current"
+        >
+          {currentEntry.icon ? (
+            <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
+              <img
+                src={currentEntry.icon.src}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onLoad={measureCurrentWidth}
+              />
+            </span>
+          ) : null}
+          <span className="grai-page-subtitle-rotating-word-label">{currentEntry.label}</span>
+        </span>
+      </span>
+    </>
   )
 }
 
@@ -132,14 +218,105 @@ export function GraiRedeemSubtitleText({ graiIcon }: { graiIcon: string }) {
   )
 }
 
+function isCompactSubtitleViewport() {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+}
+
+function useGraiSubtitleFit() {
+  const fitRef = useRef<HTMLSpanElement>(null)
+  const maxLineWidthRef = useRef(0)
+  const [scale, setScale] = useState(1)
+
+  const fitToWidth = useCallback((maxLineWidth?: number) => {
+    const fit = fitRef.current
+    if (!fit) return
+    // Mobile uses a 2-line layout — keep full font size, no shrink-to-fit.
+    if (isCompactSubtitleViewport()) {
+      setScale(1)
+      return
+    }
+    const available = fit.clientWidth
+    if (available <= 0) return
+    if (typeof maxLineWidth === 'number' && maxLineWidth > 0) {
+      maxLineWidthRef.current = Math.max(maxLineWidthRef.current, maxLineWidth)
+    }
+    const needed = maxLineWidthRef.current
+    if (needed <= 0) return
+    const next = Math.min(1, (available - 4) / needed)
+    setScale((current) => (Math.abs(current - next) < 0.005 ? current : Math.max(0.72, next)))
+  }, [])
+
+  const onMaxLineWidth = useCallback(
+    (maxLineWidth: number) => {
+      fitToWidth(maxLineWidth)
+    },
+    [fitToWidth],
+  )
+
+  useLayoutEffect(() => {
+    fitToWidth()
+    const fit = fitRef.current
+    if (!fit || typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(() => fitToWidth())
+    ro.observe(fit)
+    const mq = window.matchMedia('(max-width: 640px)')
+    const onMq = () => fitToWidth()
+    mq.addEventListener('change', onMq)
+    window.addEventListener('resize', fitToWidth)
+    return () => {
+      ro.disconnect()
+      mq.removeEventListener('change', onMq)
+      window.removeEventListener('resize', fitToWidth)
+    }
+  }, [fitToWidth])
+
+  return { fitRef, scale, onMaxLineWidth }
+}
+
 export function GraiMintSubtitleText() {
+  const { fitRef, scale, onMaxLineWidth } = useGraiSubtitleFit()
+
   return (
-    <span className="grai-page-subtitle-text-line">
-      <span className="grai-page-subtitle-text-segment">Turn</span>
-      <GraiMintSubtitleRotatingAsset />
-      <span className="grai-page-subtitle-text-segment">Price Volatility</span>
-      <span className="grai-page-subtitle-text-segment grai-page-subtitle-text-segment--after-term">
-        into Yields
+    <span
+      className="grai-page-subtitle-text-line-fit"
+      ref={fitRef}
+      style={{ '--grai-subtitle-scale': String(scale) } as CSSProperties}
+    >
+      <span className="grai-page-subtitle-text-line">
+        <span className="grai-page-subtitle-text-row">
+          <span className="grai-page-subtitle-text-segment">Turn</span>
+          <GraiMintSubtitleRotatingAsset
+            probeVariant="deposit"
+            onMaxLineWidth={onMaxLineWidth}
+          />
+        </span>
+        <span className="grai-page-subtitle-text-row">
+          <span className="grai-page-subtitle-text-segment">Price Volatility</span>
+          <span className="grai-page-subtitle-text-segment grai-page-subtitle-text-segment--after-term">
+            into Yields
+          </span>
+        </span>
+      </span>
+    </span>
+  )
+}
+
+export function GraiClaimSubtitleText() {
+  const { fitRef, scale, onMaxLineWidth } = useGraiSubtitleFit()
+
+  return (
+    <span
+      className="grai-page-subtitle-text-line-fit"
+      ref={fitRef}
+      style={{ '--grai-subtitle-scale': String(scale) } as CSSProperties}
+    >
+      <span className="grai-page-subtitle-text-line">
+        <span className="grai-page-subtitle-text-segment">Claim</span>
+        <GraiMintSubtitleRotatingAsset
+          probeVariant="claim"
+          onMaxLineWidth={onMaxLineWidth}
+        />
+        <span className="grai-page-subtitle-text-segment">Price Volatility Yields</span>
       </span>
     </span>
   )
