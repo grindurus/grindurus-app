@@ -87,29 +87,31 @@ export default function Footer() {
         </svg>
       </div>
 
-      <div className="relative z-10 mx-auto flex max-w-[1280px] flex-col items-end gap-8 px-8 sm:flex-row sm:items-end sm:justify-between">
-        <Link to="/" className="order-2 shrink-0 self-start no-underline sm:order-1 sm:self-end" aria-label="GrindURUS home">
+      <div className="relative z-10 mx-auto flex max-w-[1280px] flex-col items-center gap-6 px-4 text-center sm:flex-row sm:items-end sm:justify-between sm:gap-8 sm:px-8 sm:text-left">
+        <Link to="/" className="shrink-0 no-underline" aria-label="GrindURUS home">
           <span
-            className="inline-block whitespace-nowrap font-mono text-3xl font-semibold uppercase tracking-wide text-transparent bg-shimmer-size bg-clip-text animate-shimmer sm:text-4xl md:text-5xl"
+            className="inline-block whitespace-nowrap font-mono text-[1.75rem] font-semibold uppercase tracking-wide text-transparent bg-shimmer-size bg-clip-text animate-shimmer sm:text-4xl md:text-5xl"
             style={{ backgroundImage: 'linear-gradient(90deg, #ff69b4, #ffffff, #ff1493, #ffffff, #ff69b4)' }}
           >
             GrindURUS
           </span>
         </Link>
-        <div className="order-1 flex flex-col items-end gap-3 sm:order-2">
-          <p className="m-0 font-mono text-sm text-[#1a1a1a]/85 dark:text-white/85">
+        <div className="flex w-full max-w-md flex-col items-center gap-3 sm:w-auto sm:max-w-none sm:items-end">
+          <p className="m-0 font-mono text-xs leading-relaxed text-[#1a1a1a]/85 dark:text-white/85 sm:text-sm">
             © GrindURUS 2026. All rights reserved.
-            {' · '}
+            <span className="mx-1.5 text-[#1a1a1a]/35 dark:text-white/35" aria-hidden>
+              ·
+            </span>
             <a
               href="/llms.txt"
               rel="describedby"
-              className="text-[#1a1a1a]/85 underline decoration-black/25 underline-offset-2 transition-opacity hover:opacity-70 dark:text-white/85 dark:decoration-white/30"
+              className="underline decoration-black/25 underline-offset-2 transition-opacity hover:opacity-70 dark:decoration-white/30"
             >
               llms.txt
             </a>
           </p>
           <nav
-            className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 font-mono text-xs text-[#1a1a1a]/70 dark:text-white/60"
+            className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 font-mono text-[0.7rem] text-[#1a1a1a]/70 dark:text-white/60 sm:justify-end sm:gap-x-4 sm:text-xs"
             aria-label="Legal"
           >
             <Link

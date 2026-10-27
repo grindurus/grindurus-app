@@ -303,29 +303,29 @@ function VerifyStrip() {
   const finalFormatted = finalUsdc.toLocaleString("en-US", { maximumFractionDigits: 0 })
 
   return (
-    <div className="mt-8 md:mt-10 bg-[#0a0a0a] border border-white/[0.08] rounded-2xl p-5 md:p-6 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10">
-      <div className="flex-1 min-w-0">
-        <p className="font-mono font-bold text-white text-lg md:text-xl leading-snug mb-2">
+    <div className="mt-8 md:mt-10 bg-[#0a0a0a] border border-white/[0.08] rounded-2xl p-4 sm:p-5 md:p-6 flex flex-col lg:flex-row lg:items-center gap-4 sm:gap-6 lg:gap-10">
+      <div className="flex-1 min-w-0 text-center lg:text-left">
+        <p className="font-mono font-bold text-white text-base sm:text-lg md:text-xl leading-snug mb-2">
           Backtest any asset yourself{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink to-[#ff1493]">
             for $1
           </span>
         </p>
-        <p className="font-mono text-sm text-white/50 leading-relaxed max-w-[36rem]">
+        <p className="font-mono text-xs sm:text-sm text-white/50 leading-relaxed max-w-[36rem] mx-auto lg:mx-0">
           Same algorithm. Your pair. Your timeframe. See exactly how much volatility yield it would have earned.
         </p>
       </div>
 
-      <div className="bg-black border border-white/10 rounded-xl px-4 py-3 flex items-stretch divide-x divide-white/10 shrink-0">
-        <div className="flex flex-col items-center text-center pr-4 min-w-[5.5rem]">
-          <FieldLabel className="mb-1 text-center">APY</FieldLabel>
-          <span className="font-mono font-black text-xl text-[#4ade80] tabular-nums leading-none">
+      <div className="grid w-full grid-cols-2 overflow-hidden rounded-xl border border-white/10 bg-black lg:w-auto lg:min-w-[16rem]">
+        <div className="flex flex-col items-center justify-center gap-1 px-3 py-3 text-center sm:px-4">
+          <FieldLabel className="mb-0 text-center">APY</FieldLabel>
+          <span className="font-mono font-black text-lg sm:text-xl text-[#4ade80] tabular-nums leading-none">
             +{yield_.toFixed(1)}%
           </span>
         </div>
-        <div className="flex flex-col items-center text-center pl-4 min-w-[6.5rem]">
-          <FieldLabel className="mb-1 text-center">On $5k</FieldLabel>
-          <span className="font-mono font-black text-xl text-white tabular-nums leading-none">
+        <div className="flex flex-col items-center justify-center gap-1 border-l border-white/10 px-3 py-3 text-center sm:px-4">
+          <FieldLabel className="mb-0 text-center">On $5k</FieldLabel>
+          <span className="font-mono font-black text-lg sm:text-xl text-white tabular-nums leading-none">
             ${finalFormatted}
           </span>
         </div>
