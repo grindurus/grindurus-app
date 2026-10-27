@@ -118,14 +118,18 @@ export function GraiGrindersNetworkSelect({
   const updateMenuPosition = useCallback(() => {
     if (!buttonRef.current) return
     const rect = buttonRef.current.getBoundingClientRect()
-    const minWidth = Math.max(rect.width, 200)
-    const isMobile = window.matchMedia('(max-width: 768px)').matches
+    const pad = 8
+    const vw = window.innerWidth
+    const minWidth = Math.min(Math.max(rect.width, 200), Math.max(pad * 2, vw - pad * 2))
+    // Keep the menu on-screen: left-align to the trigger, then clamp if it would overflow.
+    let left = rect.left
+    if (left + minWidth > vw - pad) left = vw - pad - minWidth
+    if (left < pad) left = pad
     setMenuStyle({
       position: 'fixed',
       top: rect.bottom + 6,
-      ...(isMobile
-        ? { right: window.innerWidth - rect.right, left: 'auto' }
-        : { left: rect.left, right: 'auto' }),
+      left,
+      right: 'auto',
       minWidth,
       zIndex: 120,
     })

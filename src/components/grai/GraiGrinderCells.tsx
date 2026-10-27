@@ -333,33 +333,75 @@ function splitGrinderAmountTicker(value: string): { amount: string; ticker: stri
   return { amount: parts.slice(0, -1).join(' '), ticker }
 }
 
+function resolveYieldSubline(
+  yieldValue: string | undefined,
+  yieldNumeric?: number,
+): { text: string; tone: 'is-zero' } | null {
+  if (yieldValue == null || yieldValue === '—') return null
+  const signed =
+    typeof yieldNumeric === 'number' && Number.isFinite(yieldNumeric)
+      ? yieldNumeric
+      : yieldValue.startsWith('+')
+        ? 1
+        : yieldValue.startsWith('−') || yieldValue.startsWith('-')
+          ? -1
+          : 0
+  // Only annotate zeros under the yield cell; +/- tones color the main amount.
+  if (signed !== 0) return null
+  return { text: '0%', tone: 'is-zero' }
+}
+
 export function GraiGrinderAmountCell({
   value,
   className,
+  yieldValue,
+  yieldNumeric,
+  usdValue,
 }: {
   value: string
   className?: string
+  /** Optional yield delta shown under the balance (e.g. ``+0.01 WETH``). */
+  yieldValue?: string
+  /** Numeric yield for zero / sign detection (preferred over string parse). */
+  yieldNumeric?: number
+  /** Optional USD equivalent shown under Base / Quote balances. */
+  usdValue?: number
 }) {
   const { amount, ticker } = splitGrinderAmountTicker(value)
   const iconUrl = ticker ? grinderAssetIconUrl(ticker) : null
+  const yieldSub = resolveYieldSubline(yieldValue, yieldNumeric)
+  const usdText =
+    typeof usdValue === 'number' && Number.isFinite(usdValue) ? formatGrinderUsdExact(usdValue) : null
+  const hasSub = Boolean(yieldSub || usdText)
   return (
-    <span role="cell" className={['grai-grinder-amount-cell', className].filter(Boolean).join(' ')}>
-      <span className="grai-grinder-amount-value">{amount}</span>
-      {ticker ? (
-        <span className="grai-grinder-amount-ticker">
-          {iconUrl ? (
-            <img
-              className="grai-grinder-amount-icon"
-              src={iconUrl}
-              alt=""
-              width={14}
-              height={14}
-              loading="lazy"
-              decoding="async"
-            />
-          ) : null}
-          <span>{ticker}</span>
-        </span>
+    <span
+      role="cell"
+      className={['grai-grinder-amount-cell', hasSub ? 'has-yield' : null, className]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <span className="grai-grinder-amount-main">
+        <span className="grai-grinder-amount-value">{amount}</span>
+        {ticker ? (
+          <span className="grai-grinder-amount-ticker">
+            {iconUrl ? (
+              <img
+                className="grai-grinder-amount-icon"
+                src={iconUrl}
+                alt=""
+                width={14}
+                height={14}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : null}
+            <span>{ticker}</span>
+          </span>
+        ) : null}
+      </span>
+      {usdText ? <span className="grai-grinder-amount-usd">{usdText}</span> : null}
+      {yieldSub ? (
+        <span className={['grai-grinder-amount-yield', yieldSub.tone].join(' ')}>{yieldSub.text}</span>
       ) : null}
     </span>
   )
@@ -493,7 +535,7 @@ function buildGrinderCountHint(active: number, total: number, isLive: boolean, i
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Total</span>
-        All grinders returned by Toreador (<code>GET /table</code>).
+        Custodians joined with matched grinders from Toreador (<code>GET /table</code>).
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Data source</span>

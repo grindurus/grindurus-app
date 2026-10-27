@@ -20,6 +20,8 @@ export type ToreadorGrindersTableResponse = {
   grinder_count?: number
   toreador_count?: number
   toreadors?: string[]
+  /** ISO UTC of soonest background yield distribute across returned toreadors. */
+  nextDistributeYieldAt?: string | null
   cache?: { hit?: boolean; ttl_sec?: number; age_sec?: number | null }
   detail?: unknown
 }
@@ -70,7 +72,12 @@ export async function fetchToreadorGrindersTable(options?: {
   refresh?: boolean
   toreador?: string
   signal?: AbortSignal
-}): Promise<{ rows: GrinderTableRow[]; summary: GrinderTableSummary; raw: ToreadorGrindersTableResponse }> {
+}): Promise<{
+  rows: GrinderTableRow[]
+  summary: GrinderTableSummary
+  nextDistributeYieldAt: string | null
+  raw: ToreadorGrindersTableResponse
+}> {
   const params = new URLSearchParams()
   if (options?.refresh) params.set('refresh', '1')
   if (options?.toreador) params.set('toreador', options.toreador)
@@ -106,5 +113,9 @@ export async function fetchToreadorGrindersTable(options?: {
     isFiniteNumber(body.summary.totalCount)
       ? body.summary
       : summarizeGrinderTableRows(rows)
-  return { rows, summary, raw: body }
+  const nextDistributeYieldAt =
+    typeof body.nextDistributeYieldAt === 'string' && body.nextDistributeYieldAt.trim()
+      ? body.nextDistributeYieldAt.trim()
+      : null
+  return { rows, summary, nextDistributeYieldAt, raw: body }
 }

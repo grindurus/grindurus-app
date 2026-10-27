@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import * as Select from "@radix-ui/react-select"
 import { APP_BACKTEST } from "@landing/config"
 import { Title } from "@landing/components/ui/Title"
-import { Description } from "@landing/components/ui/Description"
 import { Button } from "@landing/components/ui/Button"
 import { FieldLabel } from "@landing/components/ui/FieldLabel"
 import { PerformanceChart, type ChartDataPoint } from "./PerformanceChart"
@@ -358,15 +357,11 @@ export function AnnualResultsSection() {
 
         <div className="text-center mb-10 md:mb-12">
           <Title className="mb-4">
-            Offchain Grinders Infrastructure —{" "}
+            Offchain Grinders -{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink to-[#ff1493]">
               a verifiable algorithm
             </span>
           </Title>
-          <Description className="mx-auto max-w-[540px]">
-            An automated market-taking strategy that turns price volatility into yield.
-            Inspect the track record — then prove it yourself on any asset.
-          </Description>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:items-stretch">

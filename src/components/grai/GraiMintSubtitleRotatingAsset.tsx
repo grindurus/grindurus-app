@@ -143,7 +143,7 @@ export function GraiMintSubtitleRotatingAsset({
                     <span className="grai-page-subtitle-rotating-word-label">{entry.label}</span>
                   </span>
                 </span>
-                <span className="grai-page-subtitle-text-segment">Price Volatility Yields</span>
+                <span className="grai-page-subtitle-text-segment">Yields from Price Volatility</span>
               </>
             ) : (
               <>
@@ -312,12 +312,16 @@ export function GraiClaimSubtitleText() {
       style={{ '--grai-subtitle-scale': String(scale) } as CSSProperties}
     >
       <span className="grai-page-subtitle-text-line">
-        <span className="grai-page-subtitle-text-segment">Claim</span>
-        <GraiMintSubtitleRotatingAsset
-          probeVariant="claim"
-          onMaxLineWidth={onMaxLineWidth}
-        />
-        <span className="grai-page-subtitle-text-segment">Price Volatility Yields</span>
+        <span className="grai-page-subtitle-text-row">
+          <span className="grai-page-subtitle-text-segment">Claim</span>
+          <GraiMintSubtitleRotatingAsset
+            probeVariant="claim"
+            onMaxLineWidth={onMaxLineWidth}
+          />
+        </span>
+        <span className="grai-page-subtitle-text-row">
+          <span className="grai-page-subtitle-text-segment">Yields from Price Volatility</span>
+        </span>
       </span>
     </span>
   )

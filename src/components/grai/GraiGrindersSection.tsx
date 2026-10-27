@@ -33,10 +33,32 @@ export function GraiGrindersSection() {
   const [grindersTablePage, setGrindersTablePage] = useState(0)
   const {
     rows: grinderRows,
+    nextDistributeYieldAt,
     isLive: isGrinderLive,
     isBootstrapped: isGrinderBootstrapped,
     isToreadorUnavailable,
   } = useToreadorGrinderTable()
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    if (!nextDistributeYieldAt) return
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [nextDistributeYieldAt])
+  const nextDistributeYieldLabel = useMemo(() => {
+    if (!nextDistributeYieldAt) return null
+    const target = Date.parse(nextDistributeYieldAt)
+    if (!Number.isFinite(target)) return null
+    const sec = Math.max(0, Math.ceil((target - nowMs) / 1000))
+    if (sec < 60) return `${sec}s`
+    if (sec < 3600) {
+      const m = Math.floor(sec / 60)
+      const s = sec % 60
+      return s > 0 ? `${m}m ${s}s` : `${m}m`
+    }
+    const h = Math.floor(sec / 3600)
+    const m = Math.floor((sec % 3600) / 60)
+    return m > 0 ? `${h}h ${m}m` : `${h}h`
+  }, [nextDistributeYieldAt, nowMs])
   const walletNetworkCaip2 = activeWallet.networkCaip2
   const isGrindersNetworkFilterActive =
     activeWallet.isConnected && isGrindersFilterEnabled && Boolean(walletNetworkCaip2)
@@ -318,24 +340,31 @@ export function GraiGrindersSection() {
                         onCopy={copyGrinderTableAddress}
                       />
                       <span role="cell">{row.lastAction}</span>
-                      <GraiGrinderAmountCell value={row.base} />
-                      <GraiGrinderAmountCell value={row.quote} />
+                      <GraiGrinderAmountCell
+                        value={row.base}
+                        usdValue={row.balanceBase * row.spotPrice}
+                      />
+                      <GraiGrinderAmountCell value={row.quote} usdValue={row.balanceQuote} />
                       <GraiGrinderAmountCell
                         value={row.yieldBase}
+                        yieldValue={row.yieldBase}
+                        yieldNumeric={row.yieldBaseValue}
                         className={
-                          row.yieldBase.startsWith('+')
+                          row.yieldBaseValue > 0
                             ? 'is-positive'
-                            : row.yieldBase.startsWith('−') || row.yieldBase.startsWith('-')
+                            : row.yieldBaseValue < 0
                               ? 'is-negative'
                               : undefined
                         }
                       />
                       <GraiGrinderAmountCell
                         value={row.yieldQuote}
+                        yieldValue={row.yieldQuote}
+                        yieldNumeric={row.yieldQuoteValue}
                         className={
-                          row.yieldQuote.startsWith('+')
+                          row.yieldQuoteValue > 0
                             ? 'is-positive'
-                            : row.yieldQuote.startsWith('−') || row.yieldQuote.startsWith('-')
+                            : row.yieldQuoteValue < 0
                               ? 'is-negative'
                               : undefined
                         }
@@ -412,6 +441,11 @@ export function GraiGrindersSection() {
                   <span className="grai-grinders-section-toggle-count">{grinderTotalCount}</span>
                 </span>
               </span>
+              {nextDistributeYieldLabel ? (
+                <span className="grai-grinders-next-distribute" aria-live="polite">
+                  next distribute yield: {nextDistributeYieldLabel}
+                </span>
+              ) : null}
             </button>
           </div>
         </div>

@@ -251,6 +251,7 @@ function Header() {
   const isGraiActive = pathname.startsWith('/grai')
   const isGrsActive = pathname.startsWith('/grs')
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [mobileNavExpanded, setMobileNavExpanded] = useState<'backtest' | 'grai' | 'affiliates' | null>(null)
   const [isBacktestMenuOpen, setIsBacktestMenuOpen] = useState(false)
   const [isAffiliatesMenuOpen, setIsAffiliatesMenuOpen] = useState(false)
   const [isGraiMenuOpen, setIsGraiMenuOpen] = useState(false)
@@ -319,6 +320,7 @@ function Header() {
 
   useEffect(() => {
     setIsMobileNavOpen(false)
+    setMobileNavExpanded(null)
     setIsBacktestMenuOpen(false)
     setIsAffiliatesMenuOpen(false)
     setIsGraiMenuOpen(false)
@@ -349,6 +351,17 @@ function Header() {
   useEffect(() => {
     if (!isNavMobile) setIsMobileNavOpen(false)
   }, [isNavMobile])
+
+  useEffect(() => {
+    if (!isMobileNavOpen) {
+      setMobileNavExpanded(null)
+      return
+    }
+    if (isGraiActive) setMobileNavExpanded('grai')
+    else if (isBacktestActive) setMobileNavExpanded('backtest')
+    else if (isAffiliatesActive) setMobileNavExpanded('affiliates')
+    else setMobileNavExpanded(null)
+  }, [isMobileNavOpen, isGraiActive, isBacktestActive, isAffiliatesActive])
 
   useLayoutEffect(() => {
     const track = desktopNavTrackRef.current
@@ -744,117 +757,165 @@ function Header() {
         <nav aria-label="Product sections">
           <ul className="header-mobile-nav-list">
             {!isNavCompact || !isBacktestActive ? (
-            <li>
-              <HeaderNavPathButton
-                path="/backtest"
-                active={isBacktestActive}
-                onClick={(event) => {
-                  closeMenus()
-                  setIsMobileNavOpen(false)
-                  if (event.productSwitch) return
-                  if (pathname.startsWith('/backtest')) {
-                    event.preventDefault()
-                    navigateToBacktestSection('create')
+            <li className={`header-mobile-nav-item${mobileNavExpanded === 'backtest' ? ' is-open' : ''}`}>
+              <div className="header-mobile-nav-row">
+                <HeaderNavPathButton
+                  path="/backtest"
+                  active={isBacktestActive}
+                  onClick={(event) => {
+                    closeMenus()
+                    setIsMobileNavOpen(false)
+                    if (event.productSwitch) return
+                    if (pathname.startsWith('/backtest')) {
+                      event.preventDefault()
+                      navigateToBacktestSection('create')
+                    }
+                  }}
+                >
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">BACKTEST</span>
+                    <span className="header-nav-link-sub">strategy calculator</span>
+                  </span>
+                </HeaderNavPathButton>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn header-mobile-nav-caret${mobileNavExpanded === 'backtest' ? ' is-open' : ''}`}
+                  aria-expanded={mobileNavExpanded === 'backtest'}
+                  aria-controls={`${mobileNavId}-backtest`}
+                  aria-label="BACKTEST sections"
+                  onClick={() =>
+                    setMobileNavExpanded((cur) => (cur === 'backtest' ? null : 'backtest'))
                   }
-                }}
-              >
-                <span className="header-nav-link-stack">
-                  <span className="header-nav-link-title">BACKTEST</span>
-                  <span className="header-nav-link-sub">strategy calculator</span>
-                </span>
-              </HeaderNavPathButton>
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+              </div>
+              {mobileNavExpanded === 'backtest' ? (
+                <ul id={`${mobileNavId}-backtest`} className="header-mobile-nav-sublist">
+                  {BACKTEST_NAV_ITEMS.map((item) => (
+                    <li key={item.section}>
+                      <button
+                        type="button"
+                        className="header-nav-link header-mobile-nav-sublink"
+                        onClick={() => {
+                          handleBacktestSectionClick(item.section)
+                          setIsMobileNavOpen(false)
+                        }}
+                      >
+                        <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
             ) : null}
             {!isNavCompact || !isGraiActive ? (
-            <li>
-              <HeaderNavPathButton
-                path="/grai"
-                active={isGraiActive}
-                onClick={(event) => {
-                  closeMenus()
-                  setIsMobileNavOpen(false)
-                  if (event.productSwitch) return
-                  if (pathname.startsWith('/grai')) {
-                    event.preventDefault()
-                    navigateToGraiSection('mint')
+            <li className={`header-mobile-nav-item${mobileNavExpanded === 'grai' ? ' is-open' : ''}`}>
+              <div className="header-mobile-nav-row">
+                <HeaderNavPathButton
+                  path="/grai"
+                  active={isGraiActive}
+                  onClick={(event) => {
+                    closeMenus()
+                    setIsMobileNavOpen(false)
+                    if (event.productSwitch) return
+                    if (pathname.startsWith('/grai')) {
+                      event.preventDefault()
+                      navigateToGraiSection('mint')
+                    }
+                  }}
+                >
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">GRAI</span>
+                    <span className="header-nav-link-sub">fund share</span>
+                  </span>
+                </HeaderNavPathButton>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn header-mobile-nav-caret${mobileNavExpanded === 'grai' ? ' is-open' : ''}`}
+                  aria-expanded={mobileNavExpanded === 'grai'}
+                  aria-controls={`${mobileNavId}-grai`}
+                  aria-label="GRAI sections"
+                  onClick={() =>
+                    setMobileNavExpanded((cur) => (cur === 'grai' ? null : 'grai'))
                   }
-                }}
-              >
-                <span className="header-nav-link-stack">
-                  <span className="header-nav-link-title">GRAI</span>
-                  <span className="header-nav-link-sub">fund share</span>
-                </span>
-              </HeaderNavPathButton>
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+              </div>
+              {mobileNavExpanded === 'grai' ? (
+                <ul id={`${mobileNavId}-grai`} className="header-mobile-nav-sublist">
+                  {GRAI_NAV_ITEMS.map((item) => (
+                    <li key={item.section}>
+                      <button
+                        type="button"
+                        className="header-nav-link header-mobile-nav-sublink"
+                        onClick={() => {
+                          setIsMobileNavOpen(false)
+                          handleGraiSectionClick(item.section)
+                        }}
+                      >
+                        <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
             ) : null}
             {!isNavCompact || !isAffiliatesActive ? (
-            <li>
-              <HeaderNavPathButton
-                path="/affiliate"
-                active={isAffiliatesActive}
-                onClick={() => {
-                  closeMenus()
-                  setIsMobileNavOpen(false)
-                }}
-              >
-                <span className="header-nav-link-stack">
-                  <span className="header-nav-link-title">AFFILIATES</span>
-                  <span className="header-nav-link-sub">referral program</span>
-                </span>
-              </HeaderNavPathButton>
+            <li className={`header-mobile-nav-item${mobileNavExpanded === 'affiliates' ? ' is-open' : ''}`}>
+              <div className="header-mobile-nav-row">
+                <HeaderNavPathButton
+                  path="/affiliate"
+                  active={isAffiliatesActive}
+                  onClick={() => {
+                    closeMenus()
+                    setIsMobileNavOpen(false)
+                  }}
+                >
+                  <span className="header-nav-link-stack">
+                    <span className="header-nav-link-title">AFFILIATES</span>
+                    <span className="header-nav-link-sub">referral program</span>
+                  </span>
+                </HeaderNavPathButton>
+                <button
+                  type="button"
+                  className={`header-nav-caret-btn header-mobile-nav-caret${mobileNavExpanded === 'affiliates' ? ' is-open' : ''}`}
+                  aria-expanded={mobileNavExpanded === 'affiliates'}
+                  aria-controls={`${mobileNavId}-affiliates`}
+                  aria-label="AFFILIATES sections"
+                  onClick={() =>
+                    setMobileNavExpanded((cur) => (cur === 'affiliates' ? null : 'affiliates'))
+                  }
+                >
+                  <GraiUiCaret className="header-nav-caret" />
+                </button>
+              </div>
+              {mobileNavExpanded === 'affiliates' ? (
+                <ul id={`${mobileNavId}-affiliates`} className="header-mobile-nav-sublist">
+                  {AFFILIATES_NAV_ITEMS.map((item) => (
+                    <li key={item.section}>
+                      <button
+                        type="button"
+                        className="header-nav-link header-mobile-nav-sublink"
+                        onClick={() => {
+                          setIsMobileNavOpen(false)
+                          handleAffiliatesSectionClick(item.section)
+                        }}
+                      >
+                        <span className="header-nav-dropdown-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
             ) : null}
-            {isBacktestActive
-              ? BACKTEST_NAV_ITEMS.map((item) => (
-                  <li key={item.section}>
-                    <button
-                      type="button"
-                      className="header-nav-link header-mobile-nav-sublink"
-                      onClick={() => {
-                        handleBacktestSectionClick(item.section)
-                        setIsMobileNavOpen(false)
-                      }}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  </li>
-                ))
-              : null}
-            {isGraiActive
-              ? GRAI_NAV_ITEMS.map((item) => (
-                  <li key={item.section}>
-                    <button
-                      type="button"
-                      className="header-nav-link header-mobile-nav-sublink"
-                      onClick={() => {
-                        setIsMobileNavOpen(false)
-                        handleGraiSectionClick(item.section)
-                      }}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  </li>
-                ))
-              : null}
-            {isAffiliatesActive
-              ? AFFILIATES_NAV_ITEMS.map((item) => (
-                  <li key={item.section}>
-                    <button
-                      type="button"
-                      className="header-nav-link header-mobile-nav-sublink"
-                      onClick={() => {
-                        setIsMobileNavOpen(false)
-                        handleAffiliatesSectionClick(item.section)
-                      }}
-                    >
-                      <span className="header-nav-dropdown-item-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  </li>
-                ))
-              : null}
           </ul>
         </nav>
       </div>

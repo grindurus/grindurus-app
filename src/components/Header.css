@@ -576,6 +576,46 @@ button.header-nav-link {
   list-style: none;
 }
 
+.header-mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.header-mobile-nav-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.header-mobile-nav-row .header-nav-link {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.header-mobile-nav-caret {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.45rem;
+}
+
+.header-mobile-nav-caret:hover,
+.header-mobile-nav-caret:focus-visible {
+  background: rgba(255, 105, 180, 0.12);
+}
+
+.header-mobile-nav-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  margin: 0;
+  padding: 0 0 0.2rem;
+  list-style: none;
+}
+
 .header-mobile-nav-list .header-nav-link {
   width: 100%;
   min-height: 2.75rem;

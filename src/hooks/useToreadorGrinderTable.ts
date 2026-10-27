@@ -9,6 +9,7 @@ const POLL_MS = 15_000
 type UseToreadorGrinderTableResult = {
   rows: GrinderTableRow[]
   summary: GrinderTableSummary
+  nextDistributeYieldAt: string | null
   isConnected: boolean
   isBootstrapped: boolean
   isToreadorReachable: boolean | null
@@ -30,6 +31,7 @@ const EMPTY_SUMMARY: GrinderTableSummary = {
 export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
   const [rows, setRows] = useState<GrinderTableRow[]>([])
   const [summary, setSummary] = useState<GrinderTableSummary>(EMPTY_SUMMARY)
+  const [nextDistributeYieldAt, setNextDistributeYieldAt] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isBootstrapped, setIsBootstrapped] = useState(false)
   const [isToreadorReachable, setIsToreadorReachable] = useState<boolean | null>(null)
@@ -41,12 +43,17 @@ export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
     if (inflightRef.current) return
     inflightRef.current = true
     try {
-      const { rows: nextRows, summary: nextSummary } = await fetchToreadorGrindersTable({
+      const {
+        rows: nextRows,
+        summary: nextSummary,
+        nextDistributeYieldAt: nextAt,
+      } = await fetchToreadorGrindersTable({
         refresh: opts?.refresh,
         signal: opts?.signal,
       })
       setRows(nextRows)
       setSummary(nextSummary ?? summarizeGrinderTableRows(nextRows))
+      setNextDistributeYieldAt(nextAt)
       setIsConnected(true)
       setIsToreadorReachable(true)
       setError(null)
@@ -96,6 +103,7 @@ export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
   return {
     rows,
     summary,
+    nextDistributeYieldAt,
     isConnected,
     isBootstrapped,
     isToreadorReachable,

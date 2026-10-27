@@ -108,6 +108,29 @@ export default function Footer() {
               llms.txt
             </a>
           </p>
+          <nav
+            className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 font-mono text-xs text-[#1a1a1a]/70 dark:text-white/60"
+            aria-label="Legal"
+          >
+            <Link
+              to="/privacy"
+              className="transition-opacity hover:opacity-70 hover:text-[#1a1a1a] dark:hover:text-white"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              to="/terms"
+              className="transition-opacity hover:opacity-70 hover:text-[#1a1a1a] dark:hover:text-white"
+            >
+              Terms of Service
+            </Link>
+            <Link
+              to="/risk"
+              className="transition-opacity hover:opacity-70 hover:text-[#1a1a1a] dark:hover:text-white"
+            >
+              Risk Disclosure
+            </Link>
+          </nav>
           <SocialIcons />
         </div>
       </div>

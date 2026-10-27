@@ -3579,11 +3579,78 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-variant-numeric: tabular-nums;
 }
 
+.grai-grinder-amount-cell.has-yield {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+}
+
+.grai-grinder-amount-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .grai-grinder-amount-value {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.grai-grinder-amount-usd {
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme='light'] .grai-grinder-amount-usd {
+  color: rgba(0, 0, 0, 0.42);
+}
+
+.grai-grinder-amount-yield {
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grai-grinder-amount-yield.is-zero {
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+}
+
+.grai-grinder-amount-yield.is-positive,
+.grai-grinder-amount-cell.is-positive {
+  color: #5bff9b;
+}
+
+.grai-grinder-amount-yield.is-negative,
+.grai-grinder-amount-cell.is-negative {
+  color: #ff6b8a;
+}
+
+[data-theme='light'] .grai-grinder-amount-yield.is-zero {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='light'] .grai-grinder-amount-yield.is-positive,
+[data-theme='light'] .grai-grinder-amount-cell.is-positive {
+  color: #0a8f4a;
+}
+
+[data-theme='light'] .grai-grinder-amount-yield.is-negative,
+[data-theme='light'] .grai-grinder-amount-cell.is-negative {
+  color: #c6284a;
 }
 
 .grai-grinder-amount-ticker {
@@ -4248,13 +4315,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     white-space: normal;
   }
 
-  .grai-page-subtitle-text-line-fit {
+  .grai-page-subtitle-text-line-fit,
+  .grai-action-card.grai-mint .grai-page-subtitle-text-line-fit {
     height: auto;
     min-height: 2.7em;
     overflow: visible;
   }
 
-  .grai-page-subtitle-text-line {
+  .grai-page-subtitle-text-line,
+  .grai-action-card.grai-mint .grai-page-subtitle-text-line {
     position: relative;
     left: auto;
     top: auto;
@@ -4304,13 +4373,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     max-width: 100%;
   }
 
-  .grai-page-subtitle-text-line-fit {
+  .grai-page-subtitle-text-line-fit,
+  .grai-action-card.grai-mint .grai-page-subtitle-text-line-fit {
     height: auto;
     min-height: 2.7em;
     overflow: visible;
   }
 
-  .grai-page-subtitle-text-line {
+  .grai-page-subtitle-text-line,
+  .grai-action-card.grai-mint .grai-page-subtitle-text-line {
     position: relative;
     left: auto;
     top: auto;
@@ -4847,6 +4918,24 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   border-radius: 0 0 8px 8px;
   flex: 1 1 auto;
   min-width: 0;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.grai-grinders-next-distribute {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-theme='light'] .grai-grinders-next-distribute {
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .grai-grinders-summary-toggles-row .grai-donut-legend-toggle.grai-grinders-endpoints-toggle {
@@ -9702,8 +9791,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-sizing: border-box;
 }
 
-/* Deposit/Claim + amount as one pink card — switch sits on the field's top edge. */
+/* Deposit/Claim + amount as one card — switch fades into the amount field. */
 .grai-mint-amount-stack {
+  --grai-mint-stack-pink: color-mix(in srgb, #ff69b4 18%, #100c10);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -9713,17 +9803,26 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-sizing: border-box;
   border: 1px solid color-mix(in srgb, #ff69b4 32%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, #ff69b4 18%, #100c10);
-  /* Keep visible so the asset dropdown can open past the card edge. */
-  overflow: visible;
+  /* Pink climbs into the switch row (~2.45rem), not only below it. */
+  background: linear-gradient(
+    180deg,
+    var(--bg-primary) 0,
+    var(--bg-primary) 1.15rem,
+    var(--grai-mint-stack-pink) 2.45rem,
+    var(--grai-mint-stack-pink) 100%
+  );
+  /* Clip switch bg to the card radius so top corners keep the pink frame. */
+  overflow: hidden;
 }
 
 .grai-mint-amount-stack:has(.grai-asset-select-dropdown) {
+  /* Asset menu portals past the card edge. */
+  overflow: visible;
   z-index: 6;
 }
 
 [data-theme='light'] .grai-mint-amount-stack {
-  background: color-mix(in srgb, #ff69b4 14%, #f0e8ed);
+  --grai-mint-stack-pink: color-mix(in srgb, #ff69b4 14%, #f0e8ed);
   border-color: color-mix(in srgb, #ff69b4 28%, rgba(0, 0, 0, 0.1));
 }
 
@@ -9732,19 +9831,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   width: 100%;
   max-width: none;
   border: none;
-  border-bottom: 1px solid color-mix(in srgb, #ff69b4 28%, transparent);
-  border-radius: 0;
-  /* Dark tray so the pink active pill reads clearly against the stack. */
-  background: color-mix(in srgb, #000 42%, transparent);
-  padding: 0.12rem;
+  /* Follow the stack's 12px top corners (inner = 11px under 1px border). */
+  border-radius: 11px 11px 0 0;
+  /* Transparent so the stack gradient shows through. */
+  background: transparent;
+  padding: 0.14rem;
   box-sizing: border-box;
   /* Deposit/Lock + Claim/Unlock share one row height. */
-  min-height: 2.05rem;
+  min-height: 2.45rem;
 }
 
 [data-theme='light'] .grai-mint-amount-stack > .grai-action-switch--asset-flow {
-  border-bottom-color: color-mix(in srgb, #ff69b4 22%, rgba(0, 0, 0, 0.08));
-  background: color-mix(in srgb, #000 8%, #fff);
+  background: transparent;
 }
 
 .grai-mint-amount-stack > .grai-action-switch--asset-flow .grai-action-switch-btn.is-deposit {
@@ -9757,10 +9855,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 
 /* Active Deposit/Claim half — same pink gradient as Connect Wallet. */
 .grai-mint-amount-stack > .grai-action-switch--asset-flow::after {
-  top: 0.12rem;
-  bottom: 0.12rem;
-  left: 0.12rem;
-  width: calc(50% - 0.12rem);
+  top: 0.14rem;
+  bottom: 0.14rem;
+  left: 0.14rem;
+  width: calc(50% - 0.14rem);
   height: auto;
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
   box-shadow: 0 4px 15px rgba(255, 105, 180, 0.45);
@@ -9769,16 +9867,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-mint-amount-stack > .grai-action-switch--asset-flow.is-deposit-active::after {
   transform: translateX(0);
   border-radius: 8px;
+  border-top-left-radius: 9px;
 }
 
 .grai-mint-amount-stack > .grai-action-switch--asset-flow.is-claim-active::after {
   transform: translateX(100%);
   border-radius: 8px;
+  border-top-right-radius: 9px;
 }
 
 .grai-mint-amount-stack > .grai-action-switch--asset-flow .grai-action-switch-btn {
   color: color-mix(in srgb, var(--text-primary) 48%, transparent);
-  padding: 0.28rem 0.45rem;
+  padding: 0.4rem 0.45rem;
   line-height: 1.15;
   min-height: 0;
 }
