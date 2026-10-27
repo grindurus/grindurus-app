@@ -135,8 +135,17 @@ export function normalizeDecimalInput(value: string, decimals: number): string {
   return `${intPart}.${fractionPart.slice(0, decimals)}`
 }
 
-/** Format a raw token amount; rounds half-up when `maxFractionDigits` truncates the fraction. */
-export function formatTokenBalance(raw: bigint, decimals: number, maxFractionDigits = decimals): string {
+/**
+ * Format a raw token amount.
+ * - `half-up` (default): display rounding when truncating fraction digits.
+ * - `floor`: never round up — required for MAX / spendable amounts that are parsed back on-chain.
+ */
+export function formatTokenBalance(
+  raw: bigint,
+  decimals: number,
+  maxFractionDigits = decimals,
+  rounding: 'half-up' | 'floor' = 'half-up',
+): string {
   if (raw <= 0n) return '0'
 
   const digits = Math.max(0, Math.min(maxFractionDigits, decimals))
@@ -145,7 +154,7 @@ export function formatTokenBalance(raw: bigint, decimals: number, maxFractionDig
 
   if (digits < decimals) {
     const factor = 10n ** BigInt(decimals - digits)
-    displayRaw = (raw + factor / 2n) / factor
+    displayRaw = rounding === 'floor' ? raw / factor : (raw + factor / 2n) / factor
     displayDecimals = digits
     if (displayRaw <= 0n) return '0'
   }

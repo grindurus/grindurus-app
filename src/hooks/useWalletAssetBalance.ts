@@ -153,9 +153,8 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
         setFormattedBalance(
           formatTokenBalance(walletRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
         )
-        setMaxAmount(
-          formatTokenBalance(maxRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
-        )
+        // Exact/floor — half-up display rounding made MAX exceed on-chain WETH balance.
+        setMaxAmount(formatTokenBalance(maxRaw, assetDecimals, assetDecimals, 'floor'))
         setRaw(walletRaw)
         setDecimals(assetDecimals)
       } catch {
@@ -194,9 +193,7 @@ export function useWalletAssetBalance(assetMint: string | undefined, symbol: str
       setFormattedBalance(
         formatTokenBalance(walletRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
       )
-      setMaxAmount(
-        formatTokenBalance(maxRaw, assetDecimals, ASSET_SELECT_BALANCE_FRACTION_DIGITS),
-      )
+      setMaxAmount(formatTokenBalance(maxRaw, assetDecimals, assetDecimals, 'floor'))
       setRaw(walletRaw)
       setDecimals(assetDecimals)
     } catch {
