@@ -261,12 +261,13 @@ function useGraiSubtitleFit() {
     ro.observe(fit)
     const mq = window.matchMedia('(max-width: 640px)')
     const onMq = () => fitToWidth()
+    const onResize = () => fitToWidth()
     mq.addEventListener('change', onMq)
-    window.addEventListener('resize', fitToWidth)
+    window.addEventListener('resize', onResize)
     return () => {
       ro.disconnect()
       mq.removeEventListener('change', onMq)
-      window.removeEventListener('resize', fitToWidth)
+      window.removeEventListener('resize', onResize)
     }
   }, [fitToWidth])
 
