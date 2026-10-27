@@ -27,6 +27,8 @@ export type GrinderTableRow = {
   network?: string
   custodianAddress?: string
   custodianId?: number
+  /** EVM Grinders ERC-721 contract (for OpenSea / explorer NFT links). */
+  grindersAddress?: string
   image?: string
   nftName?: string
 }

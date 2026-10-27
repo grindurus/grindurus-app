@@ -3,6 +3,7 @@ import {
   createGraiConnection,
   getDefaultGraiSolanaCluster,
   resolveGraiSolanaConfig,
+  solscanAccountUrl,
   solscanTxUrl,
 } from '../grai/deployments'
 
@@ -37,6 +38,14 @@ const EVM_TX_EXPLORER_BASE: Partial<Record<number, string>> = {
   8453: 'https://basescan.org/tx',
   11155111: 'https://sepolia.etherscan.io/tx',
   84532: 'https://sepolia.basescan.org/tx',
+}
+
+const EVM_ACCOUNT_EXPLORER_BASE: Partial<Record<number, string>> = {
+  1: 'https://etherscan.io/address',
+  42161: 'https://arbiscan.io/address',
+  8453: 'https://basescan.org/address',
+  11155111: 'https://sepolia.etherscan.io/address',
+  84532: 'https://sepolia.basescan.org/address',
 }
 
 function readEnv(key: string): string | undefined {
@@ -78,6 +87,11 @@ export function resolveEvmChainIdForTerminal(terminal?: string): number {
 function evmTxExplorerUrl(chainId: number, hash: string): string | null {
   const base = EVM_TX_EXPLORER_BASE[chainId]
   return base ? `${base}/${hash}` : null
+}
+
+function evmAccountExplorerUrl(chainId: number, address: string): string | null {
+  const base = EVM_ACCOUNT_EXPLORER_BASE[chainId]
+  return base ? `${base}/${address}` : null
 }
 
 function readEvmExplorerApiKey(chainId: number): string | undefined {
@@ -220,6 +234,55 @@ export function resolveGrinderTxExplorerUrl(params: {
   }
 
   return evmTxExplorerUrl(chainId, hash)
+}
+
+export function resolveGrinderAccountExplorerUrl(params: {
+  address: string
+  terminal?: string
+  network?: string
+}): string | null {
+  const address = params.address.trim()
+  if (!address) return null
+
+  const solanaCluster = readCaip2SolanaCluster(params.network)
+  if (solanaCluster) {
+    return solscanAccountUrl(solanaCluster, address)
+  }
+
+  const normalizedTerminal = params.terminal?.trim().toLowerCase() ?? ''
+  if (normalizedTerminal === 'solana' || normalizedTerminal === 'jupiter') {
+    const cluster = solanaCluster ?? getDefaultGraiSolanaCluster()
+    return solscanAccountUrl(cluster, address)
+  }
+
+  return evmAccountExplorerUrl(resolveGrinderChainId(params), address)
+}
+
+const OPENSEA_CHAIN_SLUG: Partial<Record<number, { slug: string; testnet?: boolean }>> = {
+  1: { slug: 'ethereum' },
+  42161: { slug: 'arbitrum' },
+  8453: { slug: 'base' },
+  11155111: { slug: 'sepolia', testnet: true },
+  84532: { slug: 'base_sepolia', testnet: true },
+}
+
+/** OpenSea asset URL for a Grinders custodian NFT (EVM only). */
+export function resolveGrinderOpenSeaUrl(params: {
+  grindersAddress?: string
+  custodianId?: number
+  terminal?: string
+  network?: string
+}): string | null {
+  const contract = params.grindersAddress?.trim()
+  const tokenId = params.custodianId
+  if (!contract || tokenId == null || !Number.isFinite(tokenId)) return null
+  if (readCaip2SolanaCluster(params.network)) return null
+
+  const chainId = resolveGrinderChainId(params)
+  const meta = OPENSEA_CHAIN_SLUG[chainId]
+  if (!meta) return null
+  const host = meta.testnet ? 'https://testnets.opensea.io' : 'https://opensea.io'
+  return `${host}/assets/${meta.slug}/${contract}/${tokenId}`
 }
 
 export async function fetchLastWalletTx(params: {

@@ -4,31 +4,11 @@ import { summarizeGrinderTableRows } from './grinderTable'
 /** Dev: Vite proxy. Prod: public Toreador host (Traefik ``toreador.${DOMAIN}``). */
 const DEFAULT_BASE_DEV = '/toreador-api'
 const DEFAULT_BASE_PROD = 'https://toreador.grindurus.xyz'
-const API_KEY_STORAGE = 'toreador.apiKey'
 
 export function toreadorApiBase(): string {
   const fromEnv = (import.meta.env.VITE_TOREADOR_API_URL || '').trim()
   const fallback = import.meta.env.DEV ? DEFAULT_BASE_DEV : DEFAULT_BASE_PROD
   return (fromEnv || fallback).replace(/\/+$/, '')
-}
-
-export function toreadorApiKey(): string {
-  try {
-    const fromLs = sessionStorage.getItem(API_KEY_STORAGE)?.trim()
-    if (fromLs) return fromLs
-  } catch {
-    /* ignore */
-  }
-  return (import.meta.env.VITE_TOREADOR_API_KEY || '').trim()
-}
-
-export function toreadorHeaders(init?: HeadersInit): Headers {
-  const headers = new Headers(init)
-  const key = toreadorApiKey()
-  if (key && !headers.has('X-TOREADOR-KEY')) {
-    headers.set('X-TOREADOR-KEY', key)
-  }
-  return headers
 }
 
 export type ToreadorGrindersTableResponse = {
@@ -79,6 +59,8 @@ function coerceRow(raw: unknown): GrinderTableRow | null {
     custodianAddress:
       typeof r.custodianAddress === 'string' ? r.custodianAddress : undefined,
     custodianId: isFiniteNumber(r.custodianId) ? r.custodianId : undefined,
+    grindersAddress:
+      typeof r.grindersAddress === 'string' ? r.grindersAddress : undefined,
     image: typeof r.image === 'string' ? r.image : undefined,
     nftName: typeof r.nftName === 'string' ? r.nftName : undefined,
   }
@@ -93,9 +75,8 @@ export async function fetchToreadorGrindersTable(options?: {
   if (options?.refresh) params.set('refresh', '1')
   if (options?.toreador) params.set('toreador', options.toreador)
   const qs = params.toString()
-  const url = `${toreadorApiBase()}/grinders/table${qs ? `?${qs}` : ''}`
+  const url = `${toreadorApiBase()}/table${qs ? `?${qs}` : ''}`
   const res = await fetch(url, {
-    headers: toreadorHeaders(),
     signal: options?.signal,
   })
   const text = await res.text()
@@ -104,7 +85,7 @@ export async function fetchToreadorGrindersTable(options?: {
     try {
       body = JSON.parse(text) as ToreadorGrindersTableResponse
     } catch {
-      throw new Error(res.ok ? 'Invalid JSON from toreador /grinders/table' : text.slice(0, 200))
+      throw new Error(res.ok ? 'Invalid JSON from toreador /table' : text.slice(0, 200))
     }
   }
   if (!res.ok) {

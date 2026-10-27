@@ -1194,23 +1194,25 @@ export function GraiMintBurnPanel({
                           className="grai-page-subtitle-mode-swap-item is-lock"
                           aria-hidden={!isGraiLock}
                         >
-                          <span className="grai-page-subtitle-text-line">
-                            <span className="grai-page-subtitle-text-segment">Lock</span>
-                            <span className="grai-page-subtitle-rotating-slot">
-                              <span className="grai-page-subtitle-rotating-word-current">
-                                <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
-                                  <img
-                                    src={selectedAsset.icon}
-                                    alt=""
-                                    loading="lazy"
-                                    decoding="async"
-                                  />
+                          <span className="grai-page-subtitle-text-line-fit">
+                            <span className="grai-page-subtitle-text-line">
+                              <span className="grai-page-subtitle-text-segment">Lock</span>
+                              <span className="grai-page-subtitle-rotating-slot">
+                                <span className="grai-page-subtitle-rotating-word-current">
+                                  <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
+                                    <img
+                                      src={selectedAsset.icon}
+                                      alt=""
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                  </span>
+                                  <span className="grai-page-subtitle-rotating-word-label">GRAI</span>
                                 </span>
-                                <span className="grai-page-subtitle-rotating-word-label">GRAI</span>
                               </span>
-                            </span>
-                            <span className="grai-page-subtitle-text-segment">
-                              for Price Volatility Yields
+                              <span className="grai-page-subtitle-text-segment">
+                                for Price Volatility Yields
+                              </span>
                             </span>
                           </span>
                         </span>
@@ -1218,23 +1220,25 @@ export function GraiMintBurnPanel({
                           className="grai-page-subtitle-mode-swap-item is-unlock"
                           aria-hidden={!isGraiUnlock}
                         >
-                          <span className="grai-page-subtitle-text-line">
-                            <span className="grai-page-subtitle-text-segment">Unlock</span>
-                            <span className="grai-page-subtitle-rotating-slot">
-                              <span className="grai-page-subtitle-rotating-word-current">
-                                <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
-                                  <img
-                                    src={selectedAsset.icon}
-                                    alt=""
-                                    loading="lazy"
-                                    decoding="async"
-                                  />
+                          <span className="grai-page-subtitle-text-line-fit">
+                            <span className="grai-page-subtitle-text-line">
+                              <span className="grai-page-subtitle-text-segment">Unlock</span>
+                              <span className="grai-page-subtitle-rotating-slot">
+                                <span className="grai-page-subtitle-rotating-word-current">
+                                  <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
+                                    <img
+                                      src={selectedAsset.icon}
+                                      alt=""
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                  </span>
+                                  <span className="grai-page-subtitle-rotating-word-label">GRAI</span>
                                 </span>
-                                <span className="grai-page-subtitle-rotating-word-label">GRAI</span>
                               </span>
-                            </span>
-                            <span className="grai-page-subtitle-text-segment">
-                              from Escrow
+                              <span className="grai-page-subtitle-text-segment">
+                                from Escrow
+                              </span>
                             </span>
                           </span>
                         </span>
@@ -1251,99 +1255,116 @@ export function GraiMintBurnPanel({
             </div>
           </div>
           )}
-          {actionView === 'mint' ? (
-            <div
-              className={`grai-action-switch grai-action-switch--buttons grai-action-switch--asset-flow grai-action-switch--escrow-below is-${assetFlowView}-active`}
-              role="tablist"
-              aria-label={isGraiSelected ? 'Lock or Unlock GRAI' : 'Deposit or Claim'}
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={assetFlowView === 'deposit'}
-                className={`grai-action-switch-btn is-deposit${
-                  assetFlowView === 'deposit' ? ' is-active' : ''
-                }`}
-                onClick={() => {
-                  if (assetFlowView === 'deposit') return
-                  setAssetFlowView('deposit')
-                  setAmount('')
-                  if (isPreviewOpen) {
-                    setPreviewOpenByAction((current) => ({ ...current, mint: false }))
-                  }
-                }}
-              >
-                {isGraiSelected ? 'Lock' : 'Deposit'}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={assetFlowView === 'claim'}
-                className={`grai-action-switch-btn is-claim${
-                  assetFlowView === 'claim' ? ' is-active' : ''
-                }`}
-                onClick={() => {
-                  if (assetFlowView === 'claim') return
-                  setAssetFlowView('claim')
-                  setAmount('')
-                  setEarnDividends(false)
-                  setReferrerOpen(false)
-                  if (isPreviewOpen) {
-                    setPreviewOpenByAction((current) => ({ ...current, mint: false }))
-                  }
-                }}
-              >
-                {isGraiSelected ? 'Unlock' : 'Claim'}
-              </button>
-            </div>
-          ) : null}
           <div className={actionView === 'burn' ? 'grai-redeem-controls' : 'grai-mint-controls'}>
+          {actionView === 'mint' ? (
+            <div className="grai-mint-amount-stack">
+              <div
+                className={`grai-action-switch grai-action-switch--buttons grai-action-switch--asset-flow grai-action-switch--escrow-below is-${assetFlowView}-active`}
+                role="tablist"
+                aria-label={isGraiSelected ? 'Lock or Unlock GRAI' : 'Deposit or Claim'}
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={assetFlowView === 'deposit'}
+                  className={`grai-action-switch-btn is-deposit${
+                    assetFlowView === 'deposit' ? ' is-active' : ''
+                  }`}
+                  onClick={() => {
+                    if (assetFlowView === 'deposit') return
+                    setAssetFlowView('deposit')
+                    setAmount('')
+                    if (isPreviewOpen) {
+                      setPreviewOpenByAction((current) => ({ ...current, mint: false }))
+                    }
+                  }}
+                >
+                  <span className="grai-action-switch-btn-label">
+                    <span aria-hidden={isGraiSelected}>Deposit</span>
+                    <span aria-hidden={!isGraiSelected}>Lock</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={assetFlowView === 'claim'}
+                  className={`grai-action-switch-btn is-claim${
+                    assetFlowView === 'claim' ? ' is-active' : ''
+                  }`}
+                  onClick={() => {
+                    if (assetFlowView === 'claim') return
+                    setAssetFlowView('claim')
+                    setAmount('')
+                    setEarnDividends(false)
+                    setReferrerOpen(false)
+                    if (isPreviewOpen) {
+                      setPreviewOpenByAction((current) => ({ ...current, mint: false }))
+                    }
+                  }}
+                >
+                  <span className="grai-action-switch-btn-label">
+                    <span aria-hidden={isGraiSelected}>Claim</span>
+                    <span aria-hidden={!isGraiSelected}>Unlock</span>
+                  </span>
+                </button>
+              </div>
+              <GraiAmountInput
+                key={`${actionView}-${assetSelectKey}`}
+                label={
+                  isAssetClaim
+                    ? 'Claim Amount'
+                    : isGraiLock
+                      ? 'Lock Amount'
+                      : isGraiUnlock
+                        ? 'Unlock Amount'
+                        : 'Deposit Amount'
+                }
+                assets={mintAssetSelectOptions}
+                defaultAsset={forcedDefaultAsset ?? mintDefaultAsset}
+                value={amount}
+                onValueChange={setAmount}
+                onAssetChange={setSelectedAsset}
+                balanceLabel={isWalletConnected ? balanceLabel : '—'}
+                balanceLoading={balanceLoading}
+                balancePrefix={
+                  isGraiUnlock
+                    ? 'Your escrow balance:'
+                    : isAssetClaim
+                      ? 'Claimable:'
+                      : isGraiSelected
+                        ? 'Your balance:'
+                        : 'Available:'
+                }
+                maxAmount={maxAmount}
+                decimals={decimals ?? (isAssetClaim ? assetClaim.decimals : null)}
+                usdLabel={mintUsdLabel}
+                usdTrailingLabel={
+                  isAssetClaim ? 'claimable:' : isGraiUnlock ? 'locked:' : 'balance:'
+                }
+                showVolatility={false}
+                disabled={isClaimAllAssetDividends}
+              />
+            </div>
+          ) : (
           <GraiAmountInput
             key={`${actionView}-${assetSelectKey}`}
-            label={
-              actionView === 'mint'
-                ? isAssetClaim
-                  ? 'Claim Amount'
-                  : isGraiLock
-                    ? 'Lock Amount'
-                    : isGraiUnlock
-                      ? 'Unlock Amount'
-                      : 'Deposit Amount'
-                : 'Amount'
-            }
-            assets={actionView === 'mint' ? mintAssetSelectOptions : redeemAssetOptions}
-            defaultAsset={
-              actionView === 'mint' ? (forcedDefaultAsset ?? mintDefaultAsset) : 'GRAI'
-            }
+            label="Amount"
+            assets={redeemAssetOptions}
+            defaultAsset="GRAI"
             value={amount}
             onValueChange={setAmount}
             onAssetChange={setSelectedAsset}
             balanceLabel={isWalletConnected ? balanceLabel : '—'}
             balanceLoading={balanceLoading}
-            balancePrefix={
-              isGraiUnlock
-                ? 'Your escrow balance:'
-                : isAssetClaim
-                  ? 'Claimable:'
-                  : isGraiSelected
-                    ? 'Your balance:'
-                    : 'Available:'
-            }
+            balancePrefix="Available:"
             maxAmount={maxAmount}
-            decimals={decimals ?? (isAssetClaim ? assetClaim.decimals : null)}
-            usdLabel={actionView === 'mint' ? mintUsdLabel : redeemUsdLabel}
-            usdTrailingLabel={
-              actionView === 'mint'
-                ? isAssetClaim
-                  ? 'claimable:'
-                  : isGraiUnlock
-                    ? 'locked:'
-                    : 'balance:'
-                : 'balance:'
-            }
+            decimals={decimals ?? null}
+            usdLabel={redeemUsdLabel}
+            usdTrailingLabel="balance:"
             showVolatility={false}
             disabled={isClaimAllAssetDividends}
           />
+          )}
           {actionView === 'mint' && !isGraiSelected ? (
             <div className="grai-mint-flow-options grai-mint-flow-options--asset">
               <div

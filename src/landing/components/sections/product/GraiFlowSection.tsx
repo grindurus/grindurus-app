@@ -116,13 +116,15 @@ function ModeChart({
   const direct = mode === 'DIRECT'
   return (
     <div className="grai-flow__mode-chart-wrap">
-      <span className="grai-flow__mode-chart-label">{`Mode ${mode}`}</span>
+      <span className="grai-flow__mode-chart-label">
+        {direct ? 'buy low, sell high' : 'sell high, buy low'}
+      </span>
       <svg
         className="grai-flow__mode-chart"
         viewBox="0 0 128 68"
-        aria-label={direct ? 'Buy Low, Sell High' : 'Sell High, Buy Low'}
+        aria-label={direct ? 'Buy low, sell high' : 'Sell high, buy low'}
       >
-        <title id={id}>{direct ? 'Buy Low, Sell High' : 'Sell High, Buy Low'}</title>
+        <title id={id}>{direct ? 'Buy low, sell high' : 'Sell high, buy low'}</title>
         <line
           x1="6"
           y1="34"
@@ -176,6 +178,10 @@ function ModeChart({
           </>
         )}
       </svg>
+      <span className="grai-flow__mode-chart-legend" aria-hidden>
+        <span className="grai-flow__mode-chart-legend-swatch" />
+        <span>price trajectory</span>
+      </span>
     </div>
   )
 }
@@ -782,13 +788,13 @@ export function GraiFlowSection() {
           {/* 3. Grinders + Custodians (one vault block) */}
           <div className="grai-flow__stage grai-flow__stage--vault">
             <div className="grai-flow__vault">
+              <span className="grai-flow__vault-title">Infrastructure</span>
               <div className="grai-flow__custodians">
                 <div className="grai-flow__custodian" key={`feat-${pair.base}-${pair.quote}`}>
-                  <div className="grai-flow__custodian-side" aria-label="Onchain Grinders Vault">
+                  <div className="grai-flow__custodian-side" aria-label="Onchain Custodians">
                     <span className="grai-flow__custodian-side-title">
                       <span>Onchain</span>
-                      <span>Grinders</span>
-                      <span>Vault</span>
+                      <span>Custodians</span>
                     </span>
                     {sidePairs.map((p, i) => (
                       <div
@@ -809,7 +815,6 @@ export function GraiFlowSection() {
                     <span className="grai-flow__mode-charts-title">
                       <span>Offchain</span>
                       <span>Grinders</span>
-                      <span>Infrastructure</span>
                     </span>
                     <div className="grai-flow__mode-charts-frame">
                       <ModeChart

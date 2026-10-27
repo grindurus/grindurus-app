@@ -41,6 +41,8 @@ type Props = {
    * escrow/balance above the card; label + presets above input inside the card.
    */
   presetsUnderLabel?: boolean
+  /** Put MAX in the header row (same line as the label) instead of beside the input. */
+  presetsInHeader?: boolean
   /** When false, hide the balance/detail line under the asset symbol. */
   showAssetDetail?: boolean
   /** Rendered under the footer row inside the amount card. */
@@ -77,6 +79,7 @@ export function GraiAmountInput({
   showPresets = true,
   showVolatility: _showVolatility = true,
   presetsUnderLabel = false,
+  presetsInHeader = false,
   showAssetDetail = true,
   afterFooter,
   disabled = false,
@@ -137,8 +140,8 @@ export function GraiAmountInput({
   )
 
   const useFillLayout = Boolean(presetsUnderLabel)
-  const showPresetsInHeader = showPresets && useFillLayout
-  const showPresetsInField = showPresets && !useFillLayout
+  const showPresetsInHeader = showPresets && (useFillLayout || presetsInHeader)
+  const showPresetsInField = showPresets && !useFillLayout && !presetsInHeader
   const showFooter = Boolean(footerStartLabel)
   const showMetaAboveField = useFillLayout && Boolean(balanceTopLabel || balanceLabel)
   const isGraiAsset = selectedAsset?.symbol.toUpperCase() === 'GRAI'
@@ -154,13 +157,45 @@ export function GraiAmountInput({
   const assetSelectDetailLabel =
     showAssetDetail && !isBalanceLoading ? balanceText : null
   const assetSelectDetailLoading = showAssetDetail && isBalanceLoading
+  const presetDisabled = disabled || !maxAmount
   const presetButtons = showPresets ? (
-    <div className="grai-amount-preset-btns" aria-label="Amount presets">
+    <div
+      className={`grai-amount-preset-btns${showPresetsInHeader ? ' is-expandable' : ''}`}
+      aria-label="Amount presets"
+    >
+      {showPresetsInHeader ? (
+        <span className="grai-amount-preset-btns-extra">
+          <button
+            type="button"
+            className="grai-amount-preset-btn"
+            onClick={() => applyFraction(0.25)}
+            disabled={presetDisabled}
+          >
+            25%
+          </button>
+          <button
+            type="button"
+            className="grai-amount-preset-btn"
+            onClick={() => applyFraction(0.5)}
+            disabled={presetDisabled}
+          >
+            50%
+          </button>
+          <button
+            type="button"
+            className="grai-amount-preset-btn"
+            onClick={() => applyFraction(0.75)}
+            disabled={presetDisabled}
+          >
+            75%
+          </button>
+        </span>
+      ) : null}
       <button
         type="button"
         className="grai-amount-preset-btn"
         onClick={() => applyFraction(1)}
-        disabled={disabled || !maxAmount}
+        disabled={presetDisabled}
       >
         MAX
       </button>

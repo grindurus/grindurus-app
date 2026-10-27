@@ -1103,8 +1103,21 @@ export function GraiReferralTree({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setGraphExpanded(false)
     }
+    const onPointerDown = (event: PointerEvent) => {
+      const embed = graphEmbedRef.current
+      const target = event.target
+      if (!(target instanceof Node)) return
+      // Click on App / page chrome outside the expanded map collapses it.
+      if (embed && embed.contains(target)) return
+      setGraphExpanded(false)
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // Capture so we beat React Flow's own pane handlers and portal targets.
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+    }
   }, [graphExpanded])
 
   useEffect(() => {
@@ -1499,16 +1512,21 @@ export function GraiReferralTree({
         <div className={`grai-action-metric-row${needsGraiDeposit ? ' is-insufficient' : ''}`}>
           <span className="grai-action-metric-label">Poach price:</span>
           <span className="grai-action-metric-value is-yield grai-action-metric-value--grai">
-            {formatGraiAmount(poachAsk, graiDecimals)}
-            <img
-              src={assetUrl('grai.png')}
-              alt=""
-              width={18}
-              height={18}
-              loading="lazy"
-              decoding="async"
-            />
-            GRAI
+            <span className="grai-action-metric-value-main">
+              {formatGraiAmount(poachAsk, graiDecimals)}
+              <img
+                src={assetUrl('grai.png')}
+                alt=""
+                width={18}
+                height={18}
+                loading="lazy"
+                decoding="async"
+              />
+              GRAI
+            </span>
+            <span className="grai-action-metric-value-usd">
+              {formatTreasuryUsd(poachAsk, graiDecimals)}
+            </span>
           </span>
         </div>
       </div>

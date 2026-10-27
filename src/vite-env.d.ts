@@ -66,7 +66,6 @@ interface ImportMetaEnv {
   /** Toreador base: `/toreador-api` in dev, `https://toreador.grindurus.xyz` in prod builds. */
   readonly VITE_TOREADOR_API_URL?: string
   readonly VITE_TOREADOR_API_TARGET?: string
-  readonly VITE_TOREADOR_API_KEY?: string
   readonly VITE_GRAI_METADATA_URL?: string
   readonly VITE_GRINDER1_BOSS_ID?: string
   readonly VITE_GRINDER2_BOSS_ID?: string

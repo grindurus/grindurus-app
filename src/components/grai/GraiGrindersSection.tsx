@@ -6,6 +6,7 @@ import { useGrinderLastTx } from '../../hooks/useGrinderLastTx'
 import { summarizeGrinderTableRows } from '../../toreador/grinderTable'
 import { grinderRowMatchesCaip2Network } from '../../wallets/caip2Network'
 import {
+  GraiGrinderAmountCell,
   GraiGrinderCountValue,
   GraiGrinderLastTxCell,
   GraiGrinderTableName,
@@ -303,11 +304,13 @@ export function GraiGrindersSection() {
                       <GraiGrinderLastTxCell
                         lastActionLabel={row.lastActionLabel}
                         terminal={row.terminal}
+                        network={row.network}
                         txState={grinderLastTx[row.id]}
                         custodianAddress={row.custodianAddress}
                         image={row.image}
                         nftName={row.nftName}
                         custodianId={row.custodianId}
+                        grindersAddress={row.grindersAddress}
                       />
                       <GraiGrinderTableName
                         row={row}
@@ -315,20 +318,28 @@ export function GraiGrindersSection() {
                         onCopy={copyGrinderTableAddress}
                       />
                       <span role="cell">{row.lastAction}</span>
-                      <span role="cell">{row.base}</span>
-                      <span role="cell">{row.quote}</span>
-                      <span
-                        role="cell"
-                        className={row.yieldBase.startsWith('+') ? 'is-positive' : row.yieldBase.startsWith('−') || row.yieldBase.startsWith('-') ? 'is-negative' : undefined}
-                      >
-                        {row.yieldBase}
-                      </span>
-                      <span
-                        role="cell"
-                        className={row.yieldQuote.startsWith('+') ? 'is-positive' : row.yieldQuote.startsWith('−') || row.yieldQuote.startsWith('-') ? 'is-negative' : undefined}
-                      >
-                        {row.yieldQuote}
-                      </span>
+                      <GraiGrinderAmountCell value={row.base} />
+                      <GraiGrinderAmountCell value={row.quote} />
+                      <GraiGrinderAmountCell
+                        value={row.yieldBase}
+                        className={
+                          row.yieldBase.startsWith('+')
+                            ? 'is-positive'
+                            : row.yieldBase.startsWith('−') || row.yieldBase.startsWith('-')
+                              ? 'is-negative'
+                              : undefined
+                        }
+                      />
+                      <GraiGrinderAmountCell
+                        value={row.yieldQuote}
+                        className={
+                          row.yieldQuote.startsWith('+')
+                            ? 'is-positive'
+                            : row.yieldQuote.startsWith('−') || row.yieldQuote.startsWith('-')
+                              ? 'is-negative'
+                              : undefined
+                        }
+                      />
                     </div>
                   ))
                 )}

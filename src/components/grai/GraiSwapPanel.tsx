@@ -180,6 +180,7 @@ export function GraiSwapPanel() {
                   usdLabel="$0.00"
                   keepUsdForGrai
                   showPresets
+                  presetsInHeader
                   showAssetDetail
                 />
               </div>

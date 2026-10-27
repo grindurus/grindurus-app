@@ -1,7 +1,11 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { isGrinderStatusLive, type GrinderTableRow } from '../../toreador/grinderTable'
 import type { GrinderLastTxEntry } from '../../hooks/useGrinderLastTx'
 import { formatTxHashShort } from '../../grinder/formatTxHash'
+import {
+  resolveGrinderAccountExplorerUrl,
+  resolveGrinderOpenSeaUrl,
+} from '../../grinder/fetchLastWalletTx'
 import { shortenAddress } from '../../utils/shortenAddress'
 import {
   formatGrinderTooltipAmount,
@@ -11,6 +15,7 @@ import {
   type GrinderYieldBreakdownRow,
 } from '../../grai/formatGrinderUsd'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
+import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
 
 function splitBossGrinderName(name: string): { boss: string; grinder: string } {
   const idx = name.indexOf(' / ')
@@ -23,36 +28,100 @@ function GraiGrinderCustodianChip({
   image,
   nftName,
   custodianId,
+  grindersAddress,
+  terminal,
+  network,
 }: {
   custodianAddress?: string
   image?: string
   nftName?: string
   custodianId?: number
+  grindersAddress?: string
+  terminal?: string
+  network?: string
 }) {
+  const [copied, setCopied] = useState(false)
   if (!custodianAddress && !image) return null
   const label =
     nftName?.trim() ||
     (custodianId != null ? `Custodian #${custodianId}` : 'Custodian')
+  const explorerHref = custodianAddress
+    ? resolveGrinderAccountExplorerUrl({
+        address: custodianAddress,
+        terminal,
+        network,
+      })
+    : null
+  const openSeaHref = resolveGrinderOpenSeaUrl({
+    grindersAddress,
+    custodianId,
+    terminal,
+    network,
+  })
+  const nftImg = image ? (
+    <img
+      className="grai-grinder-custodian-nft"
+      src={image}
+      alt=""
+      width={22}
+      height={22}
+      loading="lazy"
+      decoding="async"
+    />
+  ) : (
+    <span className="grai-grinder-custodian-nft is-placeholder" aria-hidden="true" />
+  )
   return (
     <span
       className="grai-grinder-custodian"
       title={custodianAddress ? `${label} · ${custodianAddress}` : label}
     >
-      {image ? (
-        <img
-          className="grai-grinder-custodian-nft"
-          src={image}
-          alt=""
-          width={22}
-          height={22}
-          loading="lazy"
-          decoding="async"
-        />
+      {openSeaHref ? (
+        <a
+          href={openSeaHref}
+          target="_blank"
+          rel="noreferrer"
+          className="grai-grinder-custodian-nft-link"
+          aria-label={`View ${label} on OpenSea`}
+          title="View on OpenSea"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {nftImg}
+        </a>
       ) : (
-        <span className="grai-grinder-custodian-nft is-placeholder" aria-hidden="true" />
+        nftImg
       )}
       {custodianAddress ? (
-        <span className="grai-grinder-custodian-addr">{shortenAddress(custodianAddress)}</span>
+        <button
+          type="button"
+          className={`grai-grinder-custodian-addr${copied ? ' is-copied' : ''}`}
+          title={copied ? 'Copied!' : `Copy ${custodianAddress}`}
+          aria-label={copied ? 'Copied to clipboard' : `Copy custodian ${custodianAddress}`}
+          onClick={(event) => {
+            event.stopPropagation()
+            void navigator.clipboard.writeText(custodianAddress).then(() => {
+              setCopied(true)
+              window.setTimeout(() => setCopied(false), 1000)
+            }).catch(() => {
+              // ignore clipboard errors
+            })
+          }}
+        >
+          {copied ? 'Copied!' : shortenAddress(custodianAddress)}
+        </button>
+      ) : null}
+      {explorerHref ? (
+        <a
+          href={explorerHref}
+          target="_blank"
+          rel="noreferrer"
+          className="grai-grinder-custodian-explorer"
+          aria-label="View custodian on block explorer"
+          title="View on block explorer"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {MINT_ASSET_SOLSCAN_ICON}
+        </a>
       ) : null}
     </span>
   )
@@ -105,19 +174,23 @@ export function GraiGrinderTableName({
 export function GraiGrinderLastTxCell({
   lastActionLabel,
   terminal,
+  network,
   txState,
   custodianAddress,
   image,
   nftName,
   custodianId,
+  grindersAddress,
 }: {
   lastActionLabel: string
   terminal?: string
+  network?: string
   txState?: GrinderLastTxEntry
   custodianAddress?: string
   image?: string
   nftName?: string
   custodianId?: number
+  grindersAddress?: string
 }) {
   const terminalKind = resolveGrinderTerminalKind(terminal)
   const hash =
@@ -218,11 +291,76 @@ export function GraiGrinderLastTxCell({
         {txRow}
         <GraiGrinderCustodianChip
           custodianAddress={custodianAddress}
+          terminal={terminal}
+          network={network}
           image={image}
           nftName={nftName}
           custodianId={custodianId}
+          grindersAddress={grindersAddress}
         />
       </span>
+    </span>
+  )
+}
+
+const GRINDER_ASSET_ICON_URLS: Record<string, string> = {
+  ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+  WETH: 'https://assets.coingecko.com/coins/images/2518/small/weth.png',
+  BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+  WBTC: 'https://assets.coingecko.com/coins/images/7598/small/wrapped_bitcoin_wbtc.png',
+  SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+  USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
+  USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+  ARB: 'https://assets.coingecko.com/coins/images/16547/small/photo_2023-03-29_21.47.00.jpeg',
+  MATIC: 'https://assets.coingecko.com/coins/images/4713/small/polygon.png',
+  POL: 'https://assets.coingecko.com/coins/images/4713/small/polygon.png',
+}
+
+function grinderAssetIconUrl(symbol: string): string | null {
+  const key = symbol.trim().toUpperCase()
+  if (!key) return null
+  return GRINDER_ASSET_ICON_URLS[key] ?? null
+}
+
+/** Split `"10,000 USDT"` / `"+1.2 ETH"` into amount prefix + ticker. */
+function splitGrinderAmountTicker(value: string): { amount: string; ticker: string | null } {
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '—') return { amount: trimmed || '—', ticker: null }
+  const parts = trimmed.split(/\s+/)
+  if (parts.length < 2) return { amount: trimmed, ticker: null }
+  const ticker = parts[parts.length - 1]!
+  if (!/^[A-Za-z][A-Za-z0-9.-]*$/.test(ticker)) return { amount: trimmed, ticker: null }
+  return { amount: parts.slice(0, -1).join(' '), ticker }
+}
+
+export function GraiGrinderAmountCell({
+  value,
+  className,
+}: {
+  value: string
+  className?: string
+}) {
+  const { amount, ticker } = splitGrinderAmountTicker(value)
+  const iconUrl = ticker ? grinderAssetIconUrl(ticker) : null
+  return (
+    <span role="cell" className={['grai-grinder-amount-cell', className].filter(Boolean).join(' ')}>
+      <span className="grai-grinder-amount-value">{amount}</span>
+      {ticker ? (
+        <span className="grai-grinder-amount-ticker">
+          {iconUrl ? (
+            <img
+              className="grai-grinder-amount-icon"
+              src={iconUrl}
+              alt=""
+              width={14}
+              height={14}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : null}
+          <span>{ticker}</span>
+        </span>
+      ) : null}
     </span>
   )
 }
@@ -355,7 +493,7 @@ function buildGrinderCountHint(active: number, total: number, isLive: boolean, i
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Total</span>
-        All grinders returned by Toreador (<code>GET /grinders/table</code>).
+        All grinders returned by Toreador (<code>GET /table</code>).
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Data source</span>

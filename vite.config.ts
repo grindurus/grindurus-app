@@ -20,7 +20,6 @@ export default defineConfig(({ mode }) => {
 
   const toreadorApiTarget =
     pick('TOREADOR_API_TARGET', 'VITE_TOREADOR_API_TARGET') || 'http://127.0.0.1:8010'
-  const toreadorApiKey = pick('TOREADOR_API_KEY', 'X_TOREADOR_KEY', 'VITE_TOREADOR_API_KEY')
 
   return {
     // Served at https://app.grindurus.xyz/ (custom domain, root path).
@@ -34,23 +33,12 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3001,
       proxy: {
-        // Toreador HTTP — GRAI grinders table (`GET /grinders/table`).
+        // Toreador HTTP — GRAI grinders table (`GET /table`). Public; no API key.
         '/toreador-api': {
           target: toreadorApiTarget,
           changeOrigin: true,
           secure: false,
           rewrite: (p) => p.replace(/^\/toreador-api/, ''),
-          ...(toreadorApiKey
-            ? {
-                // Outgoing header to Toreador (dev proxy keeps the key off the browser).
-                headers: { 'X-TOREADOR-KEY': toreadorApiKey },
-                configure: (proxy) => {
-                  proxy.on('proxyReq', (proxyReq) => {
-                    proxyReq.setHeader('X-TOREADOR-KEY', toreadorApiKey)
-                  })
-                },
-              }
-            : {}),
         },
         // Official devnet RPC — TLS cert on api.devnet.solana.com is expired; browser blocks it directly.
         '/solana-devnet-rpc': {

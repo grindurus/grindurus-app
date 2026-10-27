@@ -34,7 +34,7 @@ export function HeroSection() {
       <section
         className="mt-[74px] hidden md:flex relative w-full min-h-[calc(100svh-74px-5.5rem)] bg-black items-center justify-center overflow-hidden"
       >
-        {/* Token ad banner background */}
+        {/* Full-bleed token orbit — atmospheric background behind hero copy */}
         <TokenAdBanner />
 
         {/* Hero text always above banner; only CTA captures clicks */}

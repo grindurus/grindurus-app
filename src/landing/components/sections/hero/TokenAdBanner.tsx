@@ -6,8 +6,8 @@ import {
   type TokenAdSlot,
 } from '../../../constants/tokens'
 
-/** Radians per second — full lap ≈ 90s */
-const ORBIT_SPEED = (Math.PI * 2) / 90
+/** Radians per second — full lap ≈ 180s */
+const ORBIT_SPEED = (Math.PI * 2) / 180
 
 function MetricRow({
   label,
@@ -263,8 +263,9 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
 
     const baseAngles = Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / n)
 
-    const rx = contained ? 38 : 46
-    const ry = contained ? 34 : 40
+    // Desktop: fill the hero as a full-bleed background field (edge-hugging oval).
+    const rx = contained ? 38 : 48
+    const ry = contained ? 34 : 44
     const cx = 50
     const cy = 50
     const gap = contained ? 8 : 12
@@ -381,8 +382,10 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
 
       <div
         ref={orbitRef}
-        className={`absolute opacity-90 ${
-          contained ? 'inset-2 touch-none cursor-grab active:cursor-grabbing' : 'inset-x-10 inset-y-12 lg:inset-x-14 lg:inset-y-14'
+        className={`absolute ${
+          contained
+            ? 'inset-2 opacity-90 touch-none cursor-grab active:cursor-grabbing'
+            : 'inset-0 opacity-70'
         }`}
         onPointerDown={
           contained

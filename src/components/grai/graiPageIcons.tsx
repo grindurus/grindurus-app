@@ -206,7 +206,7 @@ export const GRINDER_TVL_INFO_HINT = (
       <span className="grai-field-info-tooltip-section-label">Data source</span>
       <ul className="grai-field-info-tooltip-list">
         <li>
-          <strong>Live</strong> — Toreador <code>/grinders/table</code>
+          <strong>Live</strong> — Toreador <code>/table</code>
         </li>
         <li>
           <strong>Demo</strong> — placeholder when disconnected
@@ -233,7 +233,7 @@ export const GRINDER_YIELD_INFO_HINT = (
       <span className="grai-field-info-tooltip-section-label">Data source</span>
       <ul className="grai-field-info-tooltip-list">
         <li>
-          <strong>Live</strong> — Toreador <code>/grinders/table</code>
+          <strong>Live</strong> — Toreador <code>/table</code>
         </li>
         <li>
           <strong>Demo</strong> — placeholder when disconnected

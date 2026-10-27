@@ -26,7 +26,7 @@ const EMPTY_SUMMARY: GrinderTableSummary = {
   yieldUsd: 0,
 }
 
-/** GRAI grinders table via Toreador ``GET /grinders/table``. */
+/** GRAI grinders table via Toreador ``GET /table``. */
 export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
   const [rows, setRows] = useState<GrinderTableRow[]>([])
   const [summary, setSummary] = useState<GrinderTableSummary>(EMPTY_SUMMARY)
