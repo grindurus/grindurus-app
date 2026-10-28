@@ -4,18 +4,21 @@ const SOCIAL_LINKS = [
   { href: 'https://x.com/grindurus', icon: 'x', label: 'X' },
   { href: 'https://github.com/grindurus', icon: 'github', label: 'GitHub' },
   { href: 'https://docs.grindurus.xyz', icon: 'docs', label: 'Documentation' },
-]
+  { href: 'mailto:info@grindurus.xyz', icon: 'mail', label: 'info@grindurus.xyz' },
+] as const
 
 function SocialIcons() {
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center justify-center gap-4 sm:justify-end">
       {SOCIAL_LINKS.map(({ href, icon, label }) => (
         <a
           key={icon}
           href={href}
-          target="_blank"
-          rel="noopener noreferrer"
+          {...(href.startsWith('mailto:')
+            ? {}
+            : { target: '_blank', rel: 'noopener noreferrer' })}
           aria-label={label}
+          title={label}
           className="w-9 h-9 rounded-full bg-black/10 dark:bg-white/90 text-black flex items-center justify-center transition-all duration-200 hover:opacity-90 hover:scale-105"
         >
           {icon === 'x' && (
@@ -35,6 +38,12 @@ function SocialIcons() {
                 d="M4 4a2 2 0 012-2h8.586A2 2 0 0116 2.586L19.414 6A2 2 0 0120 7.414V20a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
                 clipRule="evenodd"
               />
+            </svg>
+          )}
+          {icon === 'mail' && (
+            <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M1.5 8.67v8.58A2.25 2.25 0 003.75 19.5h16.5a2.25 2.25 0 002.25-2.25V8.67l-8.778 5.59a2.25 2.25 0 01-2.444 0L1.5 8.67z" />
+              <path d="M22.5 6.908V6.75a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6.75v.158l9.294 5.917a.75.75 0 00.812 0L22.5 6.908z" />
             </svg>
           )}
         </a>

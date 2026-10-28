@@ -9,6 +9,18 @@ function LinkedInIcon({ className }: { className?: string }) {
   )
 }
 
+function MailIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M1.5 8.67v8.58A2.25 2.25 0 003.75 19.5h16.5a2.25 2.25 0 002.25-2.25V8.67l-8.778 5.59a2.25 2.25 0 01-2.444 0L1.5 8.67z" />
+      <path d="M22.5 6.908V6.75a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6.75v.158l9.294 5.917a.75.75 0 00.812 0L22.5 6.908z" />
+    </svg>
+  )
+}
+
+const socialBtnClass =
+  'flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/90 transition-colors hover:border-brand-pink/40 hover:bg-white/10 hover:text-brand-pink'
+
 export function TeamSection() {
   return (
     <section className="w-full bg-black py-6 md:py-12 lg:py-16">
@@ -35,15 +47,27 @@ export function TeamSection() {
                   <p className="m-0 font-semibold text-white/85">{member.fullname}</p>
                   <p className="m-0 mt-1.5 text-xs font-normal tracking-wide text-white/55">{member.role}</p>
                 </div>
-                <a
-                  href={member.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`${member.fullname} on LinkedIn`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/90 transition-colors hover:border-brand-pink/40 hover:bg-white/10 hover:text-brand-pink"
-                >
-                  <LinkedInIcon className="h-[18px] w-[18px]" />
-                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={member.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${member.fullname} on LinkedIn`}
+                    className={socialBtnClass}
+                  >
+                    <LinkedInIcon className="h-[18px] w-[18px]" />
+                  </a>
+                  {member.email ? (
+                    <a
+                      href={`mailto:${member.email}`}
+                      aria-label={`Email ${member.fullname}`}
+                      title={member.email}
+                      className={socialBtnClass}
+                    >
+                      <MailIcon className="h-[18px] w-[18px]" />
+                    </a>
+                  ) : null}
+                </div>
               </div>
             </div>
           ))}

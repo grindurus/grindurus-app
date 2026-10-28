@@ -125,7 +125,7 @@ const DESKTOP_SEEDS: TokenAdSlotSeed[] = [
   },
   {
     id: 'grindurus',
-    symbol: 'GRS',
+    symbol: 'GRAI',
     src: grindurusLogo,
     imgSize: 1,
     iconBg: 'black',
