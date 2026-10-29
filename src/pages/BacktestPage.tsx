@@ -369,6 +369,25 @@ function shortenCreatorAddress(addr: string, head = 6, tail = 4) {
   return `${t.slice(0, head)}…${t.slice(-tail)}`
 }
 
+function mapApiQueueItem(q: ApiQueueItem): BacktestQueueItem {
+  return {
+    id: q.id,
+    base: q.base_asset,
+    quote: q.quote_asset,
+    dateFrom: toDateOnly(q.period_start),
+    dateTo: toDateOnly(q.period_end),
+    baseAmount: toAmountString(q.base_balance_start),
+    quoteAmount: toAmountString(q.quote_balance_start),
+    creatorAddress: q.creator_address,
+    usdcPaid: toAmountString(q.priority_usdc, 2),
+    status: q.status,
+  }
+}
+
+function isActiveQueueStatus(status: string | undefined): boolean {
+  return status === 'pending' || status === 'processing'
+}
+
 function queueItemsEqual(a: BacktestQueueItem[], b: BacktestQueueItem[]) {
   if (a === b) return true
   if (a.length !== b.length) return false
@@ -1133,13 +1152,18 @@ function BacktestPage() {
       }
 
       const endpoint = `${backtestApiOrigin}/create`
+      const bidUsdc = (() => {
+        const n = Number(defaultBidPrice)
+        return Number.isFinite(n) && n > 0 ? String(defaultBidPrice) : '1'
+      })()
+      const ownerAddress =
+        solanaWallet.address ||
+        walletClient?.account?.address ||
+        evmAccountAddress ||
+        evmWallet.address ||
+        '0x0000000000000000000000000000000000000001'
       const body = JSON.stringify({
-        owner_address:
-          solanaWallet.address ||
-          walletClient?.account?.address ||
-          evmAccountAddress ||
-          evmWallet.address ||
-          '0x0000000000000000000000000000000000000001',
+        owner_address: ownerAddress,
         params: {
           payment_method: payMethod,
           wallet_network: walletNetwork,
@@ -1149,7 +1173,7 @@ function BacktestPage() {
           quote_amount: quoteAmount.trim() || '0',
           date_from: `${dateFrom}T00:00:00Z`,
           date_to: `${dateTo}T23:59:59.999Z`,
-          priority_usdc: '1',
+          priority_usdc: bidUsdc,
         },
       })
 
@@ -1191,15 +1215,48 @@ function BacktestPage() {
       if (!response.ok) {
         throw new Error(formatBacktestApiError(data, response.status))
       }
-      const created = data && typeof data === 'object' ? (data as { id?: string }) : null
+      const created =
+        data && typeof data === 'object' ? (data as ApiQueueItem & { id?: string }) : null
       const id = created?.id
+      // Optimistic card: /create returns priority 0 before the priority worker bumps the bid.
+      if (created?.id) {
+        const optimistic = mapApiQueueItem({
+          ...created,
+          priority_usdc:
+            Number(created.priority_usdc) > 0 ? created.priority_usdc : bidUsdc,
+          status: created.status || 'pending',
+          creator_address: created.creator_address || ownerAddress,
+          base_asset: created.base_asset || baseValue,
+          quote_asset: created.quote_asset || quoteValue,
+          period_start: created.period_start || `${dateFrom}T00:00:00Z`,
+          period_end: created.period_end || `${dateTo}T23:59:59.999Z`,
+          base_balance_start: created.base_balance_start ?? (baseAmount.trim() || '0'),
+          quote_balance_start: created.quote_balance_start ?? (quoteAmount.trim() || '0'),
+        })
+        setQueueItems((prev) => {
+          if (prev.some((item) => item.id === optimistic.id)) return prev
+          return [optimistic, ...prev]
+        })
+        setQueueView('queue')
+        window.setTimeout(() => {
+          document
+            .getElementById(BACKTEST_SECTION_IDS.queue)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 80)
+      }
       setPaySuccess(
         id
           ? `Backtest queued (${PAY_METHOD_LABEL[payMethod]}). Id: ${id}`
           : `Backtest queued (${PAY_METHOD_LABEL[payMethod]}).`
       )
-      // Refresh lists after clearing busy so Processing… does not wait on queue I/O.
+      // Priority worker + worker pickup are async — refresh a few times so the card stays.
       void Promise.allSettled([loadQueue(undefined, { silent: true }), loadPriority()])
+      window.setTimeout(() => {
+        void Promise.allSettled([loadQueue(undefined, { silent: true }), loadPriority()])
+      }, 1200)
+      window.setTimeout(() => {
+        void Promise.allSettled([loadQueue(undefined, { silent: true }), loadPriority()])
+      }, 4000)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to enqueue backtest'
       const lowerMessage = message.toLowerCase()
@@ -1683,22 +1740,8 @@ function BacktestPage() {
           throw new Error('Queue response is not an array')
         }
         const mapped = payload
-          .map((item) => {
-            const q = item as ApiQueueItem
-            return {
-              id: q.id,
-              base: q.base_asset,
-              quote: q.quote_asset,
-              dateFrom: toDateOnly(q.period_start),
-              dateTo: toDateOnly(q.period_end),
-              baseAmount: toAmountString(q.base_balance_start),
-              quoteAmount: toAmountString(q.quote_balance_start),
-              creatorAddress: q.creator_address,
-              usdcPaid: toAmountString(q.priority_usdc, 2),
-              status: q.status,
-            } satisfies BacktestQueueItem
-          })
-          .filter((item) => item.status === 'pending' || item.status === 'processing')
+          .map((item) => mapApiQueueItem(item as ApiQueueItem))
+          .filter((item) => isActiveQueueStatus(item.status))
           // Keep currently executing job at #1; rest already match worker order from API.
           .sort((a, b) => {
             if (a.status === 'processing' && b.status !== 'processing') return -1
@@ -1709,7 +1752,13 @@ function BacktestPage() {
         const scroller = queueScrollerRef.current
         const scrollTop = scroller?.scrollTop ?? 0
         const scrollLeft = scroller?.scrollLeft ?? 0
-        setQueueItems((prev) => (queueItemsEqual(prev, mapped) ? prev : mapped))
+        setQueueItems((prev) => {
+          // Silent refresh must not wipe an optimistic card that the API has not returned yet.
+          if (silent && mapped.length === 0 && prev.some((item) => isActiveQueueStatus(item.status))) {
+            return prev
+          }
+          return queueItemsEqual(prev, mapped) ? prev : mapped
+        })
         if (scroller && (scrollTop > 0 || scrollLeft > 0)) {
           requestAnimationFrame(() => {
             const el = queueScrollerRef.current
