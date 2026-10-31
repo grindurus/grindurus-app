@@ -11,6 +11,8 @@ export type EvmReferralBookEntry = {
   value: bigint
   l1Value: bigint
   l2Value: bigint
+  /** Enumerable index used to page `getLockersData(fromId, toId)` / Solana referrer slot. */
+  tokenIndex?: number
 }
 
 export type GraiReferralTreeNode = {
@@ -21,6 +23,8 @@ export type GraiReferralTreeNode = {
   l1Value: bigint
   l2Value: bigint
   label?: string
+  /** Enumerable index from `getLockersData` / Solana referrer list. */
+  tokenIndex?: number
   children: GraiReferralTreeNode[]
 }
 
@@ -52,7 +56,8 @@ export async function fetchEvmReferralBooks(config: GraiEvmConfig): Promise<EvmR
       functionName: 'getLockersData',
       args: [from, to],
     })
-    for (const item of page) {
+    for (let i = 0; i < page.length; i += 1) {
+      const item = page[i]!
       rows.push({
         locker: item.locker,
         referrer: item.book.referrer,
@@ -60,6 +65,7 @@ export async function fetchEvmReferralBooks(config: GraiEvmConfig): Promise<EvmR
         value: item.book.value,
         l1Value: item.book.l1Value,
         l2Value: item.book.l2Value,
+        tokenIndex: Number(from) + i,
       })
     }
   }
@@ -91,6 +97,7 @@ export function buildReferralForest(entries: EvmReferralBookEntry[]): GraiReferr
       value: entry.value,
       l1Value: entry.l1Value,
       l2Value: entry.l2Value,
+      tokenIndex: entry.tokenIndex,
       children: [],
     })
   }

@@ -142,6 +142,7 @@ export async function fetchSolanaReferralBooks(
   const toRow = (
     row: (typeof decoded)[number],
     owner: PublicKey,
+    tokenIndex: number,
   ): EvmReferralBookEntry => ({
     locker: row.locker.toBase58() as `0x${string}`,
     referrer: row.book.referrer.equals(PublicKey.default)
@@ -151,9 +152,10 @@ export async function fetchSolanaReferralBooks(
     value: row.book.value,
     l1Value: row.book.l1Value,
     l2Value: row.book.l2Value,
+    tokenIndex,
   })
 
-  const partial = decoded.map((row) => toRow(row, row.locker))
+  const partial = decoded.map((row, index) => toRow(row, row.locker, index))
   options?.onPartial?.(partial)
 
   const nftOwners = await resolveNftOwners(
@@ -162,7 +164,7 @@ export async function fetchSolanaReferralBooks(
     decoded.map((row) => row.locker),
   )
 
-  return decoded.map((row, index) => toRow(row, nftOwners[index] ?? row.locker))
+  return decoded.map((row, index) => toRow(row, nftOwners[index] ?? row.locker, index))
 }
 
 /** Local `preview_poach`: price = value + l1_value, seller = sticky referrer. */

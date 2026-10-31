@@ -156,6 +156,8 @@ type ReferralNodeData = {
   selected: boolean
   showClaimUsd: boolean
   claimUsdLabel: string | null
+  /** Enumerable index from `getLockersData(fromId, toId)`. */
+  tokenIndex?: number
 }
 
 /** Shared card size for every graph node (root / you / selected). */
@@ -367,6 +369,7 @@ function layoutForest(
         selected: selectedId === id,
         showClaimUsd: claimUsdByLocker != null,
         claimUsdLabel: claimUsdRaw == null ? null : formatClaimUsdTotal(claimUsdRaw),
+        tokenIndex: node.tokenIndex,
       },
       draggable: true,
     })
@@ -451,8 +454,15 @@ const ReferralGraphNode = memo(function ReferralGraphNode({ data }: { data: Refe
       }${data.selected ? ' is-selected' : ''}`}
     >
       <Handle type="source" position={Position.Top} className="grai-referral-graph-handle" />
-      {(data.isYou || data.isRoot) && (
+      {(data.isYou || data.isRoot || data.tokenIndex != null) && (
         <header className="grai-referral-graph-node-brand">
+          {data.tokenIndex != null ? (
+            <span className="grai-referral-graph-node-id" title={`getLockersData index ${data.tokenIndex}`}>
+              #{data.tokenIndex}
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="grai-referral-graph-node-brand-badges">
             {data.isYou ? <span className="grai-referral-graph-badge is-you">YOU</span> : null}
             {data.isRoot ? <span className="grai-referral-graph-badge is-root">ROOT</span> : null}
@@ -639,12 +649,15 @@ function GraphArrowSample({ dashed }: { dashed?: boolean }) {
 function GraphArrowLegend({
   open,
   onToggle,
+  mapTitle,
 }: {
   open: boolean
   onToggle: () => void
+  mapTitle: string
 }) {
   return (
     <Panel position="top-left" className="grai-referral-dash-graph-legend-panel nodrag nopan">
+      <h3 className="grai-referral-dash-graph-map-title">{mapTitle}</h3>
       <button
         type="button"
         className={`grai-referral-dash-graph-legend-btn${open ? ' is-open' : ''}`}
@@ -652,6 +665,18 @@ function GraphArrowLegend({
         aria-controls="grai-referral-graph-legend"
         onClick={onToggle}
       >
+        <svg
+          className="grai-referral-dash-graph-legend-caret"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
         Legend
       </button>
       {open ? (
@@ -1487,6 +1512,7 @@ export function GraiReferralTree({
 
   const poachPanel = selected ? (
     <div className="grai-referral-dash-poach is-toolbar">
+      <h3 className="grai-referral-dash-poach-title">Poach Referrer</h3>
       <div className="grai-action-metrics">
         <div className="grai-action-metric-row">
           <span className="grai-action-metric-label">Locker:</span>
@@ -1615,6 +1641,7 @@ export function GraiReferralTree({
         <GraphArrowLegend
           open={legendOpen}
           onToggle={() => setLegendOpen((open) => !open)}
+          mapTitle={layout === 'graph-only' ? 'Claim Map' : 'Affiliates Map'}
         />
         <GraphExpandControl
           expanded={graphExpanded}

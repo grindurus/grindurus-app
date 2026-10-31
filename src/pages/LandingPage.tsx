@@ -6,6 +6,7 @@ import { PartnersSection } from '@landing/components/sections/partners/PartnersS
 import { TeamSection } from '@landing/components/sections/team/TeamSection'
 import { LandingGrindersPlaque } from '@landing/components/sections/product/LandingGrindersPlaque'
 import { GraiFlowSection } from '@landing/components/sections/product/GraiFlowSection'
+import { GraiExitFlowSection } from '@landing/components/sections/product/GraiExitFlowSection'
 import { AnnualResultsSection } from '@landing/components/sections/results/AnnualResultsSection'
 import { InvestmentPathsSection } from '@landing/components/sections/invest/InvestmentPathsSection'
 import '@landing/landing.css'
@@ -36,6 +37,7 @@ export default function LandingPage() {
         {isMdUp ? <LandingGrindersPlaque /> : null}
         <GraiFlowSection />
         <AnnualResultsSection />
+        <GraiExitFlowSection />
         <InvestmentPathsSection />
         <PartnersSection />
         <TeamSection />

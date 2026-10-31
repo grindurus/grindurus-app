@@ -3446,6 +3446,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: rgba(0, 0, 0, 0.85);
 }
 
+[data-theme='light'] .grai-grinders-group-title.is-yield,
+[data-theme='light'] .grai-grinders-group-title.is-yield .grai-grinders-group-title-icon,
+[data-theme='light'] .grai-grinders-group-title.is-yield .grai-grinders-group-title-value {
+  color: #0a8f4a;
+}
+
 .grai-grinders-row--head span {
   font-size: 0.92rem;
   font-weight: 700;
@@ -15205,6 +15211,22 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   z-index: 6;
 }
 
+.grai-referral-dash-graph-map-title {
+  margin: 0;
+  padding: 0 0.1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+[data-theme='light'] .grai-referral-dash-graph-map-title {
+  color: rgba(20, 24, 32, 0.92);
+}
+
 .grai-referral-dash-graph-expand-panel {
   margin: 0.55rem !important;
   z-index: 6;
@@ -15283,9 +15305,12 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-referral-dash-graph-legend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
   height: 1.85rem;
   margin: 0;
-  padding: 0 0.6rem;
+  padding: 0 0.55rem 0 0.4rem;
   border: 1px solid color-mix(in srgb, #ff69b4 45%, var(--border-color));
   border-radius: 0;
   background: color-mix(in srgb, var(--bg-primary, #0a0a0a) 88%, transparent);
@@ -15297,6 +15322,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   text-transform: uppercase;
   line-height: 1;
   cursor: pointer;
+}
+
+.grai-referral-dash-graph-legend-caret {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+  transition: transform 0.18s ease;
+}
+
+.grai-referral-dash-graph-legend-btn.is-open .grai-referral-dash-graph-legend-caret {
+  transform: rotate(0deg);
 }
 
 .grai-referral-dash-graph-legend-btn:hover,
@@ -15687,10 +15724,20 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-referral-graph-node-brand {
   display: flex;
   align-items: baseline;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.4rem;
   min-width: 0;
   margin-bottom: 0.35rem;
+}
+
+.grai-referral-graph-node-id {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  flex-shrink: 0;
+  line-height: 1.1;
 }
 
 .grai-referral-graph-node-brand-badges {
@@ -15698,6 +15745,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   align-items: baseline;
   gap: 0.35rem;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .grai-referral-graph-badge {
@@ -16406,6 +16454,21 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-referral-dash-poach.is-collapsed {
   display: none;
+}
+
+.grai-referral-dash-poach-title {
+  margin: 0 0 0.2rem;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+[data-theme='light'] .grai-referral-dash-poach-title {
+  color: rgba(0, 0, 0, 0.85);
 }
 
 .grai-referral-dash-claim-toolbar-inner .grai-referral-dash-poach.is-toolbar {
@@ -18283,9 +18346,39 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-liquidation-market-stack.is-bribe-side
   .grai-liquidation-vote-slot
-  > .grai-liquidation-market-section:not(.grai-liquidation-bribe-slot) {
+  > .grai-liquidation-market-section:not(.grai-liquidation-bribe-slot):not(
+    .grai-liquidation-voters-map-section
+  ) {
   width: 100%;
   max-width: var(--grai-exit-controls-width);
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-vote-slot
+  > .grai-liquidation-voters-map-section {
+  width: 100%;
+  max-width: min(100%, 52.375rem);
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  margin-inline: auto;
+}
+
+.grai-liquidation-voters-map-section > .grai-voters-map-embed {
+  width: 100%;
+  max-width: none;
+  height: 28rem;
+  min-height: 28rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.grai-liquidation-voters-map-section > .grai-voters-map-embed.is-slot {
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row {
@@ -18301,6 +18394,49 @@ button.grai-referral-graph-node-addr.is-copied {
   padding-top: 1.05rem;
   position: relative;
   box-sizing: border-box;
+}
+
+.grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row.is-chart-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.grai-liquidation-market-stack.is-bribe-side
+  .grai-liquidation-bribe-row.is-chart-only
+  > .grai-bribe-curve-chart {
+  grid-column: 1;
+  width: 100%;
+  max-width: none;
+}
+
+.grai-voters-map-bribe-toolbar {
+  z-index: 12;
+}
+
+.grai-voters-map-bribe-float {
+  z-index: 12;
+  margin-bottom: 0.75rem;
+  pointer-events: none;
+}
+
+.grai-voters-map-bribe-float > .grai-referral-dash-claim-toolbar-inner {
+  pointer-events: auto;
+}
+
+.grai-voters-map-bribe-heading {
+  margin: 0 0 0.45rem;
+}
+
+.grai-voters-map-bribe-heading .grai-referral-dash-title {
+  font-size: 0.82rem;
+}
+
+.grai-voters-map-embed .grai-liquidation-bribe-amount,
+.grai-voters-map-embed .grai-liquidation-panel--bribe,
+.grai-voters-map-embed .grai-liquidation-bribe-body,
+.grai-voters-map-embed .grai-liquidation-field {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
 }
 
 /*
@@ -18468,6 +18604,145 @@ button.grai-referral-graph-node-addr.is-copied {
 
 .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-market-section-heading {
   align-self: flex-start;
+}
+
+.grai-page > .grai-voters-map-embed.is-expanded {
+  z-index: 41;
+}
+
+.grai-voters-map-fit-home {
+  order: -1;
+}
+
+.grai-voters-map-graph {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px dashed #ff69b4;
+  background: transparent;
+}
+
+[data-theme='light'] .grai-voters-map-graph {
+  border-color: #e91e8c;
+  background: transparent;
+}
+
+.grai-voters-map-title-panel {
+  margin: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-primary, #0a0a0a) 88%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.grai-voters-map-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.grai-voters-map-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme='light'] .grai-voters-map-title-panel {
+  background: color-mix(in srgb, #fff 92%, transparent);
+  border-color: rgba(20, 24, 32, 0.08);
+}
+
+[data-theme='light'] .grai-voters-map-title {
+  color: rgba(20, 24, 32, 0.92);
+}
+
+[data-theme='light'] .grai-voters-map-sub {
+  color: rgba(20, 24, 32, 0.55);
+}
+
+.grai-voters-map-node {
+  width: 220px;
+  box-sizing: border-box;
+  padding: 0.7rem 0.85rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 26, 0.96);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.grai-voters-map-node.is-quorum {
+  width: 240px;
+  border-color: rgba(255, 45, 140, 0.45);
+}
+
+.grai-voters-map-node.is-quorum.is-met {
+  border-color: rgba(34, 197, 94, 0.55);
+}
+
+.grai-voters-map-node.is-you {
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.grai-voters-map-node.is-selected {
+  border-color: rgba(201, 162, 39, 0.75);
+  box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.35), 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme='light'] .grai-voters-map-node {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(20, 24, 32, 0.12);
+  color: rgba(20, 24, 32, 0.92);
+  box-shadow: 0 10px 28px rgba(20, 24, 32, 0.08);
+}
+
+.grai-voters-map-node-brand {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  min-width: 0;
+  margin-bottom: 0.35rem;
+}
+
+.grai-voters-map-node-pct,
+.grai-voters-map-node-share {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+[data-theme='light'] .grai-voters-map-node-pct,
+[data-theme='light'] .grai-voters-map-node-share {
+  color: rgba(20, 24, 32, 0.72);
+}
+
+.grai-voters-map-node-addr {
+  font-variant-numeric: tabular-nums;
+}
+
+.grai-voters-map-node-icon {
+  margin-left: 0.28rem;
+  vertical-align: -1px;
+}
+
+.grai-voters-map-node .grai-mint-asset-value-solscan {
+  margin-left: 0.28rem;
+  vertical-align: -2px;
+}
+
+.grai-voters-map-node .grai-referral-graph-node-rows dd {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
 }
 
 /* Full-bleed dividers across .grai-liquidation-ops-main (not just the 405px column). */

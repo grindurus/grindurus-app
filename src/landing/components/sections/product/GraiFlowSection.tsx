@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { APP_HOME } from '@landing/config'
 import { Title } from '@landing/components/ui/Title'
 import { Description } from '@landing/components/ui/Description'
@@ -639,7 +639,7 @@ function DepositPerson() {
   )
 }
 
-function FlowArrow({ label, reverse }: { label: string; reverse?: boolean }) {
+function FlowArrow({ label, reverse }: { label: ReactNode; reverse?: boolean }) {
   return (
     <div className={`grai-flow__arrow${reverse ? ' grai-flow__arrow--reverse' : ''}`} aria-hidden>
       {!reverse ? (
@@ -663,7 +663,14 @@ function DepositMintBridge() {
   return (
     <div className="grai-flow__bridge" aria-label="Deposit assets, mint GRAI">
       <FlowArrow label="1. Deposit Assets" />
-      <FlowArrow label="2. Receive GRAI" reverse />
+      <FlowArrow
+        label={
+          <>
+            2. Receive <TokenChip src={grindurusLogo} symbol="GRAI" size={18} dark /> GRAI
+          </>
+        }
+        reverse
+      />
     </div>
   )
 }

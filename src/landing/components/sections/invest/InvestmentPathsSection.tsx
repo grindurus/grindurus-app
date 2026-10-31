@@ -74,11 +74,13 @@ export function InvestmentPathsSection() {
               Your Web3 wallet address is the ref ID.
               <br></br>
               Earn a <span className="text-brand-pink">revenue share</span>. Onchain.
+              <br></br>
+              Possible to rebuy a <span className="text-brand-pink">referrer</span>.
             </Description>
             <div className="mt-6 -mx-1 w-[calc(100%+0.5rem)] sm:mx-0 sm:w-full md:hidden">
               <AffiliateArt />
             </div>
-            <Button href={APP_AFFILIATE} size="md" className="mt-8">
+            <Button href={APP_AFFILIATE} size="md" className="mt-8 w-full md:w-auto">
               Become Affiliate
             </Button>
           </div>

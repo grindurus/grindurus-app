@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { toast } from 'react-toastify'
 import { evmExplorerAccountUrl, listConfiguredEvmChains } from '../../grai/deployments'
 import { useGraiDeployment } from '../../grai/GraiDeploymentProvider'
@@ -46,6 +45,7 @@ import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
 import { GraiBribeCurveChart } from './GraiBribeCurveChart'
 import { GraiDistributeMoneyFlow } from './GraiDistributeMoneyFlow'
 import { GraiReferralTree } from './GraiReferralTree'
+import { GraiVotersMap } from './GraiVotersMap'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiMintBurnPanel } from './GraiMintBurnPanel'
 import { GraiSwapPanel } from './GraiSwapPanel'
@@ -86,154 +86,6 @@ function GraiAmountTicker({
     </span>
   )
 }
-
-type ToolbarSortOption<T extends string> = { value: T; label: string }
-
-function GraiToolbarSortSelect<T extends string>({
-  value,
-  options,
-  onChange,
-  label,
-}: {
-  value: T
-  options: readonly ToolbarSortOption<T>[]
-  onChange: (value: T) => void
-  label: string
-}) {
-  const [open, setOpen] = useState(false)
-  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLUListElement>(null)
-  const selected = options.find((option) => option.value === value) ?? options[0]
-  const labelId = `${label.replace(/\s+/g, '-').toLowerCase()}-label`
-
-  const updateMenuPosition = useCallback(() => {
-    const trigger = triggerRef.current
-    if (!trigger) return
-    const rect = trigger.getBoundingClientRect()
-    setMenuRect({
-      top: rect.bottom + 6,
-      left: rect.left,
-      width: Math.max(rect.width, 148),
-    })
-  }, [])
-
-  useLayoutEffect(() => {
-    if (!open) {
-      setMenuRect(null)
-      return
-    }
-    updateMenuPosition()
-    const handleReposition = () => updateMenuPosition()
-    window.addEventListener('resize', handleReposition)
-    window.addEventListener('scroll', handleReposition, true)
-    return () => {
-      window.removeEventListener('resize', handleReposition)
-      window.removeEventListener('scroll', handleReposition, true)
-    }
-  }, [open, updateMenuPosition])
-
-  useEffect(() => {
-    if (!open) return
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
-      setOpen(false)
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    // Defer so the opening click does not immediately close the menu.
-    const timer = window.setTimeout(() => {
-      document.addEventListener('mousedown', handlePointerDown)
-      document.addEventListener('keydown', handleKeyDown)
-    }, 0)
-    return () => {
-      window.clearTimeout(timer)
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [open])
-
-  return (
-    <div
-      className={`grai-liquidation-bribe-filter grai-toolbar-sort${open ? ' is-open' : ''}`}
-      ref={rootRef}
-    >
-      <span className="visually-hidden" id={labelId}>
-        {label}
-      </span>
-      <svg
-        className="grai-liquidation-bribe-filter-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M4 5h16" />
-        <path d="M7 12h10" />
-        <path d="M10 19h4" />
-      </svg>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="grai-toolbar-sort-trigger"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-labelledby={labelId}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <span className="grai-toolbar-sort-value">{selected?.label ?? 'Sort'}</span>
-        <span className="grai-toolbar-sort-caret" aria-hidden="true" />
-      </button>
-      {open && menuRect && typeof document !== 'undefined'
-        ? createPortal(
-            <ul
-              ref={menuRef}
-              className="grai-toolbar-sort-menu is-portal"
-              role="listbox"
-              aria-label={label}
-              style={{
-                top: menuRect.top,
-                left: menuRect.left,
-                width: menuRect.width,
-              }}
-            >
-              {options.map((option) => {
-                const isActive = option.value === value
-                return (
-                  <li key={option.value} role="presentation">
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={isActive}
-                      className={`grai-toolbar-sort-option${isActive ? ' is-active' : ''}`}
-                      onClick={() => {
-                        onChange(option.value)
-                        setOpen(false)
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>,
-            document.body,
-          )
-        : null}
-    </div>
-  )
-}
-
-const BRIBE_VOTER_SORT_OPTIONS = [
-  { value: 'escrow-desc', label: 'Vote ↓' },
-  { value: 'escrow-asc', label: 'Vote ↑' },
-] as const
 
 function shortAddress(address: string): string {
   if (address.length < 10) return address
@@ -396,6 +248,8 @@ type VoterPickerParts = {
   carousel: ReactNode
   amount: ReactNode
   empty: ReactNode | null
+  selectedVoter: EvmVoterEntry | null
+  selectVoter: (voter: EvmVoterEntry) => void
 }
 
 type VoterPickerProps = {
@@ -585,6 +439,14 @@ function GraiLiquidationVoterPicker({
     voters[0] ??
     null
 
+  const selectVoter = useCallback(
+    (voter: EvmVoterEntry) => {
+      setSelectedAddress(voter.address)
+      onSelectVoter?.(voter)
+    },
+    [onSelectVoter],
+  )
+
   const maxAmountLabel = selectedVoter
     ? formatTokenBalance(selectedVoter.escrowGrai, graiDecimals)
     : '0'
@@ -720,11 +582,10 @@ function GraiLiquidationVoterPicker({
       const nextIndex = selectedIndex + delta
       const voter = voters[nextIndex]
       if (!voter) return
-      setSelectedAddress(voter.address)
-      onSelectVoter?.(voter)
+      selectVoter(voter)
       scrollToIndex(nextIndex)
     },
-    [onSelectVoter, selectedIndex, voters],
+    [selectVoter, selectedIndex, voters],
   )
 
   const votersEmptyMessage = isLoading ? (
@@ -804,7 +665,17 @@ function GraiLiquidationVoterPicker({
   )
 
   if (!selectedVoter || voters.length === 0) {
-    return <>{children({ carousel: null, amount, empty: votersEmptyMessage })}</>
+    return (
+      <>
+        {children({
+          carousel: null,
+          amount,
+          empty: votersEmptyMessage,
+          selectedVoter,
+          selectVoter,
+        })}
+      </>
+    )
   }
 
   const renderGridVoterItem = (
@@ -838,10 +709,7 @@ function GraiLiquidationVoterPicker({
           className="grai-liquidation-voters-item-select"
           aria-pressed={isSelected}
           aria-label={`Select voter ${shortAddress(voter.address)}`}
-          onClick={() => {
-            setSelectedAddress(voter.address)
-            onSelectVoter?.(voter)
-          }}
+          onClick={() => selectVoter(voter)}
         >
           <GraiLiquidationVoterCard
             voter={voter}
@@ -1007,7 +875,7 @@ function GraiLiquidationVoterPicker({
     </div>
   )
 
-  return <>{children({ carousel, amount, empty: null })}</>
+  return <>{children({ carousel, amount, empty: null, selectedVoter, selectVoter })}</>
 }
 
 export function GraiOpsPanel() {
@@ -1047,8 +915,6 @@ export function GraiOpsPanel() {
   const [voteAmount, setVoteAmount] = useState('')
   const [costByVoter, setCostByVoter] = useState<Record<string, bigint>>({})
   const [bribingVoter, setBribingVoter] = useState<string | null>(null)
-  const [bribeSearch, setBribeSearch] = useState('')
-  const [bribeSort, setBribeSort] = useState<'escrow-desc' | 'escrow-asc'>('escrow-desc')
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
   const [distributeAmount, setDistributeAmount] = useState('')
   const [distributeAssetAddress, setDistributeAssetAddress] = useState('')
@@ -1076,8 +942,6 @@ export function GraiOpsPanel() {
   })
   const [isOpsCollapsed, setIsOpsCollapsed] = useState(false)
   const [voteSectionOpen, setVoteSectionOpen] = useState(true)
-  const [votersSectionOpen, setVotersSectionOpen] = useState(true)
-  const [bribeSectionOpen, setBribeSectionOpen] = useState(true)
   const [liquidateSectionOpen, setLiquidateSectionOpen] = useState(true)
   const [redeemSectionOpen, setRedeemSectionOpen] = useState(true)
   const [quorumAsideOpen, setQuorumAsideOpen] = useState(true)
@@ -1688,20 +1552,12 @@ export function GraiOpsPanel() {
   }, [state, voterEntries])
 
   const filteredBribeVoters = useMemo(() => {
-    const query = bribeSearch.trim().toLowerCase()
-    const filtered = query
-      ? voterEntries.filter((voter) => voter.address.toLowerCase().includes(query))
-      : [...voterEntries]
-
-    filtered.sort((a, b) => {
-      if (bribeSort === 'escrow-desc') {
-        return a.escrowGrai === b.escrowGrai ? 0 : a.escrowGrai < b.escrowGrai ? 1 : -1
-      }
-      return a.escrowGrai === b.escrowGrai ? 0 : a.escrowGrai > b.escrowGrai ? 1 : -1
-    })
-
-    return filtered
-  }, [bribeSearch, bribeSort, voterEntries])
+    const sorted = [...voterEntries]
+    sorted.sort((a, b) =>
+      a.escrowGrai === b.escrowGrai ? 0 : a.escrowGrai < b.escrowGrai ? 1 : -1,
+    )
+    return sorted
+  }, [voterEntries])
 
   const handleVote = async () => {
     const toastId = toast.loading('Voting for liquidation…')
@@ -1971,8 +1827,8 @@ export function GraiOpsPanel() {
         type="button"
         role="tab"
         aria-selected={opsView === 'swap'}
-        aria-label="Exit by Swap"
-        title="Exit by Swap"
+        aria-label="Exit by Swap (beta)"
+        title="Exit by Swap (beta)"
         className={`grai-action-switch-btn is-swap ${opsView === 'swap' ? 'is-active' : ''}`}
         onPointerDown={onOpsTabPointerDown('swap')}
         onClick={() => handleOpsViewChange('swap')}
@@ -1988,7 +1844,7 @@ export function GraiOpsPanel() {
         <span className="grai-action-switch-label">
           Exit by
           <br />
-          Swap
+          Swap (beta)
         </span>
       </button>
     </div>
@@ -2628,46 +2484,7 @@ export function GraiOpsPanel() {
         }}
         listLayout
       >
-        {({ carousel, amount, empty }) => {
-          const bribeVotersToolbar = (
-            <div
-              className="grai-liquidation-bribe-toolbar is-inline"
-              aria-hidden={false}
-            >
-              <label className="grai-liquidation-bribe-search">
-                <span className="visually-hidden">Search voters</span>
-                <svg
-                  className="grai-liquidation-bribe-search-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m20 20-3.5-3.5" />
-                </svg>
-                <input
-                  type="search"
-                  value={bribeSearch}
-                  onChange={(event) => setBribeSearch(event.target.value)}
-                  placeholder="Voter address"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </label>
-              <GraiToolbarSortSelect
-                label="Filter voters"
-                value={bribeSort}
-                options={BRIBE_VOTER_SORT_OPTIONS}
-                onChange={setBribeSort}
-              />
-            </div>
-          )
-
-          return (
+        {({ amount, selectedVoter: mapSelectedVoter, selectVoter }) => (
           <div className="grai-liquidation-market-stack is-bribe-side">
             <div
               className="grai-liquidation-ops-row is-vote-bribe"
@@ -2794,57 +2611,41 @@ export function GraiOpsPanel() {
                   </div>
                 </section>
                 <section
-                  className={`grai-liquidation-market-section${votersSectionOpen ? '' : ' is-collapsed'}`}
+                  className="grai-liquidation-market-section grai-liquidation-voters-map-section"
+                  id="grai-voters-section-body"
+                  aria-label="Voters map"
                 >
-                  <h3 className="grai-referral-dash-title grai-liquidation-market-section-heading">
-                    <button
-                      type="button"
-                      className={`grai-referral-dash-collapse${votersSectionOpen ? '' : ' is-collapsed'}`}
-                      aria-expanded={votersSectionOpen}
-                      aria-controls="grai-voters-section-body"
-                      aria-label={votersSectionOpen ? 'Hide voters' : 'Show voters'}
-                      onClick={() => setVotersSectionOpen((open) => !open)}
-                    >
-                      <svg
-                        className="grai-donut-legend-toggle-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className="grai-referral-dash-title-action"
-                      aria-expanded={votersSectionOpen}
-                      aria-controls="grai-voters-section-body"
-                      onClick={() => setVotersSectionOpen((open) => !open)}
-                    >
-                      Voters
-                    </button>
-                  </h3>
-                  <div
-                    className={`grai-liquidation-market-section-collapse${votersSectionOpen ? ' is-open' : ''}`}
-                    id="grai-voters-section-body"
-                    aria-hidden={!votersSectionOpen}
-                  >
-                    <div className="grai-liquidation-market-section-collapse-inner">
-                      <div
-                        className="grai-liquidation-bribe-voters-picker grai-liquidation-bribe-voters-picker--chart"
-                        aria-label="All voters"
-                      >
-                        {bribeVotersToolbar}
-                        {carousel ?? empty}
+                  <GraiVotersMap
+                    voters={filteredBribeVoters}
+                    graiDecimals={graiDecimals}
+                    totalVoted={totalVotedForShare}
+                    totalSupply={state?.totalSupply ?? 0n}
+                    quorumBps={state?.liquidationQuorumBps ?? 6667}
+                    highlightAddress={walletAddress}
+                    explorerAccountUrl={explorerAccountUrl}
+                    selectedVoter={mapSelectedVoter?.address ?? null}
+                    onSelectVoter={(voter) => {
+                      selectVoter(voter)
+                      handleMarketViewChange('bribe')
+                    }}
+                    bribePanel={
+                      <div className="grai-liquidation-vote-block">
+                        <section
+                          id="grai-bribe-section"
+                          className="grai-liquidation-panel grai-liquidation-panel--bribe"
+                        >
+                          <header className="grai-voters-map-bribe-heading">
+                            <h3 className="grai-referral-dash-title">2. Bribe Voters</h3>
+                          </header>
+                          <div className="grai-liquidation-bribe-body">
+                            <div className="grai-liquidation-field">{amount}</div>
+                          </div>
+                        </section>
                       </div>
-                    </div>
-                  </div>
+                    }
+                  />
                 </section>
-                <div className="grai-liquidation-bribe-row">
+                <div className="grai-liquidation-bribe-row is-chart-only">
                   <GraiBribeCurveChart
                     quorumBps={state?.liquidationQuorumBps ?? 6667}
                     bribePremiumBps={bribePremiumBps}
@@ -2852,64 +2653,11 @@ export function GraiOpsPanel() {
                     totalSupply={state?.totalSupply ?? 0n}
                     totalValue={state?.totalValue ?? 0n}
                   />
-                  <section
-                    id="grai-bribe-section"
-                    className={`grai-liquidation-market-section grai-liquidation-bribe-slot${bribeSectionOpen ? '' : ' is-collapsed'}`}
-                  >
-                    <h3 className="grai-referral-dash-title grai-liquidation-market-section-heading">
-                      <button
-                        type="button"
-                        className={`grai-referral-dash-collapse${bribeSectionOpen ? '' : ' is-collapsed'}`}
-                        aria-expanded={bribeSectionOpen}
-                        aria-controls="grai-bribe-section-body"
-                        aria-label={bribeSectionOpen ? 'Hide bribe' : 'Show bribe'}
-                        onClick={() => setBribeSectionOpen((open) => !open)}
-                      >
-                        <svg
-                          className="grai-donut-legend-toggle-icon"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className="grai-referral-dash-title-action"
-                        aria-expanded={bribeSectionOpen}
-                        aria-controls="grai-bribe-section-body"
-                        onClick={() => setBribeSectionOpen((open) => !open)}
-                      >
-                        2. Bribe Voters
-                      </button>
-                    </h3>
-                    <div
-                      className={`grai-liquidation-market-section-collapse${bribeSectionOpen ? ' is-open' : ''}`}
-                      id="grai-bribe-section-body"
-                      aria-hidden={!bribeSectionOpen}
-                    >
-                      <div className="grai-liquidation-market-section-collapse-inner">
-                        <div className="grai-liquidation-vote-block">
-                          <section className="grai-liquidation-panel grai-liquidation-panel--bribe">
-                            <div className="grai-liquidation-bribe-body">
-                              <div className="grai-liquidation-field">{amount}</div>
-                            </div>
-                          </section>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
                 </div>
               </div>
             </div>
           </div>
-          )
-        }}
+        )}
       </GraiLiquidationVoterPicker>
       </div>
       </div>
