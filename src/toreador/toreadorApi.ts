@@ -174,6 +174,8 @@ export async function fetchToreadorGrindersTable(options?: {
   signal?: AbortSignal
 }): Promise<{
   rows: GrinderTableRow[]
+  groups: GrinderToreadorGroup[]
+  orphanRows: GrinderTableRow[]
   summary: GrinderTableSummary
   nextDistributeYieldAt: string | null
   raw: ToreadorGrindersTableResponse
