@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GrinderTableRow, GrinderTableSummary } from '../toreador/grinderTable'
+import type {
+  GrinderTableRow,
+  GrinderTableSummary,
+  GrinderToreadorGroup,
+} from '../toreador/grinderTable'
 import { summarizeGrinderTableRows } from '../toreador/grinderTable'
 import { fetchToreadorGrindersTable } from '../toreador/toreadorApi'
 import { deferAfterPaint } from '../utils/deferAfterPaint'
@@ -8,6 +12,8 @@ const POLL_MS = 15_000
 
 type UseToreadorGrinderTableResult = {
   rows: GrinderTableRow[]
+  groups: GrinderToreadorGroup[]
+  orphanRows: GrinderTableRow[]
   summary: GrinderTableSummary
   nextDistributeYieldAt: string | null
   isConnected: boolean
@@ -23,13 +29,14 @@ type UseToreadorGrinderTableResult = {
 const EMPTY_SUMMARY: GrinderTableSummary = {
   activeCount: 0,
   totalCount: 0,
-  tvlUsd: 0,
-  yieldUsd: 0,
+  totalValueLocked: 0,
 }
 
 /** GRAI grinders table via Toreador ``GET /table``. */
 export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
   const [rows, setRows] = useState<GrinderTableRow[]>([])
+  const [groups, setGroups] = useState<GrinderToreadorGroup[]>([])
+  const [orphanRows, setOrphanRows] = useState<GrinderTableRow[]>([])
   const [summary, setSummary] = useState<GrinderTableSummary>(EMPTY_SUMMARY)
   const [nextDistributeYieldAt, setNextDistributeYieldAt] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
@@ -45,6 +52,8 @@ export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
     try {
       const {
         rows: nextRows,
+        groups: nextGroups,
+        orphanRows: nextOrphans,
         summary: nextSummary,
         nextDistributeYieldAt: nextAt,
       } = await fetchToreadorGrindersTable({
@@ -52,6 +61,8 @@ export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
         signal: opts?.signal,
       })
       setRows(nextRows)
+      setGroups(nextGroups)
+      setOrphanRows(nextOrphans)
       setSummary(nextSummary ?? summarizeGrinderTableRows(nextRows))
       setNextDistributeYieldAt(nextAt)
       setIsConnected(true)
@@ -102,6 +113,8 @@ export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
 
   return {
     rows,
+    groups,
+    orphanRows,
     summary,
     nextDistributeYieldAt,
     isConnected,

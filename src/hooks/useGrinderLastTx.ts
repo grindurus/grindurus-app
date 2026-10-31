@@ -11,7 +11,7 @@ type GrinderLastTxRow = {
   id: string
   lastTxHash?: string
   terminal?: string
-  network?: string
+  toreador?: string
 }
 
 export function useGrinderLastTx(rows: GrinderLastTxRow[], enabled: boolean): Record<string, GrinderLastTxEntry> {
@@ -30,7 +30,7 @@ export function useGrinderLastTx(rows: GrinderLastTxRow[], enabled: boolean): Re
       const explorerUrl = resolveGrinderTxExplorerUrl({
         hash,
         terminal: row.terminal,
-        network: row.network,
+        network: row.toreador,
       })
 
       next[row.id] = explorerUrl

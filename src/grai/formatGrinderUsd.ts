@@ -41,20 +41,49 @@ export function formatGrinderTooltipAmount(value: number): string {
   return value.toLocaleString('en-US', { maximumFractionDigits })
 }
 
+/** Last whitespace-separated ticker from a formatted amount (``"1.2 WETH"`` → ``WETH``). */
+export function tickerFromGrinderAmount(formatted?: string): string | undefined {
+  if (!formatted) return undefined
+  const parts = formatted.trim().split(/\s+/)
+  if (parts.length < 2) return undefined
+  const ticker = parts[parts.length - 1]!
+  return /^[A-Za-z][A-Za-z0-9.-]*$/.test(ticker) ? ticker : undefined
+}
+
+/** Format a token amount for grinders table (optional signed ``+/-`` prefix). */
+export function formatGrinderTokenAmount(
+  value: number,
+  symbol?: string,
+  options?: { signed?: boolean },
+): string {
+  const signed = Boolean(options?.signed)
+  if (!Number.isFinite(value)) return '—'
+  const asset = symbol?.trim() || ''
+  if (signed && value === 0) return asset ? `0 ${asset}` : '0'
+  const abs = Math.abs(value)
+  const digits = abs >= 1000 ? 0 : abs >= 1 ? 2 : 4
+  let num = (signed ? abs : value).toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits,
+  })
+  if (signed) num = `${value > 0 ? '+' : '−'}${num}`
+  return asset ? `${num} ${asset}` : num
+}
+
 export type GrinderTvlBreakdownRow = {
   id: string
   name: string
   balanceQuote: number
   balanceBase: number
   spotPrice: number
-  tvlUsd: number
+  totalValueLocked: number
 }
 
 export type GrinderYieldBreakdownRow = {
   id: string
   name: string
-  yieldQuoteValue: number
-  yieldBaseValue: number
+  yieldQuote: number
+  yieldBase: number
   spotPrice: number
   yieldUsd: number
 }

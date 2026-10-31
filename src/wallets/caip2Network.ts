@@ -41,10 +41,10 @@ export function caip2NetworksMatch(left?: string | null, right?: string | null):
 }
 
 export function grinderRowMatchesCaip2Network(
-  row: { network?: string },
-  walletNetworkCaip2?: string | null,
+  row: { toreador?: string },
+  filterCaip2?: string | null,
 ): boolean {
-  const grinderNetwork = row.network?.trim()
-  if (!grinderNetwork || !walletNetworkCaip2) return false
-  return caip2NetworksMatch(grinderNetwork, walletNetworkCaip2)
+  if (!filterCaip2) return false
+  const toreador = row.toreador?.trim()
+  return Boolean(toreador) && caip2NetworksMatch(toreador, filterCaip2)
 }

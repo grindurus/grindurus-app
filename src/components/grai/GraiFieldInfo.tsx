@@ -7,6 +7,7 @@ export function GraiFieldInfoButton({
   structured = false,
   className,
   tooltipClassName,
+  interactive = true,
   children,
 }: {
   hint: ReactNode
@@ -14,11 +15,20 @@ export function GraiFieldInfoButton({
   structured?: boolean
   className?: string
   tooltipClassName?: string
+  /** When false, render children only (no tooltip / trigger). */
+  interactive?: boolean
   children?: ReactNode
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const accessibleLabel =
     ariaLabel ?? (typeof hint === 'string' ? hint : 'More information')
+
+  if (!interactive) {
+    if (children) {
+      return <span className={className}>{children}</span>
+    }
+    return null
+  }
 
   const toggleOpen = () => {
     setIsOpen((open) => !open)

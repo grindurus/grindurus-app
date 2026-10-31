@@ -59,7 +59,8 @@ function TokenAdSlotItem({
   onLeave: () => void
   onSelect: () => void
 }) {
-  const iconSize = compact ? 'clamp(40px, 11vw, 52px)' : 'clamp(56px, 5.5vw, 88px)'
+  // Desktop hero ~560px: icon scale tracks the full-bleed orbit.
+  const iconSize = compact ? 'clamp(40px, 11vw, 52px)' : 'clamp(52px, 4.8vw, 80px)'
 
   return (
     <div
@@ -131,63 +132,50 @@ function TokenAdSlotItem({
         />
       </div>
 
-      <span
-        className={`
-          absolute left-1/2 -translate-x-1/2 top-full mt-1.5
-          font-mono font-bold uppercase tracking-[0.08em] whitespace-nowrap
-          text-[10px] sm:text-[11px] text-white/90
-          [text-shadow:0_1px_8px_rgba(0,0,0,0.9)]
-          pointer-events-none
-          transition-opacity duration-200 ease-out
-          ${active || compact ? 'opacity-100' : 'opacity-0'}
-        `}
-      >
-        {slot.symbol}
-      </span>
-
-      <div
-        ref={metricsRef}
-        className={`
-          absolute top-1/2 -translate-y-1/2 flex flex-col font-mono pointer-events-none
-          transition-opacity duration-200 ease-out
-          ${compact ? 'gap-1' : 'gap-1.5'}
-          ${active ? 'opacity-100' : 'opacity-0'}
-        `}
-        style={
-          slot.metricsSide === 'left'
-            ? {
-                right: '100%',
-                marginRight: compact ? 10 : 12,
-                left: 'auto',
-                alignItems: 'flex-end',
-                textAlign: 'right',
-              }
-            : {
-                left: '100%',
-                marginLeft: compact ? 10 : 12,
-                right: 'auto',
-                alignItems: 'flex-start',
-                textAlign: 'left',
-              }
-        }
-      >
-        <MetricRow
-          label="Daily Price Volatility"
-          value={formatAdPct(slot.dailyVolatilityPct)}
-          compact={compact}
-        />
-        <MetricRow
-          label="Annual Price Volatility"
-          value={formatAdPct(slot.annualVolatilityPct)}
-          compact={compact}
-        />
-        <MetricRow
-          label="Indexed Yield"
-          value={formatAdPct(slot.priceVolatilityYieldPct, true)}
-          accent
-          compact={compact}
-        />
-      </div>
+      {/* Desktop hover metrics only — no symbol labels / no mobile text clutter. */}
+      {!compact ? (
+        <div
+          ref={metricsRef}
+          className={`
+            absolute top-1/2 -translate-y-1/2 flex flex-col font-mono pointer-events-none gap-1.5
+            transition-opacity duration-200 ease-out
+            ${active ? 'opacity-100' : 'opacity-0'}
+          `}
+          style={
+            slot.metricsSide === 'left'
+              ? {
+                  right: '100%',
+                  marginRight: 12,
+                  left: 'auto',
+                  alignItems: 'flex-end',
+                  textAlign: 'right',
+                }
+              : {
+                  left: '100%',
+                  marginLeft: 12,
+                  right: 'auto',
+                  alignItems: 'flex-start',
+                  textAlign: 'left',
+                }
+          }
+        >
+          <MetricRow
+            label="Daily Price Volatility"
+            value={formatAdPct(slot.dailyVolatilityPct)}
+          />
+          <MetricRow
+            label="Annual Price Volatility"
+            value={formatAdPct(slot.annualVolatilityPct)}
+          />
+          <MetricRow
+            label="Indexed Yield"
+            value={formatAdPct(slot.priceVolatilityYieldPct, true)}
+            accent
+          />
+        </div>
+      ) : (
+        <div ref={metricsRef} className="hidden" aria-hidden="true" />
+      )}
     </div>
   )
 }
@@ -237,38 +225,18 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
     pausedRef.current = (!contained && activeId !== null) || isDragging
   }, [activeId, contained, isDragging])
 
-  // Mobile has no hover — keep one slot highlighted so metrics stay discoverable.
-  useEffect(() => {
-    if (!contained || slots.length === 0) return
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setActiveId(slots[0]?.id ?? null)
-      return
-    }
-    if (isDragging) return
-
-    setActiveId((cur) => cur ?? slots[0]?.id ?? null)
-    const id = window.setInterval(() => {
-      setActiveId((cur) => {
-        const idx = slots.findIndex((s) => s.id === cur)
-        const next = slots[(idx + 1 + slots.length) % slots.length]
-        return next?.id ?? null
-      })
-    }, 3200)
-    return () => clearInterval(id)
-  }, [contained, slots, isDragging])
-
   useEffect(() => {
     const n = slots.length
     if (!n) return
 
     const baseAngles = Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / n)
 
-    // Desktop: fill the hero as a full-bleed background field (edge-hugging oval).
-    const rx = contained ? 38 : 48
-    const ry = contained ? 34 : 44
+    // Desktop: oval scales with the full hero (wide × 560).
+    const rx = contained ? 38 : 46
+    const ry = contained ? 34 : 42
     const cx = 50
     const cy = 50
-    const gap = contained ? 8 : 12
+    const gap = contained ? 8 : 10
 
     const prefersReduced =
       typeof window !== 'undefined' &&
@@ -367,7 +335,7 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
       className={
         contained
           ? 'relative z-0 w-full h-full overflow-visible isolate'
-          : 'absolute inset-0 z-0 overflow-hidden isolate'
+          : 'absolute inset-0 z-0 overflow-hidden isolate grai-token-stage-vt'
       }
       aria-label="Token advertising banner"
     >
@@ -387,6 +355,16 @@ export function TokenAdBanner({ contained = false }: { contained?: boolean }) {
             ? 'inset-2 opacity-90 touch-none cursor-grab active:cursor-grabbing'
             : 'inset-0 opacity-70'
         }`}
+        style={
+          contained
+            ? undefined
+            : {
+                maskImage:
+                  'radial-gradient(ellipse 94% 96% at 50% 50%, #000 68%, transparent 100%)',
+                WebkitMaskImage:
+                  'radial-gradient(ellipse 94% 96% at 50% 50%, #000 68%, transparent 100%)',
+              }
+        }
         onPointerDown={
           contained
             ? (e) => {

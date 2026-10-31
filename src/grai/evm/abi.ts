@@ -447,6 +447,27 @@ export const grindersAbi = [
   },
   {
     type: 'function',
+    name: 'getIndexedYield',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [
+      { name: 'value', type: 'uint256' },
+      {
+        name: 'assets',
+        type: 'tuple[]',
+        components: [
+          { name: 'asset', type: 'address' },
+          { name: 'id', type: 'uint32' },
+          { name: 'bribeable', type: 'bool' },
+          { name: 'accShare', type: 'uint256' },
+          { name: 'totalClaimable', type: 'uint256' },
+          { name: 'totalYielded', type: 'uint256' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'function',
     name: 'heartbeatAt',
     stateMutability: 'view',
     inputs: [],

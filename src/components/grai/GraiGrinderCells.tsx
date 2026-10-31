@@ -14,8 +14,63 @@ import {
   type GrinderTvlBreakdownRow,
   type GrinderYieldBreakdownRow,
 } from '../../grai/formatGrinderUsd'
+import { normalizeCaip2Network } from '../../wallets/caip2Network'
+import { SolanaClusterIcon } from '../SolanaClusterIcon'
+import { EvmChainListIcon } from '../WalletNetworkSelect'
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { MINT_ASSET_SOLSCAN_ICON } from './graiPageIcons'
+import '../WalletStyles.css'
+
+const GRINDER_EVM_NETWORK_NAMES: Record<number, string> = {
+  1: 'Ethereum',
+  8453: 'Base',
+  42161: 'Arbitrum',
+  137: 'Polygon',
+  11155111: 'Sepolia',
+  84532: 'Base Sepolia',
+}
+
+function resolveGrinderNetworkDisplay(toreador?: string): {
+  label: string
+  title: string
+  icon: ReactNode
+} | null {
+  const raw = toreador?.trim()
+  if (!raw) return null
+  if (raw.startsWith('offchain:')) {
+    return { label: 'Off-chain', title: raw, icon: null }
+  }
+  const caip2 = normalizeCaip2Network(raw) ?? raw
+  if (caip2.startsWith('eip155:')) {
+    const chainId = Number.parseInt(caip2.slice('eip155:'.length), 10)
+    const name = Number.isFinite(chainId)
+      ? (GRINDER_EVM_NETWORK_NAMES[chainId] ?? `Chain ${chainId}`)
+      : caip2
+    return {
+      label: name,
+      title: caip2,
+      icon: (
+        <span className={`network-icon-svg grai-grinder-name-network-icon ${name.toLowerCase()}`}>
+          <EvmChainListIcon name={name} />
+        </span>
+      ),
+    }
+  }
+  if (caip2.startsWith('solana:')) {
+    const isDevnet = caip2.includes('devnet') || caip2 === 'solana:devnet'
+    const clusterId = isDevnet ? 'devnet' : 'mainnet-beta'
+    return {
+      label: isDevnet ? 'Solana Devnet' : 'Solana',
+      title: raw,
+      icon: (
+        <span className="network-icon-svg grai-grinder-name-network-icon solana">
+          <SolanaClusterIcon clusterId={clusterId} size={12} />
+        </span>
+      ),
+    }
+  }
+  return { label: raw, title: raw, icon: null }
+}
 
 function splitBossGrinderName(name: string): { boss: string; grinder: string } {
   const idx = name.indexOf(' / ')
@@ -30,7 +85,7 @@ function GraiGrinderCustodianChip({
   custodianId,
   grindersAddress,
   terminal,
-  network,
+  toreador,
 }: {
   custodianAddress?: string
   image?: string
@@ -38,7 +93,7 @@ function GraiGrinderCustodianChip({
   custodianId?: number
   grindersAddress?: string
   terminal?: string
-  network?: string
+  toreador?: string
 }) {
   const [copied, setCopied] = useState(false)
   if (!custodianAddress && !image) return null
@@ -49,14 +104,14 @@ function GraiGrinderCustodianChip({
     ? resolveGrinderAccountExplorerUrl({
         address: custodianAddress,
         terminal,
-        network,
+        network: toreador,
       })
     : null
   const openSeaHref = resolveGrinderOpenSeaUrl({
     grindersAddress,
     custodianId,
     terminal,
-    network,
+    network: toreador,
   })
   const nftImg = image ? (
     <img
@@ -132,16 +187,23 @@ export function GraiGrinderTableName({
   copied,
   onCopy,
 }: {
-  row: Pick<GrinderTableRow, 'id' | 'name' | 'grinderAddress' | 'status'>
+  row: Pick<GrinderTableRow, 'id' | 'name' | 'grinderAddress' | 'status' | 'toreador'>
   copied: boolean
   onCopy: (address: string, grinderId: string) => void
 }) {
   const isLive = isGrinderStatusLive(row.status)
   const { boss, grinder } = splitBossGrinderName(row.name)
+  const network = resolveGrinderNetworkDisplay(row.toreador)
   const label = (
     <span className="grai-grinder-name-stack">
       {boss ? <span className="grai-grinder-name-boss">{boss}</span> : null}
       <span className="grai-grinder-name-grinder">{grinder}</span>
+      {network ? (
+        <span className="grai-grinder-name-network" title={network.title}>
+          {network.icon}
+          <span className="grai-grinder-name-network-label">{network.label}</span>
+        </span>
+      ) : null}
     </span>
   )
 
@@ -174,7 +236,7 @@ export function GraiGrinderTableName({
 export function GraiGrinderLastTxCell({
   lastActionLabel,
   terminal,
-  network,
+  toreador,
   txState,
   custodianAddress,
   image,
@@ -184,7 +246,7 @@ export function GraiGrinderLastTxCell({
 }: {
   lastActionLabel: string
   terminal?: string
-  network?: string
+  toreador?: string
   txState?: GrinderLastTxEntry
   custodianAddress?: string
   image?: string
@@ -292,7 +354,7 @@ export function GraiGrinderLastTxCell({
         <GraiGrinderCustodianChip
           custodianAddress={custodianAddress}
           terminal={terminal}
-          network={network}
+          toreador={toreador}
           image={image}
           nftName={nftName}
           custodianId={custodianId}
@@ -337,17 +399,18 @@ function resolveYieldSubline(
   yieldValue: string | undefined,
   yieldNumeric?: number,
 ): { text: string; tone: 'is-zero' } | null {
-  if (yieldValue == null || yieldValue === '—') return null
   const signed =
     typeof yieldNumeric === 'number' && Number.isFinite(yieldNumeric)
       ? yieldNumeric
-      : yieldValue.startsWith('+')
-        ? 1
-        : yieldValue.startsWith('−') || yieldValue.startsWith('-')
-          ? -1
-          : 0
+      : yieldValue == null || yieldValue === '—'
+        ? null
+        : yieldValue.startsWith('+')
+          ? 1
+          : yieldValue.startsWith('−') || yieldValue.startsWith('-')
+            ? -1
+            : 0
   // Only annotate zeros under the yield cell; +/- tones color the main amount.
-  if (signed !== 0) return null
+  if (signed == null || signed !== 0) return null
   return { text: '0%', tone: 'is-zero' }
 }
 
@@ -381,7 +444,6 @@ export function GraiGrinderAmountCell({
         .join(' ')}
     >
       <span className="grai-grinder-amount-main">
-        <span className="grai-grinder-amount-value">{amount}</span>
         {ticker ? (
           <span className="grai-grinder-amount-ticker">
             {iconUrl ? (
@@ -398,6 +460,7 @@ export function GraiGrinderAmountCell({
             <span>{ticker}</span>
           </span>
         ) : null}
+        <span className="grai-grinder-amount-value">{amount}</span>
       </span>
       {usdText ? <span className="grai-grinder-amount-usd">{usdText}</span> : null}
       {yieldSub ? (
@@ -446,7 +509,8 @@ function buildGrinderTvlValueHint(totalUsd: number, rows: GrinderTvlBreakdownRow
               <strong>{row.name}</strong>
               <span className="grai-field-info-tooltip-breakdown-formula">
                 {formatGrinderTooltipAmount(row.balanceQuote)} + {formatGrinderTooltipAmount(row.balanceBase)} ×{' '}
-                {formatGrinderTooltipAmount(row.spotPrice)} = {formatGrinderUsdExact(row.tvlUsd)}
+                {formatGrinderTooltipAmount(row.spotPrice)} ={' '}
+                {formatGrinderUsdExact(row.totalValueLocked)}
               </span>
             </li>
           ))}
@@ -459,9 +523,11 @@ function buildGrinderTvlValueHint(totalUsd: number, rows: GrinderTvlBreakdownRow
 export function GraiGrinderTvlValue({
   totalUsd,
   rows,
+  interactive = true,
 }: {
   totalUsd: number
   rows: GrinderTvlBreakdownRow[]
+  interactive?: boolean
 }) {
   return (
     <GraiFieldInfoButton
@@ -470,35 +536,58 @@ export function GraiGrinderTvlValue({
       ariaLabel={`Value locked ${formatGrinderUsdExact(totalUsd)}`}
       structured
       tooltipClassName="is-breakdown"
+      interactive={interactive}
     >
       {formatGrinderUsdTotal(totalUsd)}
     </GraiFieldInfoButton>
   )
 }
 
-function buildGrinderYieldValueHint(totalUsd: number, rows: GrinderYieldBreakdownRow[]): ReactNode {
+function buildGrinderYieldValueHint(
+  totalUsd: number,
+  rows: GrinderYieldBreakdownRow[],
+  options?: { onChain?: boolean },
+): ReactNode {
+  const onChain = Boolean(options?.onChain)
   return (
     <>
       <span className="grai-field-info-tooltip-title">{formatGrinderUsdExact(totalUsd)}</span>
       <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">Formula</span>
-        <code>yield_quote + yield_base × spot_price</code>
-        <span className="grai-field-info-tooltip-formula-note">Summed across all grinders below.</span>
+        <span className="grai-field-info-tooltip-section-label">
+          {onChain ? 'On-chain' : 'Formula'}
+        </span>
+        {onChain ? (
+          <>
+            Grinders <code>getIndexedYield()</code> → <code>(value, assets[])</code>
+            <span className="grai-field-info-tooltip-formula-note">
+              <code>value = Σ usdValue(asset, totalYielded)</code> — lifetime from{' '}
+              <code>distribute</code> (not row PnL).
+            </span>
+          </>
+        ) : (
+          <>
+            <code>yield_quote + yield_base × spot_price</code>
+            <span className="grai-field-info-tooltip-formula-note">Summed across all grinders below.</span>
+          </>
+        )}
       </span>
-      <span className="grai-field-info-tooltip-section">
-        <span className="grai-field-info-tooltip-section-label">Breakdown</span>
-        <ul className="grai-field-info-tooltip-list grai-field-info-tooltip-list--breakdown">
-          {rows.map((row) => (
-            <li key={row.id}>
-              <strong>{row.name}</strong>
-              <span className="grai-field-info-tooltip-breakdown-formula">
-                {formatGrinderTooltipAmount(row.yieldQuoteValue)} + {formatGrinderTooltipAmount(row.yieldBaseValue)} ×{' '}
-                {formatGrinderTooltipAmount(row.spotPrice)} = {formatGrinderUsdExact(row.yieldUsd)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </span>
+      {!onChain ? (
+        <span className="grai-field-info-tooltip-section">
+          <span className="grai-field-info-tooltip-section-label">Breakdown</span>
+          <ul className="grai-field-info-tooltip-list grai-field-info-tooltip-list--breakdown">
+            {rows.map((row) => (
+              <li key={row.id}>
+                <strong>{row.name}</strong>
+                <span className="grai-field-info-tooltip-breakdown-formula">
+                  {formatGrinderTooltipAmount(row.yieldQuote)} +{' '}
+                  {formatGrinderTooltipAmount(row.yieldBase)} ×{' '}
+                  {formatGrinderTooltipAmount(row.spotPrice)} = {formatGrinderUsdExact(row.yieldUsd)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </span>
+      ) : null}
     </>
   )
 }
@@ -506,17 +595,22 @@ function buildGrinderYieldValueHint(totalUsd: number, rows: GrinderYieldBreakdow
 export function GraiGrinderYieldValue({
   totalUsd,
   rows,
+  onChain = false,
+  interactive = true,
 }: {
   totalUsd: number
   rows: GrinderYieldBreakdownRow[]
+  onChain?: boolean
+  interactive?: boolean
 }) {
   return (
     <GraiFieldInfoButton
       className="grai-grinders-group-title-value is-positive"
-      hint={buildGrinderYieldValueHint(totalUsd, rows)}
-      ariaLabel={`Yield ${formatGrinderUsdExact(totalUsd)}`}
+      hint={buildGrinderYieldValueHint(totalUsd, rows, { onChain })}
+      ariaLabel={`Indexed yield ${formatGrinderUsdExact(totalUsd)}`}
       structured
       tooltipClassName="is-breakdown"
+      interactive={interactive}
     >
       {formatGrinderUsdTotal(totalUsd)}
     </GraiFieldInfoButton>
@@ -555,11 +649,13 @@ export function GraiGrinderCountValue({
   total,
   isLive,
   isToreadorUnavailable,
+  interactive = true,
 }: {
   active: number
   total: number
   isLive: boolean
   isToreadorUnavailable: boolean
+  interactive?: boolean
 }) {
   return (
     <GraiFieldInfoButton
@@ -567,6 +663,7 @@ export function GraiGrinderCountValue({
       hint={buildGrinderCountHint(active, total, isLive, isToreadorUnavailable)}
       ariaLabel={`${active} of ${total} grinders active`}
       structured
+      interactive={interactive}
     >
       {active}/{total}{' '}
       <span className="grai-grinders-group-general-value-label">GRINDERS</span>

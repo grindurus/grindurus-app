@@ -668,12 +668,6 @@ function DepositMintBridge() {
   )
 }
 
-function formatCustodianAmt(n: number): string {
-  if (n >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 0 })
-  if (n >= 10) return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
-  return n.toLocaleString('en-US', { maximumFractionDigits: 4 })
-}
-
 function CustodianMain({
   base,
   quote,
@@ -688,9 +682,9 @@ function CustodianMain({
   id: number
 }) {
   const nftSrc = grinderNftForPair(base, quote, salt)
-  // Demo inventory + yield % (stable per id / pair)
-  const baseAmt = ((id * 37 + salt * 11) % 900) / 10 + 12
-  const quoteAmt = ((id * 53 + salt * 17) % 24000) + 850
+  // Symbolic balances (x / y / z) + demo yield % (stable per id / pair)
+  const amtLetter = (['x', 'y', 'z'] as const)[(id + salt) % 3]
+  const quoteLetter = (['x', 'y', 'z'] as const)[(id + salt + 1) % 3]
   const baseYieldPct = 8 + ((id * 37 + salt * 11) % 28)
   const quoteYieldPct = 10 + ((id * 53 + salt * 17) % 32)
 
@@ -705,7 +699,7 @@ function CustodianMain({
       >
         <span className="grai-flow__custodian-row" key={`b-${base}`}>
           <span className="grai-flow__custodian-token">
-            <span className="grai-flow__custodian-amt tabular-nums">{formatCustodianAmt(baseAmt)}</span>
+            <span className="grai-flow__custodian-amt">{amtLetter}</span>
             <TokenChip src={TOKEN_ICONS[base]!} symbol={base} size={22} bare />
             <span>{base}</span>
           </span>
@@ -715,7 +709,7 @@ function CustodianMain({
         </span>
         <span className="grai-flow__custodian-row" key={`q-${quote}`}>
           <span className="grai-flow__custodian-token">
-            <span className="grai-flow__custodian-amt tabular-nums">{formatCustodianAmt(quoteAmt)}</span>
+            <span className="grai-flow__custodian-amt">{quoteLetter}</span>
             <TokenChip src={TOKEN_ICONS[quote]!} symbol={quote} size={22} bare />
             <span>{quote}</span>
           </span>
@@ -748,7 +742,7 @@ export function GraiFlowSection() {
   }, [])
 
   return (
-    <section className="relative w-full pt-3 pb-10 md:pt-4 md:pb-16 lg:pt-5 lg:pb-20 bg-black overflow-x-hidden">
+    <section className="landing-grai-flow relative w-full pt-10 pb-10 md:pt-14 md:pb-16 lg:pt-16 lg:pb-20 bg-black overflow-x-hidden">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-10 md:mb-14">
           <Title className="!mb-4">

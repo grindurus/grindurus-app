@@ -7,6 +7,8 @@ type ButtonProps = {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   noGradient?: boolean
+  /** React Router View Transition for internal links (Open App → /grai). */
+  viewTransition?: boolean
 } & ButtonHTMLAttributes<HTMLButtonElement> &
   AnchorHTMLAttributes<HTMLAnchorElement>
 
@@ -29,6 +31,7 @@ export function Button({
   size = 'lg',
   className = '',
   noGradient,
+  viewTransition,
   ...props
 }: ButtonProps) {
   const combinedClassName = [baseClasses, sizeClasses[size], className].filter(Boolean).join(' ')
@@ -41,7 +44,14 @@ export function Button({
     if (isInternalPath(href)) {
       const { onClick, ...rest } = props as AnchorHTMLAttributes<HTMLAnchorElement>
       return (
-        <Link to={href} className={combinedClassName} style={style} onClick={onClick} {...rest}>
+        <Link
+          to={href}
+          className={combinedClassName}
+          style={style}
+          onClick={onClick}
+          viewTransition={viewTransition}
+          {...rest}
+        >
           {children}
         </Link>
       )

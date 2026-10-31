@@ -68,3 +68,38 @@
 [data-theme='light'] .grai-tx-toast a {
   color: #e91e8c;
 }
+
+/* Landing token orbit ↔ /grai floating mist (Open App view transition) */
+.grai-token-stage-vt {
+  view-transition-name: grai-token-stage;
+}
+
+::view-transition-group(grai-token-stage) {
+  animation-duration: 0.55s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(grai-token-stage),
+::view-transition-new(grai-token-stage) {
+  height: 100%;
+  overflow: clip;
+  object-fit: cover;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.4s;
+  animation-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grai-token-stage-vt {
+    view-transition-name: none;
+  }
+
+  ::view-transition-group(grai-token-stage),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms !important;
+  }
+}

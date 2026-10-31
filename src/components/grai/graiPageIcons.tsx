@@ -36,12 +36,6 @@ export const GRINDERS_COLUMN_ICONS = {
       <path d="m12 5 7 7-7 7" />
     </svg>
   ),
-  lastActionTime: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
-    </svg>
-  ),
   base: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="8" />
@@ -221,48 +215,28 @@ export const GRINDER_TVL_INFO_HINT = (
 
 export const GRINDER_YIELD_INFO_HINT = (
   <>
-    <span className="grai-field-info-tooltip-title">Yield</span>
+    <span className="grai-field-info-tooltip-title">Indexed Yield</span>
     <span className="grai-field-info-tooltip-section">
-      <span className="grai-field-info-tooltip-section-label">Formula</span>
-      Per grinder: <code>yield_quote + yield_base × spot_price</code>
-      <span className="grai-field-info-tooltip-formula-note">
-        Yield is the sum of this value across all grinders.
-      </span>
+      <span className="grai-field-info-tooltip-section-label">On-chain</span>
+      Grinders <code>getIndexedYield()</code>: <code>(value, assets[])</code> — lifetime GRAI{' '}
+      <code>distribute</code> yield priced with <code>usdValue</code>.
+    </span>
+    <span className="grai-field-info-tooltip-section">
+      <span className="grai-field-info-tooltip-section-label">Fallback</span>
+      If on-chain data is unavailable: per grinder{' '}
+      <code>yield_quote + yield_base × spot_price</code> (Toreador PnL), summed across rows.
     </span>
     <span className="grai-field-info-tooltip-section">
       <span className="grai-field-info-tooltip-section-label">Data source</span>
       <ul className="grai-field-info-tooltip-list">
         <li>
-          <strong>Live</strong> — Toreador <code>/table</code>
+          <strong>Live</strong> — Toreador <code>/table</code> summary (
+          <code>totalIndexedYield</code>)
         </li>
         <li>
           <strong>Demo</strong> — placeholder when disconnected
         </li>
       </ul>
     </span>
-    <p className="grai-field-info-tooltip-note">
-      <code>spot_price</code> is quote per base unit from Toreador. Displayed as USD when quote is USDC/USDT.
-    </p>
-  </>
-)
-
-export const GRINDER_UPTIME_INFO_HINT = (
-  <>
-    <span className="grai-field-info-tooltip-title">Uptime</span>
-    <span className="grai-field-info-tooltip-section">
-      <span className="grai-field-info-tooltip-section-label">Definition</span>
-      Share of time grinders stay operational — grinding, allocating, or distributing — rather than halted or disabled, measured over the last 90 days.
-    </span>
-    <span className="grai-field-info-tooltip-section">
-      <span className="grai-field-info-tooltip-section-label">Data source</span>
-      <ul className="grai-field-info-tooltip-list">
-        <li>
-          <strong>Live</strong> — rolling 90-day window from Toreador grinder status
-        </li>
-      </ul>
-    </span>
-    <p className="grai-field-info-tooltip-note">
-      Shown as a percentage of the last 90 days when Toreador data is available.
-    </p>
   </>
 )

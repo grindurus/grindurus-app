@@ -19,7 +19,7 @@ function SocialIcons() {
             : { target: '_blank', rel: 'noopener noreferrer' })}
           aria-label={label}
           title={label}
-          className="w-9 h-9 rounded-full bg-black/10 dark:bg-white/90 text-black flex items-center justify-center transition-all duration-200 hover:opacity-90 hover:scale-105"
+          className="w-9 h-9 rounded-full bg-white/90 text-black flex items-center justify-center transition-all duration-200 hover:opacity-90 hover:scale-105"
         >
           {icon === 'x' && (
             <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor">
@@ -57,7 +57,7 @@ const FOOTER_CHART_STROKE_ID = 'grindurus-footer-yield-stroke'
 
 export default function Footer() {
   return (
-    <footer className="relative mt-auto overflow-hidden border-t border-black/15 bg-[#e8e8e8] py-10 dark:border-white/15 dark:bg-black">
+    <footer className="relative mt-auto overflow-hidden border-t border-white/15 bg-black py-10">
       <div
         className="pointer-events-none absolute bottom-0 left-0 hidden h-[300px] w-full xl:block"
         aria-hidden
@@ -106,38 +106,38 @@ export default function Footer() {
           </span>
         </Link>
         <div className="flex w-full max-w-md flex-col items-center gap-3 sm:w-auto sm:max-w-none sm:items-end">
-          <p className="m-0 font-mono text-xs leading-relaxed text-[#1a1a1a]/85 dark:text-white/85 sm:text-sm">
+          <p className="m-0 font-mono text-xs leading-relaxed text-white/85 sm:text-sm">
             © GrindURUS 2026. All rights reserved.
-            <span className="mx-1.5 text-[#1a1a1a]/35 dark:text-white/35" aria-hidden>
+            <span className="mx-1.5 text-white/35" aria-hidden>
               ·
             </span>
             <a
               href="/llms.txt"
               rel="describedby"
-              className="underline decoration-black/25 underline-offset-2 transition-opacity hover:opacity-70 dark:decoration-white/30"
+              className="underline decoration-white/30 underline-offset-2 transition-opacity hover:opacity-70"
             >
               llms.txt
             </a>
           </p>
           <nav
-            className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 font-mono text-[0.7rem] text-[#1a1a1a]/70 dark:text-white/60 sm:justify-end sm:gap-x-4 sm:text-xs"
+            className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 font-mono text-[0.7rem] sm:justify-end sm:gap-x-4 sm:text-xs"
             aria-label="Legal"
           >
             <Link
               to="/privacy"
-              className="transition-opacity hover:opacity-70 hover:text-[#1a1a1a] dark:hover:text-white"
+              className="text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:opacity-100"
             >
               Privacy Policy
             </Link>
             <Link
               to="/terms"
-              className="transition-opacity hover:opacity-70 hover:text-[#1a1a1a] dark:hover:text-white"
+              className="text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:opacity-100"
             >
               Terms of Service
             </Link>
             <Link
               to="/risk"
-              className="transition-opacity hover:opacity-70 hover:text-[#1a1a1a] dark:hover:text-white"
+              className="text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:opacity-100"
             >
               Risk Disclosure
             </Link>

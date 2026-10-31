@@ -1,38 +1,47 @@
 import { APP_HOME } from '@landing/config'
 import { Button } from '../../ui/Button'
+import { LandingGrindersPlaque } from '../product/LandingGrindersPlaque'
 import { TokenAdBanner } from './TokenAdBanner'
 
-export function HeroSection() {
+export function HeroSection({
+  showMobileGrindersPlaque = false,
+}: {
+  /** Live grinders strip under Open App (mobile only; avoid double-mount with desktop plaque). */
+  showMobileGrindersPlaque?: boolean
+}) {
   return (
     <>
       {/* ── MOBILE layout (hidden on md+) ── */}
       {/* Leave ~3.25rem so GraiFlow “GRAI …” title peeks under the fold on mobile. */}
-      <section className="md:hidden w-full bg-black flex flex-col items-center justify-center text-center px-6 overflow-hidden min-h-[calc(100svh-3.25rem)] pt-[64px] pb-6">
+      <section className="md:hidden w-full bg-black flex flex-col items-center justify-center text-center px-4 overflow-hidden min-h-[calc(100svh-3.25rem)] pt-[64px] pb-6">
         {/* Headline */}
-        <h1 className="font-mono font-black text-[clamp(2.2rem,10vw,3rem)] leading-[1.2] mb-3 relative z-10">
+        <h1 className="font-mono font-black text-[clamp(2.2rem,10vw,3rem)] leading-[1.2] mb-3 relative z-10 px-2">
           <span className="block text-brand-pink text-[clamp(1.85rem,8vw,2.7rem)] whitespace-nowrap [text-shadow:0_0_20px_black]">
             Onchain Hedge Fund
           </span>
         </h1>
 
         {/* Token ad banner */}
-        <div className="relative w-full max-w-[420px]" style={{ height: 'clamp(240px, 62vw, 340px)' }}>
+        <div className="relative w-full max-w-[420px] px-2" style={{ height: 'clamp(240px, 62vw, 340px)' }}>
           <TokenAdBanner contained />
         </div>
 
         {/* Description + CTA */}
-        <p className="font-mono text-[clamp(0.9rem,3.5vw,1rem)] leading-[1.7] text-white/70 mb-6 mt-2 max-w-[380px] relative z-10">
+        <p className="font-mono text-[clamp(0.9rem,3.5vw,1rem)] leading-[1.7] text-white/70 mb-6 mt-2 max-w-[380px] relative z-10 px-2">
           Infrastructure for Turning Price Volatility into Indexed Yield
         </p>
-        <Button href={APP_HOME} size="md">
+        <Button href={APP_HOME} size="md" viewTransition>
           Open App
         </Button>
+        {showMobileGrindersPlaque ? (
+          <LandingGrindersPlaque embedded className="mt-6 w-full max-w-[1280px]" />
+        ) : null}
       </section>
 
       {/* ── DESKTOP layout (hidden below md) ── */}
-      {/* Leave ~5.5rem so GraiFlow “GRAI …” title peeks under the fold (same idea as mobile). */}
+      {/* Height clamps on short viewports so GraiFlow “GRAI” peeks under the fold. */}
       <section
-        className="mt-[74px] hidden md:flex relative w-full min-h-[calc(100svh-74px-5.5rem)] bg-black items-center justify-center overflow-hidden"
+        className="landing-desktop-hero mt-[74px] hidden md:flex relative w-full bg-black items-center justify-center overflow-hidden"
       >
         {/* Full-bleed token orbit — atmospheric background behind hero copy */}
         <TokenAdBanner />
@@ -57,7 +66,7 @@ export function HeroSection() {
             </p>
 
             <span className="pointer-events-auto inline-flex">
-              <Button href={APP_HOME} size="md">
+              <Button href={APP_HOME} size="md" viewTransition>
                 Open App
               </Button>
             </span>

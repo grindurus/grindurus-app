@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useActiveWallet } from '../../wallets/useActiveWallet'
 import { useToreadorGrinderTable } from '../../hooks/useToreadorGrinderTable'
 import { useGrinderLastTx } from '../../hooks/useGrinderLastTx'
-import { summarizeGrinderTableRows } from '../../toreador/grinderTable'
-import { grinderRowMatchesCaip2Network } from '../../wallets/caip2Network'
+import {
+  summarizeGrinderTableRows,
+  sumGrinderRowYieldUsd,
+} from '../../toreador/grinderTable'
+import { summaryForCaip2Network } from '../../toreador/toreadorApi'
+import {
+  formatGrinderTokenAmount,
+  tickerFromGrinderAmount,
+} from '../../grai/formatGrinderUsd'
+import { caip2NetworksMatch } from '../../wallets/caip2Network'
 import {
   GraiGrinderAmountCell,
   GraiGrinderCountValue,
@@ -18,21 +25,35 @@ import { GraiGrindersNetworkSelect } from './GraiGrindersNetworkSelect'
 import {
   GRINDERS_COLUMN_ICONS,
   GRINDER_TVL_INFO_HINT,
-  GRINDER_UPTIME_INFO_HINT,
   GRINDER_YIELD_INFO_HINT,
 } from './graiPageIcons'
 
 const GRINDERS_TABLE_PAGE_SIZE = 10
 
-export function GraiGrindersSection() {
+type GraiGrindersSectionProps = {
+  /** When false, hide VIEW GRINDERS toggle + table (landing summary plaque). Default true. */
+  showTableToggle?: boolean
+  /** When false, hide network filter (landing always shows TOTAL). Default true. */
+  showNetworkFilter?: boolean
+  /** Override TVL column label (e.g. landing mobile hero). */
+  tvlLabel?: string
+}
+
+export function GraiGrindersSection({
+  showTableToggle = true,
+  showNetworkFilter = true,
+  tvlLabel,
+}: GraiGrindersSectionProps) {
   const navigate = useNavigate()
-  const activeWallet = useActiveWallet()
   const [isGrindersTableHidden, setIsGrindersTableHidden] = useState(true)
-  const [isGrindersFilterEnabled, setIsGrindersFilterEnabled] = useState(false)
+  /** ``null`` = TOTAL; CAIP-2 when a network is selected (wallet not required). */
+  const [grindersNetworkCaip2, setGrindersNetworkCaip2] = useState<string | null>(null)
   const [copiedGrinderId, setCopiedGrinderId] = useState<string | null>(null)
   const [grindersTablePage, setGrindersTablePage] = useState(0)
   const {
     rows: grinderRows,
+    groups: grinderGroups,
+    summary: grinderTableSummary,
     nextDistributeYieldAt,
     isLive: isGrinderLive,
     isBootstrapped: isGrinderBootstrapped,
@@ -59,13 +80,14 @@ export function GraiGrindersSection() {
     const m = Math.floor((sec % 3600) / 60)
     return m > 0 ? `${h}h ${m}m` : `${h}h`
   }, [nextDistributeYieldAt, nowMs])
-  const walletNetworkCaip2 = activeWallet.networkCaip2
-  const isGrindersNetworkFilterActive =
-    activeWallet.isConnected && isGrindersFilterEnabled && Boolean(walletNetworkCaip2)
+  // TOTAL → all toreador groups + orphans. Network → that toreador’s ``rows`` only.
   const displayGrinderRows = useMemo(() => {
-    if (!isGrindersNetworkFilterActive || !walletNetworkCaip2) return grinderRows
-    return grinderRows.filter((row) => grinderRowMatchesCaip2Network(row, walletNetworkCaip2))
-  }, [grinderRows, isGrindersNetworkFilterActive, walletNetworkCaip2])
+    if (!grindersNetworkCaip2) return grinderRows
+    const group = grinderGroups.find((entry) =>
+      caip2NetworksMatch(entry.toreadorId, grindersNetworkCaip2),
+    )
+    return group?.rows ?? []
+  }, [grinderGroups, grinderRows, grindersNetworkCaip2])
   const grindersTablePageCount = Math.max(1, Math.ceil(displayGrinderRows.length / GRINDERS_TABLE_PAGE_SIZE))
   const paginatedGrinderRows = useMemo(() => {
     const start = grindersTablePage * GRINDERS_TABLE_PAGE_SIZE
@@ -84,11 +106,23 @@ export function GraiGrindersSection() {
   )
   const grinderLastTx = useGrinderLastTx(displayGrinderRows, isGrinderLive)
   const isGrinderLoading = !isGrinderBootstrapped
+  const networkSummary = useMemo(() => {
+    if (!grindersNetworkCaip2) return null
+    return summaryForCaip2Network(grinderTableSummary, grindersNetworkCaip2) ?? null
+  }, [grinderTableSummary, grindersNetworkCaip2])
   const grinderTotalCount = displayGrinderSummary.totalCount
   const grinderActiveCount = displayGrinderSummary.activeCount
-  const grinderTvlUsd = displayGrinderSummary.tvlUsd
-  const grinderYieldUsd = displayGrinderSummary.yieldUsd
-  const grinderUptimeLabel = isGrinderLive ? '99.999%' : '—'
+  // TOTAL → aggregate summary; network filter → that toreador’s TVL / indexed yield.
+  const grinderTvlUsd = grindersNetworkCaip2
+    ? (networkSummary?.totalValueLocked ?? displayGrinderSummary.totalValueLocked)
+    : (grinderTableSummary.totalValueLocked || displayGrinderSummary.totalValueLocked)
+  const scopedIndexedYield = grindersNetworkCaip2
+    ? networkSummary?.totalIndexedYield
+    : grinderTableSummary.totalIndexedYield
+  const hasOnchainIndexedYield = typeof scopedIndexedYield === 'number'
+  const grinderYieldUsd = hasOnchainIndexedYield
+    ? scopedIndexedYield
+    : sumGrinderRowYieldUsd(displayGrinderRows)
   const copyGrinderTableAddress = useCallback(async (address: string, grinderId: string) => {
     try {
       await navigator.clipboard.writeText(address)
@@ -111,47 +145,52 @@ export function GraiGrindersSection() {
   }, [])
 
   useEffect(() => {
-    if (!activeWallet.isConnected) {
-      setIsGrindersFilterEnabled(false)
-    }
-  }, [activeWallet.isConnected])
-
-  useEffect(() => {
     setGrindersTablePage(0)
-  }, [isGrindersNetworkFilterActive, walletNetworkCaip2])
+  }, [grindersNetworkCaip2])
 
   useEffect(() => {
     setGrindersTablePage((page) => Math.min(page, grindersTablePageCount - 1))
   }, [displayGrinderRows.length, grindersTablePageCount])
 
-  const grindersSummaryNetworkRow = isCompactGrindersLayout ? (
-    <div className="grai-grinders-summary-filter-wrap grai-grinders-summary-filter-wrap--compact-row grai-grinders-summary-filter-wrap--network-only">
-      <span className="grai-grinders-summary-toolbar-network">
-        <span className="grai-grinders-network-action">
-          <GraiGrindersNetworkSelect
-            filterEnabled={isGrindersFilterEnabled}
-            onFilterChange={setIsGrindersFilterEnabled}
-            ariaLabel="Filter grinders by network"
-            variant="inline"
-          />
+  const grindersSummaryNetworkRow =
+    showNetworkFilter && isCompactGrindersLayout ? (
+      <div className="grai-grinders-summary-filter-wrap grai-grinders-summary-filter-wrap--compact-row grai-grinders-summary-filter-wrap--network-only">
+        <span className="grai-grinders-summary-toolbar-network">
+          <span className="grai-grinders-network-action">
+            <GraiGrindersNetworkSelect
+              networkCaip2={grindersNetworkCaip2}
+              onNetworkChange={setGrindersNetworkCaip2}
+              ariaLabel="Filter grinders by network"
+              variant="inline"
+            />
+          </span>
         </span>
-      </span>
-    </div>
-  ) : null
+      </div>
+    ) : null
+
+  const networkGridCols = showNetworkFilter
+  const fieldHints = showTableToggle
+  const shellClassName = [
+    'grai-grinders-summary-shell',
+    !showNetworkFilter ? 'grai-grinders-summary-shell--total-only' : '',
+    !showTableToggle ? 'grai-grinders-summary-shell--landing' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className="grai-bottom-row">
-      <div className="grai-grinders-summary-shell" id="grai-grinders-summary">
+      <div className={shellClassName} id="grai-grinders-summary">
         {grindersSummaryNetworkRow}
         <div className="grai-grinders-row grai-grinders-row--group grai-grinders-row--summary" role="row">
-          {!isCompactGrindersLayout ? (
+          {showNetworkFilter && !isCompactGrindersLayout ? (
           <span
             role="columnheader"
             className="grai-grinders-group-title is-network is-stacked grai-grinders-network-slot--desktop"
           >
             <GraiGrindersNetworkSelect
-              filterEnabled={isGrindersFilterEnabled}
-              onFilterChange={setIsGrindersFilterEnabled}
+              networkCaip2={grindersNetworkCaip2}
+              onNetworkChange={setGrindersNetworkCaip2}
               ariaLabel="Filter grinders by network"
               variant="stacked"
             />
@@ -175,70 +214,71 @@ export function GraiGrindersSection() {
                 total={grinderTotalCount}
                 isLive={isGrinderLive}
                 isToreadorUnavailable={isToreadorUnavailable}
+                interactive={fieldHints}
               />
             )}
           </span>
-          <span role="columnheader" className="grai-grinders-group-title is-uptime is-stacked" style={{ gridColumn: 3 }}>
-            <GraiFieldInfoButton
-              className="grai-grinders-group-title-label"
-              hint={GRINDER_UPTIME_INFO_HINT}
-              ariaLabel="What grinder uptime means"
-              structured
-            >
-              <span className="grai-grinders-group-title-icon" aria-hidden="true">
-                {GRINDERS_COLUMN_ICONS.lastActionTime}
-              </span>
-              UPTIME
-            </GraiFieldInfoButton>
-            {isGrinderLoading || isToreadorUnavailable ? (
-              <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
-                {isGrinderLoading ? '…' : '—'}
-              </span>
-            ) : (
-              <span className="grai-grinders-group-title-value">{grinderUptimeLabel}</span>
-            )}
-          </span>
-          <span role="columnheader" className="grai-grinders-group-title is-tvl is-stacked" style={{ gridColumn: '4 / span 2' }}>
+          <span
+            role="columnheader"
+            className="grai-grinders-group-title is-tvl is-stacked"
+            style={networkGridCols ? { gridColumn: '3 / span 2' } : undefined}
+          >
             <GraiFieldInfoButton
               className="grai-grinders-group-title-label"
               hint={GRINDER_TVL_INFO_HINT}
               ariaLabel="Total Value Locked"
               structured
+              interactive={fieldHints}
             >
               <span className="grai-grinders-group-title-icon" aria-hidden="true">
                 {GRINDERS_COLUMN_ICONS.quote}
               </span>
-              TVL
+              {tvlLabel ?? 'TVL'}
             </GraiFieldInfoButton>
             {isGrinderLoading || isToreadorUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
                 {isGrinderLoading ? '…' : '—'}
               </span>
             ) : (
-              <GraiGrinderTvlValue totalUsd={grinderTvlUsd} rows={isGrinderLive ? displayGrinderRows : []} />
+              <GraiGrinderTvlValue
+                totalUsd={grinderTvlUsd}
+                rows={isGrinderLive ? displayGrinderRows : []}
+                interactive={fieldHints}
+              />
             )}
           </span>
-          <span role="columnheader" className="grai-grinders-group-title is-yield is-stacked" style={{ gridColumn: '6 / span 2' }}>
+          <span
+            role="columnheader"
+            className="grai-grinders-group-title is-yield is-stacked"
+            style={networkGridCols ? { gridColumn: '5 / span 2' } : undefined}
+          >
             <GraiFieldInfoButton
               className="grai-grinders-group-title-label"
               hint={GRINDER_YIELD_INFO_HINT}
-              ariaLabel="How yield is calculated"
+              ariaLabel="How indexed yield is calculated"
               structured
+              interactive={fieldHints}
             >
               <span className="grai-grinders-group-title-icon" aria-hidden="true">
                 {GRINDERS_COLUMN_ICONS.yieldQuote}
               </span>
-              YIELD
+              INDEXED YIELD
             </GraiFieldInfoButton>
             {isGrinderLoading || isToreadorUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
                 {isGrinderLoading ? '…' : '—'}
               </span>
             ) : (
-              <GraiGrinderYieldValue totalUsd={grinderYieldUsd} rows={isGrinderLive ? displayGrinderRows : []} />
+              <GraiGrinderYieldValue
+                totalUsd={grinderYieldUsd}
+                rows={isGrinderLive ? displayGrinderRows : []}
+                onChain={hasOnchainIndexedYield}
+                interactive={fieldHints}
+              />
             )}
           </span>
         </div>
+        {showTableToggle ? (
         <div className="grai-grinders-summary-table-row">
           <div className="grai-grinders-grinders-panel-slot">
         <section
@@ -267,10 +307,7 @@ export function GraiGrindersSection() {
               >
                 <div className="grai-grinders-row grai-grinders-row--head" role="row">
                   <span role="columnheader" className="grai-grinders-col-head is-last-action-kind">
-                    <span className="grai-grinders-col-head-inner">
-                      <span className="grai-grinders-col-icon">{GRINDERS_COLUMN_ICONS.lastAction}</span>
-                      <span className="grai-grinders-col-head-label">Last tx</span>
-                    </span>
+                    <span className="grai-grinders-col-head-label">Last tx</span>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-grinder" aria-label="Grinders">
                     <button
@@ -283,41 +320,23 @@ export function GraiGrindersSection() {
                       <span className="grai-grinders-col-head-label">GRINDERS</span>
                     </button>
                   </span>
-                  <span role="columnheader" className="grai-grinders-col-head is-last-action">
-                    <span className="grai-grinders-col-head-inner">
-                      <span className="grai-grinders-col-icon">{GRINDERS_COLUMN_ICONS.lastActionTime}</span>
-                      <span className="grai-grinders-col-head-label">Last action time</span>
-                    </span>
-                  </span>
                   <span role="columnheader" className="grai-grinders-col-head is-base">
-                    <span className="grai-grinders-col-head-inner">
-                      <span className="grai-grinders-col-icon">{GRINDERS_COLUMN_ICONS.base}</span>
-                      <span className="grai-grinders-col-head-label">Base</span>
-                    </span>
+                    <span className="grai-grinders-col-head-label">Base</span>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-head is-quote">
-                    <span className="grai-grinders-col-head-inner">
-                      <span className="grai-grinders-col-icon">{GRINDERS_COLUMN_ICONS.quote}</span>
-                      <span className="grai-grinders-col-head-label">Quote</span>
-                    </span>
+                    <span className="grai-grinders-col-head-label">Quote</span>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-head is-yield-base">
-                    <span className="grai-grinders-col-head-inner">
-                      <span className="grai-grinders-col-icon">{GRINDERS_COLUMN_ICONS.yieldBase}</span>
-                      <span className="grai-grinders-col-head-label">Yield base</span>
-                    </span>
+                    <span className="grai-grinders-col-head-label">Yield base</span>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-head is-yield-quote">
-                    <span className="grai-grinders-col-head-inner">
-                      <span className="grai-grinders-col-icon">{GRINDERS_COLUMN_ICONS.yieldQuote}</span>
-                      <span className="grai-grinders-col-head-label">Yield quote</span>
-                    </span>
+                    <span className="grai-grinders-col-head-label">Yield quote</span>
                   </span>
                 </div>
                 {displayGrinderRows.length === 0 ? (
                   <p className="grai-grinders-status is-empty" role="status">
-                    {isGrindersNetworkFilterActive
-                      ? `No grinders on ${walletNetworkCaip2}.`
+                    {grindersNetworkCaip2
+                      ? `No grinders on ${grindersNetworkCaip2}.`
                       : 'No grinders reported by Toreador.'}
                   </p>
                 ) : (
@@ -326,7 +345,7 @@ export function GraiGrindersSection() {
                       <GraiGrinderLastTxCell
                         lastActionLabel={row.lastActionLabel}
                         terminal={row.terminal}
-                        network={row.network}
+                        toreador={row.toreador}
                         txState={grinderLastTx[row.id]}
                         custodianAddress={row.custodianAddress}
                         image={row.image}
@@ -339,32 +358,37 @@ export function GraiGrindersSection() {
                         copied={copiedGrinderId === row.id}
                         onCopy={copyGrinderTableAddress}
                       />
-                      <span role="cell">{row.lastAction}</span>
                       <GraiGrinderAmountCell
                         value={row.base}
                         usdValue={row.balanceBase * row.spotPrice}
                       />
                       <GraiGrinderAmountCell value={row.quote} usdValue={row.balanceQuote} />
                       <GraiGrinderAmountCell
-                        value={row.yieldBase}
-                        yieldValue={row.yieldBase}
-                        yieldNumeric={row.yieldBaseValue}
+                        value={formatGrinderTokenAmount(
+                          row.yieldBase,
+                          row.baseSymbol || tickerFromGrinderAmount(row.base),
+                          { signed: true },
+                        )}
+                        yieldNumeric={row.yieldBase}
                         className={
-                          row.yieldBaseValue > 0
+                          row.yieldBase > 0
                             ? 'is-positive'
-                            : row.yieldBaseValue < 0
+                            : row.yieldBase < 0
                               ? 'is-negative'
                               : undefined
                         }
                       />
                       <GraiGrinderAmountCell
-                        value={row.yieldQuote}
-                        yieldValue={row.yieldQuote}
-                        yieldNumeric={row.yieldQuoteValue}
+                        value={formatGrinderTokenAmount(
+                          row.yieldQuote,
+                          row.quoteSymbol || tickerFromGrinderAmount(row.quote),
+                          { signed: true },
+                        )}
+                        yieldNumeric={row.yieldQuote}
                         className={
-                          row.yieldQuoteValue > 0
+                          row.yieldQuote > 0
                             ? 'is-positive'
-                            : row.yieldQuoteValue < 0
+                            : row.yieldQuote < 0
                               ? 'is-negative'
                               : undefined
                         }
@@ -409,6 +433,8 @@ export function GraiGrindersSection() {
         </section>
           </div>
         </div>
+        ) : null}
+        {showTableToggle ? (
         <div className="grai-grinders-summary-toggles-row">
           <div className="grai-grinders-summary-toggle grai-grinders-show-all-toggle-wrap">
             <button
@@ -449,6 +475,7 @@ export function GraiGrindersSection() {
             </button>
           </div>
         </div>
+        ) : null}
       </div>
     </div>
   )

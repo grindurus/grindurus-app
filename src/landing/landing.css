@@ -935,3 +935,391 @@
     box-shadow: 0 0 24px rgba(255, 105, 180, 0.08);
   }
 }
+
+/* Footer legal links: beat UA / visited blue */
+.landing-root footer nav[aria-label='Legal'] a,
+.landing-root footer nav[aria-label='Legal'] a:link,
+.landing-root footer nav[aria-label='Legal'] a:visited {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+}
+
+.landing-root footer nav[aria-label='Legal'] a:hover,
+.landing-root footer nav[aria-label='Legal'] a:focus-visible {
+  color: #fff;
+}
+
+/* Live grinders plaque — reuse GraiGrindersSection styles on landing */
+.landing-grinders-plaque__host .grai-bottom-row {
+  margin: 0;
+}
+
+.landing-grinders-plaque__host .grai-grinders-summary-shell {
+  width: 100%;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) {
+  /* Sit lower under the hero — more air above the summary row. */
+  padding-top: 3.75rem;
+  padding-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 0;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host {
+  padding-top: 1.25rem;
+  padding-bottom: 2rem;
+}
+
+/* Desktop fold: hero + plaque leave room for GRAI title peek */
+@media (min-width: 768px) {
+  .landing-root {
+    /* plaque (title-scale metrics) + GraiFlow top pad + ~title peek */
+    --landing-below-hero: 20.5rem;
+  }
+
+  .landing-desktop-hero {
+    height: clamp(300px, calc(100svh - 74px - var(--landing-below-hero)), 560px);
+    min-height: clamp(300px, calc(100svh - 74px - var(--landing-below-hero)), 560px);
+    max-height: clamp(300px, calc(100svh - 74px - var(--landing-below-hero)), 560px);
+  }
+}
+
+@media (min-width: 768px) and (max-height: 920px) {
+  .landing-root {
+    --landing-below-hero: 17.5rem;
+  }
+
+  .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) {
+    padding-top: 1.75rem;
+    padding-bottom: 1.35rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host {
+    padding-top: 0.55rem;
+    padding-bottom: 1.1rem;
+  }
+
+  .landing-grai-flow {
+    padding-top: 1.75rem !important;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 780px) {
+  .landing-root {
+    --landing-below-hero: 15.25rem;
+  }
+
+  .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) {
+    padding-top: 1.1rem;
+    padding-bottom: 0.9rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host {
+    padding-top: 0.35rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .landing-grai-flow {
+    padding-top: 1.15rem !important;
+  }
+}
+
+.landing-grinders-plaque--embedded {
+  border: 0;
+  background: transparent;
+}
+
+/* Desktop landing plaque — values near GraiFlow title scale; labels quieter */
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing {
+  --landing-plaque-metric-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  --landing-plaque-label-size: clamp(0.95rem, 1.6vw, 1.25rem);
+  --landing-plaque-metric-leading: 1.15;
+  --landing-plaque-label-leading: 1.2;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-row--summary {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: stretch;
+  gap: var(--grai-grinders-gap, 0.45rem);
+  width: 100%;
+  margin: 0;
+  padding: 0.25rem var(--grai-grinders-pad-x, 0.6rem) 0.2rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-row--summary > span {
+  border-left: 0 !important;
+  padding-left: var(--grai-grinders-cell-pad, 0.55rem) !important;
+  margin: 0;
+  width: auto;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-row--summary > span + span {
+  border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-general,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-title {
+  font-size: var(--landing-plaque-metric-size);
+  font-weight: 900;
+  line-height: var(--landing-plaque-metric-leading);
+  letter-spacing: -0.01em;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-title-value {
+  font-size: var(--landing-plaque-metric-size);
+  font-weight: 900;
+  line-height: var(--landing-plaque-metric-leading);
+  letter-spacing: -0.01em;
+  text-align: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  text-shadow: none;
+}
+
+/* 2/4 GRINDERS — keep count + label tight, centered as one unit */
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-general-value {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.3em;
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  height: auto;
+  font-size: var(--landing-plaque-metric-size);
+  font-weight: 900;
+  line-height: var(--landing-plaque-metric-leading);
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-general-value-label {
+  display: inline;
+  width: auto;
+  margin-left: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  white-space: nowrap;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-general-top,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-live-label,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-summary-mini-label,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-title-label,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label .grai-field-info-trigger {
+  font-size: var(--landing-plaque-label-size);
+  font-weight: 700;
+  line-height: var(--landing-plaque-label-leading);
+  letter-spacing: 0.04em;
+  height: auto;
+  min-height: 0;
+  white-space: nowrap;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-title-label,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label .grai-field-info-trigger {
+  justify-content: center;
+  margin-inline: 0;
+  width: 100%;
+}
+
+/* LIVE + dot: compact centered pair (dot immediately before LIVE) */
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-row--summary .grai-grinders-summary-general .grai-grinders-group-general-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: calc(var(--landing-plaque-label-size) * var(--landing-plaque-label-leading));
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-summary-general .grai-grinders-live-label,
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-summary-general .grai-grinders-summary-mini-label {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-summary-general .grai-grinder-active-dot {
+  flex-shrink: 0;
+  width: 0.55em;
+  height: 0.55em;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-general-value-label {
+  color: #fff;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-title-icon {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-group-title-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinder-active-dot {
+  width: 0.55em;
+  height: 0.55em;
+}
+
+/* Mobile embedded plaque — centered hero stack under Open App */
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-row--summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.1rem;
+  width: 100%;
+  padding: 0.35rem 0 0.15rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+  justify-items: center;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-row--summary > span {
+  border-left: 0 !important;
+  border-top: 0 !important;
+  padding-left: 0 !important;
+  padding-top: 0 !important;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-general-top,
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label,
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label .grai-field-info-trigger {
+  justify-content: center;
+  width: auto;
+  margin-inline: auto;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title-label,
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-live-label,
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-summary-mini-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-tvl .grai-grinders-group-title-label,
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-tvl .grai-field-info-trigger {
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title-icon {
+  display: none;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title-value {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: clamp(1.85rem, 9vw, 2.55rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-align: center;
+  justify-content: center;
+  width: 100%;
+  text-shadow: 0 0 28px rgba(0, 0, 0, 0.55);
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-general-value {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: clamp(1.05rem, 4.6vw, 1.35rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-align: center;
+  justify-content: center;
+  width: 100%;
+  text-shadow: 0 0 28px rgba(0, 0, 0, 0.55);
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-yield .grai-grinders-group-title-value,
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title-value.is-positive {
+  color: #ff69b4;
+  text-shadow:
+    0 0 22px rgba(255, 105, 180, 0.45),
+    0 0 36px rgba(255, 20, 147, 0.2);
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-general-value-label {
+  display: inline;
+  margin-left: 0.4rem;
+  font-size: 1em;
+  font-weight: inherit;
+  letter-spacing: 0.02em;
+  vertical-align: baseline;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinder-active-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.85);
+  animation: landing-grinders-live-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes landing-grinders-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinder-active-dot {
+    animation: none;
+  }
+}

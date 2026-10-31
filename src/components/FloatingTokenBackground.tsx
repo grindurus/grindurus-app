@@ -261,7 +261,9 @@ export function FloatingTokenBackground({ tokens, className, children }: Floatin
         }
       : undefined
 
-  const wrapClass = ['floating-token-bg-wrap', className].filter(Boolean).join(' ')
+  const wrapClass = ['floating-token-bg-wrap', 'grai-token-stage-vt', className]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div
