@@ -13,7 +13,7 @@ export function HeroSection({
     <>
       {/* ── MOBILE layout (hidden on md+) ── */}
       {/* Leave ~3.25rem so GraiFlow “GRAI …” title peeks under the fold on mobile. */}
-      <section className="md:hidden w-full bg-black flex flex-col items-center justify-center text-center px-4 overflow-hidden min-h-[calc(100svh-3.25rem)] pt-[64px] pb-6">
+      <section className="md:hidden w-full bg-black flex flex-col items-center justify-center text-center px-4 overflow-x-hidden overflow-y-visible min-h-[calc(100svh-3.25rem)] pt-[64px] pb-6">
         {/* Headline */}
         <h1 className="font-mono font-black text-[clamp(2.2rem,10vw,3rem)] leading-[1.2] mb-3 relative z-10 px-2">
           <span className="block text-brand-pink text-[clamp(1.85rem,8vw,2.7rem)] whitespace-nowrap [text-shadow:0_0_20px_black]">

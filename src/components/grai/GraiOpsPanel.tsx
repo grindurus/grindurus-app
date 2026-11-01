@@ -1793,7 +1793,7 @@ export function GraiOpsPanel() {
         <span className="grai-action-switch-label">
           Exit by
           <br />
-          Vote
+          Vote & Bribe
         </span>
       </button>
       <div

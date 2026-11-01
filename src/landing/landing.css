@@ -391,7 +391,7 @@
   flex-wrap: nowrap;
   justify-content: center;
   align-items: center;
-  gap: 0.35em;
+  gap: 0.75em;
   white-space: nowrap;
   text-align: center;
   font-size: 0.88rem;
@@ -630,7 +630,7 @@
   flex-wrap: nowrap;
   justify-content: center;
   align-items: center;
-  gap: 0.35em;
+  gap: 0.75em;
   white-space: nowrap;
   font-size: 0.88rem;
   font-weight: 700;
@@ -786,7 +786,7 @@
   .grai-flow__custodian-side-title,
   .grai-flow__mode-charts-title {
     font-size: 0.62rem;
-    gap: 0.05rem;
+    gap: 0.45em;
   }
 
   .grai-flow__custodian-id {
@@ -979,12 +979,82 @@
   padding-top: 3.75rem;
   padding-bottom: 2.5rem;
   margin-bottom: 1.5rem;
+  border-top: 0;
   border-bottom: 0;
+  /* Let the raised host cast shadow onto hero / GraiFlow without clipping. */
+  overflow: visible;
+  z-index: 2;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host,
+.landing-grinders-plaque--embedded .landing-grinders-plaque__host {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  border-radius: 1rem;
+  border: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.01) 42%, rgba(0, 0, 0, 0.35) 100%),
+    #0c0c0c;
+  box-shadow:
+    0 -10px 28px rgba(0, 0, 0, 0.55),
+    0 14px 36px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+  /* Soft dissolve into the black band on left/right. */
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 5.5%,
+    #000 94.5%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 5.5%,
+    #000 94.5%,
+    transparent 100%
+  );
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host::before,
+.landing-grinders-plaque--embedded .landing-grinders-plaque__host::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 105, 180, 0.42) 12%,
+    rgba(255, 255, 255, 0.22) 38%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.2) 62%,
+    rgba(255, 105, 180, 0.36) 88%,
+    transparent 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+.landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host > *,
+.landing-grinders-plaque--embedded .landing-grinders-plaque__host > * {
+  position: relative;
+  z-index: 1;
 }
 
 .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host {
-  padding-top: 1.25rem;
-  padding-bottom: 2rem;
+  padding: 1.15rem 1.35rem 1.35rem;
 }
 
 /* Desktop fold: hero + plaque leave room for GRAI title peek */
@@ -1013,8 +1083,7 @@
   }
 
   .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host {
-    padding-top: 0.55rem;
-    padding-bottom: 1.1rem;
+    padding: 0.7rem 1.1rem 0.95rem;
   }
 
   .landing-grai-flow {
@@ -1034,8 +1103,7 @@
   }
 
   .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .landing-grinders-plaque__host {
-    padding-top: 0.35rem;
-    padding-bottom: 0.75rem;
+    padding: 0.5rem 1rem 0.7rem;
   }
 
   .landing-grai-flow {
@@ -1046,6 +1114,26 @@
 .landing-grinders-plaque--embedded {
   border: 0;
   background: transparent;
+  overflow: visible;
+}
+
+.landing-grinders-plaque--embedded .landing-grinders-plaque__host {
+  padding: 1rem 1rem 1.15rem;
+  /* Tighter side fade on the narrow mobile stack. */
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 4%,
+    #000 96%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 4%,
+    #000 96%,
+    transparent 100%
+  );
 }
 
 /* Desktop landing plaque — values near GraiFlow title scale; labels quieter */

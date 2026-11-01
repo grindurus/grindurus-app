@@ -307,7 +307,7 @@ export function GraiGrindersSection({
               >
                 <div className="grai-grinders-row grai-grinders-row--head" role="row">
                   <span role="columnheader" className="grai-grinders-col-head is-last-action-kind">
-                    <span className="grai-grinders-col-head-label">Last tx</span>
+                    <span className="grai-grinders-col-head-label">Custodians</span>
                   </span>
                   <span role="columnheader" className="grai-grinders-col-grinder" aria-label="Grinders">
                     <button

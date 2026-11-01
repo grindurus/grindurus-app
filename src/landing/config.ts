@@ -1,6 +1,6 @@
 /** In-app paths for landing CTAs (same origin as grindurus-app). */
 export const APP_HOME = '/grai'
-/** GRAI ops → Exit by Vote (bribe market). */
+/** GRAI ops → Exit by Vote & Bribe (bribe market). */
 export const APP_EXIT_VOTE = '/grai#vote'
 /** GRAI ops → Exit by Liquidation. */
 export const APP_EXIT_LIQUIDATION = '/grai#liquidation'

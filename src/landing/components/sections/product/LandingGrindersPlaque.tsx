@@ -14,7 +14,7 @@ export function LandingGrindersPlaque({ embedded = false, className }: Props) {
       className={
         embedded
           ? `landing-grinders-plaque landing-grinders-plaque--embedded relative w-full ${className ?? ''}`
-          : `landing-grinders-plaque relative w-full bg-black border-y border-white/10 ${className ?? ''}`
+          : `landing-grinders-plaque relative w-full bg-black ${className ?? ''}`
       }
       aria-label="Live grinders summary"
     >
@@ -28,7 +28,7 @@ export function LandingGrindersPlaque({ embedded = false, className }: Props) {
         <GraiGrindersSection
           showTableToggle={false}
           showNetworkFilter={false}
-          tvlLabel={embedded ? 'TOTAL VALUE LOCKED' : 'TVL'}
+          tvlLabel="TOTAL VALUE LOCKED"
         />
       </div>
     </section>

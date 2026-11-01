@@ -84,8 +84,8 @@ export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
     let pollTimer: ReturnType<typeof setInterval> | undefined
 
     const cancelDefer = deferAfterPaint(() => {
-      // First paint bypasses Toreador TTL cache so custodian/NFT fields are fresh.
-      void load({ refresh: true, signal: ac.signal })
+      // Serve Toreador TTL cache — avoid ?refresh=1 on every page open.
+      void load({ signal: ac.signal })
       pollTimer = setInterval(() => {
         void load({ signal: ac.signal })
       }, POLL_MS)
@@ -102,7 +102,8 @@ export function useToreadorGrinderTable(): UseToreadorGrinderTableResult {
     if (isRefreshing) return
     setIsRefreshing(true)
     try {
-      await load({ refresh: true })
+      // Soft re-fetch (Toreador CACHE_TTL); no ?refresh=1.
+      await load()
     } finally {
       setIsRefreshing(false)
     }

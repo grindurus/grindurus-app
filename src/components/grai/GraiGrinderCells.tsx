@@ -78,28 +78,19 @@ function splitBossGrinderName(name: string): { boss: string; grinder: string } {
   return { boss: name.slice(0, idx).trim(), grinder: name.slice(idx + 3).trim() || name }
 }
 
-function GraiGrinderCustodianChip({
+function GraiGrinderCustodianAddrRow({
   custodianAddress,
-  image,
-  nftName,
-  custodianId,
-  grindersAddress,
   terminal,
   toreador,
+  leading,
 }: {
   custodianAddress?: string
-  image?: string
-  nftName?: string
-  custodianId?: number
-  grindersAddress?: string
   terminal?: string
   toreador?: string
+  leading?: ReactNode
 }) {
   const [copied, setCopied] = useState(false)
-  if (!custodianAddress && !image) return null
-  const label =
-    nftName?.trim() ||
-    (custodianId != null ? `Custodian #${custodianId}` : 'Custodian')
+  if (!custodianAddress && !leading) return null
   const explorerHref = custodianAddress
     ? resolveGrinderAccountExplorerUrl({
         address: custodianAddress,
@@ -107,45 +98,9 @@ function GraiGrinderCustodianChip({
         network: toreador,
       })
     : null
-  const openSeaHref = resolveGrinderOpenSeaUrl({
-    grindersAddress,
-    custodianId,
-    terminal,
-    network: toreador,
-  })
-  const nftImg = image ? (
-    <img
-      className="grai-grinder-custodian-nft"
-      src={image}
-      alt=""
-      width={22}
-      height={22}
-      loading="lazy"
-      decoding="async"
-    />
-  ) : (
-    <span className="grai-grinder-custodian-nft is-placeholder" aria-hidden="true" />
-  )
   return (
-    <span
-      className="grai-grinder-custodian"
-      title={custodianAddress ? `${label} · ${custodianAddress}` : label}
-    >
-      {openSeaHref ? (
-        <a
-          href={openSeaHref}
-          target="_blank"
-          rel="noreferrer"
-          className="grai-grinder-custodian-nft-link"
-          aria-label={`View ${label} on OpenSea`}
-          title="View on OpenSea"
-          onClick={(event) => event.stopPropagation()}
-        >
-          {nftImg}
-        </a>
-      ) : (
-        nftImg
-      )}
+    <span className="grai-grinder-last-tx-main grai-grinder-custodian-addr-row">
+      {leading}
       {custodianAddress ? (
         <button
           type="button"
@@ -154,12 +109,15 @@ function GraiGrinderCustodianChip({
           aria-label={copied ? 'Copied to clipboard' : `Copy custodian ${custodianAddress}`}
           onClick={(event) => {
             event.stopPropagation()
-            void navigator.clipboard.writeText(custodianAddress).then(() => {
-              setCopied(true)
-              window.setTimeout(() => setCopied(false), 1000)
-            }).catch(() => {
-              // ignore clipboard errors
-            })
+            void navigator.clipboard
+              .writeText(custodianAddress)
+              .then(() => {
+                setCopied(true)
+                window.setTimeout(() => setCopied(false), 1000)
+              })
+              .catch(() => {
+                // ignore clipboard errors
+              })
           }}
         >
           {copied ? 'Copied!' : shortenAddress(custodianAddress)}
@@ -182,6 +140,97 @@ function GraiGrinderCustodianChip({
   )
 }
 
+function resolveCustodianNftLabel(nftName?: string, custodianId?: number): string {
+  return (
+    nftName?.trim() ||
+    (custodianId != null ? `Custodian #${custodianId}` : 'Custodian')
+  )
+}
+
+function GraiGrinderCustodianNft({
+  image,
+  nftName,
+  custodianId,
+  grindersAddress,
+  terminal,
+  toreador,
+}: {
+  image?: string
+  nftName?: string
+  custodianId?: number
+  grindersAddress?: string
+  terminal?: string
+  toreador?: string
+}) {
+  const label = resolveCustodianNftLabel(nftName, custodianId)
+  const openSeaHref = resolveGrinderOpenSeaUrl({
+    grindersAddress,
+    custodianId,
+    terminal,
+    network: toreador,
+  })
+  const nftImg = image ? (
+    <img
+      className="grai-grinder-custodian-nft"
+      src={image}
+      alt=""
+      width={22}
+      height={22}
+      loading="lazy"
+      decoding="async"
+    />
+  ) : (
+    <span className="grai-grinder-custodian-nft is-placeholder" aria-hidden="true" />
+  )
+  if (openSeaHref) {
+    return (
+      <a
+        href={openSeaHref}
+        target="_blank"
+        rel="noreferrer"
+        className="grai-grinder-custodian-nft-link"
+        aria-label={`View ${label} on OpenSea`}
+        title="View on OpenSea"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {nftImg}
+      </a>
+    )
+  }
+  return nftImg
+}
+
+function GraiGrinderCustodianChip({
+  custodianAddress,
+  nftName,
+  custodianId,
+  toreador,
+  trailing,
+}: {
+  custodianAddress?: string
+  nftName?: string
+  custodianId?: number
+  toreador?: string
+  trailing?: ReactNode
+}) {
+  if (!custodianAddress && !trailing) return null
+  const label = resolveCustodianNftLabel(nftName, custodianId)
+  const network = resolveGrinderNetworkDisplay(toreador)
+  return (
+    <span
+      className="grai-grinder-custodian"
+      title={custodianAddress ? `${label} · ${custodianAddress}` : label}
+    >
+      {network?.icon ? (
+        <span className="grai-grinder-custodian-network" title={network.title}>
+          {network.icon}
+        </span>
+      ) : null}
+      {trailing}
+    </span>
+  )
+}
+
 export function GraiGrinderTableName({
   row,
   copied,
@@ -193,22 +242,9 @@ export function GraiGrinderTableName({
 }) {
   const isLive = isGrinderStatusLive(row.status)
   const { boss, grinder } = splitBossGrinderName(row.name)
-  const network = resolveGrinderNetworkDisplay(row.toreador)
-  const label = (
-    <span className="grai-grinder-name-stack">
-      {boss ? <span className="grai-grinder-name-boss">{boss}</span> : null}
-      <span className="grai-grinder-name-grinder">{grinder}</span>
-      {network ? (
-        <span className="grai-grinder-name-network" title={network.title}>
-          {network.icon}
-          <span className="grai-grinder-name-network-label">{network.label}</span>
-        </span>
-      ) : null}
-    </span>
-  )
-
   return (
-    <span role="cell" className="grai-grinder-name">
+    <span role="cell" className={`grai-grinder-name${boss ? ' has-boss' : ''}`}>
+      {boss ? <span className="grai-grinder-name-boss">{boss}</span> : null}
       <span
         className={`grai-grinder-active-dot${isLive ? '' : ' is-inactive'}`}
         aria-hidden="true"
@@ -224,10 +260,10 @@ export function GraiGrinderTableName({
           title={copied ? 'Copied to clipboard' : row.grinderAddress}
           aria-label={copied ? 'Copied to clipboard' : `Copy ${row.name} address`}
         >
-          {copied ? 'Copied!' : label}
+          {copied ? 'Copied!' : <span className="grai-grinder-name-grinder">{grinder}</span>}
         </button>
       ) : (
-        label
+        <span className="grai-grinder-name-grinder">{grinder}</span>
       )}
     </span>
   )
@@ -266,99 +302,53 @@ export function GraiGrinderLastTxCell({
       ? `${lastActionLabel}${terminalHint} · no last transaction from Toreador`
       : `${lastActionLabel}${terminalHint} · no last transaction`
 
-  const icon =
-    terminalKind === 'binance' ? (
-      <img
-        className="grai-grinder-last-tx-terminal-icon"
-        src="https://assets.coingecko.com/markets/images/52/small/binance.jpg"
-        alt=""
-        width={16}
-        height={16}
-        loading="lazy"
-        decoding="async"
-      />
-    ) : terminalKind === 'cow' ? (
-      <img
-        className="grai-grinder-last-tx-terminal-icon"
-        src="https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/cow-token.svg"
-        alt=""
-        width={16}
-        height={16}
-        loading="lazy"
-        decoding="async"
-      />
-    ) : terminalKind === 'swap' ? (
-      <svg
-        className="grai-grinder-last-tx-terminal-icon grai-grinder-last-tx-terminal-icon--swap"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M16 3h5v5" />
-        <path d="M8 21H3v-5" />
-        <path d="M21 3 14 10" />
-        <path d="m3 21 7-7" />
-      </svg>
-    ) : terminalKind === 'path' || terminalKind === 'lifi' ? (
-      <svg
-        className="grai-grinder-last-tx-terminal-icon grai-grinder-last-tx-terminal-icon--path"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <circle cx="6" cy="6" r="2.5" />
-        <circle cx="18" cy="18" r="2.5" />
-        <path d="M8.5 7.5 15.5 16.5" />
-      </svg>
-    ) : null
+  const showNft = Boolean(image || custodianAddress)
+  const nftLeading = showNft ? (
+    <GraiGrinderCustodianNft
+      image={image}
+      nftName={nftName}
+      custodianId={custodianId}
+      grindersAddress={grindersAddress}
+      terminal={terminal}
+      toreador={toreador}
+    />
+  ) : null
 
-  const content = (
-    <>
-      {icon}
-      <span className="grai-grinder-last-tx-hash">{hashLabel}</span>
-    </>
-  )
-
-  const txRow =
+  const hashNode =
     txState?.status === 'ready' && hasHash ? (
       <a
         href={txState.explorerUrl}
         target="_blank"
         rel="noreferrer"
-        className="grai-grinder-last-tx-link"
+        className="grai-grinder-last-tx-link grai-grinder-last-tx-hash-link"
         title={title}
       >
-        {content}
+        <span className="grai-grinder-last-tx-hash">{hashLabel}</span>
       </a>
     ) : (
       <span
-        className={`grai-grinder-last-tx-main${!hasHash ? ' is-fallback is-placeholder' : ''}`}
+        className={`grai-grinder-last-tx-hash${!hasHash ? ' is-placeholder' : ''}`}
         title={title}
       >
-        {content}
+        {hashLabel}
       </span>
     )
 
   return (
     <span role="cell" className="grai-grinder-last-tx">
       <span className="grai-grinder-last-tx-stack">
-        {txRow}
-        <GraiGrinderCustodianChip
+        <GraiGrinderCustodianAddrRow
           custodianAddress={custodianAddress}
           terminal={terminal}
           toreador={toreador}
-          image={image}
+          leading={nftLeading}
+        />
+        <GraiGrinderCustodianChip
+          custodianAddress={custodianAddress}
           nftName={nftName}
           custodianId={custodianId}
-          grindersAddress={grindersAddress}
+          toreador={toreador}
+          trailing={hashNode}
         />
       </span>
     </span>
