@@ -8,8 +8,8 @@ import { summarizeGrinderTableRows } from './grinderTable'
 import { caip2NetworksMatch, normalizeCaip2Network } from '../wallets/caip2Network'
 
 type ToreadorTableSummaryWire = {
-  activeCount?: number
-  totalCount?: number
+  activeGrinders?: number
+  totalGrinders?: number
   totalValueLocked?: number
   /** Legacy alias. */
   tvlUsd?: number
@@ -39,10 +39,6 @@ export type ToreadorGrindersTableResponse = {
   /** Orphan rows (no matching toreador). Preferred rows live under ``toreadors[].rows``. */
   rows?: GrinderTableRow[]
   summary?: ToreadorTableSummaryWire
-  boss_count?: number
-  bosses?: string[]
-  grinder_count?: number
-  toreador_count?: number
   /** Per-toreador groups (``toreadorId`` + ``rows``). Legacy: string[] of CAIP-2 ids. */
   toreadors?: Array<ToreadorTableGroupWire | string>
   /** ISO UTC of soonest background yield distribute across returned toreadors. */
@@ -71,8 +67,8 @@ export function coerceToreadorGroups(
     out.push({
       toreadorId,
       rows,
-      activeCount: stats?.activeCount ?? rows.filter((r) => r.isActive).length,
-      totalCount: stats?.totalCount ?? rows.length,
+      activeGrinders: stats?.activeGrinders ?? rows.filter((r) => r.isActive).length,
+      totalGrinders: stats?.totalGrinders ?? rows.length,
       totalValueLocked:
         stats?.totalValueLocked ??
         rows.reduce((sum, r) => sum + r.totalValueLocked, 0),
@@ -215,8 +211,8 @@ export async function fetchToreadorGrindersTable(options?: {
     groups.map((g) => [
       g.toreadorId,
       {
-        activeCount: g.activeCount,
-        totalCount: g.totalCount,
+        activeGrinders: g.activeGrinders,
+        totalGrinders: g.totalGrinders,
         totalValueLocked: g.totalValueLocked,
         totalIndexedYield: g.totalIndexedYield,
       } satisfies GrinderToreadorSummary,
@@ -224,11 +220,11 @@ export async function fetchToreadorGrindersTable(options?: {
   )
   const summary: GrinderTableSummary =
     body.summary &&
-    isFiniteNumber(body.summary.activeCount) &&
-    isFiniteNumber(body.summary.totalCount)
+    isFiniteNumber(body.summary.activeGrinders) &&
+    isFiniteNumber(body.summary.totalGrinders)
       ? {
-          activeCount: body.summary.activeCount,
-          totalCount: body.summary.totalCount,
+          activeGrinders: body.summary.activeGrinders,
+          totalGrinders: body.summary.totalGrinders,
           totalValueLocked: isFiniteNumber(body.summary.totalValueLocked)
             ? body.summary.totalValueLocked
             : isFiniteNumber(body.summary.tvlUsd)
@@ -252,10 +248,10 @@ export async function fetchToreadorGrindersTable(options?: {
 }
 
 function coerceToreadorSummary(raw: ToreadorTableSummaryWire): GrinderToreadorSummary | null {
-  if (!isFiniteNumber(raw.activeCount) || !isFiniteNumber(raw.totalCount)) return null
+  if (!isFiniteNumber(raw.activeGrinders) || !isFiniteNumber(raw.totalGrinders)) return null
   return {
-    activeCount: raw.activeCount,
-    totalCount: raw.totalCount,
+    activeGrinders: raw.activeGrinders,
+    totalGrinders: raw.totalGrinders,
     totalValueLocked: isFiniteNumber(raw.totalValueLocked)
       ? raw.totalValueLocked
       : isFiniteNumber(raw.tvlUsd)

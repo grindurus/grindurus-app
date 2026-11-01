@@ -110,8 +110,8 @@ export function GraiGrindersSection({
     if (!grindersNetworkCaip2) return null
     return summaryForCaip2Network(grinderTableSummary, grindersNetworkCaip2) ?? null
   }, [grinderTableSummary, grindersNetworkCaip2])
-  const grinderTotalCount = displayGrinderSummary.totalCount
-  const grinderActiveCount = displayGrinderSummary.activeCount
+  const grinderTotalCount = displayGrinderSummary.totalGrinders
+  const grinderActiveCount = displayGrinderSummary.activeGrinders
   // TOTAL → aggregate summary; network filter → that toreador’s TVL / indexed yield.
   const grinderTvlUsd = grindersNetworkCaip2
     ? (networkSummary?.totalValueLocked ?? displayGrinderSummary.totalValueLocked)

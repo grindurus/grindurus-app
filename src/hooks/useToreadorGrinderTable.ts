@@ -27,8 +27,8 @@ type UseToreadorGrinderTableResult = {
 }
 
 const EMPTY_SUMMARY: GrinderTableSummary = {
-  activeCount: 0,
-  totalCount: 0,
+  activeGrinders: 0,
+  totalGrinders: 0,
   totalValueLocked: 0,
 }
 

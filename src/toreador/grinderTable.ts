@@ -38,8 +38,8 @@ export type GrinderTableRow = {
 }
 
 export type GrinderToreadorSummary = {
-  activeCount: number
-  totalCount: number
+  activeGrinders: number
+  totalGrinders: number
   totalValueLocked: number
   totalIndexedYield?: number
 }
@@ -50,8 +50,8 @@ export type GrinderToreadorGroup = GrinderToreadorSummary & {
 }
 
 export type GrinderTableSummary = {
-  activeCount: number
-  totalCount: number
+  activeGrinders: number
+  totalGrinders: number
   totalValueLocked: number
   /** On-chain Grinders ``getIndexedYield().value`` when present (sum across returned toreadors). */
   totalIndexedYield?: number
@@ -60,12 +60,12 @@ export type GrinderTableSummary = {
 }
 
 export function summarizeGrinderTableRows(rows: GrinderTableRow[]): GrinderTableSummary {
-  const activeCount = rows.filter((row) => row.isActive).length
+  const activeGrinders = rows.filter((row) => row.isActive).length
   const totalValueLocked = rows.reduce((sum, row) => sum + row.totalValueLocked, 0)
 
   return {
-    activeCount,
-    totalCount: rows.length,
+    activeGrinders,
+    totalGrinders: rows.length,
     totalValueLocked,
   }
 }
