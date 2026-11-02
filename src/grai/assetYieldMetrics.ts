@@ -5,8 +5,8 @@ export type GraiAssetYieldMetrics = {
 
 const METRICS_BY_SYMBOL: Record<string, GraiAssetYieldMetrics> = {
   SOL: { volatilityPct: 78.4, projectedAnnualYieldPct: 53 },
-  ETH: { volatilityPct: 65.2, projectedAnnualYieldPct: 50 },
-  WETH: { volatilityPct: 65.2, projectedAnnualYieldPct: 50 },
+  ETH: { volatilityPct: 65.2, projectedAnnualYieldPct: 51 },
+  WETH: { volatilityPct: 65.2, projectedAnnualYieldPct: 51 },
   BTC: { volatilityPct: 48.1, projectedAnnualYieldPct: 42 },
   WBTC: { volatilityPct: 48.1, projectedAnnualYieldPct: 42 },
   ARB: { volatilityPct: 91.8, projectedAnnualYieldPct: 65 },

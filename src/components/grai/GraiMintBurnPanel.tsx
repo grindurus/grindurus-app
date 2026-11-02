@@ -9,7 +9,6 @@ import { formatClaimUsdTotal } from '../../grai/evm/estimateClaim'
 import { parseTokenAmount } from '../../grai/onchain'
 import { graiBurnValue, GRAI_DECIMALS, USD_SCALE } from '../../grai/tokenomics'
 import {
-  formatProjectedYieldPct,
   formatVolatilityPct,
   lookupGraiAssetYieldMetrics,
   type GraiAssetYieldMetrics,
@@ -170,21 +169,28 @@ function buildReferrerAffiliateHint(): ReactNode {
   )
 }
 
+/** Indicative APR band (approx. 95% prediction interval) under deposit amount. */
+const INDICATIVE_APR_RANGE_LABEL = '5% – 83%'
+
 function buildProjectedAnnualYieldHint(
   symbol?: string,
   metrics?: GraiAssetYieldMetrics | null,
 ): ReactNode {
   const assetLabel = symbol?.toUpperCase() || 'Asset'
   const volatilityLabel = metrics ? formatVolatilityPct(metrics.volatilityPct) : '—'
-  const yieldLabel = metrics ? formatProjectedYieldPct(metrics.projectedAnnualYieldPct) : '—'
 
   return (
     <>
-      <span className="grai-field-info-tooltip-title">Expected APR</span>
+      <span className="grai-field-info-tooltip-title">Indicative APR range</span>
+      <span className="grai-field-info-tooltip-section">
+        <span className="grai-field-info-tooltip-section-label">What is Indicative APR</span>
+        A modeled range where about <strong>19 out of 20</strong> future APR outcomes are expected
+        to land. Low end = quieter listed assets. High end = higher market swings.
+      </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">How we estimate</span>
-        Grinder backtests on historical prices, actual state with ML-adjusted forecast. Higher
-        volatility usually means more swing-trading opportunity.
+        We fit historical prices, choose grinder parameters, and use ML to model how returns may
+        unfold; then we take the central band that covers about 95% of those modeled outcomes.
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Volatility → APR</span>
@@ -196,17 +202,20 @@ function buildProjectedAnnualYieldHint(
             →
           </span>
           <span className="grai-field-info-tooltip-flow-inline-target">
-            Expected APR{' '}
-            <span className="grai-field-info-tooltip-flow-value is-yield">{yieldLabel}</span>
+            sits inside{' '}
+            <span className="grai-field-info-tooltip-flow-value is-yield">
+              {INDICATIVE_APR_RANGE_LABEL}
+            </span>
           </span>
         </span>
       </span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">What it covers</span>
-        Calculated from the assets you receive from the index into your wallet.
+        Modeled from the assets you receive from the index into your wallet.
       </span>
       <p className="grai-field-info-tooltip-note">
-        Indicative only — not guaranteed. Actual returns can be higher or lower.
+        Model-based and indicative only — not guaranteed. Out-of-model outcomes can land outside
+        the band.
       </p>
     </>
   )
@@ -1379,17 +1388,13 @@ export function GraiMintBurnPanel({
                       <GraiFieldInfoButton
                         className="grai-action-metric-label-info"
                         hint={projectedAnnualYieldHint}
-                        ariaLabel="About expected APR"
+                        ariaLabel="About indicative APR range"
                         structured
                       />
-                      <span className="grai-action-metric-label">Expected APR</span>
+                      <span className="grai-action-metric-label">Indicative APR</span>
                     </span>
                     <span className="grai-action-metric-value is-yield">
-                      {!earnDividends
-                        ? '0%'
-                        : assetYieldMetrics
-                          ? formatProjectedYieldPct(assetYieldMetrics.projectedAnnualYieldPct)
-                          : '—'}
+                      {!earnDividends ? '0%' : INDICATIVE_APR_RANGE_LABEL}
                     </span>
                   </div>
                 </div>

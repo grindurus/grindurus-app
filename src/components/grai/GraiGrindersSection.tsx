@@ -23,7 +23,6 @@ import {
 import { GraiFieldInfoButton } from './GraiFieldInfo'
 import { GraiGrindersNetworkSelect } from './GraiGrindersNetworkSelect'
 import {
-  GRINDERS_COLUMN_ICONS,
   GRINDER_TVL_INFO_HINT,
   GRINDER_YIELD_INFO_HINT,
 } from './graiPageIcons'
@@ -217,6 +216,11 @@ export function GraiGrindersSection({
                 interactive={fieldHints}
               />
             )}
+            {!showTableToggle ? (
+              <span className="grai-grinders-metric-desc">
+                Active trading bots holding the listed basket
+              </span>
+            ) : null}
           </span>
           <span
             role="columnheader"
@@ -230,9 +234,6 @@ export function GraiGrindersSection({
               structured
               interactive={fieldHints}
             >
-              <span className="grai-grinders-group-title-icon" aria-hidden="true">
-                {GRINDERS_COLUMN_ICONS.quote}
-              </span>
               {tvlLabel ?? 'TVL'}
             </GraiFieldInfoButton>
             {isGrinderLoading || isToreadorUnavailable ? (
@@ -246,6 +247,11 @@ export function GraiGrindersSection({
                 interactive={fieldHints}
               />
             )}
+            {!showTableToggle ? (
+              <span className="grai-grinders-metric-desc">
+                Total Value in Custodians and Grinders nominated in USD
+              </span>
+            ) : null}
           </span>
           <span
             role="columnheader"
@@ -259,12 +265,19 @@ export function GraiGrindersSection({
               structured
               interactive={fieldHints}
             >
-              <span className="grai-grinders-group-title-icon" aria-hidden="true">
-                {GRINDERS_COLUMN_ICONS.yieldQuote}
-              </span>
               INDEXED YIELD
             </GraiFieldInfoButton>
-            {isGrinderLoading || isToreadorUnavailable ? (
+            {!showTableToggle ? (
+              <span className="grai-grinders-group-title-value is-positive is-apr">
+                <span className="grai-grinders-group-title-value-main">
+                  5%–83%
+                  <span className="grai-grinders-group-title-value-apr">
+                    <span className="grai-grinders-group-title-value-est">Indicative</span>
+                    <span className="grai-grinders-group-title-value-suffix">APR</span>
+                  </span>
+                </span>
+              </span>
+            ) : isGrinderLoading || isToreadorUnavailable ? (
               <span className="grai-grinders-group-title-value grai-grinders-group-title-value--placeholder">
                 {isGrinderLoading ? '…' : '—'}
               </span>
@@ -276,6 +289,11 @@ export function GraiGrindersSection({
                 interactive={fieldHints}
               />
             )}
+            {!showTableToggle ? (
+              <span className="grai-grinders-metric-desc">
+                Likely modeled APR range — from low vol to high vol
+              </span>
+            ) : null}
           </span>
         </div>
         {showTableToggle ? (

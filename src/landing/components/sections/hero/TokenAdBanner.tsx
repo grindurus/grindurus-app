@@ -12,12 +12,10 @@ const ORBIT_SPEED = (Math.PI * 2) / 180
 function MetricRow({
   label,
   value,
-  accent,
   compact,
 }: {
   label: string
   value: string
-  accent?: boolean
   compact?: boolean
 }) {
   return (
@@ -30,9 +28,9 @@ function MetricRow({
         {label}
       </span>
       <span
-        className={`font-semibold tabular-nums whitespace-nowrap ${
+        className={`font-semibold tabular-nums whitespace-nowrap text-white/85 ${
           compact ? 'text-[10px]' : 'text-[11px] sm:text-[12px]'
-        } ${accent ? 'text-brand-pink' : 'text-white/85'}`}
+        }`}
       >
         {value}
       </span>
@@ -166,11 +164,6 @@ function TokenAdSlotItem({
           <MetricRow
             label="Annual Price Volatility"
             value={formatAdPct(slot.annualVolatilityPct)}
-          />
-          <MetricRow
-            label="Indexed Yield"
-            value={formatAdPct(slot.priceVolatilityYieldPct, true)}
-            accent
           />
         </div>
       ) : (

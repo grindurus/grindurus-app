@@ -3391,6 +3391,55 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: #7dffb2;
 }
 
+.grai-grinders-group-title.is-yield .grai-grinders-group-title-value.is-apr {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.grai-grinders-group-title.is-yield .grai-grinders-group-title-value-main {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.22em;
+  white-space: nowrap;
+}
+
+.grai-grinders-group-title.is-yield .grai-grinders-group-title-value-apr {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18em;
+}
+
+.grai-grinders-group-title.is-yield .grai-grinders-group-title-value-est {
+  display: inline;
+  font-size: 0.34em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  /* Optical lift: small caps sit lower than large uppercase at shared baseline */
+  transform: translateY(-0.12em);
+  color: rgba(125, 255, 178, 0.55);
+}
+
+.grai-grinders-group-title.is-yield .grai-grinders-group-title-value-suffix {
+  display: inline;
+  font-size: 0.85em;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: rgba(125, 255, 178, 0.85);
+}
+
+[data-theme='light'] .grai-grinders-group-title.is-yield .grai-grinders-group-title-value-suffix {
+  color: rgba(16, 120, 72, 0.72);
+}
+
+[data-theme='light'] .grai-grinders-group-title.is-yield .grai-grinders-group-title-value-est {
+  color: rgba(16, 120, 72, 0.55);
+}
+
 .grai-grinders-group-title.is-tvl .grai-grinders-group-title-label {
   color: #fff;
 }
@@ -6789,15 +6838,55 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+/* Escapes mint-card overflow / stacking — rendered via React portal on document.body. */
+.grai-field-info-tooltip.is-portaled {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 10050;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 1rem));
+  max-height: min(70vh, 28rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.grai-field-info-tooltip.is-portaled.is-structured {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #fff;
+  border-color: rgba(255, 105, 180, 0.5);
+  background: rgba(18, 10, 26, 0.98);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 105, 180, 0.22);
+}
+
+[data-theme='light'] .grai-field-info-tooltip.is-portaled.is-structured {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.99);
+  border-color: rgba(233, 30, 140, 0.35);
+  box-shadow:
+    0 12px 30px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(233, 30, 140, 0.12);
+}
+
 [data-theme='light'] .grai-field-info-tooltip {
   background: rgba(255, 255, 255, 0.98);
   border-color: rgba(148, 163, 184, 0.35);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
-.grai-field-info-wrap:hover .grai-field-info-tooltip,
-.grai-field-info-wrap:focus-within .grai-field-info-tooltip,
-.grai-field-info-wrap.is-open .grai-field-info-tooltip {
+.grai-field-info-wrap:hover .grai-field-info-tooltip:not(.is-portaled),
+.grai-field-info-wrap:focus-within .grai-field-info-tooltip:not(.is-portaled),
+.grai-field-info-wrap.is-open .grai-field-info-tooltip:not(.is-portaled) {
   opacity: 1;
   visibility: visible;
 }
@@ -10508,6 +10597,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   overflow: visible;
 }
 
+/* Keep open APR / field hints above floating tokens and sibling mint rows. */
+.grai-action-card.grai-mint:has(.grai-action-metric-label-wrap .grai-field-info-wrap:hover),
+.grai-action-card.grai-mint:has(.grai-action-metric-label-wrap .grai-field-info-wrap:focus-within),
+.grai-action-card.grai-mint:has(.grai-action-metric-label-wrap .grai-field-info-wrap.is-open) {
+  position: relative;
+  z-index: 40;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .grai-action-card.grai-mint .grai-action-content-shell {
     transition: none;
@@ -11551,6 +11648,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   visibility: hidden;
   pointer-events: none;
   z-index: 0;
+  /* Keep inactive Deposit/Claim twin from painting over open APR tooltips. */
+  overflow: hidden;
+  contain: paint;
 }
 
 /* Inactive claim preview must not reserve height under Deposit. */
@@ -13092,6 +13192,47 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-action-metrics--under-amount .grai-action-metric-label-wrap .grai-field-info-tooltip {
   top: calc(100% + 10px);
   bottom: auto;
+  z-index: 140;
+}
+
+/*
+ * Raise the under-amount metrics (and active flow panel) above later siblings
+ * (dividends toggle, claim twin, result rows) while the APR hint is open.
+ */
+.grai-action-metrics--under-amount:has(.grai-field-info-wrap:hover),
+.grai-action-metrics--under-amount:has(.grai-field-info-wrap:focus-within),
+.grai-action-metrics--under-amount:has(.grai-field-info-wrap.is-open) {
+  position: relative;
+  z-index: 120;
+}
+
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap:hover),
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap:focus-within),
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap.is-open),
+.grai-mint-flow-options:has(.grai-action-metrics--under-amount .grai-field-info-wrap:hover),
+.grai-mint-flow-options:has(.grai-action-metrics--under-amount .grai-field-info-wrap:focus-within),
+.grai-mint-flow-options:has(.grai-action-metrics--under-amount .grai-field-info-wrap.is-open) {
+  position: relative;
+  z-index: 110;
+  isolation: isolate;
+}
+
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap:hover)
+  > .grai-mint-flow-options-panel.is-active,
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap:focus-within)
+  > .grai-mint-flow-options-panel.is-active,
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap.is-open)
+  > .grai-mint-flow-options-panel.is-active {
+  z-index: 2;
+}
+
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap:hover)
+  > .grai-mint-flow-options-panel:not(.is-active),
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap:focus-within)
+  > .grai-mint-flow-options-panel:not(.is-active),
+.grai-mint-flow-options--asset:has(.grai-action-metrics--under-amount .grai-field-info-wrap.is-open)
+  > .grai-mint-flow-options-panel:not(.is-active) {
+  z-index: -1;
 }
 
 [data-theme='light'] .grai-action-metric-row .grai-action-metric-label-wrap .grai-field-info-tooltip {

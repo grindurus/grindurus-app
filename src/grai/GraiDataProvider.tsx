@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useLocation } from 'react-router-dom'
 import { fetchGraiRegistryAssets } from './fetchAssets'
 import { fetchGraiVaultBalances, type GraiAssetVaultBalances } from './fetchVaultBalances'
 import { fetchGraiMintSupply } from './fetchGraiMintSupply'
@@ -58,7 +59,19 @@ type GraiDataContextValue = {
 
 const GraiDataContext = createContext<GraiDataContextValue | undefined>(undefined)
 
+/** Marketing surfaces only need Toreador / static content — skip GRAI RPC. */
+function isMarketingPath(pathname: string): boolean {
+  return (
+    pathname === '/' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
+    pathname === '/risk'
+  )
+}
+
 export function GraiDataProvider({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation()
+  const skipProtocolReads = isMarketingPath(pathname)
   const { isConnected: isSolanaConnected } = useSolanaWallet()
   const { isConnected: isEvmConnected } = useEvmWallet()
   const { connection, solana, evm, chainKind, hasStaticConfig, isConfigured } = useGraiDeployment()
@@ -314,15 +327,21 @@ export function GraiDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (skipProtocolReads) {
+      setAssetsLoading(false)
+      setVaultBalancesLoading(false)
+      setTotalSupplyLoading(false)
+      return
+    }
     void refreshAssets()
     void refreshVaultBalances()
     void refreshTotalSupply()
-  }, [refreshAssets, refreshVaultBalances, refreshTotalSupply])
+  }, [skipProtocolReads, refreshAssets, refreshVaultBalances, refreshTotalSupply])
 
   useEffect(() => {
-    if (!custodyEnabled) return
+    if (skipProtocolReads || !custodyEnabled) return
     void refreshGrindersCustody()
-  }, [custodyEnabled, refreshGrindersCustody])
+  }, [skipProtocolReads, custodyEnabled, refreshGrindersCustody])
 
   const value = useMemo<GraiDataContextValue>(
     () => ({

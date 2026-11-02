@@ -63,8 +63,9 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
-  // Both stacks stay warm — toggling XOR used to remount the whole app tree.
-  const [evmStackRequested, setEvmStackRequested] = useState(true)
+  // EVM/wagmi stays cold until an app route or Connect Wallet — landing only needs Toreador.
+  // Once requested, keep mounted (sticky) so enable/disable does not remount the app tree.
+  const [evmStackRequested, setEvmStackRequested] = useState(false)
   const [solanaStackRequested, setSolanaStackRequested] = useState(true)
   const [rainbowKitEnabled, setRainbowKitEnabled] = useState(false)
   const [isEvmStackReady, setIsEvmStackReady] = useState(false)

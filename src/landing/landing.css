@@ -1179,6 +1179,22 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
+.landing-grinders-plaque .grai-grinders-summary-shell--landing .grai-grinders-metric-desc {
+  display: block;
+  max-width: 16rem;
+  margin: 0.2rem auto 0;
+  padding: 0 0.35rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: clamp(0.62rem, 1.05vw, 0.75rem);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.42);
+  text-align: center;
+  text-wrap: balance;
+}
+
 .landing-grinders-plaque:not(.landing-grinders-plaque--embedded) .grai-grinders-summary-shell--landing .grai-grinders-row--summary > span + span {
   border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
@@ -1202,6 +1218,10 @@
   min-height: 0;
   height: auto;
   text-shadow: none;
+}
+
+.landing-grinders-plaque .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-tvl .grai-grinders-group-title-value {
+  color: #ff69b4;
 }
 
 /* 2/4 GRINDERS — keep count + label tight, centered as one unit */
@@ -1331,6 +1351,12 @@
   text-align: center;
 }
 
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-metric-desc {
+  max-width: 18rem;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.42);
+}
+
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-general-top,
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label,
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-field-info-wrap.grai-grinders-group-title-label .grai-field-info-trigger {
@@ -1347,7 +1373,7 @@
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
   text-align: center;
 }
 
@@ -1356,6 +1382,12 @@
   font-size: 0.64rem;
   letter-spacing: 0.12em;
   white-space: nowrap;
+  color: #fff;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-yield .grai-grinders-group-title-label,
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-yield .grai-field-info-trigger {
+  color: #fff;
 }
 
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title-icon {
@@ -1372,7 +1404,11 @@
   text-align: center;
   justify-content: center;
   width: 100%;
-  text-shadow: 0 0 28px rgba(0, 0, 0, 0.55);
+  text-shadow: none;
+}
+
+.landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-tvl .grai-grinders-group-title-value {
+  color: #ff69b4;
 }
 
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-general-value {
@@ -1385,15 +1421,23 @@
   text-align: center;
   justify-content: center;
   width: 100%;
-  text-shadow: 0 0 28px rgba(0, 0, 0, 0.55);
+  text-shadow: none;
 }
 
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-yield .grai-grinders-group-title-value,
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-title-value.is-positive {
-  color: #ff69b4;
-  text-shadow:
-    0 0 22px rgba(255, 105, 180, 0.45),
-    0 0 36px rgba(255, 20, 147, 0.2);
+  color: #7dffb2;
+  text-shadow: none;
+}
+
+.landing-grinders-plaque .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-yield .grai-grinders-group-title-value-est {
+  color: rgba(125, 255, 178, 0.55);
+  text-shadow: none;
+}
+
+.landing-grinders-plaque .grai-grinders-summary-shell--landing .grai-grinders-group-title.is-yield .grai-grinders-group-title-value-suffix {
+  color: rgba(125, 255, 178, 0.85);
+  text-shadow: none;
 }
 
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinders-group-general-value-label {
@@ -1403,7 +1447,7 @@
   font-weight: inherit;
   letter-spacing: 0.02em;
   vertical-align: baseline;
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
 }
 
 .landing-grinders-plaque--embedded .grai-grinders-summary-shell--landing .grai-grinder-active-dot {

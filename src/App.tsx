@@ -6,7 +6,18 @@ import Footer from './components/Footer'
 import { navigateToGraiSection } from './utils/graiNavigation'
 import { bindAppNavigate } from './utils/navigate'
 import { primeBullSound } from './utils/playBullSound'
+import { useWalletContext } from './wallets'
 import './App.css'
+
+/** Landing / legal — no EVM wallet stack or Arbitrum protocol reads. */
+function pathNeedsEvmStack(pathname: string): boolean {
+  return (
+    pathname !== '/' &&
+    pathname !== '/privacy' &&
+    pathname !== '/terms' &&
+    pathname !== '/risk'
+  )
+}
 
 const GraiPage = lazy(() => import('./pages/GraiPage'))
 const GrindersPage = lazy(() => import('./pages/GrindersPage'))
@@ -166,11 +177,17 @@ function ScrollToTopOnNavigate() {
 
 function App() {
   const { pathname } = useLocation()
+  const { warmEvmStack } = useWalletContext()
   const isLanding = pathname === '/'
 
   useEffect(() => {
     document.title = titleFromPath(pathname)
   }, [pathname])
+
+  // Defer wagmi / Arbitrum RPC until Open App (or any non-marketing route).
+  useEffect(() => {
+    if (pathNeedsEvmStack(pathname)) warmEvmStack()
+  }, [pathname, warmEvmStack])
 
   useEffect(() => {
     const prime = () => {

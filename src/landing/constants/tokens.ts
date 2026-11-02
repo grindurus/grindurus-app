@@ -172,7 +172,7 @@ const DESKTOP_SEEDS: TokenAdSlotSeed[] = [
     src: ethSvg,
     dailyVolatilityPct: 3.4,
     annualVolatilityPct: 65.2,
-    priceVolatilityYieldPct: 50,
+    priceVolatilityYieldPct: 51,
   },
   {
     id: 'usdt',

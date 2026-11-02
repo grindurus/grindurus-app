@@ -27,8 +27,8 @@ export function HeroSection({
         </div>
 
         {/* Description + CTA */}
-        <p className="font-mono text-[clamp(0.9rem,3.5vw,1rem)] leading-[1.7] text-white/70 mb-6 mt-2 max-w-[380px] relative z-10 px-2">
-          Infrastructure for Turning Price Volatility into Indexed Yield
+        <p className="font-mono font-bold text-[clamp(0.9rem,3.5vw,1rem)] leading-[1.7] text-white mb-6 mt-2 max-w-[380px] relative z-10 px-2">
+          Turn Market Volatility into Indexed Yield
         </p>
         <Button href={APP_HOME} size="md" viewTransition>
           Open App
@@ -46,10 +46,10 @@ export function HeroSection({
         {/* Full-bleed token orbit — atmospheric background behind hero copy */}
         <TokenAdBanner />
 
-        {/* Hero text always above banner; only CTA captures clicks */}
+        {/* Hero text above banner; empty space stays click-through for the orbit */}
         <div className="relative z-30 max-w-[1280px] mx-auto px-8 w-full flex justify-center pointer-events-none">
           <div className="text-center w-full">
-            <h1 className="font-mono font-black text-[clamp(2.5rem,6vw,5rem)] leading-[1.2] pb-6">
+            <h1 className="pointer-events-auto select-text cursor-text font-mono font-black text-[clamp(2.5rem,6vw,5rem)] leading-[1.2] pb-6">
               <span className="block text-brand-pink text-[clamp(2.6rem,5.2vw,4.5rem)] whitespace-nowrap [text-shadow:0_0_28px_rgba(0,0,0,0.95),0_2px_12px_rgba(0,0,0,0.8)]">
                 Onchain Hedge Fund
               </span>
@@ -57,12 +57,13 @@ export function HeroSection({
 
             <p
               className="
-              font-mono text-[clamp(0.95rem,2vw,1.1rem)] leading-[1.7]
-              text-white/75 dark:text-white/80 mb-4 mx-auto
+              pointer-events-auto select-text cursor-text
+              font-mono font-bold text-[clamp(0.95rem,2vw,1.1rem)] leading-[1.7]
+              text-white mb-4 mx-auto
               [text-shadow:0_0_24px_rgba(0,0,0,0.95),0_2px_10px_rgba(0,0,0,0.8)]
               whitespace-nowrap"
             >
-              Infrastructure for Turning Price Volatility into Indexed Yield
+              Turn Market Volatility into Indexed Yield
             </p>
 
             <span className="pointer-events-auto inline-flex">
