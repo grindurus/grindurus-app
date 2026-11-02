@@ -125,19 +125,19 @@ export default function Footer() {
           >
             <Link
               to="/privacy"
-              className="text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:opacity-100"
+              className="underline decoration-white/30 underline-offset-2 text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:decoration-white/70 hover:opacity-100"
             >
               Privacy Policy
             </Link>
             <Link
               to="/terms"
-              className="text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:opacity-100"
+              className="underline decoration-white/30 underline-offset-2 text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:decoration-white/70 hover:opacity-100"
             >
               Terms of Service
             </Link>
             <Link
               to="/risk"
-              className="text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:opacity-100"
+              className="underline decoration-white/30 underline-offset-2 text-white/80 visited:text-white/80 transition-opacity hover:text-white hover:decoration-white/70 hover:opacity-100"
             >
               Risk Disclosure
             </Link>

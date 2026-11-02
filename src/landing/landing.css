@@ -952,17 +952,20 @@
   }
 }
 
-/* Footer legal links: beat UA / visited blue */
+/* Footer legal links: beat UA / visited blue; keep underline */
 .landing-root footer nav[aria-label='Legal'] a,
 .landing-root footer nav[aria-label='Legal'] a:link,
 .landing-root footer nav[aria-label='Legal'] a:visited {
   color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  text-underline-offset: 2px;
 }
 
 .landing-root footer nav[aria-label='Legal'] a:hover,
 .landing-root footer nav[aria-label='Legal'] a:focus-visible {
   color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.7);
 }
 
 /* Live grinders plaque — reuse GraiGrindersSection styles on landing */

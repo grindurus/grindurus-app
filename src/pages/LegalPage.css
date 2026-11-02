@@ -98,6 +98,13 @@
   color: var(--text-secondary);
 }
 
+.legal-page-underline {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  color: inherit;
+}
+
 .legal-page-section > p:last-child,
 .legal-page-subsection p:last-child {
   margin-bottom: 0;
