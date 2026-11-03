@@ -151,6 +151,12 @@ export function GraiGrindersSection({
     setGrindersTablePage((page) => Math.min(page, grindersTablePageCount - 1))
   }, [displayGrinderRows.length, grindersTablePageCount])
 
+  const nextDistributeNode = nextDistributeYieldLabel ? (
+    <span className="grai-grinders-next-distribute" aria-live="polite">
+      next distribute yield: {nextDistributeYieldLabel}
+    </span>
+  ) : null
+
   const grindersSummaryNetworkRow =
     showNetworkFilter && isCompactGrindersLayout ? (
       <div className="grai-grinders-summary-filter-wrap grai-grinders-summary-filter-wrap--compact-row grai-grinders-summary-filter-wrap--network-only">
@@ -164,6 +170,7 @@ export function GraiGrindersSection({
             />
           </span>
         </span>
+        {nextDistributeNode}
       </div>
     ) : null
 
@@ -485,11 +492,7 @@ export function GraiGrindersSection({
                   <span className="grai-grinders-section-toggle-count">{grinderTotalCount}</span>
                 </span>
               </span>
-              {nextDistributeYieldLabel ? (
-                <span className="grai-grinders-next-distribute" aria-live="polite">
-                  next distribute yield: {nextDistributeYieldLabel}
-                </span>
-              ) : null}
+              {!isCompactGrindersLayout ? nextDistributeNode : null}
             </button>
           </div>
         </div>

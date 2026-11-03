@@ -47,7 +47,6 @@ import {
 } from '../../grai/referrer'
 import { GRAI_MINT_FLOW_EVENT, readGraiSectionFromHash, type GraiSection } from '../../utils/graiNavigation'
 import { GraiAmountInput, type GraiAmountAsset } from './GraiAmountInput'
-import { GraiClaimSubtitleText } from './GraiMintSubtitleRotatingAsset'
 import { GraiNavDonut } from '../GraiNavDonut'
 import { GraiTransactionToast } from './GraiTransactionToast'
 import { ActionDepositNote, splitTxErrorMessage, usePersistedActionTx } from '../ActionTxFeedback'
@@ -1184,84 +1183,13 @@ export function GraiMintBurnPanel({
             >
               how it works
             </button>
-            <div className="grai-page-subtitle-head">
-              <h3 className="grai-liquidation-distribute-title grai-page-subtitle">
-                  <span
-                    className={`grai-page-subtitle-mode-swap is-${
-                      isGraiLock ? 'lock' : isGraiUnlock ? 'unlock' : isAssetClaim ? 'claim' : 'deposit'
-                    }`}
-                  >
-                    <span
-                      className="grai-page-subtitle-mode-swap-item is-deposit"
-                      aria-hidden={isGraiLock || isGraiUnlock || isAssetClaim}
-                    >
-                      {actionSubtitle}
-                    </span>
-                    {selectedAsset ? (
-                      <>
-                        <span
-                          className="grai-page-subtitle-mode-swap-item is-lock"
-                          aria-hidden={!isGraiLock}
-                        >
-                          <span className="grai-page-subtitle-text-line-fit">
-                            <span className="grai-page-subtitle-text-line">
-                              <span className="grai-page-subtitle-text-segment">Lock</span>
-                              <span className="grai-page-subtitle-rotating-slot">
-                                <span className="grai-page-subtitle-rotating-word-current">
-                                  <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
-                                    <img
-                                      src={selectedAsset.icon}
-                                      alt=""
-                                      loading="lazy"
-                                      decoding="async"
-                                    />
-                                  </span>
-                                  <span className="grai-page-subtitle-rotating-word-label">GRAI</span>
-                                </span>
-                              </span>
-                              <span className="grai-page-subtitle-text-segment">
-                                for Price Volatility Yields
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-                        <span
-                          className="grai-page-subtitle-mode-swap-item is-unlock"
-                          aria-hidden={!isGraiUnlock}
-                        >
-                          <span className="grai-page-subtitle-text-line-fit">
-                            <span className="grai-page-subtitle-text-line">
-                              <span className="grai-page-subtitle-text-segment">Unlock</span>
-                              <span className="grai-page-subtitle-rotating-slot">
-                                <span className="grai-page-subtitle-rotating-word-current">
-                                  <span className="grai-page-subtitle-rotating-word-icon" aria-hidden="true">
-                                    <img
-                                      src={selectedAsset.icon}
-                                      alt=""
-                                      loading="lazy"
-                                      decoding="async"
-                                    />
-                                  </span>
-                                  <span className="grai-page-subtitle-rotating-word-label">GRAI</span>
-                                </span>
-                              </span>
-                              <span className="grai-page-subtitle-text-segment">
-                                from Escrow
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-                        <span
-                          className="grai-page-subtitle-mode-swap-item is-claim"
-                          aria-hidden={!isAssetClaim}
-                        >
-                          <GraiClaimSubtitleText />
-                        </span>
-                      </>
-                    ) : null}
-                  </span>
+            {actionSubtitle ? (
+            <div className="grai-page-subtitle-head grai-page-subtitle-head--brand">
+              <h3 className="grai-page-subtitle grai-page-subtitle--brand">
+                {actionSubtitle}
               </h3>
             </div>
+            ) : null}
           </div>
           )}
           <div className={actionView === 'burn' ? 'grai-redeem-controls' : 'grai-mint-controls'}>
@@ -1494,7 +1422,9 @@ export function GraiMintBurnPanel({
               >
                 <div className="grai-action-result grai-action-result--claim-summary" aria-live="polite">
                   <span className="grai-action-result-label-wrap is-toggle-hidden">
-                    <span className="grai-action-result-label">You claim:</span>
+                    <span className="grai-action-result-label">
+                      {claimAllDividends ? 'Total Claim:' : 'You Claim:'}
+                    </span>
                   </span>
                   <span className="grai-action-result-value">
                     {claimAllDividends ? (
@@ -1639,12 +1569,15 @@ export function GraiMintBurnPanel({
                       <span className="grai-action-metric-label-wrap">
                         <GraiFieldInfoButton
                           className="grai-action-metric-label-info"
-                          hint="Indicative APR from yield dividends accrued on locked GRAI. Not guaranteed."
-                          ariaLabel="About estimated APR"
+                          hint={projectedAnnualYieldHint}
+                          ariaLabel="About indicative APR range"
+                          structured
                         />
-                        <span className="grai-action-metric-label">Estimated APR</span>
+                        <span className="grai-action-metric-label">Indicative APR</span>
                       </span>
-                      <span className="grai-action-metric-value is-yield">51%</span>
+                      <span className="grai-action-metric-value is-yield">
+                        {INDICATIVE_APR_RANGE_LABEL}
+                      </span>
                     </div>
                   ) : (
                     <div className="grai-action-metric-row">
@@ -1654,8 +1587,8 @@ export function GraiMintBurnPanel({
                         <img
                           src={assetUrl('grai.png')}
                           alt=""
-                          width={16}
-                          height={16}
+                          width={18}
+                          height={18}
                           loading="lazy"
                           decoding="async"
                         />
@@ -1930,7 +1863,7 @@ export function GraiMintBurnPanel({
                 </>
               ) : (
                 <>
-                  Deposit assets goes to{' '}
+                  Deposits go to{' '}
                   <GraiFieldInfoButton
                     className="grai-action-deposit-term"
                     tooltipClassName="grai-action-deposit-term-tooltip"
@@ -1938,19 +1871,20 @@ export function GraiMintBurnPanel({
                     hint="An automated bookkeeping program with buy-low → sell-high signals that harvests price volatility."
                   >
                     <span className="grai-action-deposit-term-label">Grinders</span>
-                  </GraiFieldInfoButton>{' '}
-                  and their{' '}
-                  <GraiFieldInfoButton
-                    className="grai-action-deposit-term"
-                    tooltipClassName="grai-action-deposit-term-tooltip"
-                    ariaLabel="What custodians are"
-                    hint="Protected smart contracts that hold deposited funds in custody."
-                  >
-                    <span className="grai-action-deposit-term-label">custodians</span>
-                  </GraiFieldInfoButton>{' '}
-                  to generate volatility yield. You receive{' '}
-                  <span className="grai-action-deposit-term-label">GRAI</span> as your share in
-                  the fund.
+                  </GraiFieldInfoButton>
+                  . You receive fund share{' '}
+                  <span className="grai-action-deposit-term-label grai-action-deposit-term-with-icon">
+                    <img
+                      src={assetUrl('grai.png')}
+                      alt=""
+                      width={14}
+                      height={14}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    GRAI
+                  </span>
+                  .
                 </>
               )
             ) : (

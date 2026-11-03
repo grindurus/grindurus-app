@@ -1773,7 +1773,11 @@ export function GraiOpsPanel() {
             <path d="m17 7.5-3.5 7.5" />
           </svg>
         </span>
-        <span className="grai-action-switch-label">Distribute Yield</span>
+        <span className="grai-action-switch-label">
+          Distribute
+          <br />
+          Yield
+        </span>
       </button>
       <button
         type="button"

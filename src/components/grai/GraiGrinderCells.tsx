@@ -236,15 +236,22 @@ export function GraiGrinderTableName({
   copied,
   onCopy,
 }: {
-  row: Pick<GrinderTableRow, 'id' | 'name' | 'grinderAddress' | 'status' | 'toreador'>
+  row: Pick<GrinderTableRow, 'id' | 'name' | 'grinderAddress' | 'status' | 'toreador' | 'terminal'>
   copied: boolean
   onCopy: (address: string, grinderId: string) => void
 }) {
   const isLive = isGrinderStatusLive(row.status)
   const { boss, grinder } = splitBossGrinderName(row.name)
+  const terminalLabel = formatGrinderTerminalLabel(row.terminal)
+  // Prefer terminal above the name; fall back to boss segment from "Boss / Grinder".
+  const topLabel = terminalLabel || boss
   return (
-    <span role="cell" className={`grai-grinder-name${boss ? ' has-boss' : ''}`}>
-      {boss ? <span className="grai-grinder-name-boss">{boss}</span> : null}
+    <span role="cell" className={`grai-grinder-name${topLabel ? ' has-boss' : ''}`}>
+      {topLabel ? (
+        <span className="grai-grinder-name-boss" title={row.terminal?.trim() || topLabel}>
+          {topLabel}
+        </span>
+      ) : null}
       <span
         className={`grai-grinder-active-dot${isLive ? '' : ' is-inactive'}`}
         aria-hidden="true"
@@ -480,6 +487,10 @@ function resolveGrinderTerminalKind(
   if (kind === 'path' || value.startsWith('path@') || value.includes('.path')) return 'path'
   if (kind === 'lifi' || value.startsWith('lifi@') || value.includes('lifi')) return 'lifi'
   return null
+}
+
+function formatGrinderTerminalLabel(terminal?: string): string {
+  return terminal?.trim() ?? ''
 }
 
 function buildGrinderTvlValueHint(totalUsd: number, rows: GrinderTvlBreakdownRow[]): ReactNode {

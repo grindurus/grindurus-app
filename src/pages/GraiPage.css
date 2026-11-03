@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800;900&display=swap');
+
 .grai-page {
   --grai-action-chip-height: 2.125rem;
   --grai-action-chip-width: 9.25rem;
@@ -1654,6 +1656,11 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   flex-direction: column;
   gap: 0;
   overflow: visible;
+  /* Same pink dashed frame as .grai-referral-dash-graph / voters map. */
+  border: 1px dashed #ff69b4;
+  border-radius: 12px;
+  background: transparent;
+  box-sizing: border-box;
   /* cols 1–2 and 3–6 share half the grid each → divider aligns with show-all toggle center */
   --grai-grinders-cols: minmax(0, 1.2fr) minmax(0, 1.56fr) minmax(0, 0.72fr) minmax(0, 0.72fr) minmax(0, 0.6fr) minmax(0, 0.72fr);
   --grai-grinders-gap: 0.45rem;
@@ -1662,6 +1669,17 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   --grai-grinders-summary-top-row-height: calc(1.5rem * 0.72 * 1.2);
   --grai-grinders-summary-value-row-height: 2.4375rem;
   --grai-grinders-summary-filter-row-height: var(--grai-action-chip-height);
+}
+
+[data-theme='light'] .grai-grinders-summary-shell {
+  border-color: #e91e8c;
+  background: transparent;
+}
+
+.grai-grinders-summary-shell--landing,
+[data-theme='light'] .grai-grinders-summary-shell--landing {
+  border: none;
+  border-radius: 0;
 }
 
 .grai-grinders-summary-endpoints-btn {
@@ -1858,11 +1876,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-grinders-summary-filter-wrap--network-only {
-  justify-content: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .grai-grinders-summary-filter-wrap--network-only .grai-grinders-summary-toolbar-network {
   margin-left: 0;
+}
+
+.grai-grinders-summary-filter-wrap--network-only .grai-grinders-next-distribute {
+  margin-left: auto;
+  align-self: center;
+  text-align: right;
 }
 
 .grai-grinders-summary-toolbar {
@@ -3671,9 +3696,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   letter-spacing: 0.02em;
   color: var(--text-muted, rgba(255, 255, 255, 0.55));
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
   line-height: 1.2;
 }
 
@@ -4394,6 +4419,31 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-action-card.grai-mint .grai-page-subtitle-head,
 .grai-action-card.grai-mint .grai-page-subtitle {
   overflow: visible;
+}
+
+/* Match landing hero “Onchain Hedge Fund” treatment. */
+.grai-action-card.grai-mint .grai-page-subtitle-head--brand {
+  --grai-subtitle-head-height: clamp(2.75rem, 7vw, 3.5rem);
+}
+
+.grai-actions-block .grai-page-subtitle.grai-page-subtitle--brand,
+.grai-action-card.grai-mint .grai-page-subtitle.grai-page-subtitle--brand {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: clamp(1.85rem, 5.5vw, 2.7rem);
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  overflow: visible;
+  color: #ff69b4;
+  text-shadow: 0 0 20px #000;
+}
+
+[data-theme='light'] .grai-actions-block .grai-page-subtitle.grai-page-subtitle--brand,
+[data-theme='light'] .grai-action-card.grai-mint .grai-page-subtitle.grai-page-subtitle--brand {
+  color: #e91e8c;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.85);
 }
 
 /*
@@ -7807,6 +7857,21 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-action-deposit-term-label {
   color: #ff69b4;
   font-weight: 600;
+}
+
+.grai-action-deposit-term-with-icon {
+  display: inline;
+  white-space: nowrap;
+}
+
+.grai-action-deposit-term-with-icon img {
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.28em;
+  border-radius: 999px;
+  object-fit: cover;
+  vertical-align: -0.12em;
 }
 
 .grai-action-deposit-term:hover .grai-action-deposit-term-label,
@@ -11312,13 +11377,15 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-mint-secondary-row-slot {
+  --grai-mint-secondary-row-height: 1.5rem;
   width: 100%;
   /* Match `.grai-amount-input + .grai-mint-flow-options--asset` so Estimated APR
      sits on the same band as Expected APR in the deposit flow. */
   margin-top: calc(0.35rem - var(--grai-action-content-gap, 1rem));
-  min-height: 0;
+  /* Keep Lock ↔ Unlock secondary rows (Locked / Penalty) from jumping. */
+  min-height: var(--grai-mint-secondary-row-height);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .grai-mint-secondary-row-slot:has(.grai-action-metrics--result-row .grai-action-metric-row + .grai-action-metric-row) {
@@ -11335,19 +11402,19 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-mint-secondary-row-slot > .grai-action-result--penalty-row {
   width: 100%;
   margin-top: 0;
-  min-height: 0;
+  min-height: var(--grai-mint-secondary-row-height, 1.5rem);
   padding-top: 0;
   box-sizing: border-box;
+  align-items: center;
 }
 
 .grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row {
   justify-content: flex-start;
+  align-items: stretch;
 }
 
 /* Match asset Claim `You claim:` summary row (type + icon size). */
 .grai-mint-secondary-row-slot > .grai-action-result--penalty-row {
-  min-height: 0;
-  align-items: center;
   overflow: visible;
 }
 
@@ -11411,6 +11478,13 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: var(--grai-action-metric-stack-gap, 0.55rem);
 }
 
+/* Match unlock Penalty row type + icon size in the same secondary slot. */
+.grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-label,
+.grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-value {
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
 .grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-value:not(.is-yield) {
   display: inline-flex;
   align-items: center;
@@ -11418,11 +11492,18 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-value:not(.is-yield) img {
-  width: 1rem;
-  height: 1rem;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-row {
+  width: 100%;
+  min-height: var(--grai-mint-secondary-row-height, 1.5rem);
+  align-items: center;
+  justify-content: space-between;
 }
 
 .grai-mint-secondary-row-slot > .grai-mint-dividends-toggle.is-below-amount.is-result-row {
@@ -11433,10 +11514,6 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-mint-secondary-row-slot > .grai-mint-dividends-toggle.is-below-amount.is-result-row .grai-mint-dividends-toggle-btn {
   min-height: 1.75rem;
   padding: 0;
-}
-
-.grai-mint-secondary-row-slot > .grai-action-metrics.grai-action-metrics--result-row .grai-action-metric-row {
-  min-height: 0;
 }
 
 .grai-mint-dividends-toggle.is-below-amount {
@@ -11458,7 +11535,7 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 .grai-mint-dividends-toggle.is-below-amount.is-result-row.is-active .grai-mint-dividends-toggle-label {
   font-size: 1.05rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.5;
   letter-spacing: normal;
   color: var(--text-primary);
 }
@@ -11495,11 +11572,25 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label,
-.grai-mint-dividends-toggle.is-below-amount.is-active .grai-mint-dividends-toggle-label {
+.grai-mint-dividends-toggle.is-below-amount.is-active .grai-mint-dividends-toggle-label,
+.grai-mint-flow-options--asset .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label,
+.grai-mint-flow-options--asset .grai-mint-dividends-toggle.is-below-amount.is-active .grai-mint-dividends-toggle-label,
+.grai-mint-flow-options--asset .is-claim .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label,
+.grai-mint-flow-options--asset .is-claim .grai-mint-dividends-toggle.is-below-amount.is-active .grai-mint-dividends-toggle-label {
+  /* Match .grai-action-metric-label (Indicative APR). */
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: normal;
+  line-height: 1.5;
+}
+
+.grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label-text,
+.grai-mint-flow-options--asset .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label-text,
+.grai-mint-flow-options--asset .is-claim .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label-text {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
 }
 
 [data-theme='light'] .grai-mint-dividends-toggle.is-below-amount .grai-mint-dividends-toggle-label,
@@ -13834,27 +13925,98 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   color: var(--text-primary);
 }
 
+/* Match mint Deposit/Claim segmented control (sliding pill + gaps). */
 .grai-liquidation-ops-tabs .grai-action-switch--ops {
+  /* Track = idle face color; buttons stay transparent so the pill can slide under. */
+  --grai-ops-switch-track: var(--bg-primary, #000);
+  --grai-ops-switch-idle: var(--bg-primary, #000);
+  --grai-ops-switch-divider: color-mix(in srgb, #ff69b4 34%, transparent);
+  --grai-ops-switch-pad: 0.14rem;
+  --grai-ops-switch-row: 3.25rem;
+  --grai-ops-switch-gap: 0.3rem;
+  --grai-ops-switch-step: calc(var(--grai-ops-switch-row) + var(--grai-ops-switch-gap));
+  --grai-ops-switch-count: 5;
+  position: relative;
   margin-bottom: 0;
   margin-inline: 0;
+  display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
+  align-self: start;
   width: 100%;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  overflow: visible;
+  height: auto;
+  min-height: calc(
+    (var(--grai-ops-switch-row) * var(--grai-ops-switch-count))
+      + (var(--grai-ops-switch-gap) * (var(--grai-ops-switch-count) - 1))
+      + (2 * var(--grai-ops-switch-pad))
+  );
+  gap: var(--grai-ops-switch-gap);
+  padding: var(--grai-ops-switch-pad);
+  border: 1px solid color-mix(in srgb, #ff69b4 32%, transparent);
+  border-radius: 12px;
+  border-bottom: 1px solid color-mix(in srgb, #ff69b4 32%, transparent);
+  background: var(--grai-ops-switch-track);
+  overflow: hidden;
+  box-sizing: border-box;
+  isolation: isolate;
+}
+
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops {
+  --grai-ops-switch-track: var(--bg-primary, #fff);
+  --grai-ops-switch-idle: var(--bg-primary, #fff);
+  --grai-ops-switch-divider: color-mix(in srgb, #ff69b4 26%, rgba(0, 0, 0, 0.12));
+  border-color: color-mix(in srgb, #ff69b4 28%, rgba(0, 0, 0, 0.1));
+  border-bottom-color: color-mix(in srgb, #ff69b4 28%, rgba(0, 0, 0, 0.1));
+  background: var(--grai-ops-switch-track);
 }
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops::after {
-  display: none;
+  content: '';
+  display: block;
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  top: var(--grai-ops-switch-pad);
+  left: var(--grai-ops-switch-pad);
+  right: var(--grai-ops-switch-pad);
+  bottom: auto;
+  width: auto;
+  height: var(--grai-ops-switch-row);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+  box-shadow: 0 4px 15px rgba(255, 105, 180, 0.45);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops.is-claim-active::after {
+  transform: translate3d(0, 0, 0);
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops.is-distribute-active::after {
+  transform: translate3d(0, var(--grai-ops-switch-step), 0);
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops.is-market-active::after {
+  transform: translate3d(0, calc(2 * var(--grai-ops-switch-step)), 0);
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops.is-liquidate-active::after {
+  transform: translate3d(0, calc(3 * var(--grai-ops-switch-step)), 0);
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops.is-swap-active::after {
+  transform: translate3d(0, calc(4 * var(--grai-ops-switch-step)), 0);
 }
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn,
-.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active,
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot {
   position: relative;
-  flex: 0 0 auto;
+  z-index: 2;
+  flex: 0 0 var(--grai-ops-switch-row);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -13862,62 +14024,64 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   gap: 0.55rem;
   width: 100%;
   max-width: 100%;
+  height: var(--grai-ops-switch-row);
+  min-height: var(--grai-ops-switch-row);
   margin: 0;
   text-align: left;
-  padding: 0.72rem 0.5rem 0.72rem 0.65rem;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 10px;
+  padding: 0.45rem 0.55rem 0.45rem 0.7rem;
+  border: 0;
+  border-radius: 8px;
   white-space: normal;
-  line-height: 1.25;
+  /* Match mint Deposit/Claim tab type. */
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.15;
   box-sizing: border-box;
+  /* Transparent so the pink pill slides under without being covered mid-move. */
   background: transparent;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  color: color-mix(in srgb, var(--text-primary) 48%, transparent);
+  transition: color 0.32s ease;
 }
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn,
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-liquidate-slot,
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn {
-  margin-top: 0.4rem;
+  margin-top: 0;
+}
+
+/* Hairline between ops rows — sits in the gap, above the next item. */
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:not(:last-child)::after,
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 0.65rem;
+  right: 0.65rem;
+  bottom: calc((var(--grai-ops-switch-gap) / -2) - 0.5px);
+  height: 1px;
+  background: var(--grai-ops-switch-divider);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .grai-action-switch-liquidate-slot {
   position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.35rem;
-  width: 100%;
-  max-width: 100%;
   min-width: 0;
-  margin: 0;
-  padding: 0.72rem 0.5rem 0.72rem 0.65rem;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 10px;
-  box-sizing: border-box;
-  background: transparent;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  /* Padding lives on the inner button so the hit target fills the row. */
+  padding: 0 !important;
+  gap: 0;
 }
 
-.grai-action-switch-liquidate-slot:hover {
-  border-color: rgba(255, 105, 180, 0.45);
-}
-
+.grai-action-switch-liquidate-slot:hover,
 .grai-action-switch-liquidate-slot.is-active {
-  border-color: #ff69b4;
-  background: rgba(255, 105, 180, 0.08);
+  border: 0;
+  box-shadow: none;
 }
 
 .grai-action-switch-liquidate-slot.is-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.45rem;
-  bottom: 0.45rem;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: #ff69b4;
-  pointer-events: none;
+  display: none;
+  content: none;
 }
 
 .grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate,
@@ -13928,74 +14092,81 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   align-items: center;
   justify-content: flex-start;
   gap: 0.55rem;
+  width: 100%;
+  height: 100%;
   min-width: 0;
+  min-height: 100%;
   margin: 0;
-  padding: 0;
+  padding: 0.45rem 0.55rem 0.45rem 0.7rem;
   border: 0;
-  border-radius: 0;
+  border-radius: 8px;
   background: transparent;
   box-shadow: none;
   text-align: left;
   transform: none;
+  color: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.15;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.grai-action-switch-liquidate-slot,
+.grai-action-switch-liquidate-slot:hover,
+.grai-action-switch-liquidate-slot.is-active {
+  background: transparent;
+}
+
+.grai-liquidation-ops-tabs .grai-action-switch--ops .grai-action-switch-btn,
+.grai-liquidation-ops-tabs .grai-action-switch--ops .grai-action-switch-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.15;
 }
 
 .grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate.is-active::before {
   display: none;
 }
 
-[data-theme='light'] .grai-action-switch-liquidate-slot {
-  border-color: rgba(148, 163, 184, 0.4);
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover,
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot:hover {
+  color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+  border: 0;
+  background: transparent;
 }
 
-[data-theme='light'] .grai-action-switch-liquidate-slot:hover {
-  border-color: rgba(233, 30, 140, 0.45);
-}
-
-[data-theme='light'] .grai-action-switch-liquidate-slot.is-active {
-  border-color: #e91e8c;
-  background: rgba(233, 30, 140, 0.06);
-}
-
-[data-theme='light'] .grai-action-switch-liquidate-slot.is-active::before {
-  background: #e91e8c;
-}
-
-.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover {
-  border-color: rgba(255, 105, 180, 0.45);
-}
-
-.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
-  border-color: #ff69b4;
-  background: rgba(255, 105, 180, 0.08);
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active,
+.grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot.is-active {
+  color: #fff;
+  border: 0;
+  background: transparent;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
 }
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.45rem;
-  bottom: 0.45rem;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: #ff69b4;
-  pointer-events: none;
+  display: none;
+  content: none;
 }
 
-[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn {
-  border-color: rgba(148, 163, 184, 0.4);
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn,
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot {
+  color: color-mix(in srgb, #111 45%, transparent);
+  background: transparent;
 }
 
-[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover {
-  border-color: rgba(233, 30, 140, 0.45);
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:hover,
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot:hover {
+  color: color-mix(in srgb, #111 72%, transparent);
+  background: transparent;
 }
 
-[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
-  border-color: #e91e8c;
-  background: rgba(233, 30, 140, 0.06);
-}
-
-[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
-  background: #e91e8c;
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active,
+[data-theme='light'] .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot.is-active {
+  color: #fff;
+  background: transparent;
 }
 
 .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn .grai-action-switch-label {
@@ -14005,26 +14176,31 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-action-switch--ops .grai-action-switch-icon {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 0.9;
+  color: inherit;
 }
 
-.grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon {
+.grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon,
+.grai-action-switch--ops .grai-action-switch-liquidate-slot.is-active .grai-action-switch-icon {
   opacity: 1;
-  color: #ff69b4;
+  color: #fff;
 }
 
-.grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon svg {
-  color: #ff69b4;
-  stroke: #ff69b4;
+.grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon svg,
+.grai-action-switch--ops .grai-action-switch-liquidate-slot.is-active .grai-action-switch-icon svg {
+  color: #fff;
+  stroke: #fff;
 }
 
 [data-theme='light'] .grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon,
-[data-theme='light'] .grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon svg {
-  color: #e91e8c;
-  stroke: #e91e8c;
+[data-theme='light'] .grai-action-switch--ops .grai-action-switch-btn.is-active .grai-action-switch-icon svg,
+[data-theme='light'] .grai-action-switch--ops .grai-action-switch-liquidate-slot.is-active .grai-action-switch-icon,
+[data-theme='light'] .grai-action-switch--ops .grai-action-switch-liquidate-slot.is-active .grai-action-switch-icon svg {
+  color: #fff;
+  stroke: #fff;
 }
 
 .grai-liquidation-ops-main {
@@ -14075,44 +14251,86 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops {
+    --grai-ops-switch-pad: 0.12rem;
+    --grai-ops-switch-row: auto;
+    --grai-ops-switch-gap: 0.2rem;
     display: grid;
-    /* Claim / Distribute / Voting / Liquidation / Swap — one row */
+    /* Claim / Distribute / Voting / Liquidation / Swap — one compact row */
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: auto;
     align-items: stretch;
+    align-self: stretch;
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    gap: 0.28rem;
-    overflow: visible;
-    border: 0;
+    height: auto;
+    min-height: 0;
+    gap: var(--grai-ops-switch-gap);
+    overflow: hidden;
     box-sizing: border-box;
+    background: var(--grai-ops-switch-track);
   }
 
-  .grai-action-switch--ops::after {
-    display: none;
+  .grai-liquidation-ops-tabs .grai-action-switch--ops::after {
+    top: var(--grai-ops-switch-pad);
+    bottom: var(--grai-ops-switch-pad);
+    left: var(--grai-ops-switch-pad);
+    right: auto;
+    width: calc(
+      (100% - (2 * var(--grai-ops-switch-pad)) - (var(--grai-ops-switch-gap) * (var(--grai-ops-switch-count) - 1)))
+        / var(--grai-ops-switch-count)
+    );
+    height: auto;
+    border-radius: 8px;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops.is-claim-active::after {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops.is-distribute-active::after {
+    transform: translate3d(calc(100% + var(--grai-ops-switch-gap)), 0, 0);
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops.is-market-active::after {
+    transform: translate3d(calc(2 * (100% + var(--grai-ops-switch-gap))), 0, 0);
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops.is-liquidate-active::after {
+    transform: translate3d(calc(3 * (100% + var(--grai-ops-switch-gap))), 0, 0);
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops.is-swap-active::after {
+    transform: translate3d(calc(4 * (100% + var(--grai-ops-switch-gap))), 0, 0);
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn,
-  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot {
     display: flex;
+    flex: 1 1 0;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.18rem;
+    gap: 0.12rem;
     width: 100%;
-    min-width: 0;
+    height: auto;
+    min-height: 0;
     max-width: 100%;
+    min-width: 0;
     margin-top: 0;
-    padding: 0.4rem 0.12rem 0.42rem;
-    font-size: clamp(0.52rem, 2.1vw, 0.66rem);
+    padding: 0.32rem 0.1rem 0.34rem;
+    font-size: clamp(0.58rem, 2.45vw, 0.74rem);
     font-weight: 600;
-    line-height: 1.12;
+    line-height: 1.1;
     letter-spacing: 0.01em;
     text-align: center;
     white-space: normal;
-    border: 1px solid rgba(148, 163, 184, 0.28);
+    border: 0;
     border-radius: 8px;
     box-sizing: border-box;
+    background: transparent;
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn + .grai-action-switch-btn,
@@ -14120,6 +14338,17 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn,
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot + .grai-action-switch-btn.is-swap {
     margin-top: 0;
+  }
+
+  /* Vertical hairlines between compact mobile ops cells. */
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn:not(:last-child)::after,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot:not(:last-child)::after {
+    top: 0.35rem;
+    bottom: 0.35rem;
+    left: auto;
+    right: calc((var(--grai-ops-switch-gap) / -2) - 0.5px);
+    width: 1px;
+    height: auto;
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-swap,
@@ -14133,23 +14362,22 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.18rem;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 0;
     width: 100%;
     min-width: 0;
     max-width: 100%;
     margin-top: 0;
-    padding: 0.4rem 0.12rem 0.42rem;
+    padding: 0 !important;
+    border: 0;
     border-radius: 8px;
     box-sizing: border-box;
+    background: transparent;
   }
 
   .grai-action-switch-liquidate-slot.is-active::before {
-    top: 0.3rem;
-    bottom: 0.3rem;
-    width: 2px;
-    border-radius: 0 1px 1px 0;
+    display: none;
   }
 
   .grai-action-switch-liquidate-slot > .grai-action-switch-btn.is-liquidate,
@@ -14160,38 +14388,46 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
     justify-content: center;
     gap: 0.18rem;
     width: 100%;
+    height: 100%;
     min-width: 0;
     max-width: 100%;
-    padding: 0;
-    font-size: clamp(0.52rem, 2.1vw, 0.66rem);
+    min-height: 100%;
+    padding: 0.4rem 0.12rem 0.42rem;
+    font-size: clamp(0.58rem, 2.45vw, 0.74rem);
     font-weight: 600;
     line-height: 1.12;
     letter-spacing: 0.01em;
     text-align: center;
     border: 0;
+    border-radius: 8px;
     background: transparent;
     transform: none;
     box-sizing: border-box;
   }
 
-  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active {
-    border-color: #ff69b4;
-    background: rgba(255, 105, 180, 0.08);
+  .grai-liquidation-ops-tabs .grai-action-switch--ops .grai-action-switch-btn,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops .grai-action-switch-label {
+    font-size: clamp(0.58rem, 2.45vw, 0.74rem);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: 0.01em;
+  }
+
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active,
+  .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-liquidate-slot.is-active {
+    border: 0;
+    background: transparent;
+    color: #fff;
   }
 
   .grai-liquidation-ops-tabs .grai-action-switch--ops > .grai-action-switch-btn.is-active::before {
-    content: '';
-    left: 0;
-    top: 0.3rem;
-    bottom: 0.3rem;
-    width: 2px;
-    border-radius: 0 1px 1px 0;
-    background: #ff69b4;
+    display: none;
+    content: none;
   }
 
   .grai-action-switch--ops .grai-action-switch-icon {
-    width: 1.2rem;
-    height: 1.2rem;
+    width: 1rem;
+    height: 1rem;
     flex-shrink: 0;
   }
 
@@ -16951,8 +17187,9 @@ button.grai-referral-graph-node-addr.is-copied {
   gap: 0.55rem;
   /* Match mint panel amount → claim-all toggle spacing (net 0.4rem via is-below-amount). */
   --grai-action-content-gap: 0.55rem;
+  /* Same control column as .grai-mint-amount-stack (25.3125rem / 405px). */
   width: 100%;
-  max-width: 100%;
+  max-width: min(100%, 25.3125rem);
   margin-inline: 0;
   min-width: 0;
   height: auto;
@@ -20273,15 +20510,22 @@ button.grai-referral-graph-node-addr.is-copied {
   .grai-liquidation-market-stack,
   .grai-dutch-auction-chart,
   .grai-liquidation-vote-block,
-  .grai-liquidation-escrow-block,
-  .grai-liquidation-yield-block,
   .grai-assets-split > .grai-ops-panel > .grai-liquidation-market-row,
   .grai-assets-split > .grai-ops-panel > .grai-liquidation-market-stack,
-  .grai-assets-split > .grai-ops-panel > .grai-liquidation-ops-row,
   .grai-assets-split > .grai-ops-panel > .grai-dutch-auction-chart,
   .grai-assets-split > .grai-ops-panel > .grai-liquidation-buyback-screen {
     width: 100%;
     max-width: 100%;
+  }
+
+  /* Keep distribute/escrow on the same 25.3125rem column as mint controls. */
+  .grai-liquidation-ops-row,
+  .grai-liquidation-escrow-block,
+  .grai-liquidation-yield-block,
+  .grai-assets-split > .grai-ops-panel > .grai-liquidation-ops-row {
+    width: min(100%, 25.3125rem);
+    max-width: 100%;
+    margin-inline: auto;
   }
 
   .grai-liquidation-market-row {
@@ -20342,7 +20586,7 @@ button.grai-referral-graph-node-addr.is-copied {
     height: auto;
     min-height: 0;
     width: 100%;
-    max-width: 100%;
+    max-width: min(100%, 25.3125rem);
   }
 
   .grai-liquidation-voters-block {

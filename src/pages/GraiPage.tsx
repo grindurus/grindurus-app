@@ -5,7 +5,6 @@ import { useGraiDeployment } from '../grai/GraiDeploymentProvider'
 import { FloatingTokenBackground, STABLE_FLOATING_TOKENS } from '../components/FloatingTokenBackground'
 import { HowItWorksModal } from '../components/HowItWorksModal'
 import { GraiMintBurnPanel } from '../components/grai/GraiMintBurnPanel'
-import { GraiMintSubtitleText } from '../components/grai/GraiMintSubtitleRotatingAsset'
 import { GraiGrindersSection } from '../components/grai/GraiGrindersSection'
 import { GraiAssetsSection } from '../components/grai/GraiAssetsSection'
 import { MINT_ASSET_SOLSCAN_ICON } from '../components/grai/graiPageIcons'
@@ -159,7 +158,7 @@ function GraiPage() {
         <div className="grai-actions-block" id="grai-actions-section">
           <GraiMintBurnPanel
             actionView="mint"
-            actionSubtitle={<GraiMintSubtitleText />}
+            actionSubtitle="Onchain Hedge Fund"
             onOpenHowItWorks={() => setIsHowItWorksOpen(true)}
           />
         </div>
