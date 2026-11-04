@@ -4,7 +4,7 @@
  * To unlock Solana mainnet later:
  * 1. Set `GRAI_SOLANA_DEVNET_ONLY` to `false` (or delete this file)
  * 2. Remove `<GraiSolanaDevnetPin />` from `GraiDeploymentProvider`
- * 3. Set `VITE_GRAI_MAINNET_MINT` (+ RPC) in env
+ * 3. Add `GRAI_SOLANA['mainnet-beta']` in `src/contracts.ts` (+ RPC env if needed)
  */
 export const GRAI_SOLANA_DEVNET_ONLY = true
 

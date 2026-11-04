@@ -1,4 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js'
+import { GRS_EVM, GRS_SOLANA } from '../contracts'
 import {
   createGraiConnection,
   evmExplorerAccountUrl,
@@ -35,35 +36,12 @@ export type GrsSolanaConfig = {
 export type GrsConfig = GrsEvmConfig | GrsSolanaConfig
 
 const EVM_CHAINS = [
-  { chainId: 1, chainName: 'Ethereum', envSuffix: 'ETHEREUM' },
-  { chainId: 8453, chainName: 'Base', envSuffix: 'BASE' },
-  { chainId: 42161, chainName: 'Arbitrum', envSuffix: 'ARBITRUM' },
-  { chainId: 11155111, chainName: 'Sepolia', envSuffix: 'SEPOLIA' },
-  { chainId: 84532, chainName: 'Base Sepolia', envSuffix: 'BASE_SEPOLIA' },
+  { chainId: 1, chainName: 'Ethereum' },
+  { chainId: 8453, chainName: 'Base' },
+  { chainId: 42161, chainName: 'Arbitrum' },
+  { chainId: 11155111, chainName: 'Sepolia' },
+  { chainId: 84532, chainName: 'Base Sepolia' },
 ] as const
-
-/**
- * Devnet spoke defaults — `grindurus-solana/migrations/grs/v2_deploy.md`
- * (paired with Sepolia home `grindurus-evm/script/grs/v3_deploy.md`).
- * Escrow / oft_store derived as `["OftEscrow", mint]` → `["OFT", escrow]`;
- * env `VITE_GRS_*_ESCROW` / `OFT_STORE` still override when set.
- */
-const DEVNET_DEFAULTS = {
-  programId: 'BGWdAUzjxAZtFzxRTSy88k6r9iYotkhga449vB2tRNTy',
-  mint: '9YCwSKP54mZCnGFzdUFNfd6vsx84gsaARKh7NG16z6mc',
-} as const
-
-/** Sepolia home OFT — `grindurus-evm/script/grs/v3_deploy.md` */
-const SEPOLIA_DEFAULT_TOKEN = '0xFBa4f8CDa4C54BD9D3F045665C6D7F5B9A2c56c4' as const
-
-function readEnv(key: string): string | undefined {
-  const value = (import.meta.env as Record<string, string | undefined>)[key]
-  return value?.trim() || undefined
-}
-
-function isAddress(value: string | undefined): value is `0x${string}` {
-  return Boolean(value && /^0x[a-fA-F0-9]{40}$/.test(value))
-}
 
 function tryPubkey(value: string | undefined): PublicKey | null {
   if (!value) return null
@@ -74,20 +52,12 @@ function tryPubkey(value: string | undefined): PublicKey | null {
   }
 }
 
-function clusterEnvSuffix(cluster: SolanaCluster): string {
-  if (cluster === 'mainnet-beta') return 'MAINNET'
-  if (cluster === 'testnet') return 'TESTNET'
-  return 'DEVNET'
-}
-
 export function resolveGrsEvmConfig(chainId: number): GrsEvmConfig | null {
   const chain = EVM_CHAINS.find((item) => item.chainId === chainId)
   if (!chain) return null
 
-  const address =
-    readEnv(`VITE_GRS_${chain.envSuffix}_TOKEN`) ??
-    (chain.chainId === 11155111 ? SEPOLIA_DEFAULT_TOKEN : undefined)
-  if (!isAddress(address)) return null
+  const address = GRS_EVM[chainId]
+  if (!address) return null
 
   return {
     kind: 'evm',
@@ -103,37 +73,22 @@ export function listConfiguredGrsChains(): GrsEvmConfig[] {
   )
 }
 
+/** Fallback when UI prefs are missing — same as header Mainnet default. */
 export function getDefaultGrsSolanaCluster(): SolanaCluster {
-  const raw = readEnv('VITE_GRS_SOLANA_CLUSTER') ?? readEnv('VITE_GRAI_SOLANA_CLUSTER')
-  if (raw === 'mainnet-beta' || raw === 'mainnet') return 'mainnet-beta'
-  if (raw === 'testnet') return 'testnet'
-  if (raw === 'devnet') return 'devnet'
   return getDefaultGraiSolanaCluster()
 }
 
 export function resolveGrsSolanaConfig(cluster: SolanaCluster = getDefaultGrsSolanaCluster()): GrsSolanaConfig | null {
-  const suffix = clusterEnvSuffix(cluster)
-  const mint =
-    tryPubkey(readEnv(`VITE_GRS_${suffix}_MINT`)) ??
-    tryPubkey(readEnv('VITE_GRS_SOLANA_MINT')) ??
-    (cluster === 'devnet' ? tryPubkey(DEVNET_DEFAULTS.mint) : null)
-  if (!mint) return null
+  const deployment = GRS_SOLANA[cluster]
+  if (!deployment) return null
 
-  const programId =
-    tryPubkey(readEnv(`VITE_GRS_${suffix}_PROGRAM_ID`)) ??
-    tryPubkey(readEnv('VITE_GRS_PROGRAM_ID')) ??
-    tryPubkey(DEVNET_DEFAULTS.programId)
-  if (!programId) return null
+  const mint = tryPubkey(deployment.mint)
+  const programId = tryPubkey(deployment.programId)
+  if (!mint || !programId) return null
 
   const derived = oftStoreFromMint(mint, programId)
-  const escrow =
-    tryPubkey(readEnv(`VITE_GRS_${suffix}_ESCROW`)) ??
-    tryPubkey(readEnv('VITE_GRS_ESCROW')) ??
-    derived.escrow
-  const oftStore =
-    tryPubkey(readEnv(`VITE_GRS_${suffix}_OFT_STORE`)) ??
-    tryPubkey(readEnv('VITE_GRS_OFT_STORE')) ??
-    derived.oftStore
+  const escrow = tryPubkey(deployment.escrow) ?? derived.escrow
+  const oftStore = tryPubkey(deployment.oftStore) ?? derived.oftStore
 
   return {
     kind: 'solana',

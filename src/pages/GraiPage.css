@@ -17069,7 +17069,13 @@ button.grai-referral-graph-node-addr.is-copied {
   .grai-referral-dash-side,
   .grai-referral-dash-panel {
     height: auto;
-    min-height: 32rem;
+    min-height: 0;
+  }
+
+  /* Poach lives on the graph node now — don't reserve empty side-panel space. */
+  .grai-referral-dash-panel .grai-referral-dash-poach.is-placeholder,
+  .grai-referral-dash-panel .grai-referral-dash-poach.is-collapsed {
+    display: none;
   }
 }
 
@@ -19627,12 +19633,36 @@ button.grai-referral-graph-node-addr.is-copied {
     overflow: visible;
   }
 
+  /* Vote amount column stays narrow; voters map spans the full vote-slot width. */
   .grai-liquidation-market-stack.is-bribe-side
     .grai-liquidation-vote-slot
-    > .grai-liquidation-market-section:not(.grai-liquidation-bribe-slot) {
+    > .grai-liquidation-market-section:not(.grai-liquidation-bribe-slot):not(
+      .grai-liquidation-voters-map-section
+    ) {
     width: min(100%, 25.3125rem);
     max-width: 25.3125rem;
   }
+
+  .grai-liquidation-market-stack.is-bribe-side
+    .grai-liquidation-vote-slot
+    > .grai-liquidation-voters-map-section {
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+    margin-inline: 0;
+    /* Right gutter so the page can be scrolled outside the React Flow pane. */
+    padding-left: 0;
+    padding-right: 2.75rem;
+    box-sizing: border-box;
+  }
+
+  .grai-liquidation-voters-map-section > .grai-voters-map-embed,
+  .grai-liquidation-voters-map-section > .grai-voters-map-embed .grai-voters-map-graph,
+  .grai-liquidation-voters-map-section > .grai-voters-map-embed .react-flow {
+    width: 100%;
+    max-width: none;
+  }
+
 
   .grai-liquidation-market-stack.is-bribe-side .grai-liquidation-bribe-row {
     grid-template-columns: minmax(0, 1fr);

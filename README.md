@@ -77,8 +77,8 @@ The app deploys automatically on every push to `main` via [`.github/workflows/de
 1. In the repo on GitHub: **Settings → Pages → Build and deployment → Source** → choose **GitHub Actions**.
 2. **Custom domain:** `app.grindurus.xyz` (CNAME `app` → `grindurus.github.io` in Namecheap).
 3. Copy [`.env.example`](.env.example) values into **Settings → Secrets and variables → Actions**:
-   - **Secrets** — RPC URLs, mint addresses, `VITE_WALLETCONNECT_PROJECT_ID`, `VITE_BACKTEST_API_URL`, etc.
-   - **Variables** (optional) — `VITE_GRAI_SOLANA_CLUSTER` (default `devnet`), `VITE_MAIN_APP_URL`.
+   - **Secrets** — RPC URLs, `VITE_WALLETCONNECT_PROJECT_ID`, etc.
+   - **Contract addresses** — edit [`src/contracts.ts`](src/contracts.ts) (public; not secrets). Solana/EVM network = in-app Mainnet/Testnet toggle.
 3. Push to `main` or run the workflow manually (**Actions → Deploy to GitHub Pages → Run workflow**).
 
 `VITE_*` variables are baked in at build time on CI. After changing secrets, re-run the workflow or push a commit.
@@ -94,7 +94,5 @@ Open http://localhost:4173/grai
 ## Environment variables
 
 See [`.env.example`](.env.example) for the full list.
-
-- `VITE_MAIN_APP_URL` — URL of the main GrindURUS app for the «← GrindURUS» header link. Defaults to `/` (link hidden).
 
 For Docker, put `VITE_*` variables in `.env` or `.env.local` at the project root. They are picked up by `npm run build` / `npm run dev` inside the container.

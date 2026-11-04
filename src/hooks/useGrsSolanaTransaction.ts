@@ -51,7 +51,7 @@ export function useGrsSolanaTransaction() {
         throw new Error('Connected wallet cannot sign transactions')
       }
       if (!config) {
-        throw new Error('GRS is not configured for Solana. Set VITE_GRS_DEVNET_MINT / program env.')
+        throw new Error('GRS is not configured for Solana. Add GRS_SOLANA in src/contracts.ts.')
       }
       if (solanaWallet.walletClusterMismatch) {
         throw new Error(

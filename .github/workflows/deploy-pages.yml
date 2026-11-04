@@ -38,33 +38,9 @@ jobs:
         env:
           GITHUB_PAGES: 'true'
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
-          VITE_SOLANA_RPC_URL: ${{ secrets.VITE_SOLANA_RPC_URL }}
           VITE_SOLANA_DEVNET_RPC_URL: ${{ secrets.VITE_SOLANA_DEVNET_RPC_URL }}
           VITE_SOLANA_MAINNET_RPC_URL: ${{ secrets.VITE_SOLANA_MAINNET_RPC_URL }}
-          VITE_SOLANA_TESTNET_RPC_URL: ${{ secrets.VITE_SOLANA_TESTNET_RPC_URL }}
-          VITE_GRAI_SOLANA_CLUSTER: ${{ vars.VITE_GRAI_SOLANA_CLUSTER || 'devnet' }}
-          VITE_GRAI_RPC_URL: ${{ secrets.VITE_GRAI_RPC_URL }}
-          VITE_GRAI_DEVNET_RPC_URL: ${{ secrets.VITE_GRAI_DEVNET_RPC_URL }}
-          VITE_GRAI_MAINNET_RPC_URL: ${{ secrets.VITE_GRAI_MAINNET_RPC_URL }}
-          VITE_GRAI_TESTNET_RPC_URL: ${{ secrets.VITE_GRAI_TESTNET_RPC_URL }}
-          VITE_GRAI_MINT: ${{ secrets.VITE_GRAI_MINT }}
-          VITE_GRAI_DEVNET_MINT: ${{ secrets.VITE_GRAI_DEVNET_MINT }}
-          VITE_GRAI_MAINNET_MINT: ${{ secrets.VITE_GRAI_MAINNET_MINT }}
-          VITE_GRAI_TESTNET_MINT: ${{ secrets.VITE_GRAI_TESTNET_MINT }}
-          # Public addresses — optional secrets override the in-code defaults.
-          VITE_GRAI_ARBITRUM: ${{ secrets.VITE_GRAI_ARBITRUM }}
-          VITE_GRAI_SEPOLIA: ${{ secrets.VITE_GRAI_SEPOLIA }}
-          VITE_GRAI_BASE_SEPOLIA: ${{ secrets.VITE_GRAI_BASE_SEPOLIA }}
-          VITE_GRAI_ARBITRUM_TOKEN: ${{ secrets.VITE_GRAI_ARBITRUM_TOKEN }}
-          VITE_GRAI_ARBITRUM_PROTOCOL: ${{ secrets.VITE_GRAI_ARBITRUM_PROTOCOL }}
-          VITE_GRAI_SEPOLIA_TOKEN: ${{ secrets.VITE_GRAI_SEPOLIA_TOKEN }}
-          VITE_GRAI_SEPOLIA_PROTOCOL: ${{ secrets.VITE_GRAI_SEPOLIA_PROTOCOL }}
-          VITE_GRAI_BASE_SEPOLIA_TOKEN: ${{ secrets.VITE_GRAI_BASE_SEPOLIA_TOKEN }}
-          VITE_GRAI_BASE_SEPOLIA_PROTOCOL: ${{ secrets.VITE_GRAI_BASE_SEPOLIA_PROTOCOL }}
-          VITE_BACKTEST_API_URL: ${{ secrets.VITE_BACKTEST_API_URL }}
-          VITE_MAIN_APP_URL: ${{ vars.VITE_MAIN_APP_URL }}
-          # Public GRAI grinders table — Traefik Host(toreador.grindurus.xyz).
-          VITE_TOREADOR_API_URL: ${{ vars.VITE_TOREADOR_API_URL || 'https://toreador.grindurus.xyz' }}
+          # Contract / API URLs: src/contracts.ts, BacktestPage.tsx, toreadorApi.ts (not env).
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -7,7 +7,6 @@ import {
   type SolanaCluster,
   type WalletContextType,
 } from './walletContext'
-import { getDefaultGraiSolanaCluster } from '../grai/deployments'
 import { LazySolanaShell, preloadSolanaProvider } from './LazySolanaShell'
 import { LazyEvmShell, preloadEvmProvider } from './LazyEvmShell'
 import { EvmWalletSnapshotProvider } from './EvmWalletSnapshotContext'
@@ -57,9 +56,10 @@ export function AppWalletProvider({ children }: AppWalletProviderProps) {
   })
 
   const [solanaCluster, setSolanaCluster] = useState<SolanaCluster>(() => {
-    const saved = localStorage.getItem('solanaCluster')
-    const cluster = (saved as SolanaCluster) || getDefaultGraiSolanaCluster()
-    return cluster === 'testnet' ? 'devnet' : cluster
+    const saved = localStorage.getItem('solanaCluster') as SolanaCluster | null
+    if (saved === 'mainnet-beta' || saved === 'devnet') return saved
+    // Follow header Mainnet/Testnet (no build-time cluster env).
+    return preferredSolanaCluster(readSavedNetworkEnv())
   })
 
   const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)

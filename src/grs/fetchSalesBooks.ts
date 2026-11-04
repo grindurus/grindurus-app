@@ -133,7 +133,7 @@ export async function fetchAllOpenGrsSaleBooks(params: {
     const solana = resolveGrsSolanaConfigPreferringDevnet(params.solanaCluster)
     if (!solana) {
       if (params.mode === 'solana') {
-        solanaError = 'Solana GRS is not configured (set VITE_GRS_DEVNET_MINT)'
+        solanaError = 'Solana GRS is not configured (add GRS_SOLANA in src/contracts.ts)'
       }
     } else {
       try {

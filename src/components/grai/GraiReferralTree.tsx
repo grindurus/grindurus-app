@@ -1604,8 +1604,8 @@ export function GraiReferralTree({
     </div>
   ) : null
 
-  const nodeToolbarPanel =
-    claimPanel ?? (graphExpanded && selectedId ? poachPanel : null)
+  // Poach sits under the selected graph node (same as expanded / claim toolbar).
+  const nodeToolbarPanel = claimPanel ?? (selectedId ? poachPanel : null)
 
   const graphPanel = (
     <div className="grai-referral-dash-graph" aria-label="Referral graph">
@@ -2006,15 +2006,10 @@ export function GraiReferralTree({
             )}
             <div
               className={`grai-referral-dash-poach${
-                graphExpanded || !selected
-                  ? sideView === 'top'
-                    ? ' is-collapsed'
-                    : ' is-placeholder'
-                  : ''
+                sideView === 'top' ? ' is-collapsed' : ' is-placeholder'
               }`}
-            >
-              {!graphExpanded ? poachPanel : null}
-            </div>
+              aria-hidden="true"
+            />
           </div>
         </aside>
       </div>

@@ -1072,7 +1072,7 @@ export function GrsSalesPanel({ config, snapshot: _snapshot, isLoading: _isLoadi
             {isDemo ? (
               <div className="grai-action-deposit-notes">
                 <p className="grai-action-deposit-note">
-                  Demo catalog — set <code>VITE_GRS_SEPOLIA_TOKEN</code> and/or Solana GRS mint env to
+                  Demo catalog — add GRS addresses in <code>src/contracts.ts</code> to
                   go live.
                 </p>
               </div>

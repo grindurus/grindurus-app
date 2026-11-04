@@ -1,4 +1,5 @@
 import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js'
+import { GRAI_EVM, GRAI_SOLANA } from '../contracts'
 import type { SolanaCluster } from '../wallets/AppWalletProvider'
 import { fetchGraiProtocol } from './fetchGraiProtocol'
 import { getSharedJsonRpcBatchFetch } from './jsonRpcBatchFetch'
@@ -16,20 +17,6 @@ export type GraiSolanaRuntime = GraiSolanaConfig & {
   graiState: PublicKey
 }
 
-const DEVNET_DEFAULTS = {
-  programId: 'DBAmy36cyMnAdL1YMRM81mNSwRzGSVASjJYvaniyGiSS',
-  graiState: 'BtEjrZQ8PiQkM7VfQaBdYBy689g63WjaphXV8xo6hfMA',
-  graiMint: 'nJoFYfY5xcA8aZ2Wiq79RNKfqyEwS9nF13goghEgrai',
-} as const
-
-/** Public mainnet GRAI proxy (token + protocol) — safe to ship in the client. */
-const ARBITRUM_DEFAULT_GRAI = '0x999999082c136c363bA7436928499CbA9B2Ed94D' as const
-
-/** Optional public EVM defaults when `VITE_GRAI_*` is unset (CI / Pages without secrets). */
-const EVM_DEFAULT_UNIFIED: Partial<Record<number, `0x${string}`>> = {
-  42161: ARBITRUM_DEFAULT_GRAI,
-}
-
 export type GraiEvmConfig = {
   kind: 'evm'
   chainId: number
@@ -39,11 +26,11 @@ export type GraiEvmConfig = {
 }
 
 const EVM_CHAINS = [
-  { chainId: 1, chainName: 'Ethereum', envSuffix: 'ETHEREUM' },
-  { chainId: 8453, chainName: 'Base', envSuffix: 'BASE' },
-  { chainId: 42161, chainName: 'Arbitrum', envSuffix: 'ARBITRUM' },
-  { chainId: 11155111, chainName: 'Sepolia', envSuffix: 'SEPOLIA' },
-  { chainId: 84532, chainName: 'Base Sepolia', envSuffix: 'BASE_SEPOLIA' },
+  { chainId: 1, chainName: 'Ethereum' },
+  { chainId: 8453, chainName: 'Base' },
+  { chainId: 42161, chainName: 'Arbitrum' },
+  { chainId: 11155111, chainName: 'Sepolia' },
+  { chainId: 84532, chainName: 'Base Sepolia' },
 ] as const
 
 function readEnv(key: string): string | undefined {
@@ -65,13 +52,12 @@ function detectClusterFromRpc(rpc: string): SolanaCluster | null {
   return null
 }
 
-/** Target Solana cluster for GRAI protocol (build-time default). */
+/**
+ * Fallback Solana cluster when UI prefs are not available yet.
+ * Runtime selection is the header Mainnet/Testnet toggle (`preferredSolanaCluster`).
+ */
 export function getDefaultGraiSolanaCluster(): SolanaCluster {
-  const raw = readEnv('VITE_GRAI_SOLANA_CLUSTER')
-  if (raw === 'mainnet-beta' || raw === 'mainnet') return 'mainnet-beta'
-  if (raw === 'testnet') return 'testnet'
-  if (raw === 'devnet') return 'devnet'
-  return 'devnet'
+  return 'mainnet-beta'
 }
 
 function devnetRpcProxyUrl(): string {
@@ -83,24 +69,10 @@ function devnetRpcProxyUrl(): string {
 
 function resolveSolanaRpcUrlInternal(cluster: SolanaCluster): string {
   const suffix = clusterEnvSuffix(cluster)
-  const candidates = [
-    readEnv(`VITE_GRAI_${suffix}_RPC_URL`),
-    readEnv(`VITE_SOLANA_${suffix}_RPC_URL`),
-  ]
-  for (const candidate of candidates) {
-    if (!candidate) continue
-    const detected = detectClusterFromRpc(candidate)
-    if (detected && detected !== cluster) continue
-    return candidate
-  }
-
-  const isDefaultCluster = cluster === getDefaultGraiSolanaCluster()
-  if (isDefaultCluster) {
-    const legacyGrai = readEnv('VITE_GRAI_RPC_URL')
-    // Never bind a mainnet Helius URL to a Devnet default cluster.
-    if (legacyGrai && (detectClusterFromRpc(legacyGrai) ?? cluster) === cluster) {
-      return legacyGrai
-    }
+  const specific = readEnv(`VITE_SOLANA_${suffix}_RPC_URL`)
+  if (specific) {
+    const detected = detectClusterFromRpc(specific)
+    if (!detected || detected === cluster) return specific
   }
 
   const solanaRpc = readEnv('VITE_SOLANA_RPC_URL')
@@ -127,15 +99,8 @@ export function resolveSolanaRpcUrl(cluster: SolanaCluster): string {
 }
 
 function resolveGraiMintAddress(cluster: SolanaCluster): string | undefined {
-  const specificMint = readEnv(`VITE_GRAI_${clusterEnvSuffix(cluster)}_MINT`)
-  const isDefaultCluster = cluster === getDefaultGraiSolanaCluster()
-  const legacyMint = isDefaultCluster ? readEnv('VITE_GRAI_MINT') : undefined
-
-  if (cluster === 'devnet') {
-    return specificMint ?? legacyMint ?? DEVNET_DEFAULTS.graiMint
-  }
-
-  return specificMint ?? legacyMint
+  const deployment = GRAI_SOLANA[cluster]
+  return deployment?.mint?.trim() || undefined
 }
 
 export function resolveGraiSolanaConfig(cluster: SolanaCluster): GraiSolanaConfig | null {
@@ -213,23 +178,16 @@ export function resolveGraiEvmConfig(chainId: number): GraiEvmConfig | null {
   const chain = EVM_CHAINS.find((item) => item.chainId === chainId)
   if (!chain) return null
 
-  // Prefer unified address (proxy = token + protocol), e.g. VITE_GRAI_ARBITRUM.
-  const unified =
-    (readEnv(`VITE_GRAI_${chain.envSuffix}`) as `0x${string}` | undefined) ??
-    EVM_DEFAULT_UNIFIED[chainId]
-  const graiToken =
-    unified ?? (readEnv(`VITE_GRAI_${chain.envSuffix}_TOKEN`) as `0x${string}` | undefined)
-  const protocolAddress =
-    unified ?? (readEnv(`VITE_GRAI_${chain.envSuffix}_PROTOCOL`) as `0x${string}` | undefined)
-
-  if (!graiToken && !protocolAddress) return null
+  // Unified proxy = token + protocol (`src/contracts.ts`).
+  const unified = GRAI_EVM[chainId]
+  if (!unified) return null
 
   return {
     kind: 'evm',
     chainId,
     chainName: chain.chainName,
-    graiToken: graiToken ?? null,
-    protocolAddress: protocolAddress ?? null,
+    graiToken: unified,
+    protocolAddress: unified,
   }
 }
 

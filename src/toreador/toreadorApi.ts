@@ -19,14 +19,13 @@ type ToreadorTableSummaryWire = {
   byToreador?: Record<string, ToreadorTableSummaryWire>
 }
 
-/** Dev: Vite proxy. Prod: public Toreador host (Traefik ``toreador.${DOMAIN}``). */
+/** Prod Toreador host (public). Dev uses Vite proxy `/toreador-api`. */
+const TOREADOR_API_URL = 'https://toreador.grindurus.xyz'
 const DEFAULT_BASE_DEV = '/toreador-api'
-const DEFAULT_BASE_PROD = 'https://toreador.grindurus.xyz'
 
 export function toreadorApiBase(): string {
-  const fromEnv = (import.meta.env.VITE_TOREADOR_API_URL || '').trim()
-  const fallback = import.meta.env.DEV ? DEFAULT_BASE_DEV : DEFAULT_BASE_PROD
-  return (fromEnv || fallback).replace(/\/+$/, '')
+  const base = import.meta.env.DEV ? DEFAULT_BASE_DEV : TOREADOR_API_URL
+  return base.replace(/\/+$/, '')
 }
 
 export type ToreadorTableGroupWire = ToreadorTableSummaryWire & {

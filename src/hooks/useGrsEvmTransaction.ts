@@ -32,7 +32,7 @@ export function useGrsEvmTransaction() {
       }
 
       if (!options.config) {
-        throw new Error('GRS is not configured for this EVM network. Set VITE_GRS_*_TOKEN.')
+        throw new Error('GRS is not configured for this EVM network. Add GRS_EVM in src/contracts.ts.')
       }
 
       if (evmWallet.chainId !== options.config.chainId) {

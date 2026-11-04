@@ -1,27 +1,9 @@
 import { Connection, PublicKey } from '@solana/web3.js'
+import { GRINDERS_SOLANA } from '../contracts'
 import type { SolanaCluster } from '../wallets/AppWalletProvider'
 
-const GRINDERS_PROGRAM_ID_DEFAULT = '7W9uhZZvmHSyhRmdDRnbZPZfaUdJaMbGMWsBLjSRWT5v'
-
-function readEnv(key: string): string | undefined {
-  const value = (import.meta.env as Record<string, string | undefined>)[key]
-  return value?.trim() || undefined
-}
-
-function clusterEnvSuffix(cluster: SolanaCluster): string {
-  if (cluster === 'mainnet-beta') return 'MAINNET'
-  if (cluster === 'testnet') return 'TESTNET'
-  return 'DEVNET'
-}
-
 export function resolveSolanaGrindersProgramId(cluster: SolanaCluster): PublicKey {
-  const suffix = clusterEnvSuffix(cluster)
-  const specific =
-    readEnv(`VITE_GRINDERS_${suffix}_PROGRAM_ID`) ??
-    readEnv(`VITE_TREASURY_${suffix}_PROGRAM_ID`)
-  const legacy = readEnv('VITE_GRINDERS_PROGRAM_ID') ?? readEnv('VITE_TREASURY_PROGRAM_ID')
-  const raw = specific ?? legacy ?? GRINDERS_PROGRAM_ID_DEFAULT
-  return new PublicKey(raw)
+  return new PublicKey(GRINDERS_SOLANA[cluster] ?? GRINDERS_SOLANA.default)
 }
 
 /** Assert `custodyWallet` is a grinders `CustodianState` PDA. */

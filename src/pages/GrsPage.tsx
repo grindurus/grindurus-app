@@ -277,8 +277,8 @@ function GrsPage() {
           <div className="grai-page-meta">
             {!configured ? (
               <p className="grai-page-network-warning" role="status">
-                GRS is not configured. Set <code>VITE_GRS_SEPOLIA_TOKEN</code> and/or Solana{' '}
-                <code>VITE_GRS_DEVNET_MINT</code> env vars.
+                GRS is not configured. Add addresses in <code>src/contracts.ts</code> (
+                <code>GRS_EVM</code> / <code>GRS_SOLANA</code>).
               </p>
             ) : null}
             {configured && !config ? (

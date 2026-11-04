@@ -38,6 +38,10 @@ import {
 import { SOLANA_MAINNET_GENESIS } from '../wallets/caip2Network'
 import './BacktestPage.css'
 
+/** Public backtest API. Dev hits local FastAPI; prod is Traefik ``backtest.grindurus.xyz``. */
+const BACKTEST_API_URL_PROD = 'https://backtest.grindurus.xyz'
+const BACKTEST_API_URL_DEV = 'http://localhost:8001'
+
 const DEFAULT_BASE_ASSETS = ['ETH', 'BTC', 'SOL', 'ARB', 'MATIC'] as const
 const DEFAULT_QUOTE_ASSETS = ['USDC', 'USDT', 'USD', 'SOL'] as const
 const DEFAULT_BASE_ASSET = 'SOL'
@@ -1606,10 +1610,7 @@ function BacktestPage() {
 
   const backtestApiOrigin = useMemo(
     () =>
-      stripTrailingSlash(
-        (import.meta.env.VITE_BACKTEST_API_URL || 'http://localhost:8001').trim() ||
-          'http://localhost:8001'
-      ),
+      stripTrailingSlash(import.meta.env.DEV ? BACKTEST_API_URL_DEV : BACKTEST_API_URL_PROD),
     []
   )
   const paidFetch = useMemo(() => {
