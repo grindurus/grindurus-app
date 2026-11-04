@@ -25,6 +25,8 @@ export type GrinderTableRow = {
   /** Row PnL in USD (``yieldQuote + yieldBase × spot``). */
   yieldUsd: number
   terminal?: string
+  /** CAIP Label ID (e.g. ``grinder.custodian.swap@eip155:42161``). */
+  labelId?: string
   /** CAIP-2 toreador id (``eip155:42161``) — used for network filter. */
   toreador?: string
   custodianAddress?: string

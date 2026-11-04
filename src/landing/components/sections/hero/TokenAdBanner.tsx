@@ -110,10 +110,9 @@ function TokenAdSlotItem({
         className={`
           token-ad-icon relative flex items-center justify-center w-full h-full
           rounded-full overflow-hidden
-          shadow-[0_2px_20px_rgba(0,0,0,0.35)]
           transition-transform duration-200 ease-out
           cursor-pointer
-          ${slot.iconBg === 'black' ? 'bg-black' : 'bg-white'}
+          bg-transparent
           ${active ? 'scale-110' : 'scale-100'}
         `}
         title={`${slot.symbol} ad slot`}

@@ -3785,6 +3785,10 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   font-variant-numeric: tabular-nums;
 }
 
+.grai-grinder-last-tx-main.grai-grinder-custodian-addr-row {
+  align-items: center;
+}
+
 .grai-grinder-last-tx-link:hover {
   color: #ff9ed3;
   text-decoration: underline;
@@ -3799,6 +3803,14 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   max-width: 100%;
 }
 
+.grai-grinder-custodian-addr-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .grai-grinder-custodian-network {
   display: inline-flex;
   align-items: center;
@@ -3808,8 +3820,9 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
 }
 
 .grai-grinder-custodian-network .grai-grinder-name-network-icon {
-  width: 0.95rem !important;
-  height: 0.95rem !important;
+  /* Match .grai-grinder-custodian-nft (22×22). */
+  width: 22px !important;
+  height: 22px !important;
   padding: 0 !important;
 }
 
@@ -3953,12 +3966,33 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   cursor: pointer;
   font-size: 0.72rem;
   font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: normal;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+/* Beat `.grai-grinders-row span[role='cell'] { font-size: 0.92rem }` so nft name = address. */
+.grai-grinders-row span[role='cell'] .grai-grinder-custodian-addr,
+.grai-grinder-custodian-addr--nft-name,
+.grai-grinder-custodian-addr-trail .grai-grinder-custodian-addr {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.grai-grinder-custodian-addr--nft-name,
+.grai-grinder-custodian-addr-trail .grai-grinder-custodian-addr {
+  color: #fff;
+}
+
+[data-theme='light'] .grai-grinder-custodian-addr--nft-name,
+[data-theme='light'] .grai-grinder-custodian-addr-trail .grai-grinder-custodian-addr {
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .grai-grinder-custodian-addr:hover,
@@ -4013,16 +4047,40 @@ html.grai-status-notices-hidden .grai-page-meta:not(:has(*:not(.grai-page-networ
   opacity: 0.95;
 }
 
-.grai-grinder-last-tx-hash {
+.grai-grinder-last-tx-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.28rem;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
   font-size: 0.72rem;
   font-weight: 600;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.grai-grinder-last-tx-line.is-placeholder {
+  opacity: 0.7;
+}
+
+.grai-grinder-last-tx-line-prefix {
+  flex-shrink: 0;
+  text-transform: lowercase;
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+}
+
+.grai-grinder-last-tx-hash {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+  font-variant-numeric: inherit;
+  color: inherit;
 }
 
 .grai-grinder-last-tx-hash.is-placeholder {

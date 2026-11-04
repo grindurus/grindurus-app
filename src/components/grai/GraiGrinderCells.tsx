@@ -10,6 +10,7 @@ import { shortenAddress } from '../../utils/shortenAddress'
 import {
   formatGrinderTooltipAmount,
   formatGrinderUsdExact,
+  formatGrinderUsdFull,
   formatGrinderUsdTotal,
   type GrinderTvlBreakdownRow,
   type GrinderYieldBreakdownRow,
@@ -78,63 +79,92 @@ function splitBossGrinderName(name: string): { boss: string; grinder: string } {
   return { boss: name.slice(0, idx).trim(), grinder: name.slice(idx + 3).trim() || name }
 }
 
-function GraiGrinderCustodianAddrRow({
+function GraiGrinderCustodianCopyButton({
+  custodianAddress,
+  label,
+  className,
+}: {
+  custodianAddress: string
+  label: string
+  className?: string
+}) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      className={`${className ?? 'grai-grinder-custodian-addr'}${copied ? ' is-copied' : ''}`}
+      title={copied ? 'Copied!' : `Copy ${custodianAddress}`}
+      aria-label={copied ? 'Copied to clipboard' : `Copy custodian ${custodianAddress}`}
+      onClick={(event) => {
+        event.stopPropagation()
+        void navigator.clipboard
+          .writeText(custodianAddress)
+          .then(() => {
+            setCopied(true)
+            window.setTimeout(() => setCopied(false), 1000)
+          })
+          .catch(() => {
+            // ignore clipboard errors
+          })
+      }}
+    >
+      {copied ? 'Copied!' : label}
+    </button>
+  )
+}
+
+function GraiGrinderCustodianExplorerLink({
   custodianAddress,
   terminal,
   toreador,
+}: {
+  custodianAddress: string
+  terminal?: string
+  toreador?: string
+}) {
+  const explorerHref = resolveGrinderAccountExplorerUrl({
+    address: custodianAddress,
+    terminal,
+    network: toreador,
+  })
+  if (!explorerHref) return null
+  return (
+    <a
+      href={explorerHref}
+      target="_blank"
+      rel="noreferrer"
+      className="grai-grinder-custodian-explorer"
+      aria-label="View custodian on block explorer"
+      title="View on block explorer"
+      onClick={(event) => event.stopPropagation()}
+    >
+      {MINT_ASSET_SOLSCAN_ICON}
+    </a>
+  )
+}
+
+function GraiGrinderCustodianAddrRow({
+  custodianAddress,
+  nftName,
+  custodianId,
   leading,
 }: {
   custodianAddress?: string
-  terminal?: string
-  toreador?: string
+  nftName?: string
+  custodianId?: number
   leading?: ReactNode
 }) {
-  const [copied, setCopied] = useState(false)
   if (!custodianAddress && !leading) return null
-  const explorerHref = custodianAddress
-    ? resolveGrinderAccountExplorerUrl({
-        address: custodianAddress,
-        terminal,
-        network: toreador,
-      })
-    : null
+  const label = resolveCustodianNftLabel(nftName, custodianId)
   return (
     <span className="grai-grinder-last-tx-main grai-grinder-custodian-addr-row">
       {leading}
       {custodianAddress ? (
-        <button
-          type="button"
-          className={`grai-grinder-custodian-addr${copied ? ' is-copied' : ''}`}
-          title={copied ? 'Copied!' : `Copy ${custodianAddress}`}
-          aria-label={copied ? 'Copied to clipboard' : `Copy custodian ${custodianAddress}`}
-          onClick={(event) => {
-            event.stopPropagation()
-            void navigator.clipboard
-              .writeText(custodianAddress)
-              .then(() => {
-                setCopied(true)
-                window.setTimeout(() => setCopied(false), 1000)
-              })
-              .catch(() => {
-                // ignore clipboard errors
-              })
-          }}
-        >
-          {copied ? 'Copied!' : shortenAddress(custodianAddress)}
-        </button>
-      ) : null}
-      {explorerHref ? (
-        <a
-          href={explorerHref}
-          target="_blank"
-          rel="noreferrer"
-          className="grai-grinder-custodian-explorer"
-          aria-label="View custodian on block explorer"
-          title="View on block explorer"
-          onClick={(event) => event.stopPropagation()}
-        >
-          {MINT_ASSET_SOLSCAN_ICON}
-        </a>
+        <GraiGrinderCustodianCopyButton
+          custodianAddress={custodianAddress}
+          className="grai-grinder-custodian-addr grai-grinder-custodian-addr--nft-name"
+          label={label}
+        />
       ) : null}
     </span>
   )
@@ -301,7 +331,6 @@ export function GraiGrinderLastTxCell({
   const hash =
     txState?.status === 'ready' || txState?.status === 'hashOnly' ? txState.hash.trim() : ''
   const hasHash = Boolean(hash) && hash.toLowerCase() !== '0x'
-  const hashLabel = hasHash ? formatTxHashShort(hash) : '—'
   const terminalHint = terminalKind ? ` · ${terminalKind}` : ''
   const title = hasHash
     ? `${lastActionLabel}${terminalHint} · ${hash}`
@@ -321,7 +350,23 @@ export function GraiGrinderLastTxCell({
     />
   ) : null
 
-  const hashNode =
+  // Address + explorer beside the network icon.
+  const addressTrail = custodianAddress ? (
+    <span className="grai-grinder-custodian-addr-trail" title={title}>
+      <GraiGrinderCustodianCopyButton
+        custodianAddress={custodianAddress}
+        label={shortenAddress(custodianAddress)}
+      />
+      <GraiGrinderCustodianExplorerLink
+        custodianAddress={custodianAddress}
+        terminal={terminal}
+        toreador={toreador}
+      />
+    </span>
+  ) : null
+
+  const txLabel = hasHash ? formatTxHashShort(hash) : '—'
+  const txNode =
     txState?.status === 'ready' && hasHash ? (
       <a
         href={txState.explorerUrl}
@@ -330,14 +375,20 @@ export function GraiGrinderLastTxCell({
         className="grai-grinder-last-tx-link grai-grinder-last-tx-hash-link"
         title={title}
       >
-        <span className="grai-grinder-last-tx-hash">{hashLabel}</span>
+        <span className="grai-grinder-last-tx-line">
+          <span className="grai-grinder-last-tx-line-prefix">tx:</span>
+          <span className="grai-grinder-last-tx-hash">{txLabel}</span>
+        </span>
       </a>
     ) : (
       <span
-        className={`grai-grinder-last-tx-hash${!hasHash ? ' is-placeholder' : ''}`}
+        className={`grai-grinder-last-tx-line${!hasHash ? ' is-placeholder' : ''}`}
         title={title}
       >
-        {hashLabel}
+        <span className="grai-grinder-last-tx-line-prefix">tx:</span>
+        <span className={`grai-grinder-last-tx-hash${!hasHash ? ' is-placeholder' : ''}`}>
+          {txLabel}
+        </span>
       </span>
     )
 
@@ -346,8 +397,8 @@ export function GraiGrinderLastTxCell({
       <span className="grai-grinder-last-tx-stack">
         <GraiGrinderCustodianAddrRow
           custodianAddress={custodianAddress}
-          terminal={terminal}
-          toreador={toreador}
+          nftName={nftName}
+          custodianId={custodianId}
           leading={nftLeading}
         />
         <GraiGrinderCustodianChip
@@ -355,8 +406,9 @@ export function GraiGrinderLastTxCell({
           nftName={nftName}
           custodianId={custodianId}
           toreador={toreador}
-          trailing={hashNode}
+          trailing={addressTrail}
         />
+        {txNode}
       </span>
     </span>
   )
@@ -496,7 +548,7 @@ function formatGrinderTerminalLabel(terminal?: string): string {
 function buildGrinderTvlValueHint(totalUsd: number, rows: GrinderTvlBreakdownRow[]): ReactNode {
   return (
     <>
-      <span className="grai-field-info-tooltip-title">{formatGrinderUsdExact(totalUsd)}</span>
+      <span className="grai-field-info-tooltip-title">{formatGrinderUsdFull(totalUsd)}</span>
       <span className="grai-field-info-tooltip-section">
         <span className="grai-field-info-tooltip-section-label">Formula</span>
         <code>balance_quote + balance_base × spot_price</code>
@@ -511,7 +563,7 @@ function buildGrinderTvlValueHint(totalUsd: number, rows: GrinderTvlBreakdownRow
               <span className="grai-field-info-tooltip-breakdown-formula">
                 {formatGrinderTooltipAmount(row.balanceQuote)} + {formatGrinderTooltipAmount(row.balanceBase)} ×{' '}
                 {formatGrinderTooltipAmount(row.spotPrice)} ={' '}
-                {formatGrinderUsdExact(row.totalValueLocked)}
+                {formatGrinderUsdFull(row.totalValueLocked)}
               </span>
             </li>
           ))}

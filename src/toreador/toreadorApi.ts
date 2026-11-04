@@ -145,6 +145,7 @@ function coerceRow(raw: unknown): GrinderTableRow | null {
         : 0,
     yieldUsd: isFiniteNumber(r.yieldUsd) ? r.yieldUsd : 0,
     terminal: typeof r.terminal === 'string' ? r.terminal : undefined,
+    labelId: typeof r.labelId === 'string' && r.labelId.trim() ? r.labelId.trim() : undefined,
     toreador: typeof r.toreador === 'string' ? r.toreador : undefined,
     custodianAddress:
       typeof r.custodianAddress === 'string' ? r.custodianAddress : undefined,

@@ -19,7 +19,10 @@ export function formatGrinderUsdTotal(value: number): string {
     return `${sign}$${formatGrinderUsdCompactPart(abs / 1_000)}K`
   }
 
-  return `${sign}$${abs.toLocaleString('en-US')}`
+  return `${sign}$${abs.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
 }
 
 export function formatGrinderUsdExact(value: number): string {
@@ -31,6 +34,20 @@ export function formatGrinderUsdExact(value: number): string {
   return `${sign}$${abs.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  })}`
+}
+
+/** Full USD amount for tooltips (no rounding to cents). */
+export function formatGrinderUsdFull(value: number): string {
+  if (!Number.isFinite(value) || value === 0) return '$0'
+
+  const sign = value < 0 ? '-' : ''
+  const abs = Math.abs(value)
+
+  return `${sign}$${abs.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 18,
+    useGrouping: true,
   })}`
 }
 
